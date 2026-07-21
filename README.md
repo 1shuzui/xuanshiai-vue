@@ -49,8 +49,8 @@ xuanshiai-vue/
 已配置的全局样式变量（在 `uni.scss` 中）：
 
 ### 色彩
-- 主色：`$uni-color-primary: #C4612F`（蜜桃暖橙）
-- 背景色：`$uni-bg-color: #F7F4EF`（奶油米）
+- 主色：青瓷绿 oklch(62% 0.09 185)
+- 背景色：冷瓷白 oklch(97.5% 0.004 190)
 - 文字色：`$uni-text-color: #1F2421`（深暖棕）
 
 ### 圆角

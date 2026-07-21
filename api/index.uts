@@ -1,0 +1,43 @@
+/**
+ * API 统一导出
+ *
+ * 使用方式：
+ * import { getRecommendUser, getMessageList } from '@/api'
+ */
+
+// 用户相关
+export {
+  getRecommendUser,
+  getSquareUsers,
+  getUserDetail,
+  applyToMeet,
+  likeUser
+} from './user.uts'
+
+// 消息相关
+export {
+  getMessageList,
+  getChatMessages,
+  sendMessage,
+  getApplications,
+  handleApplication
+} from './message.uts'
+
+// 社区相关
+export {
+  getDynamicList,
+  getTopics,
+  getPaperPlanes,
+  getActivities,
+  publishDynamic,
+  likeDynamic
+} from './community.uts'
+
+// 牵线/红娘相关
+export {
+  getServiceMatchmakers,
+  getVolunteerMatchmakers,
+  getAiRecommendations,
+  getCustomPackages,
+  bookMatchmaker
+} from './matchmaker.uts'

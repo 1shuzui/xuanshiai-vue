@@ -168,7 +168,7 @@
 }
 
 .header-bg {
-	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
 	padding: 48px 24px 32px;
 	text-align: center;
 }
@@ -190,21 +190,21 @@
 .badge-text {
 	font-size: 16px;
 	font-weight: 500;
-	color: #FFFFFF;
+	color: var(--text-invert);
 }
 
 .header-title {
 	display: block;
 	font-size: 24px;
 	font-weight: 500;
-	color: #FFFFFF;
+	color: var(--text-invert);
 	margin-bottom: 8px;
 }
 
 .header-desc {
 	display: block;
 	font-size: 14px;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--text-invert);
 }
 
 .expire-info {
@@ -213,7 +213,7 @@
 
 .expire-text {
 	font-size: 14px;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--text-invert);
 }
 
 .privileges-section {
@@ -281,8 +281,8 @@
 }
 
 .plan-item.selected {
-	border-color: #FFD700;
-	background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%);
+	border-color: var(--accent);
+	background: linear-gradient(135deg, oklch(62% 0.09 185 / 0.1) 0%, oklch(50% 0.10 40 / 0.1) 100%);
 }
 
 .plan-badge {
@@ -290,8 +290,8 @@
 	top: -8px;
 	left: 16px;
 	padding: 4px 12px;
-	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-	color: #FFFFFF;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+	color: var(--text-invert);
 	border-radius: 999px;
 	font-size: 12px;
 	font-weight: 500;
@@ -314,7 +314,7 @@
 .plan-price {
 	font-size: 24px;
 	font-weight: 600;
-	color: #FFA500;
+	color: var(--accent);
 }
 
 .plan-unit {
@@ -338,8 +338,8 @@
 
 .discount {
 	padding: 2px 8px;
-	background: #FF4444;
-	color: #FFFFFF;
+	background: var(--accent);
+	color: var(--text-invert);
 	border-radius: 999px;
 	font-size: 11px;
 }
@@ -348,7 +348,7 @@
 	position: absolute;
 	right: 20px;
 	font-size: 24px;
-	color: #FFD700;
+	color: var(--accent);
 }
 
 .footer {
@@ -377,14 +377,14 @@
 .total-price {
 	font-size: 28px;
 	font-weight: 600;
-	color: #FFA500;
+	color: var(--accent);
 }
 
 .buy-btn {
 	width: 100%;
 	height: 48px;
-	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-	color: #FFFFFF;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+	color: var(--text-invert);
 	border-radius: 999px;
 	font-size: 16px;
 	font-weight: 500;
@@ -393,8 +393,8 @@
 .renew-btn {
 	width: 100%;
 	height: 48px;
-	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-	color: #FFFFFF;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+	color: var(--text-invert);
 	border-radius: 999px;
 	font-size: 16px;
 	font-weight: 500;

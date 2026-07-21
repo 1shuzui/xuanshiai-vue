@@ -12,6 +12,23 @@
 		<title></title>
 		<!--preload-links-->
 		<!--app-context-->
+		<style>
+			/* H5 浏览器中显示手机视图 */
+			@media screen and (min-width: 768px) {
+				body {
+					background: #e0e0e0 !important;
+					padding: 20px 0;
+				}
+				#app {
+					max-width: 375px !important;
+					margin: 0 auto !important;
+					box-shadow: 0 0 30px rgba(0, 0, 0, 0.15) !important;
+					min-height: 667px;
+					border-radius: 12px;
+					overflow: hidden;
+				}
+			}
+		</style>
 	</head>
 	<body>
 		<div id="app"><!--app-html--></div>

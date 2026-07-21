@@ -1,0 +1,168 @@
+/**
+ * 用户相关 Mock 数据
+ * 包含：推荐用户、广场用户、用户详情
+ */
+
+// 推荐用户 Mock 数据
+export const mockRecommendUsers = [
+  {
+    id: 1,
+    name: '苏晚晴',
+    age: 26,
+    city: '杭州',
+    height: '165cm',
+    job: '产品经理',
+    school: '浙江大学',
+    mbti: 'INFP',
+    match: 87,
+    online: '3分钟前在线',
+    avatar: 'https://i.pravatar.cc/300?img=1',
+    photos: [
+      'https://i.pravatar.cc/300?img=1',
+      'https://i.pravatar.cc/300?img=2',
+      'https://i.pravatar.cc/300?img=3',
+      'https://i.pravatar.cc/300?img=4'
+    ],
+    intro: '喜欢看展、咖啡、独立音乐。周末会去美术馆或者爬山，偶尔写写东西。希望找到能一起成长、互相理解的人。',
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: true,
+      single: true
+    }
+  },
+  {
+    id: 2,
+    name: '林思雨',
+    age: 28,
+    city: '上海',
+    height: '168cm',
+    job: 'UI设计师',
+    school: '中国美术学院',
+    mbti: 'ENFP',
+    match: 92,
+    online: '1小时前在线',
+    avatar: 'https://i.pravatar.cc/300?img=5',
+    photos: ['https://i.pravatar.cc/300?img=5'],
+    intro: '热爱旅行和摄影，去过20+个国家。喜欢尝试新鲜事物，周末喜欢骑行或者去市集淘宝。',
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: true,
+      single: true
+    }
+  },
+  {
+    id: 3,
+    name: '陈悦',
+    age: 25,
+    city: '北京',
+    height: '162cm',
+    job: '律师助理',
+    school: '人民大学',
+    mbti: 'ISTJ',
+    match: 78,
+    online: '昨天在线',
+    avatar: 'https://i.pravatar.cc/300?img=9',
+    photos: ['https://i.pravatar.cc/300?img=9'],
+    intro: '喜欢阅读和健身，每周去健身房3-4次。性格沉稳，喜欢有规律的生活。',
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: false,
+      single: true
+    }
+  }
+]
+
+// 广场用户列表 Mock 数据
+export const mockSquareUsers = [
+  {
+    id: 10,
+    name: '张晓雯',
+    age: 27,
+    city: '深圳',
+    height: '170cm',
+    job: '前端工程师',
+    tags: ['实名认证', 'INTJ', '健身'],
+    avatar: 'https://i.pravatar.cc/300?img=10',
+    match: 85,
+    online: true
+  },
+  {
+    id: 11,
+    name: '王婷婷',
+    age: 29,
+    city: '广州',
+    height: '166cm',
+    job: '市场经理',
+    tags: ['实名认证', 'ENFJ', '旅行'],
+    avatar: 'https://i.pravatar.cc/300?img=11',
+    match: 81,
+    online: false
+  },
+  {
+    id: 12,
+    name: '李梦瑶',
+    age: 24,
+    city: '杭州',
+    height: '163cm',
+    job: '插画师',
+    tags: ['实名认证', 'ISFP', '看展'],
+    avatar: 'https://i.pravatar.cc/300?img=12',
+    match: 88,
+    online: true
+  },
+  {
+    id: 13,
+    name: '赵欣怡',
+    age: 26,
+    city: '成都',
+    height: '165cm',
+    job: '咨询顾问',
+    tags: ['实名认证', 'ENTJ', '阅读'],
+    avatar: 'https://i.pravatar.cc/300?img=13',
+    match: 79,
+    online: false
+  }
+]
+
+// 用户详情 Mock 数据
+export const mockUserDetail = {
+  id: 1,
+  name: '苏晚晴',
+  age: 26,
+  gender: '女',
+  city: '杭州',
+  height: '165cm',
+  weight: '52kg',
+  education: '本科',
+  school: '浙江大学',
+  job: '产品经理',
+  salary: '20-30K',
+  mbti: 'INFP',
+  constellation: '双鱼座',
+  hometown: '江苏·苏州',
+  match: 87,
+  online: '3分钟前在线',
+  avatar: 'https://i.pravatar.cc/300?img=1',
+  photos: [
+    'https://i.pravatar.cc/300?img=1',
+    'https://i.pravatar.cc/300?img=2',
+    'https://i.pravatar.cc/300?img=3',
+    'https://i.pravatar.cc/300?img=4'
+  ],
+  intro: '喜欢看展、咖啡、独立音乐。周末会去美术馆或者爬山，偶尔写写东西。希望找到能一起成长、互相理解的人。',
+  tags: ['看展', '咖啡', '独立音乐', '爬山', '阅读'],
+  certifications: {
+    realName: true,
+    education: true,
+    avatar: true,
+    single: true
+  },
+  expectations: {
+    relationship: '期待长期关系',
+    marriage: '2-3年内结婚',
+    children: '想要孩子'
+  }
+}

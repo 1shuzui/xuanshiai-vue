@@ -1,8 +1,8 @@
 # 宣誓爱 — 前端设计规范
 
-> **版本：** 1.0.0  
-> **提取自：** `design-demos/final/styles.css` 高保真原型  
-> **更新日期：** 2026-07-20  
+> **版本：** 2.0.0  
+> **设计风格：** 瓷白青瓷（冷色调克制风格）  
+> **更新日期：** 2026-07-21  
 > **适用范围：** 宣誓爱小程序所有前端页面、组件与交互
 
 ---
@@ -13,60 +13,69 @@
 
 宣誓爱采用 **OKLCH 色彩空间**，确保在不同屏幕下色彩感知一致。所有颜色必须使用 `oklch()` 格式定义。
 
-```css
-/* 基底色（背景与表面） */
---canvas: oklch(0.947 0.018 68);      /* 奶油米画布 */
---paper: oklch(0.982 0.012 72);       /* 杏白纸张 */
---surface: oklch(0.994 0.008 72);     /* 浅燕麦表面 */
---warm: oklch(0.956 0.028 61);        /* 暖色调辅助背景 */
+**设计理念：** 瓷白青瓷 —— 下午三点的茶室，天光透过磨砂玻璃，冷调瓷白 + 青瓷绿点缀 ≤10%，克制、优雅、专业。
 
-/* 文字色（深暖棕体系） */
---ink: oklch(0.292 0.033 43);         /* 主文字色（禁用纯黑） */
---ink2: oklch(0.43 0.035 46);         /* 次级文字色 */
---muted: oklch(0.58 0.025 52);        /* 辅助说明文字 */
+```css
+/* 基底色（背景与表面） - 冷调瓷白 */
+--canvas: oklch(97.5% 0.004 190);     /* 瓷白画布 */
+--paper: oklch(99% 0.002 185);        /* 纯净纸张 */
+--surface: oklch(100% 0 0);           /* 纯白表面 */
+--warm: oklch(94% 0.006 190);         /* 冷灰辅助背景 */
+
+/* 文字色（冷灰体系） */
+--ink: oklch(18% 0.01 200);           /* 主文字色（深冷灰） */
+--ink2: oklch(40% 0.01 200);          /* 次级文字色 */
+--muted: oklch(60% 0.008 200);        /* 辅助说明文字 */
 
 /* 分割与边框 */
---line: oklch(0.87 0.022 63);         /* 极细暖灰线条 */
+--line: oklch(88% 0.006 190);         /* 极细冷灰线条 */
 
-/* 主色（蜜桃暖橙） */
---accent: oklch(0.637 0.159 42);      /* 主色：按钮、选中态、CTA */
---accent2: oklch(0.548 0.152 38);     /* 主色深色变体：hover、强调 */
---soft: oklch(0.91 0.052 47);         /* 主色浅色变体：软底、标签 */
+/* 主色（青瓷绿） - 统一冷色调 */
+--accent: oklch(62% 0.09 185);        /* 主色：按钮、选中态、CTA */
+--accent2: oklch(50% 0.10 180);       /* 主色深色变体：hover、强调 */
+--soft: oklch(72% 0.06 185);          /* 主色浅色变体：软底、标签 */
 
-/* 功能色 */
---brown: oklch(0.36 0.055 38);        /* 深暖棕：强调按钮、匹配成功 */
---navy: oklch(0.36 0.067 242);        /* 深暖蓝：AI 功能、深色面板 */
---sage: oklch(0.62 0.102 153);        /* 暖绿：在线状态、成功提示 */
---sage-soft: oklch(0.93 0.035 151);   /* 暖绿浅底 */
+/* 功能色 - 统一冷色调 */
+--brown: oklch(55% 0.08 190);         /* 冷灰蓝：强调按钮 */
+--navy: oklch(36% 0.067 242);         /* 深蓝：AI 功能、深色面板 */
+--sage: oklch(58% 0.10 165);          /* 冷绿：在线状态、成功提示 */
+--sage-soft: oklch(88% 0.04 160);     /* 冷绿浅底 */
+
+/* 辅助色 */
+--bg-hover: oklch(94% 0.006 190);     /* Hover 背景 */
+--bg-subtle: oklch(91% 0.008 190);    /* 微妙背景 */
+--accent-bg: oklch(88% 0.03 185);     /* 主色浅背景 */
+--text-invert: oklch(99% 0 0);        /* 反色文字（白色） */
 ```
 
 ### 1.2 色彩使用规则
 
 | 元素 | 颜色变量 | 说明 |
 |------|----------|------|
-| 页面背景 | `--canvas` | 奶油米，降低视觉刺激 |
-| 卡片背景 | `--surface` / `--paper` | 浅燕麦表面或杏白纸张 |
-| 主按钮 | `--accent` / `--brown` | 蜜桃暖橙（通用）或深暖棕（强调） |
-| 主文字 | `--ink` | 深暖棕，**禁用 `#000` 纯黑** |
-| 次级文字 | `--ink2` | 中暖灰 |
-| 辅助说明 | `--muted` | 浅暖灰 |
-| 边框分割线 | `--line` | 极细暖灰 |
-| 选中态 | `--accent` | 蜜桃暖橙 |
-| 在线状态 | `--sage` | 暖绿小圆点 |
-| AI 功能 | `--navy` | 深暖蓝背景 |
+| 页面背景 | `--canvas` | 瓷白，清爽克制 |
+| 卡片背景 | `--surface` / `--paper` | 纯白表面或纯净纸张 |
+| 主按钮 | `--accent` | 青瓷绿（通用） |
+| 主文字 | `--ink` | 深冷灰，**禁用 `#000` 纯黑** |
+| 次级文字 | `--ink2` | 中冷灰 |
+| 辅助说明 | `--muted` | 浅冷灰 |
+| 边框分割线 | `--line` | 极细冷灰 |
+| 选中态 | `--accent` | 青瓷绿 |
+| 在线状态 | `--sage` | 冷绿小圆点 |
+| 渐变组合 | `--accent` + `--accent2` | 青瓷绿渐变 |
 
 ### 1.3 色彩禁区
 
 ❌ **禁止使用：**
-- 纯黑 `#000` 和纯白 `#fff`
-- 高饱和冷色（亮蓝、荧光绿、紫色）
-- 生硬撞色组合
+- 纯黑 `#000` 和过深的黑色
+- 高饱和暖色（橙色、红色、金色）
 - 婚庆俗艳红金色（`#ff0000`, `#ffd700`）
+- 过于鲜艳的装饰色
 
 ✅ **正确做法：**
-- 所有中性色带暖色倾向（chroma 0.005—0.03）
+- 所有中性色带冷色倾向（hue 180-200）
 - 色彩过渡使用柔和渐变
 - 装饰色低透明度使用（0.1—0.3）
+- 主色青瓷绿克制使用，不超过页面 10% 面积
 
 ---
 
@@ -191,23 +200,23 @@
 
 ## 五、阴影体系
 
-### 5.1 阴影等级（柔和暖色投影）
+### 5.1 阴影等级（柔和冷灰投影）
 
 ```css
 /* 微阴影 */
-box-shadow: 0 2px 8px oklch(0.35 0.03 45 / 0.06);
+box-shadow: 0 2px 12px oklch(20% 0.01 200 / 0.04);
 
 /* 标准阴影 */
-box-shadow: 0 4px 16px oklch(0.35 0.03 45 / 0.08);
+box-shadow: 0 4px 16px oklch(20% 0.01 200 / 0.08);
 
 /* 大阴影 */
-box-shadow: 0 8px 24px oklch(0.35 0.04 45 / 0.12);
+box-shadow: 0 8px 24px oklch(20% 0.01 200 / 0.10);
 
 /* 悬浮阴影 */
-box-shadow: 0 10px 24px oklch(0.3 0.05 240 / 0.24);
+box-shadow: 0 10px 24px oklch(62% 0.09 185 / 0.30);
 
 /* 设备外壳阴影 */
-box-shadow: 0 24px 70px oklch(0.3 0.03 40 / 0.16);
+box-shadow: 0 24px 70px oklch(20% 0.01 200 / 0.12);
 ```
 
 ### 5.2 阴影使用规则
@@ -223,7 +232,7 @@ box-shadow: 0 24px 70px oklch(0.3 0.03 40 / 0.16);
 ### 5.3 阴影禁区
 
 ❌ **禁止：**
-- 使用纯黑阴影（必须带暖色倾向）
+- 使用纯黑阴影（必须带冷灰倾向）
 - 阴影透明度过高（> 0.3）
 - 多层叠加阴影（除特殊设计外）
 - 内阴影（inset）用于装饰
@@ -236,8 +245,8 @@ box-shadow: 0 24px 70px oklch(0.3 0.03 40 / 0.16);
 
 #### 主按钮（Primary）
 ```css
-background: var(--brown);
-color: var(--paper);
+background: var(--accent);
+color: var(--text-invert);
 height: 44—50px;
 padding: 0 13—18px;
 border-radius: 9—10px;
@@ -274,7 +283,7 @@ background: var(--surface);
 border: 1px solid var(--line);
 border-radius: 10—12px;
 padding: 13—18px;
-box-shadow: 0 2px 8px oklch(0.35 0.03 45 / 0.06);
+box-shadow: 0 2px 8px oklch(0.18 0.01 200 / 0.06);
 ```
 
 #### Hero 卡片（人物照片）
@@ -286,7 +295,7 @@ overflow: hidden;
 
 #### 功能卡片（Feature）
 ```css
-background: var(--navy);
+background: var(--accent);
 color: var(--paper);
 border-radius: 12px 28px 12px 12px;
 padding: 18px;
@@ -306,7 +315,7 @@ color: var(--ink);
 
 **Focus 状态：**
 ```css
-outline: 3px solid oklch(0.72 0.13 49 / 0.45);
+outline: 3px solid oklch(62% 0.09 185 / 0.45);
 outline-offset: 2px;
 ```
 
@@ -323,9 +332,9 @@ color: var(--ink2);
 
 **强调标签：**
 ```css
-background: var(--soft);
+background: var(--accent-bg);
 border-color: var(--accent);
-color: var(--accent2);
+color: var(--accent);
 font-weight: 800;
 ```
 
@@ -346,7 +355,7 @@ padding: 0 4px;
 
 ```css
 height: 6—7px;
-background: oklch(0.94 0.03 50 / 0.22);
+background: oklch(0.94 0.006 190 / 0.22);
 border-radius: 4px;
 overflow: hidden;
 ```
@@ -354,7 +363,7 @@ overflow: hidden;
 **填充条：**
 ```css
 height: 100%;
-background: var(--soft);
+background: var(--accent-bg);
 border-radius: 4px;
 ```
 
@@ -459,9 +468,9 @@ color: var(--accent2);
 
 #### Active 状态（选中）
 ```css
-background: var(--soft);
+background: var(--accent-bg);
 border-color: var(--accent);
-color: var(--accent2);
+color: var(--accent);
 font-weight: 800;
 ```
 
@@ -592,22 +601,26 @@ img {
 
 ```css
 :root {
-  /* 色彩 */
-  --canvas: oklch(0.947 0.018 68);
-  --paper: oklch(0.982 0.012 72);
-  --surface: oklch(0.994 0.008 72);
-  --warm: oklch(0.956 0.028 61);
-  --ink: oklch(0.292 0.033 43);
-  --ink2: oklch(0.43 0.035 46);
-  --muted: oklch(0.58 0.025 52);
-  --line: oklch(0.87 0.022 63);
-  --accent: oklch(0.637 0.159 42);
-  --accent2: oklch(0.548 0.152 38);
-  --soft: oklch(0.91 0.052 47);
-  --brown: oklch(0.36 0.055 38);
-  --navy: oklch(0.36 0.067 242);
-  --sage: oklch(0.62 0.102 153);
-  --sage-soft: oklch(0.93 0.035 151);
+  /* 色彩 - 瓷白青瓷风格 */
+  --canvas: oklch(97.5% 0.004 190);
+  --paper: oklch(99% 0.002 185);
+  --surface: oklch(100% 0 0);
+  --warm: oklch(94% 0.006 190);
+  --ink: oklch(18% 0.01 200);
+  --ink2: oklch(40% 0.01 200);
+  --muted: oklch(60% 0.008 200);
+  --line: oklch(88% 0.006 190);
+  --accent: oklch(62% 0.09 185);
+  --accent2: oklch(50% 0.10 180);
+  --soft: oklch(72% 0.06 185);
+  --brown: oklch(55% 0.08 190);
+  --navy: oklch(36% 0.067 242);
+  --sage: oklch(58% 0.10 165);
+  --sage-soft: oklch(88% 0.04 160);
+  --bg-hover: oklch(94% 0.006 190);
+  --bg-subtle: oklch(91% 0.008 190);
+  --accent-bg: oklch(88% 0.03 185);
+  --text-invert: oklch(99% 0 0);
   
   /* 字体 */
   --serif: ui-serif, "Songti SC", "STSong", "Noto Serif SC", serif;
@@ -622,8 +635,8 @@ img {
 ### ❌ 绝对禁止
 
 1. **色彩禁区**
-   - 纯黑 `#000` 或纯白 `#fff`
-   - 高饱和冷色（亮蓝 `#0080ff`、荧光绿 `#00ff00`）
+   - 纯黑 `#000` 或过深的黑色
+   - 高饱和暖色（橙色 `#ff6600`、红色 `#ff0000`）
    - 婚庆红金（`#ff0000`, `#ffd700`）
 
 2. **字体禁区**
@@ -676,5 +689,6 @@ img {
 ---
 
 **文档所有者：** 宣誓爱设计团队  
-**最后审核：** 2026-07-20  
+**设计风格：** 瓷白青瓷（冷色调克制风格）  
+**最后审核：** 2026-07-21  
 **下次审核：** 新增页面或组件时同步更新

@@ -1,0 +1,333 @@
+- main [ref=e1]:
+  - complementary "设计方向与演示入口" [ref=e2]:
+    - paragraph [ref=e3]: APPROVED DIRECTION · FINAL PROTOTYPE
+    - heading "从故事认识， 到信任行动。" [level=1] [ref=e4]: 从故事认识，到信任行动。
+    - paragraph [ref=e5]: 照片负责第一眼，回答、声音和生活切片负责理解；认证在关键决策前提供可核验的信心。
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: 01 / STORY
+        - generic [ref=e9]: B · 真实叙事
+        - generic [ref=e10]: 纵向故事骨架
+      - generic [ref=e11]:
+        - generic [ref=e12]: 02 / TRUST
+        - generic [ref=e13]: C · 可信档案
+        - generic [ref=e14]: 四类认证路径
+      - generic [ref=e15]:
+        - generic [ref=e16]: 03 / ACTION
+        - generic [ref=e17]: A · 独立操作
+        - generic [ref=e18]: 清晰决策动作
+    - generic [ref=e19]:
+      - text: 交互原型快捷入口
+      - generic [ref=e20]:
+        - button "推荐故事" [ref=e21] [cursor=pointer]
+        - button "筛选" [ref=e22] [cursor=pointer]
+        - button "可信档案" [ref=e23] [cursor=pointer]
+        - button "申请认识" [ref=e24] [cursor=pointer]
+        - button "社区" [ref=e25] [cursor=pointer]
+        - button "牵线" [ref=e26] [cursor=pointer]
+        - button "消息与聊天" [ref=e27] [cursor=pointer]
+        - button "个人中心" [ref=e28] [cursor=pointer]
+      - paragraph [ref=e29]: 建议演示：播放语音 → 查看认证 → 喜欢 → 申请认识 → 演示双方同意 → 开始聊天。
+    - paragraph [ref=e30]: 可交互高保真原型 · 390 × 844 产品画布 · 人物资料均为虚构演示
+  - region "移动端原型" [ref=e32]:
+    - paragraph [ref=e33]: PRODUCT CANVAS · 390 × 844 · INTERACTIVE
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - heading "宣誓爱" [level=2] [ref=e37]
+          - paragraph [ref=e38]: 今日为你认真推荐 6 位
+        - generic [ref=e39]:
+          - button "浏览记录" [ref=e40] [cursor=pointer]
+          - button "筛选" [ref=e43] [cursor=pointer]
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - button "推荐" [ref=e50] [cursor=pointer]
+          - button "广场" [ref=e51] [cursor=pointer]
+        - generic [ref=e53]:
+          - article [ref=e54]:
+            - generic [ref=e55]:
+              - img "苏晚晴的虚构演示照片" [ref=e56]
+              - generic [ref=e57]: 01 / 04
+              - generic [ref=e58]: 当前在线
+              - button "分享名片" [ref=e60] [cursor=pointer]
+              - generic [ref=e63]:
+                - heading "苏晚晴26" [level=3] [ref=e64]
+                - paragraph [ref=e65]: 杭州 · 165cm · 插画师
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - generic [ref=e68]: 浙江大学 · 本科
+              - generic [ref=e69]: INFP
+              - generic [ref=e70]: 期待长期关系
+            - generic [ref=e71]:
+              - text: 92%
+              - generic [ref=e72]: 匹配
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]: 02 / 她的回答
+              - generic [ref=e76]: 关于我的生活
+            - generic [ref=e77]:
+              - text: “
+              - paragraph [ref=e78]: 喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - generic [ref=e81]: 03 / 听见本人
+              - generic [ref=e82]: 真实表达线索
+            - button "▶ 听听她怎么介绍自己 00:18" [ref=e83] [cursor=pointer]:
+              - generic [ref=e84]: ▶
+              - strong [ref=e86]: 听听她怎么介绍自己
+              - time [ref=e104]: 00:18
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]: 04 / 可信档案
+              - generic [ref=e108]: 资料更新于 7 月 18 日
+            - generic [ref=e109]:
+              - generic [ref=e110]:
+                - generic [ref=e111]: 四类认证
+                - generic [ref=e112]: VERIFIED 4 / 4
+              - generic [ref=e113]:
+                - generic [ref=e114]:
+                  - generic [ref=e118]: 实名
+                  - generic [ref=e119]: 身份已核验
+                - generic [ref=e120]:
+                  - generic [ref=e124]: 学历
+                  - generic [ref=e125]: 学信资料
+                - generic [ref=e126]:
+                  - generic [ref=e130]: 头像
+                  - generic [ref=e131]: 本人一致
+                - generic [ref=e132]:
+                  - generic [ref=e135]: 单身
+                  - generic [ref=e136]: 本人声明
+              - generic [ref=e137]:
+                - generic [ref=e138]: 认证结果仅说明资料核验状态
+                - button "查看说明" [ref=e139] [cursor=pointer]
+          - generic [ref=e140]:
+            - generic [ref=e141]:
+              - generic [ref=e142]: 05 / 生活切片
+              - generic [ref=e143]: 兴趣不是标签墙
+            - generic [ref=e144]:
+              - figure [ref=e145]:
+                - img "苏晚晴生活切片演示图" [ref=e146]
+              - generic [ref=e147]:
+                - generic [ref=e148]: 周六下午
+                - generic [ref=e149]: 看展与一杯咖啡
+              - generic [ref=e150]:
+                - generic [ref=e151]: 最近常做
+                - generic [ref=e152]: 城市散步
+          - generic [ref=e153]:
+            - generic [ref=e154]:
+              - generic [ref=e155]: 06 / 关系期待
+              - generic [ref=e156]: 她如何理解长期关系
+            - heading "靠近之前，先确认彼此要去哪里" [level=3] [ref=e157]
+            - generic [ref=e158]:
+              - generic [ref=e159]:
+                - generic [ref=e160]: "01"
+                - generic [ref=e161]: 愿意把真实想法说清楚，不用猜来猜去
+              - generic [ref=e162]:
+                - generic [ref=e163]: "02"
+                - generic [ref=e164]: 各自有生活，也愿意为共同计划留出时间
+              - generic [ref=e165]:
+                - generic [ref=e166]: "03"
+                - generic [ref=e167]: 把长期关系当作两个人一起完成的作品
+          - generic [ref=e168]:
+            - generic [ref=e169]:
+              - generic [ref=e170]: 07 / 合拍度
+              - generic [ref=e171]: 仅供破冰参考
+            - generic [ref=e172]:
+              - strong [ref=e173]: 92%
+              - generic [ref=e174]:
+                - generic [ref=e175]: 长期目标与生活节奏相近
+                - paragraph [ref=e176]: 你们有 3 个兴趣交集。建议从“看展”开始聊。
+            - button "查看完整人物档案" [ref=e177] [cursor=pointer]
+      - generic [ref=e180]:
+        - button "跳过" [ref=e181] [cursor=pointer]
+        - button "喜欢" [ref=e184] [cursor=pointer]
+        - button "申请认识" [ref=e188] [cursor=pointer]
+      - button "AI合拍度" [ref=e193] [cursor=pointer]: 合拍
+      - navigation "主导航" [ref=e197]:
+        - button "首页" [ref=e198] [cursor=pointer]
+        - button "牵线" [ref=e201] [cursor=pointer]
+        - button "社区" [ref=e206] [cursor=pointer]
+        - button "2 消息" [ref=e210] [cursor=pointer]:
+          - generic [ref=e214]: "2"
+          - text: 消息
+        - button "我的" [ref=e215] [cursor=pointer]
+      - generic:
+        - dialog:
+          - generic:
+            - heading [level=3]: 筛选认真关系
+            - button
+          - generic:
+            - generic:
+              - generic:
+                - text: 性别
+                - generic: 必选
+              - generic:
+                - button: 女生
+                - button: 男生
+            - generic:
+              - generic:
+                - text: 常住城市
+                - generic: 可多选
+              - generic:
+                - button: 杭州
+                - button: 南京
+                - button: 上海
+                - button: 苏州
+                - button: 宁波
+            - generic:
+              - generic:
+                - text: 年龄范围
+                - generic: 24—32 岁
+              - generic:
+                - generic: 24 岁
+                - generic: —
+                - generic: 32 岁
+            - generic:
+              - generic:
+                - text: 学历
+                - generic: 多选
+              - generic:
+                - button: 本科
+                - button: 硕士
+                - button: 博士
+                - button: 大专
+            - generic:
+              - generic:
+                - text: 身高
+                - generic: 160—175cm
+              - generic:
+                - generic: 160cm
+                - generic: —
+                - generic: 175cm
+            - generic:
+              - generic:
+                - text: 月收入
+                - generic: 真实资料优先
+              - generic:
+                - button: 不限
+                - button: 8k—15k
+                - button: 15k—30k
+                - button: 30k+
+            - generic:
+              - button: 重置
+              - button: 查看 12 位符合条件的人
+      - generic:
+        - dialog:
+          - generic:
+            - heading [level=3]: 完整人物档案
+            - button
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=4]: 苏晚晴 26
+                - paragraph: 杭州 · 165cm · 插画师
+                - paragraph: 浙江大学 · 本科
+                - generic: AI 合拍度 92%
+            - generic:
+              - generic:
+                - generic: 基本资料
+                - generic: 26 岁 · 165cm · 未婚
+              - generic:
+                - generic: 工作情况
+                - generic: 插画师 · 15k—30k
+              - generic:
+                - generic: 教育经历
+                - generic: 浙江大学 · 本科
+              - generic:
+                - generic: 籍贯
+                - generic: 浙江绍兴
+              - generic:
+                - generic: MBTI
+                - generic: INFP
+            - generic:
+              - heading [level=4]: 关于我
+              - paragraph: 喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。
+            - generic:
+              - heading [level=4]: 理想的关系
+              - paragraph: 愿意把真实想法说清楚，不用猜来猜去；各自有生活，也愿意为共同计划留出时间；把长期关系当作两个人一起完成的作品。
+            - generic:
+              - generic:
+                - generic: 四类认证
+                - generic: VERIFIED 4 / 4
+              - generic:
+                - generic:
+                  - generic: 实名
+                  - generic: 身份已核验
+                - generic:
+                  - generic: 学历
+                  - generic: 学信资料
+                - generic:
+                  - generic: 头像
+                  - generic: 本人一致
+                - generic:
+                  - generic: 单身
+                  - generic: 本人声明
+              - generic:
+                - generic: 认证结果仅说明资料核验状态
+                - button: 查看说明
+            - generic: 安全提示：认证只能降低虚假资料风险，不能替代个人判断。首次见面请选择公共场所，不转账、不共享验证码。
+      - generic:
+        - dialog:
+          - generic:
+            - heading [level=3]: 最近看过
+            - button
+      - generic:
+        - dialog:
+          - heading [level=3]: 认真地申请认识
+          - paragraph: 申请发出后，只有苏晚晴也愿意认识你，双方才会开启聊天。
+          - generic: 你今天还有 2 次免费申请。对方拒绝不会扣除次数。
+          - textbox: 你好，看到你也喜欢看展和城市散步，想认真认识一下。
+          - generic:
+            - button: 先想想
+            - button: 确认申请
+      - generic:
+        - dialog:
+          - heading [level=3]: 申请已送达
+          - paragraph: 平台已保护双方联系方式。只有双方都愿意，聊天才会开启。
+          - generic:
+            - generic:
+              - generic: ✓
+              - generic: 申请已通过平台安全检查
+            - generic:
+              - generic: "2"
+              - generic: 等待对方回应，通常在 24 小时内
+            - generic:
+              - generic: "3"
+              - generic: 双方同意后开放聊天
+          - generic:
+            - button: 查看申请
+            - button: 演示对方同意
+      - generic:
+        - dialog:
+          - generic: MUTUAL YES
+          - heading [level=3]: 你们都愿意认识彼此
+          - paragraph: 认真关系从一段真诚对话开始。平台已开放聊天，请注意保护隐私与财产安全。
+          - button: 开始聊天
+      - generic:
+        - dialog:
+          - generic:
+            - heading [level=3]: AI 合拍度解读
+            - button
+          - generic:
+            - generic:
+              - generic: 92%
+              - generic:
+                - generic: 高匹配，但仍要靠真实交流
+                - generic: 基于公开资料、关系期待与兴趣交集生成，不代表平台承诺结果。
+            - generic:
+              - generic:
+                - text: 关系目标
+                - generic: 96%
+              - generic:
+                - text: 生活节奏
+                - generic: 89%
+              - generic:
+                - text: 兴趣交集
+                - generic: 86%
+            - generic: 破冰建议：她提到周末常在西湖写生，可以从最近看过的展览或喜欢的城市散步路线开始聊。
+      - generic:
+        - dialog:
+          - generic:
+            - heading [level=3]: 功能预览
+            - button
+      - status

@@ -1,0 +1,81 @@
+/**
+ * 消息相关 API
+ * 包含：聊天列表、消息详情、申请消息
+ */
+
+import { request } from './request.uts'
+import { mockMessageList, mockChatMessages, mockApplications } from '@/mock'
+
+/**
+ * 获取聊天列表
+ */
+export async function getMessageList() {
+  return request({
+    url: '/message/list',
+    cloudFunctionName: 'message',
+    action: 'getList',
+    method: 'GET',
+    mockData: mockMessageList // Mock 数据
+  })
+}
+
+/**
+ * 获取聊天详情
+ * @param userId 对方用户 ID
+ */
+export async function getChatMessages(userId: number) {
+  return request({
+    url: '/message/chat',
+    cloudFunctionName: 'message',
+    action: 'getChatMessages',
+    method: 'GET',
+    data: { userId },
+    mockData: mockChatMessages // Mock 数据
+  })
+}
+
+/**
+ * 发送消息
+ * @param userId 对方用户 ID
+ * @param content 消息内容
+ * @param type 消息类型（text/image/voice）
+ */
+export async function sendMessage(userId: number, content: string, type: string = 'text') {
+  return request({
+    url: '/message/send',
+    cloudFunctionName: 'message',
+    action: 'send',
+    method: 'POST',
+    data: { userId, content, type },
+    mockData: { success: true, messageId: Date.now() } // Mock 数据
+  })
+}
+
+/**
+ * 获取申请消息列表
+ */
+export async function getApplications() {
+  return request({
+    url: '/message/applications',
+    cloudFunctionName: 'message',
+    action: 'getApplications',
+    method: 'GET',
+    mockData: mockApplications // Mock 数据
+  })
+}
+
+/**
+ * 处理申请（同意/拒绝）
+ * @param applicationId 申请 ID
+ * @param action 操作（accept/reject）
+ */
+export async function handleApplication(applicationId: number, action: string) {
+  return request({
+    url: '/message/application/handle',
+    cloudFunctionName: 'message',
+    action: 'handleApplication',
+    method: 'POST',
+    data: { applicationId, action },
+    mockData: { success: true } // Mock 数据
+  })
+}

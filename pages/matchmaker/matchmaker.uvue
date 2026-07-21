@@ -118,69 +118,17 @@
 	import XsaUserCard from '@/components/XsaUserCard.uvue';
 	import XsaEmpty from '@/components/XsaEmpty.uvue';
 
-	// 我的红娘
-	const myMatchmaker = ref({
-		id: 1,
-		name: '李红娘',
-		avatar: '/static/logo.png',
-		desc: '资深婚恋顾问，擅长高学历人群匹配',
-		successCount: 128,
-		serviceCount: 356
-	});
+	// 导入 API
+	import { getServiceMatchmakers, getAiRecommendations, getActivities } from '@/api';
 
-	// 推荐列表
-	const recommendList = ref([
-		{
-			id: 1,
-			name: '张小美',
-			age: 26,
-			gender: 2,
-			avatar: '/static/logo.png',
-			online: true,
-			certifications: ['实名认证', '学历认证'],
-			tags: ['温柔体贴', '爱好旅行', '喜欢美食'],
-			location: '北京·朝阳区',
-			introduction: '热爱生活，喜欢旅行和美食。'
-		},
-		{
-			id: 2,
-			name: '李婉婷',
-			age: 27,
-			gender: 2,
-			avatar: '/static/logo.png',
-			online: false,
-			certifications: ['实名认证'],
-			tags: ['文艺青年', '喜欢读书'],
-			location: '上海·徐汇区',
-			introduction: '喜欢读书和看电影。'
-		}
-	]);
+	// 我的红娘（改为 null 初始值）
+	const myMatchmaker = ref(null);
 
-	// 线下活动
-	const activityList = ref([
-		{
-			id: 1,
-			title: '周末户外徒步交友活动',
-			desc: '走进自然，邂逅真爱',
-			image: '/static/logo.png',
-			date: '本周六 14:00',
-			location: '香山公园',
-			participants: 24,
-			status: 'hot',
-			statusText: '火热报名中'
-		},
-		{
-			id: 2,
-			title: '咖啡馆轻松聚会',
-			desc: '在咖啡香中开启美好缘分',
-			image: '/static/logo.png',
-			date: '本周日 15:00',
-			location: '三里屯咖啡馆',
-			participants: 18,
-			status: 'normal',
-			statusText: '报名中'
-		}
-	]);
+	// 推荐列表（改为空数组）
+	const recommendList = ref([]);
+
+	// 线下活动（改为空数组）
+	const activityList = ref([]);
 
 	// 服务介绍
 	const serviceList = [
@@ -206,11 +154,87 @@
 		}
 	];
 
+	// 页面加载时获取数据
+	onMounted(() => {
+		loadMatchmakerData();
+		loadRecommendations();
+		loadActivities();
+	});
+
+	// 加载红娘数据
+	const loadMatchmakerData = async () => {
+		try {
+			const res = await getServiceMatchmakers();
+			if (res.success && res.data.length > 0) {
+				// 模拟分配一个红娘作为"我的红娘"
+				const matchmaker = res.data[0];
+				myMatchmaker.value = {
+					id: matchmaker.id,
+					name: matchmaker.name,
+					avatar: matchmaker.avatar,
+					desc: matchmaker.intro,
+					successCount: matchmaker.successCount,
+					serviceCount: matchmaker.consultCount
+				};
+			}
+		} catch (error) {
+			console.error('获取红娘数据失败', error);
+		}
+	};
+
+	// 加载推荐列表
+	const loadRecommendations = async () => {
+		try {
+			const res = await getAiRecommendations();
+			if (res.success && res.data.length > 0) {
+				// 将 AI 推荐转换为用户卡片格式
+				recommendList.value = res.data.map((item: any) => ({
+					id: item.userId,
+					name: item.name,
+					age: item.age,
+					gender: 2,
+					avatar: item.avatar,
+					online: true,
+					certifications: ['实名认证'],
+					tags: item.tags || [],
+					location: item.city,
+					introduction: item.aiSuggestion
+				}));
+			}
+		} catch (error) {
+			console.error('获取推荐列表失败', error);
+		}
+	};
+
+	// 加载活动列表
+	const loadActivities = async () => {
+		try {
+			const res = await getActivities();
+			if (res.success) {
+				activityList.value = res.data.map((item: any) => ({
+					id: item.id,
+					title: item.title,
+					desc: item.description || item.title,
+					image: item.cover,
+					date: item.date + ' ' + item.time,
+					location: item.location,
+					participants: item.participantCount,
+					status: item.status === 'recruiting' ? 'hot' : 'normal',
+					statusText: item.status === 'recruiting' ? '火热报名中' : item.status === 'full' ? '已满员' : '报名中'
+				}));
+			}
+		} catch (error) {
+			console.error('获取活动列表失败', error);
+		}
+	};
+
 	// 联系红娘
 	const handleChatMatchmaker = () => {
-		uni.navigateTo({
-			url: `/pages/chat/detail?userId=${myMatchmaker.value.id}&userName=${myMatchmaker.value.name}`
-		});
+		if (myMatchmaker.value) {
+			uni.navigateTo({
+				url: `/pages/chat/detail?userId=${myMatchmaker.value.id}&userName=${myMatchmaker.value.name}`
+			});
+		}
 	};
 
 	// 申请红娘
@@ -305,14 +329,14 @@
 	display: block;
 	font-size: 22px;
 	font-weight: 600;
-	color: #FFFFFF;
+	color: var(--text-invert);
 	margin-bottom: 8px;
 }
 
 .banner-desc {
 	display: block;
 	font-size: 14px;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--text-invert);
 }
 
 .banner-icon .icon {
@@ -397,7 +421,7 @@
 .chat-btn {
 	padding: 8px 16px;
 	background: var(--accent);
-	color: #FFFFFF;
+	color: var(--text-invert);
 	border-radius: 999px;
 	flex-shrink: 0;
 }
@@ -405,7 +429,7 @@
 .btn-text {
 	font-size: 13px;
 	font-weight: 500;
-	color: #FFFFFF;
+	color: var(--text-invert);
 }
 
 /* 没有红娘 */
@@ -500,13 +524,13 @@
 }
 
 .activity-tag.hot {
-	background: #FF4444;
-	color: #FFFFFF;
+	background: var(--accent);
+	color: var(--text-invert);
 }
 
 .activity-tag.normal {
-	background: var(--soft);
-	color: var(--accent2);
+	background: var(--accent-bg);
+	color: var(--accent);
 }
 
 .tag-text {

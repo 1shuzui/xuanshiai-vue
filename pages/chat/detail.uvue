@@ -104,31 +104,62 @@
 </template>
 
 <script setup lang="uts">
-	// 消息列表
-	let messages = ref([
-		{
-			id: 1,
-			type: 'text',
-			content: '你好，很高兴认识你',
-			time: '10:30',
-			showTime: true,
-			isMine: false,
-			avatar: '/static/avatar-placeholder.png'
-		},
-		{
-			id: 2,
-			type: 'text',
-			content: '你好呀，我也很高兴认识你',
-			time: '10:31',
-			showTime: false,
-			isMine: true,
-			avatar: '/static/my-avatar.png'
-		},
-	])
+	// 导入 API
+	import { getChatMessages, sendMessage as sendMessageApi } from '@/api';
+
+	// 消息列表（改为空数组）
+	let messages = ref([])
 
 	let inputText = ref('')
 	let showMore = ref(false)
 	let scrollToView = ref('')
+	let loading = ref(false)
+	let userId = ref(0)
+
+	// 页面加载时获取数据
+	onMounted(() => {
+		// 获取 URL 参数中的 userId
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = currentPage.options
+		if (options && options.userId) {
+			userId.value = parseInt(options.userId)
+			loadChatMessages()
+		}
+	})
+
+	// 加载聊天记录
+	const loadChatMessages = async () => {
+		try {
+			loading.value = true
+			const res = await getChatMessages(userId.value)
+			if (res.success) {
+				// 转换消息格式
+				messages.value = res.data.map((msg: any) => ({
+					id: msg.id,
+					type: msg.type,
+					content: msg.content,
+					time: formatTime(msg.time),
+					showTime: true, // 可以根据时间间隔判断是否显示
+					isMine: msg.isMine,
+					avatar: msg.senderAvatar
+				}))
+				scrollToBottom()
+			}
+		} catch (error) {
+			console.error('获取聊天记录失败', error)
+		} finally {
+			loading.value = false
+		}
+	}
+
+	// 格式化时间
+	const formatTime = (timestamp: number): string => {
+		const date = new Date(timestamp)
+		const hours = date.getHours().toString().padStart(2, '0')
+		const minutes = date.getMinutes().toString().padStart(2, '0')
+		return `${hours}:${minutes}`
+	}
 
 	// 输入事件
 	const onInput = (e: InputEvent) => {
@@ -136,28 +167,41 @@
 	}
 
 	// 发送消息
-	const sendMessage = () => {
+	const sendMessage = async () => {
 		if (!inputText.value.trim()) {
 			return
 		}
 
+		const content = inputText.value
 		const newMsg = {
-			id: messages.value.length + 1,
+			id: Date.now(),
 			type: 'text',
-			content: inputText.value,
+			content: content,
 			time: getCurrentTime(),
 			showTime: false,
 			isMine: true,
 			avatar: '/static/my-avatar.png'
 		}
 
+		// 立即添加到界面
 		messages.value.push(newMsg)
 		inputText.value = ''
-
-		// 滚动到底部
 		scrollToBottom()
 
-		// TODO: 调用发送消息接口
+		// 调用发送消息接口
+		try {
+			const res = await sendMessageApi(userId.value, content, 'text')
+			if (res.success) {
+				// 更新消息ID
+				newMsg.id = res.data.messageId
+			}
+		} catch (error) {
+			console.error('发送消息失败', error)
+			uni.showToast({
+				title: '发送失败',
+				icon: 'none'
+			})
+		}
 	}
 
 	// 预览图片
@@ -269,11 +313,6 @@
 		const minutes = now.getMinutes().toString().padStart(2, '0')
 		return `${hours}:${minutes}`
 	}
-
-	// 页面加载时滚动到底部
-	onMounted(() => {
-		scrollToBottom()
-	})
 </script>
 
 <style scoped>
@@ -338,7 +377,7 @@
 
 .message-wrapper.mine .message-bubble {
 	background: var(--accent);
-	color: #FFFFFF;
+	color: var(--text-invert);
 }
 
 .text-content {
@@ -411,7 +450,7 @@
 	padding: 0 20px;
 	height: 36px;
 	background: var(--accent);
-	color: #FFFFFF;
+	color: var(--text-invert);
 	border-radius: 18px;
 	font-size: 14px;
 	flex-shrink: 0;

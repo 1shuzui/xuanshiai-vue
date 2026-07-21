@@ -67,7 +67,7 @@ const handleClick = () => {
 	position: absolute;
 	width: 110px;
 	height: 110px;
-	border: 1px solid oklch(0.82 0.08 50 / 0.45);
+	border: 1px solid oklch(0.62 0.09 185 / 0.45);
 	border-radius: 50%;
 	right: -22px;
 	bottom: -42px;

@@ -1,0 +1,94 @@
+/**
+ * 社区相关 API
+ * 包含：动态列表、话题列表、纸飞机、线下活动
+ */
+
+import { request } from './request.uts'
+import { mockDynamicList, mockTopics, mockPaperPlanes, mockActivities } from '@/mock'
+
+/**
+ * 获取动态列表
+ * @param tab 标签页（0: 推荐, 1: 关注, 2: 同城）
+ * @param page 页码
+ */
+export async function getDynamicList(tab: number = 0, page: number = 1) {
+  return request({
+    url: '/community/dynamic/list',
+    cloudFunctionName: 'community',
+    action: 'getDynamicList',
+    method: 'GET',
+    data: { tab, page },
+    mockData: mockDynamicList // Mock 数据
+  })
+}
+
+/**
+ * 获取话题列表
+ */
+export async function getTopics() {
+  return request({
+    url: '/community/topics',
+    cloudFunctionName: 'community',
+    action: 'getTopics',
+    method: 'GET',
+    mockData: mockTopics // Mock 数据
+  })
+}
+
+/**
+ * 获取纸飞机列表
+ */
+export async function getPaperPlanes() {
+  return request({
+    url: '/community/paper-planes',
+    cloudFunctionName: 'community',
+    action: 'getPaperPlanes',
+    method: 'GET',
+    mockData: mockPaperPlanes // Mock 数据
+  })
+}
+
+/**
+ * 获取线下活动列表
+ */
+export async function getActivities() {
+  return request({
+    url: '/community/activities',
+    cloudFunctionName: 'community',
+    action: 'getActivities',
+    method: 'GET',
+    mockData: mockActivities // Mock 数据
+  })
+}
+
+/**
+ * 发布动态
+ * @param content 动态内容
+ * @param photos 图片列表
+ * @param location 位置
+ */
+export async function publishDynamic(content: string, photos: string[], location: string) {
+  return request({
+    url: '/community/dynamic/publish',
+    cloudFunctionName: 'community',
+    action: 'publishDynamic',
+    method: 'POST',
+    data: { content, photos, location },
+    mockData: { success: true, dynamicId: Date.now() } // Mock 数据
+  })
+}
+
+/**
+ * 点赞动态
+ * @param dynamicId 动态 ID
+ */
+export async function likeDynamic(dynamicId: number) {
+  return request({
+    url: '/community/dynamic/like',
+    cloudFunctionName: 'community',
+    action: 'likeDynamic',
+    method: 'POST',
+    data: { dynamicId },
+    mockData: { success: true } // Mock 数据
+  })
+}

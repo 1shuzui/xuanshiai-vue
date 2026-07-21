@@ -297,7 +297,7 @@
 	height: 48px;
 	margin: 24px;
 	background: var(--surface);
-	color: #FF4444;
+	color: var(--accent);
 	border: 1px solid var(--line);
 	border-radius: 8px;
 	font-size: 16px;

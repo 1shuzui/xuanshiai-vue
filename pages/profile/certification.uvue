@@ -274,21 +274,21 @@
 
 .icon-wrapper .icon {
 	font-size: 32px;
-	color: #FFFFFF;
+	color: var(--text-invert);
 }
 
 .status-title {
 	display: block;
 	font-size: 20px;
 	font-weight: 500;
-	color: #FFFFFF;
+	color: var(--text-invert);
 	margin-bottom: 8px;
 }
 
 .status-desc {
 	display: block;
 	font-size: 14px;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--text-invert);
 }
 
 .cert-list {

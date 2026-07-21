@@ -333,7 +333,7 @@
 
 .action-btn.primary {
 	background: var(--accent);
-	color: #FFFFFF;
+	color: var(--text-invert);
 }
 
 .action-btn .icon {

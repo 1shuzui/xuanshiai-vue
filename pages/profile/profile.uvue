@@ -219,13 +219,13 @@
 
 .cert-badge {
 	padding: 4px 10px;
-	background: var(--soft);
+	background: var(--accent-bg);
 	border-radius: 999px;
 }
 
 .cert-text {
 	font-size: 12px;
-	color: var(--accent2);
+	color: var(--accent);
 }
 
 .intro {
@@ -255,7 +255,7 @@
 .progress-value {
 	font-size: 14px;
 	font-weight: 600;
-	color: var(--accent2);
+	color: var(--accent);
 }
 
 .progress-bar {
@@ -361,7 +361,7 @@
 	min-width: 18px;
 	height: 18px;
 	padding: 0 5px;
-	background: #FF4444;
+	background: var(--accent);
 	border-radius: 999px;
 	display: flex;
 	align-items: center;
@@ -372,12 +372,12 @@
 .badge-text {
 	font-size: 11px;
 	font-weight: 600;
-	color: #FFFFFF;
+	color: var(--text-invert);
 }
 
 .vip-tag {
 	padding: 3px 8px;
-	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
 	border-radius: 999px;
 	margin-right: 8px;
 }
@@ -385,7 +385,7 @@
 .vip-text {
 	font-size: 11px;
 	font-weight: 600;
-	color: #FFFFFF;
+	color: var(--text-invert);
 }
 
 .menu-arrow {

@@ -1,0 +1,174 @@
+/**
+ * 牵线/红娘相关 Mock 数据
+ * 包含：服务红娘列表、热心红娘列表、AI红娘推荐
+ */
+
+// 服务红娘列表 Mock 数据
+export const mockServiceMatchmakers = [
+  {
+    id: 1,
+    name: '李红娘',
+    avatar: 'https://i.pravatar.cc/300?img=21',
+    title: '资深红娘',
+    experience: '8年经验',
+    successCount: 520,
+    rating: 4.9,
+    tags: ['高学历', '高收入', '事业型'],
+    intro: '专注于高学历人群的情感咨询，已成功牵线500+对情侣。擅长分析性格匹配度，提供专业的恋爱建议。',
+    price: 1980,
+    consultCount: 1250
+  },
+  {
+    id: 2,
+    name: '张老师',
+    avatar: 'https://i.pravatar.cc/300?img=22',
+    title: '情感导师',
+    experience: '10年经验',
+    successCount: 680,
+    rating: 4.8,
+    tags: ['心理咨询', '婚恋指导', '情感修复'],
+    intro: '国家二级心理咨询师，擅长婚恋心理分析和情感问题解决。',
+    price: 2980,
+    consultCount: 980
+  },
+  {
+    id: 3,
+    name: '王姐',
+    avatar: 'https://i.pravatar.cc/300?img=23',
+    title: '金牌红娘',
+    experience: '12年经验',
+    successCount: 850,
+    rating: 5.0,
+    tags: ['高端定制', 'VIP服务', '一对一'],
+    intro: '专注于高端人群的婚恋服务，提供私人定制化方案。',
+    price: 4980,
+    consultCount: 650
+  }
+]
+
+// 热心红娘列表 Mock 数据（普通用户兼职）
+export const mockVolunteerMatchmakers = [
+  {
+    id: 101,
+    userId: 501,
+    name: '小美',
+    avatar: 'https://i.pravatar.cc/300?img=51',
+    age: 28,
+    city: '杭州',
+    successCount: 12,
+    rating: 4.7,
+    tags: ['95后', '文艺', '咖啡爱好者'],
+    intro: '喜欢帮朋友牵线搭桥，已经成功撮合了12对情侣！',
+    available: true
+  },
+  {
+    id: 102,
+    userId: 502,
+    name: '阿明',
+    avatar: 'https://i.pravatar.cc/300?img=52',
+    age: 30,
+    city: '上海',
+    successCount: 8,
+    rating: 4.5,
+    tags: ['互联网', '篮球', '旅行'],
+    intro: '乐于助人，希望能帮更多人找到幸福',
+    available: true
+  },
+  {
+    id: 103,
+    userId: 503,
+    name: '晓雯',
+    avatar: 'https://i.pravatar.cc/300?img=53',
+    age: 26,
+    city: '北京',
+    successCount: 15,
+    rating: 4.8,
+    tags: ['设计师', '看展', '猫奴'],
+    intro: '资深月老，朋友圈里的牵线达人',
+    available: false
+  }
+]
+
+// AI 红娘推荐 Mock 数据
+export const mockAiRecommendations = [
+  {
+    userId: 601,
+    name: '林思雨',
+    age: 28,
+    city: '上海',
+    avatar: 'https://i.pravatar.cc/300?img=61',
+    matchScore: 92,
+    matchReasons: [
+      '性格互补：你们一个内向一个外向，能互相平衡',
+      '兴趣相似：都喜欢看展、咖啡、独立音乐',
+      '价值观一致：对长期关系和婚姻有相同期待',
+      '生活节奏契合：都是周末爱出门的活跃型'
+    ],
+    aiSuggestion: '你们的匹配度很高！建议先从共同兴趣（如看展）开始聊天，约个周末一起去美术馆。',
+    tags: ['UI设计师', 'ENFP', '旅行达人']
+  },
+  {
+    userId: 602,
+    name: '陈悦',
+    age: 25,
+    city: '北京',
+    avatar: 'https://i.pravatar.cc/300?img=62',
+    matchScore: 85,
+    matchReasons: [
+      '教育背景相近：都是985高校毕业',
+      '职业稳定：律师和产品经理都是稳定职业',
+      '性格沉稳：适合建立长期稳定关系'
+    ],
+    aiSuggestion: '她性格偏内向，建议以真诚、理性的方式沟通，避免过于活跃的社交场景。',
+    tags: ['律师助理', 'ISTJ', '健身']
+  }
+]
+
+// 私人定制套餐 Mock 数据
+export const mockCustomPackages = [
+  {
+    id: 1,
+    name: '基础套餐',
+    price: 1980,
+    duration: '1个月',
+    features: [
+      '专业红娘1对1服务',
+      '3次线上咨询',
+      '推荐5位匹配对象',
+      '约会建议指导'
+    ],
+    popular: false
+  },
+  {
+    id: 2,
+    name: '进阶套餐',
+    price: 3980,
+    duration: '3个月',
+    features: [
+      '资深红娘1对1服务',
+      '不限次线上咨询',
+      '推荐10位匹配对象',
+      '约会全程指导',
+      '形象设计建议',
+      '心理测评分析'
+    ],
+    popular: true
+  },
+  {
+    id: 3,
+    name: '尊享套餐',
+    price: 9980,
+    duration: '6个月',
+    features: [
+      '金牌红娘1对1专属服务',
+      '24小时在线咨询',
+      '无限次推荐',
+      '线下约会陪同',
+      '形象改造服务',
+      '心理深度分析',
+      '家庭背景调查',
+      '成功后跟踪服务'
+    ],
+    popular: false
+  }
+]

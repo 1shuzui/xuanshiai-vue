@@ -1,0 +1,30 @@
+/**
+ * API 配置文件
+ *
+ * 🔧 开发阶段设置 USE_MOCK = true
+ * 🚀 生产阶段设置 USE_MOCK = false
+ */
+
+// ⚠️ 唯一需要修改的开关：启用/禁用 Mock 数据
+export const USE_MOCK = true
+
+// API 基础配置
+export const API_CONFIG = {
+  // uniCloud 云函数配置（生产环境使用）
+  cloudFunction: {
+    timeout: 60000,
+    spaceId: 'your-space-id' // 替换为你的 uniCloud spaceId
+  },
+
+  // 请求超时配置
+  timeout: 10000,
+
+  // 是否显示加载提示
+  showLoading: true,
+
+  // 加载提示文案
+  loadingText: '加载中...'
+}
+
+// Mock 延迟配置（模拟网络延迟，单位：毫秒）
+export const MOCK_DELAY = 300

@@ -55,7 +55,7 @@ const handleOverlayClick = () => {
 	position: fixed;
 	z-index: 60;
 	inset: 0;
-	background: oklch(0.24 0.02 38 / 0.36);
+	background: oklch(0.18 0.01 200 / 0.36);
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 0.22s;

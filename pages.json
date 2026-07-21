@@ -90,13 +90,13 @@
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "宣誓爱",
-		"navigationBarBackgroundColor": "#FBF9F5",
-		"backgroundColor": "#F7F4EF"
+		"navigationBarBackgroundColor": "#FCFCFC",
+		"backgroundColor": "#F9F9F9"
 	},
 	"tabBar": {
-		"color": "#5C635D",
-		"selectedColor": "#C4612F",
-		"backgroundColor": "#FBF9F5",
+		"color": "#666666",
+		"selectedColor": "#5A9D8E",
+		"backgroundColor": "#FCFCFC",
 		"borderStyle": "black",
 		"list": [
 			{

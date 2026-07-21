@@ -1,0 +1,81 @@
+/**
+ * 用户相关 API
+ * 包含：推荐用户、广场用户、用户详情
+ */
+
+import { request } from './request.uts'
+import { mockRecommendUsers, mockSquareUsers, mockUserDetail } from '@/mock'
+
+/**
+ * 获取推荐用户
+ */
+export async function getRecommendUser() {
+  return request({
+    url: '/user/recommend',
+    cloudFunctionName: 'user',
+    action: 'getRecommend',
+    method: 'GET',
+    mockData: mockRecommendUsers[0] // Mock 数据
+  })
+}
+
+/**
+ * 获取广场用户列表
+ * @param params 筛选参数
+ */
+export async function getSquareUsers(params: any) {
+  return request({
+    url: '/user/square',
+    cloudFunctionName: 'user',
+    action: 'getSquareList',
+    method: 'GET',
+    data: params,
+    mockData: mockSquareUsers // Mock 数据
+  })
+}
+
+/**
+ * 获取用户详情
+ * @param userId 用户 ID
+ */
+export async function getUserDetail(userId: number) {
+  return request({
+    url: '/user/detail',
+    cloudFunctionName: 'user',
+    action: 'getDetail',
+    method: 'GET',
+    data: { userId },
+    mockData: mockUserDetail // Mock 数据
+  })
+}
+
+/**
+ * 申请认识用户
+ * @param userId 用户 ID
+ * @param message 申请消息
+ */
+export async function applyToMeet(userId: number, message: string) {
+  return request({
+    url: '/user/apply',
+    cloudFunctionName: 'user',
+    action: 'apply',
+    method: 'POST',
+    data: { userId, message },
+    mockData: { success: true } // Mock 数据
+  })
+}
+
+/**
+ * 喜欢用户
+ * @param userId 用户 ID
+ */
+export async function likeUser(userId: number) {
+  return request({
+    url: '/user/like',
+    cloudFunctionName: 'user',
+    action: 'like',
+    method: 'POST',
+    data: { userId },
+    mockData: { success: true } // Mock 数据
+  })
+}

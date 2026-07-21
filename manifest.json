@@ -47,6 +47,8 @@
         "title" : "宣誓爱",
         "template" : "index.html"
     },
+    /* uniCloud 配置 - 开发阶段使用 Mock 数据，暂不关联 */
+    "uniCloud" : false,
     "app" : {
         "distribute" : {
             "android" : {
