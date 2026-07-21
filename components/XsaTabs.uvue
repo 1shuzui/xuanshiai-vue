@@ -1,0 +1,139 @@
+<template>
+	<view class="xsa-tabs">
+		<view class="tabs-header" :class="variant">
+			<view
+				v-for="(tab, index) in tabs"
+				:key="index"
+				class="tab-item"
+				:class="{ active: modelValue === index }"
+				@click="handleTabClick(index)"
+			>
+				<text class="tab-text">{{ tab }}</text>
+			</view>
+		</view>
+		<view class="tabs-content">
+			<slot></slot>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+/**
+ * XsaTabs - 宣誓爱 Tab 切换组件
+ * 遵循 DESIGN.md 设计规范
+ */
+
+interface Props {
+	tabs: string[];
+	modelValue: number;
+	variant?: 'default' | 'pill';
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	variant: 'default'
+});
+
+const emit = defineEmits<{
+	'update:modelValue': [value: number];
+	change: [index: number];
+}>();
+
+const handleTabClick = (index: number) => {
+	emit('update:modelValue', index);
+	emit('change', index);
+};
+</script>
+
+<style scoped>
+/* Tab 容器 - 遵循 DESIGN.md */
+.xsa-tabs {
+	display: flex;
+	flex-direction: column;
+}
+
+/* 默认变体（底部线条） */
+.tabs-header.default {
+	display: flex;
+	align-items: flex-end;
+	gap: 22px;
+	padding: 0 18px;
+	background: var(--paper);
+	border-bottom: 1px solid var(--line);
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+
+.tabs-header.default .tab-item {
+	height: 48px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	color: var(--muted);
+	position: relative;
+	cursor: pointer;
+	font-size: 13px;
+	transition: 0.18s;
+}
+
+.tabs-header.default .tab-item.active {
+	color: var(--ink);
+	font-weight: 800;
+}
+
+.tabs-header.default .tab-item.active::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -1px;
+	height: 3px;
+	background: var(--accent);
+	border-radius: 3px 3px 0 0;
+}
+
+/* 胶囊变体 */
+.tabs-header.pill {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 4px;
+	background: var(--surface);
+	border-radius: 999px;
+	box-shadow: 0 2px 8px oklch(0.35 0.03 45 / 0.06);
+}
+
+.tabs-header.pill .tab-item {
+	flex: 1;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+	background: transparent;
+	border: 1px solid transparent;
+	color: var(--muted);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 700;
+	transition: 0.2s;
+}
+
+.tabs-header.pill .tab-item.active {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--paper);
+}
+
+.tab-text {
+	display: block;
+}
+
+/* 内容区域 */
+.tabs-content {
+	flex: 1;
+	overflow: hidden;
+}
+</style>

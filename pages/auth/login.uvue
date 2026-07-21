@@ -1,0 +1,298 @@
+<template>
+	<view class="login-page">
+		<view class="login-header">
+			<text class="logo-text text-serif">宣誓爱</text>
+			<text class="slogan text-muted">真诚相遇，不负期待</text>
+		</view>
+
+		<view class="login-form">
+			<view class="form-item">
+				<text class="label">手机号</text>
+				<input
+					class="input"
+					type="number"
+					placeholder="请输入手机号"
+					:value="phone"
+					@input="onPhoneInput"
+					maxlength="11"
+				/>
+			</view>
+
+			<view class="form-item">
+				<text class="label">验证码</text>
+				<view class="code-input-wrapper">
+					<input
+						class="input"
+						type="number"
+						placeholder="请输入验证码"
+						:value="code"
+						@input="onCodeInput"
+						maxlength="6"
+					/>
+					<button
+						class="code-btn"
+						:disabled="codeBtnDisabled"
+						@click="sendCode"
+					>
+						{{ codeBtnText }}
+					</button>
+				</view>
+			</view>
+
+			<button class="login-btn" @click="handleLogin">登录</button>
+
+			<view class="tips">
+				<text class="tip-text">登录即表示同意</text>
+				<text class="link">《用户协议》</text>
+				<text class="tip-text">和</text>
+				<text class="link">《隐私政策》</text>
+			</view>
+		</view>
+
+		<view class="other-login">
+			<view class="divider">
+				<view class="line"></view>
+				<text class="text text-muted">其他登录方式</text>
+				<view class="line"></view>
+			</view>
+			<view class="social-btns">
+				<view class="social-btn">
+					<text class="icon">📱</text>
+					<text class="text-muted">微信</text>
+				</view>
+				<view class="social-btn">
+					<text class="icon">🅰️</text>
+					<text class="text-muted">支付宝</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	// 响应式数据
+	let phone = ref('')
+	let code = ref('')
+	let countdown = ref(0)
+	let codeBtnDisabled = ref(false)
+	let codeBtnText = ref('获取验证码')
+
+	// 输入事件
+	const onPhoneInput = (e: InputEvent) => {
+		phone.value = e.detail.value
+	}
+
+	const onCodeInput = (e: InputEvent) => {
+		code.value = e.detail.value
+	}
+
+	// 发送验证码
+	const sendCode = () => {
+		if (!phone.value || phone.value.length !== 11) {
+			uni.showToast({
+				title: '请输入正确的手机号',
+				icon: 'none'
+			})
+			return
+		}
+
+		// 开始倒计时
+		codeBtnDisabled.value = true
+		countdown.value = 60
+		codeBtnText.value = `${countdown.value}秒后重试`
+
+		const timer = setInterval(() => {
+			countdown.value--
+			if (countdown.value > 0) {
+				codeBtnText.value = `${countdown.value}秒后重试`
+			} else {
+				clearInterval(timer)
+				codeBtnDisabled.value = false
+				codeBtnText.value = '获取验证码'
+			}
+		}, 1000)
+
+		// TODO: 调用发送验证码接口
+		uni.showToast({
+			title: '验证码已发送',
+			icon: 'success'
+		})
+	}
+
+	// 登录
+	const handleLogin = () => {
+		if (!phone.value || phone.value.length !== 11) {
+			uni.showToast({
+				title: '请输入正确的手机号',
+				icon: 'none'
+			})
+			return
+		}
+
+		if (!code.value || code.value.length !== 6) {
+			uni.showToast({
+				title: '请输入6位验证码',
+				icon: 'none'
+			})
+			return
+		}
+
+		// TODO: 调用登录接口
+		uni.showToast({
+			title: '登录成功',
+			icon: 'success'
+		})
+
+		// 跳转到首页
+		setTimeout(() => {
+			uni.switchTab({
+				url: '/pages/index/index'
+			})
+		}, 1500)
+	}
+</script>
+
+<style scoped>
+.login-page {
+	min-height: 100vh;
+	background: var(--canvas);
+	padding: 80px 24px 40px;
+}
+
+.login-header {
+	text-align: center;
+	margin-bottom: 60px;
+}
+
+.logo-text {
+	display: block;
+	font-size: 36px;
+	font-weight: 500;
+	color: var(--accent2);
+	margin-bottom: 12px;
+	letter-spacing: 2px;
+}
+
+.slogan {
+	font-size: 14px;
+}
+
+.login-form {
+	margin-bottom: 60px;
+}
+
+.form-item {
+	margin-bottom: 24px;
+}
+
+.label {
+	display: block;
+	font-size: 14px;
+	color: var(--ink);
+	margin-bottom: 8px;
+}
+
+.input {
+	width: 100%;
+	height: 48px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	padding: 0 16px;
+	font-size: 15px;
+	color: var(--ink);
+}
+
+.code-input-wrapper {
+	display: flex;
+	gap: 12px;
+}
+
+.code-input-wrapper .input {
+	flex: 1;
+}
+
+.code-btn {
+	width: 110px;
+	height: 48px;
+	background: var(--soft);
+	color: var(--accent2);
+	border-radius: 8px;
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+.code-btn[disabled] {
+	opacity: 0.5;
+	color: var(--muted);
+}
+
+.login-btn {
+	width: 100%;
+	height: 48px;
+	background: var(--accent);
+	color: #FFFFFF;
+	border-radius: 999px;
+	font-size: 16px;
+	font-weight: 500;
+	margin-top: 32px;
+	margin-bottom: 16px;
+}
+
+.tips {
+	text-align: center;
+}
+
+.tip-text {
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.link {
+	font-size: 12px;
+	color: var(--accent2);
+}
+
+.other-login {
+	margin-top: 80px;
+}
+
+.divider {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 24px;
+}
+
+.divider .line {
+	flex: 1;
+	height: 1px;
+	background: var(--line);
+}
+
+.divider .text {
+	font-size: 13px;
+	white-space: nowrap;
+}
+
+.social-btns {
+	display: flex;
+	justify-content: center;
+	gap: 40px;
+}
+
+.social-btn {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+.social-btn .icon {
+	font-size: 32px;
+}
+
+.social-btn .text-muted {
+	font-size: 12px;
+}
+</style>

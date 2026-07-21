@@ -1,0 +1,382 @@
+<template>
+	<view class="certification-page">
+		<!-- 认证状态卡片 -->
+		<view class="status-card">
+			<view class="icon-wrapper">
+				<text class="icon">{{ isAllCertified ? '✓' : '⚠' }}</text>
+			</view>
+			<text class="status-title">{{ isAllCertified ? '已完成全部认证' : '建议完成全部认证' }}</text>
+			<text class="status-desc text-muted">认证信息越完善，被推荐的机会越多</text>
+		</view>
+
+		<!-- 认证项列表 -->
+		<view class="cert-list">
+			<!-- 实名认证 -->
+			<view class="cert-item" @click="certifyRealName">
+				<view class="cert-left">
+					<text class="cert-icon">🆔</text>
+					<view class="cert-info">
+						<text class="cert-title">实名认证</text>
+						<text class="cert-desc text-muted">验证真实身份，提升可信度</text>
+					</view>
+				</view>
+				<view class="cert-right">
+					<text class="cert-status" :class="certs.realName ? 'certified' : 'uncertified'">
+						{{ certs.realName ? '已认证' : '未认证' }}
+					</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 学历认证 -->
+			<view class="cert-item" @click="certifyEducation">
+				<view class="cert-left">
+					<text class="cert-icon">🎓</text>
+					<view class="cert-info">
+						<text class="cert-title">学历认证</text>
+						<text class="cert-desc text-muted">上传学历证书或学信网截图</text>
+					</view>
+				</view>
+				<view class="cert-right">
+					<text class="cert-status" :class="certs.education ? 'certified' : 'uncertified'">
+						{{ certs.education ? '已认证' : '未认证' }}
+					</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 职业认证 -->
+			<view class="cert-item" @click="certifyOccupation">
+				<view class="cert-left">
+					<text class="cert-icon">💼</text>
+					<view class="cert-info">
+						<text class="cert-title">职业认证</text>
+						<text class="cert-desc text-muted">上传工作证明或名片</text>
+					</view>
+				</view>
+				<view class="cert-right">
+					<text class="cert-status" :class="certs.occupation ? 'certified' : 'uncertified'">
+						{{ certs.occupation ? '已认证' : '未认证' }}
+					</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 收入认证 -->
+			<view class="cert-item" @click="certifyIncome">
+				<view class="cert-left">
+					<text class="cert-icon">💰</text>
+					<view class="cert-info">
+						<text class="cert-title">收入认证</text>
+						<text class="cert-desc text-muted">上传收入证明或银行流水</text>
+					</view>
+				</view>
+				<view class="cert-right">
+					<text class="cert-status" :class="certs.income ? 'certified' : 'uncertified'">
+						{{ certs.income ? '已认证' : '未认证' }}
+					</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 房产认证 -->
+			<view class="cert-item" @click="certifyHousing">
+				<view class="cert-left">
+					<text class="cert-icon">🏠</text>
+					<view class="cert-info">
+						<text class="cert-title">房产认证</text>
+						<text class="cert-desc text-muted">上传房产证或购房合同</text>
+					</view>
+				</view>
+				<view class="cert-right">
+					<text class="cert-status" :class="certs.housing ? 'certified' : 'uncertified'">
+						{{ certs.housing ? '已认证' : '未认证' }}
+					</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 车辆认证 -->
+			<view class="cert-item" @click="certifyVehicle">
+				<view class="cert-left">
+					<text class="cert-icon">🚗</text>
+					<view class="cert-info">
+						<text class="cert-title">车辆认证</text>
+						<text class="cert-desc text-muted">上传行驶证或购车发票</text>
+					</view>
+				</view>
+				<view class="cert-right">
+					<text class="cert-status" :class="certs.vehicle ? 'certified' : 'uncertified'">
+						{{ certs.vehicle ? '已认证' : '未认证' }}
+					</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 说明 -->
+		<view class="tips">
+			<text class="tips-title">认证说明</text>
+			<text class="tips-text text-muted">• 所有认证资料仅用于身份验证，严格保密</text>
+			<text class="tips-text text-muted">• 认证通过后会在资料中显示认证标识</text>
+			<text class="tips-text text-muted">• 审核时间一般为1-3个工作日</text>
+			<text class="tips-text text-muted">• 如有疑问请联系客服</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	// 认证状态
+	let certs = ref({
+		realName: true,
+		education: true,
+		occupation: false,
+		income: false,
+		housing: false,
+		vehicle: false
+	})
+
+	// 计算是否全部认证
+	const isAllCertified = computed(() => {
+		return Object.values(certs.value).every(v => v === true)
+	})
+
+	// 实名认证
+	const certifyRealName = () => {
+		if (certs.value.realName) {
+			uni.showToast({
+				title: '已完成实名认证',
+				icon: 'none'
+			})
+			return
+		}
+		uni.showModal({
+			title: '实名认证',
+			content: '请准备好身份证正反面照片',
+			confirmText: '去认证',
+			success: (res) => {
+				if (res.confirm) {
+					uploadCertImage('realName')
+				}
+			}
+		})
+	}
+
+	// 学历认证
+	const certifyEducation = () => {
+		if (certs.value.education) {
+			uni.showToast({
+				title: '已完成学历认证',
+				icon: 'none'
+			})
+			return
+		}
+		uploadCertImage('education')
+	}
+
+	// 职业认证
+	const certifyOccupation = () => {
+		if (certs.value.occupation) {
+			uni.showToast({
+				title: '已完成职业认证',
+				icon: 'none'
+			})
+			return
+		}
+		uploadCertImage('occupation')
+	}
+
+	// 收入认证
+	const certifyIncome = () => {
+		if (certs.value.income) {
+			uni.showToast({
+				title: '已完成收入认证',
+				icon: 'none'
+			})
+			return
+		}
+		uploadCertImage('income')
+	}
+
+	// 房产认证
+	const certifyHousing = () => {
+		if (certs.value.housing) {
+			uni.showToast({
+				title: '已完成房产认证',
+				icon: 'none'
+			})
+			return
+		}
+		uploadCertImage('housing')
+	}
+
+	// 车辆认证
+	const certifyVehicle = () => {
+		if (certs.value.vehicle) {
+			uni.showToast({
+				title: '已完成车辆认证',
+				icon: 'none'
+			})
+			return
+		}
+		uploadCertImage('vehicle')
+	}
+
+	// 上传认证图片
+	const uploadCertImage = (type: string) => {
+		uni.chooseImage({
+			count: 3,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				uni.showLoading({
+					title: '上传中...'
+				})
+
+				// TODO: 上传图片到服务器并提交审核
+				setTimeout(() => {
+					uni.hideLoading()
+					uni.showToast({
+						title: '已提交审核',
+						icon: 'success'
+					})
+				}, 1500)
+			}
+		})
+	}
+</script>
+
+<style scoped>
+.certification-page {
+	min-height: 100vh;
+	background: var(--canvas);
+	padding: 16px;
+}
+
+.status-card {
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+	border-radius: 16px;
+	padding: 32px 24px;
+	text-align: center;
+	margin-bottom: 16px;
+}
+
+.icon-wrapper {
+	width: 64px;
+	height: 64px;
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 auto 16px;
+}
+
+.icon-wrapper .icon {
+	font-size: 32px;
+	color: #FFFFFF;
+}
+
+.status-title {
+	display: block;
+	font-size: 20px;
+	font-weight: 500;
+	color: #FFFFFF;
+	margin-bottom: 8px;
+}
+
+.status-desc {
+	display: block;
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.cert-list {
+	background: var(--surface);
+	border-radius: 12px;
+	overflow: hidden;
+	margin-bottom: 16px;
+}
+
+.cert-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px;
+	border-bottom: 1px solid var(--line);
+}
+
+.cert-item:last-child {
+	border-bottom: none;
+}
+
+.cert-left {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 1;
+}
+
+.cert-icon {
+	font-size: 32px;
+}
+
+.cert-info {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cert-title {
+	font-size: 15px;
+	color: var(--ink);
+	font-weight: 500;
+}
+
+.cert-desc {
+	font-size: 12px;
+}
+
+.cert-right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cert-status {
+	font-size: 13px;
+}
+
+.cert-status.certified {
+	color: var(--sage);
+}
+
+.cert-status.uncertified {
+	color: var(--muted);
+}
+
+.arrow {
+	font-size: 20px;
+	color: var(--muted);
+}
+
+.tips {
+	background: var(--surface);
+	border-radius: 12px;
+	padding: 16px;
+}
+
+.tips-title {
+	display: block;
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--ink);
+	margin-bottom: 12px;
+}
+
+.tips-text {
+	display: block;
+	font-size: 13px;
+	line-height: 1.8;
+}
+</style>

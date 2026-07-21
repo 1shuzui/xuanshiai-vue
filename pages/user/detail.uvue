@@ -1,0 +1,342 @@
+<template>
+	<view class="user-detail-page">
+		<!-- 用户头部信息 -->
+		<view class="user-header">
+			<image class="avatar" :src="userInfo.avatar" mode="aspectFill"></image>
+			<view class="user-info">
+				<view class="name-row">
+					<text class="name">{{ userInfo.name }}</text>
+					<text class="age">{{ userInfo.age }}岁</text>
+					<text class="gender-icon">{{ userInfo.gender === 1 ? '♂' : '♀' }}</text>
+				</view>
+				<view class="tags">
+					<text class="tag" v-for="(tag, index) in userInfo.tags" :key="index">{{ tag }}</text>
+				</view>
+				<view class="location">
+					<text class="icon">📍</text>
+					<text class="text text-muted">{{ userInfo.location }}</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 认证标识 -->
+		<view class="certification-badges" v-if="userInfo.certifications.length > 0">
+			<view class="badge" v-for="(cert, index) in userInfo.certifications" :key="index">
+				<text class="icon">✓</text>
+				<text class="text">{{ cert }}</text>
+			</view>
+		</view>
+
+		<!-- 基本资料 -->
+		<view class="info-section">
+			<text class="section-title">基本资料</text>
+			<view class="info-grid">
+				<view class="info-item">
+					<text class="label text-muted">身高</text>
+					<text class="value">{{ userInfo.height }}cm</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">学历</text>
+					<text class="value">{{ userInfo.education }}</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">职业</text>
+					<text class="value">{{ userInfo.occupation }}</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">月收入</text>
+					<text class="value">{{ userInfo.income }}</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">婚姻状况</text>
+					<text class="value">{{ userInfo.maritalStatus }}</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">购房情况</text>
+					<text class="value">{{ userInfo.housing }}</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 个人介绍 -->
+		<view class="info-section">
+			<text class="section-title">个人介绍</text>
+			<text class="intro-text">{{ userInfo.introduction }}</text>
+		</view>
+
+		<!-- 择偶要求 -->
+		<view class="info-section">
+			<text class="section-title">择偶要求</text>
+			<text class="intro-text">{{ userInfo.requirement }}</text>
+		</view>
+
+		<!-- 相册 -->
+		<view class="info-section">
+			<text class="section-title">相册 ({{ userInfo.photos.length }})</text>
+			<view class="photo-grid">
+				<image
+					class="photo-item"
+					v-for="(photo, index) in userInfo.photos"
+					:key="index"
+					:src="photo"
+					mode="aspectFill"
+					@click="previewPhoto(index)"
+				></image>
+			</view>
+		</view>
+
+		<!-- 底部操作栏 -->
+		<view class="footer-actions">
+			<button class="action-btn secondary" @click="handleLike">
+				<text class="icon">❤️</text>
+				<text class="text">喜欢</text>
+			</button>
+			<button class="action-btn primary" @click="handleChat">
+				<text class="icon">💬</text>
+				<text class="text">打招呼</text>
+			</button>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	// TODO: 从路由参数获取用户ID，然后请求接口获取用户详情
+	let userInfo = ref({
+		id: 1,
+		avatar: '/static/avatar-placeholder.png',
+		name: '张小美',
+		age: 26,
+		gender: 2, // 1-男 2-女
+		tags: ['温柔体贴', '爱好旅行', '喜欢美食'],
+		location: '北京·朝阳区',
+		certifications: ['实名认证', '学历认证'],
+		height: 165,
+		education: '本科',
+		occupation: '产品经理',
+		income: '10-20K',
+		maritalStatus: '未婚',
+		housing: '已购房',
+		introduction: '热爱生活，喜欢旅行和美食。希望找到一个有责任心、有上进心的另一半，一起经营美好的未来。',
+		requirement: '希望对方：身高175cm以上，本科及以上学历，有稳定工作，性格温和，有责任心。',
+		photos: [
+			'/static/photo1.png',
+			'/static/photo2.png',
+			'/static/photo3.png',
+		]
+	})
+
+	// 预览照片
+	const previewPhoto = (index: number) => {
+		uni.previewImage({
+			current: index,
+			urls: userInfo.value.photos
+		})
+	}
+
+	// 喜欢
+	const handleLike = () => {
+		uni.showToast({
+			title: '已添加到心动列表',
+			icon: 'success'
+		})
+	}
+
+	// 打招呼
+	const handleChat = () => {
+		uni.navigateTo({
+			url: `/pages/chat/detail?userId=${userInfo.value.id}&userName=${userInfo.value.name}`
+		})
+	}
+</script>
+
+<style scoped>
+.user-detail-page {
+	min-height: 100vh;
+	background: var(--canvas);
+	padding-bottom: 80px;
+}
+
+.user-header {
+	background: var(--surface);
+	padding: 24px;
+	display: flex;
+	gap: 16px;
+}
+
+.avatar {
+	width: 90px;
+	height: 90px;
+	border-radius: 12px;
+	flex-shrink: 0;
+}
+
+.user-info {
+	flex: 1;
+}
+
+.name-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.name {
+	font-size: 20px;
+	font-weight: 500;
+	color: var(--ink);
+}
+
+.age {
+	font-size: 15px;
+	color: var(--ink2);
+}
+
+.gender-icon {
+	font-size: 18px;
+	color: var(--accent);
+}
+
+.tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.tag {
+	padding: 4px 12px;
+	background: var(--soft);
+	color: var(--accent2);
+	border-radius: 999px;
+	font-size: 12px;
+}
+
+.location {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.location .icon {
+	font-size: 14px;
+}
+
+.location .text {
+	font-size: 13px;
+}
+
+.certification-badges {
+	display: flex;
+	gap: 12px;
+	padding: 16px 24px;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+}
+
+.badge {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 12px;
+	background: var(--sage-soft);
+	color: var(--sage);
+	border-radius: 999px;
+	font-size: 12px;
+}
+
+.badge .icon {
+	font-size: 14px;
+}
+
+.info-section {
+	margin-top: 12px;
+	padding: 20px 24px;
+	background: var(--surface);
+}
+
+.section-title {
+	display: block;
+	font-size: 16px;
+	font-weight: 500;
+	color: var(--ink);
+	margin-bottom: 16px;
+}
+
+.info-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 16px;
+}
+
+.info-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.info-item .label {
+	font-size: 13px;
+}
+
+.info-item .value {
+	font-size: 15px;
+	color: var(--ink);
+}
+
+.intro-text {
+	font-size: 14px;
+	color: var(--ink2);
+	line-height: 1.6;
+}
+
+.photo-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+}
+
+.photo-item {
+	width: 100%;
+	aspect-ratio: 1;
+	border-radius: 8px;
+}
+
+.footer-actions {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	gap: 12px;
+	padding: 12px 24px;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+}
+
+.action-btn {
+	flex: 1;
+	height: 48px;
+	border-radius: 999px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	font-size: 16px;
+}
+
+.action-btn.secondary {
+	background: var(--paper);
+	border: 1px solid var(--line);
+	color: var(--ink);
+}
+
+.action-btn.primary {
+	background: var(--accent);
+	color: #FFFFFF;
+}
+
+.action-btn .icon {
+	font-size: 18px;
+}
+</style>

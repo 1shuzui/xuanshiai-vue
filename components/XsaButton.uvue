@@ -1,0 +1,170 @@
+<template>
+	<button
+		class="xsa-button"
+		:class="[variant, size, { disabled: disabled, loading: loading }]"
+		:disabled="disabled || loading"
+		@click="handleClick"
+	>
+		<view v-if="loading" class="loading-spinner"></view>
+		<view v-if="icon && !loading" class="icon" :data-icon="icon"></view>
+		<text class="button-text"><slot></slot></text>
+	</button>
+</template>
+
+<script setup lang="uts">
+/**
+ * XsaButton - 宣誓爱通用按钮组件
+ * 遵循 DESIGN.md 设计规范
+ */
+
+interface Props {
+	variant?: 'primary' | 'secondary' | 'text' | 'pill';
+	size?: 'small' | 'medium' | 'large';
+	icon?: string;
+	disabled?: boolean;
+	loading?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	variant: 'primary',
+	size: 'medium',
+	disabled: false,
+	loading: false
+});
+
+const emit = defineEmits<{
+	click: []
+}>();
+
+const handleClick = () => {
+	if (!props.disabled && !props.loading) {
+		emit('click');
+	}
+};
+</script>
+
+<style scoped>
+/* 基础样式 - 遵循 DESIGN.md */
+.xsa-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	border: 0;
+	cursor: pointer;
+	font-family: var(--sans);
+	font-weight: 800;
+	transition: 0.18s;
+	position: relative;
+}
+
+/* 尺寸变体 */
+.xsa-button.small {
+	height: 38px;
+	padding: 0 11px;
+	font-size: 11px;
+	border-radius: 7px;
+}
+
+.xsa-button.medium {
+	height: 44px;
+	padding: 0 13px;
+	font-size: 12px;
+	border-radius: 9px;
+}
+
+.xsa-button.large {
+	height: 50px;
+	padding: 0 18px;
+	font-size: 13px;
+	border-radius: 10px;
+}
+
+/* 主按钮 - 深暖棕背景 */
+.xsa-button.primary {
+	background: var(--brown);
+	color: var(--paper);
+	box-shadow: 0 2px 8px oklch(0.35 0.03 45 / 0.06);
+}
+
+.xsa-button.primary:hover:not(.disabled):not(.loading) {
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px oklch(0.35 0.04 45 / 0.12);
+}
+
+/* 次要按钮 - 浅色背景 + 边框 */
+.xsa-button.secondary {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--ink);
+}
+
+.xsa-button.secondary:hover:not(.disabled):not(.loading) {
+	border-color: var(--accent);
+	color: var(--accent2);
+	transform: translateY(-1px);
+}
+
+/* 文字按钮 - 透明背景 */
+.xsa-button.text {
+	background: transparent;
+	color: var(--accent2);
+	padding: 0 8px;
+}
+
+.xsa-button.text:hover:not(.disabled):not(.loading) {
+	color: var(--accent);
+}
+
+/* 胶囊按钮 - 圆形端点 */
+.xsa-button.pill {
+	border-radius: 999px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--ink);
+	padding: 10px 12px;
+	height: auto;
+	font-size: 11px;
+}
+
+.xsa-button.pill:hover:not(.disabled):not(.loading) {
+	border-color: var(--accent);
+	color: var(--accent2);
+}
+
+/* 禁用状态 */
+.xsa-button.disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+/* 加载状态 */
+.xsa-button.loading {
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.loading-spinner {
+	width: 14px;
+	height: 14px;
+	border: 2px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+/* 图标 */
+.icon {
+	width: 18px;
+	height: 18px;
+}
+
+.button-text {
+	display: block;
+}
+</style>

@@ -1,0 +1,314 @@
+<template>
+	<view class="xsa-dynamic-card">
+		<!-- 用户信息栏 -->
+		<view class="card-header" @click="handleUserClick">
+			<image class="avatar" :src="dynamic.user.avatar" mode="aspectFill"></image>
+			<view class="user-info">
+				<text class="name">{{ dynamic.user.name }}</text>
+				<text class="time text-muted">{{ dynamic.time }}</text>
+			</view>
+			<view class="more-btn" @click.stop="handleMore">
+				<text class="icon">⋯</text>
+			</view>
+		</view>
+
+		<!-- 动态内容 -->
+		<view class="card-body">
+			<!-- 文字内容 -->
+			<text class="content-text" v-if="dynamic.content">{{ dynamic.content }}</text>
+
+			<!-- 图片内容 -->
+			<view class="photo-grid" v-if="dynamic.photos && dynamic.photos.length > 0">
+				<image
+					class="photo-item"
+					:class="gridClass"
+					v-for="(photo, index) in dynamic.photos"
+					:key="index"
+					:src="photo"
+					mode="aspectFill"
+					@click="handlePhotoClick(index)"
+				></image>
+			</view>
+
+			<!-- 位置信息 -->
+			<view class="location" v-if="dynamic.location">
+				<text class="icon">📍</text>
+				<text class="text text-muted">{{ dynamic.location }}</text>
+			</view>
+		</view>
+
+		<!-- 互动栏 -->
+		<view class="card-footer">
+			<view class="action-item" @click="handleLike">
+				<text class="icon" :class="{ liked: liked }">{{ liked ? '❤️' : '🤍' }}</text>
+				<text class="text text-muted" v-if="likeCount > 0">{{ likeCount }}</text>
+			</view>
+			<view class="action-item" @click="handleComment">
+				<text class="icon">💬</text>
+				<text class="text text-muted" v-if="dynamic.commentCount > 0">{{ dynamic.commentCount }}</text>
+			</view>
+			<view class="action-item" @click="handleShare">
+				<text class="icon">📤</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+/**
+ * XsaDynamicCard - 动态卡片组件
+ * 用于社区动态列表
+ */
+
+interface Dynamic {
+	id: number;
+	user: {
+		id: number;
+		avatar: string;
+		name: string;
+	};
+	content?: string;
+	photos?: string[];
+	location?: string;
+	time: string;
+	likeCount: number;
+	commentCount: number;
+	liked?: boolean;
+}
+
+interface Props {
+	dynamic: Dynamic;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits<{
+	userClick: [userId: number];
+	photoClick: [index: number];
+	like: [dynamicId: number];
+	comment: [dynamicId: number];
+	share: [dynamicId: number];
+	more: [dynamicId: number];
+}>();
+
+// 内部状态
+let liked = ref(props.dynamic.liked || false);
+let likeCount = ref(props.dynamic.likeCount);
+
+// 图片网格样式
+const gridClass = computed(() => {
+	const count = props.dynamic.photos?.length || 0;
+	if (count === 1) return 'single';
+	if (count === 2) return 'double';
+	if (count === 4) return 'quad';
+	return 'grid';
+});
+
+// 点击用户
+const handleUserClick = () => {
+	emit('userClick', props.dynamic.user.id);
+};
+
+// 点击图片
+const handlePhotoClick = (index: number) => {
+	emit('photoClick', index);
+
+	// 使用系统预览
+	uni.previewImage({
+		current: index,
+		urls: props.dynamic.photos || []
+	});
+};
+
+// 点赞
+const handleLike = () => {
+	liked.value = !liked.value;
+	likeCount.value += liked.value ? 1 : -1;
+	emit('like', props.dynamic.id);
+};
+
+// 评论
+const handleComment = () => {
+	emit('comment', props.dynamic.id);
+};
+
+// 分享
+const handleShare = () => {
+	emit('share', props.dynamic.id);
+};
+
+// 更多操作
+const handleMore = () => {
+	emit('more', props.dynamic.id);
+};
+</script>
+
+<style scoped>
+.xsa-dynamic-card {
+	background: var(--surface);
+	margin-bottom: 8px;
+}
+
+/* 用户信息栏 */
+.card-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+}
+
+.avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.user-info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.name {
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--ink);
+}
+
+.time {
+	font-size: 12px;
+}
+
+.more-btn {
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.more-btn .icon {
+	font-size: 20px;
+	color: var(--muted);
+}
+
+/* 动态内容 */
+.card-body {
+	padding: 0 16px 12px;
+}
+
+.content-text {
+	font-size: 15px;
+	color: var(--ink);
+	line-height: 1.6;
+	display: block;
+	margin-bottom: 12px;
+}
+
+/* 图片网格 */
+.photo-grid {
+	display: grid;
+	gap: 4px;
+	margin-bottom: 8px;
+}
+
+.photo-item {
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+/* 单张图片 */
+.photo-item.single {
+	max-width: 280px;
+	max-height: 280px;
+	width: 100%;
+}
+
+/* 两张图片 */
+.photo-grid:has(.photo-item.double) {
+	grid-template-columns: repeat(2, 1fr);
+}
+
+.photo-item.double {
+	aspect-ratio: 1;
+}
+
+/* 四张图片 */
+.photo-grid:has(.photo-item.quad) {
+	grid-template-columns: repeat(2, 1fr);
+}
+
+.photo-item.quad {
+	aspect-ratio: 1;
+}
+
+/* 多张图片（3张或超过4张） */
+.photo-grid:has(.photo-item.grid) {
+	grid-template-columns: repeat(3, 1fr);
+}
+
+.photo-item.grid {
+	aspect-ratio: 1;
+}
+
+/* 位置信息 */
+.location {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.location .icon {
+	font-size: 13px;
+}
+
+.location .text {
+	font-size: 13px;
+}
+
+/* 互动栏 */
+.card-footer {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	padding: 12px 16px;
+	border-top: 1px solid var(--line);
+}
+
+.action-item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	cursor: pointer;
+	transition: all 0.18s;
+}
+
+.action-item:active {
+	transform: scale(0.92);
+}
+
+.action-item .icon {
+	font-size: 18px;
+	transition: all 0.22s;
+}
+
+.action-item .icon.liked {
+	animation: heartBeat 0.3s ease;
+}
+
+.action-item .text {
+	font-size: 13px;
+}
+
+@keyframes heartBeat {
+	0%, 100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.3);
+	}
+}
+</style>

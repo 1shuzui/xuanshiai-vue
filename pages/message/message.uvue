@@ -1,0 +1,162 @@
+<template>
+	<view class="message-page">
+		<!-- 顶部搜索栏 -->
+		<view class="search-bar">
+			<view class="search-input">
+				<text class="search-icon">🔍</text>
+				<input class="input" type="text" placeholder="搜索消息" />
+			</view>
+		</view>
+
+		<!-- 消息列表 -->
+		<scroll-view class="message-list" scroll-y @scrolltolower="handleLoadMore">
+			<!-- 空状态 -->
+			<XsaEmpty
+				v-if="messageList.length === 0 && !loading"
+				text="暂无消息"
+				description="还没有人给你发消息哦"
+				size="large"
+			/>
+
+			<!-- 消息列表 -->
+			<view v-else>
+				<XsaMessageItem
+					v-for="msg in messageList"
+					:key="msg.id"
+					:message="msg"
+					@click="handleMessageClick"
+				/>
+			</view>
+
+			<!-- 加载更多 -->
+			<view class="load-more" v-if="messageList.length > 0">
+				<text class="load-text text-muted" v-if="loading">加载中...</text>
+				<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
+			</view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaMessageItem from '@/components/XsaMessageItem.uvue';
+	import XsaEmpty from '@/components/XsaEmpty.uvue';
+
+	const loading = ref(false);
+	const hasMore = ref(true);
+
+	// 消息列表
+	const messageList = ref([
+		{
+			id: 1,
+			avatar: '/static/logo.png',
+			name: '张小美',
+			lastMessage: '你好，很高兴认识你',
+			time: Date.now() - 5 * 60 * 1000,
+			unreadCount: 3,
+			online: true,
+			messageType: 'text'
+		},
+		{
+			id: 2,
+			avatar: '/static/logo.png',
+			name: '李明',
+			lastMessage: '周末有空吗？',
+			time: Date.now() - 2 * 60 * 60 * 1000,
+			unreadCount: 0,
+			online: false,
+			messageType: 'text'
+		},
+		{
+			id: 3,
+			avatar: '/static/logo.png',
+			name: '王芳',
+			lastMessage: '[图片]',
+			time: Date.now() - 24 * 60 * 60 * 1000,
+			unreadCount: 1,
+			online: true,
+			messageType: 'image'
+		},
+		{
+			id: 4,
+			avatar: '/static/logo.png',
+			name: '刘强',
+			lastMessage: '[语音]',
+			time: Date.now() - 2 * 24 * 60 * 60 * 1000,
+			unreadCount: 0,
+			online: false,
+			messageType: 'voice'
+		}
+	]);
+
+	// 点击消息项
+	const handleMessageClick = (message: any) => {
+		uni.navigateTo({
+			url: `/pages/chat/detail?userId=${message.id}&userName=${message.name}`
+		});
+	};
+
+	// 加载更多
+	const handleLoadMore = () => {
+		if (loading.value || !hasMore.value) return;
+
+		loading.value = true;
+		// TODO: 调用加载更多接口
+		setTimeout(() => {
+			loading.value = false;
+			if (messageList.value.length >= 20) {
+				hasMore.value = false;
+			}
+		}, 1000);
+	};
+</script>
+
+<style scoped>
+.message-page {
+	height: 100vh;
+	background: var(--canvas);
+	display: flex;
+	flex-direction: column;
+}
+
+/* 搜索栏 */
+.search-bar {
+	padding: 12px 16px;
+	background: var(--surface);
+	border-bottom: 1px solid var(--line);
+}
+
+.search-input {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 40px;
+	padding: 0 16px;
+	background: var(--canvas);
+	border-radius: 20px;
+}
+
+.search-icon {
+	font-size: 16px;
+}
+
+.input {
+	flex: 1;
+	font-size: 14px;
+	color: var(--ink);
+}
+
+/* 消息列表 */
+.message-list {
+	flex: 1;
+	overflow-y: auto;
+}
+
+.load-more {
+	text-align: center;
+	padding: 16px 0;
+}
+
+.load-text {
+	font-size: 13px;
+}
+</style>

@@ -1,0 +1,416 @@
+<template>
+	<view class="vip-page">
+		<!-- 顶部背景 -->
+		<view class="header-bg">
+			<view class="vip-badge">
+				<text class="badge-icon">👑</text>
+				<text class="badge-text">{{ isVip ? 'VIP会员' : '开通VIP' }}</text>
+			</view>
+			<text class="header-title" v-if="!isVip">解锁更多高级功能</text>
+			<text class="header-desc text-muted" v-if="!isVip">提升匹配成功率，找到更合适的TA</text>
+			<view class="expire-info" v-else>
+				<text class="expire-text">到期时间：{{ expireDate }}</text>
+			</view>
+		</view>
+
+		<!-- 会员特权 -->
+		<view class="privileges-section">
+			<text class="section-title">会员特权</text>
+			<view class="privilege-grid">
+				<view class="privilege-item" v-for="(item, index) in privileges" :key="index">
+					<text class="privilege-icon">{{ item.icon }}</text>
+					<text class="privilege-title">{{ item.title }}</text>
+					<text class="privilege-desc text-muted">{{ item.desc }}</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 套餐选择 -->
+		<view class="plans-section" v-if="!isVip">
+			<text class="section-title">选择套餐</text>
+			<view class="plan-list">
+				<view
+					class="plan-item"
+					:class="selectedPlan === index ? 'selected' : ''"
+					v-for="(plan, index) in plans"
+					:key="index"
+					@click="selectPlan(index)"
+				>
+					<view class="plan-badge" v-if="plan.badge">{{ plan.badge }}</view>
+					<view class="plan-info">
+						<text class="plan-duration">{{ plan.duration }}</text>
+						<text class="plan-price">¥{{ plan.price }}</text>
+						<text class="plan-unit">/{{ plan.unit }}</text>
+					</view>
+					<view class="plan-original" v-if="plan.originalPrice">
+						<text class="original-price">原价¥{{ plan.originalPrice }}</text>
+						<text class="discount">省¥{{ plan.originalPrice - plan.price }}</text>
+					</view>
+					<text class="check-icon" v-if="selectedPlan === index">✓</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 续费按钮 -->
+		<view class="footer" v-if="!isVip">
+			<view class="price-info">
+				<text class="total-label">合计：</text>
+				<text class="total-price">¥{{ selectedPlanPrice }}</text>
+			</view>
+			<button class="buy-btn" @click="handleBuy">立即开通</button>
+		</view>
+
+		<!-- 已是会员的续费按钮 -->
+		<view class="footer" v-else>
+			<button class="renew-btn" @click="handleRenew">续费会员</button>
+		</view>
+
+		<!-- 用户协议 -->
+		<view class="agreement">
+			<text class="agreement-text text-muted">开通即表示同意</text>
+			<text class="agreement-link">《会员服务协议》</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	// 会员状态
+	let isVip = ref(false)
+	let expireDate = ref('2024-12-31')
+
+	// 特权列表
+	const privileges = [
+		{ icon: '👁️', title: '谁看过我', desc: '查看访客记录' },
+		{ icon: '💕', title: '无限喜欢', desc: '不限次数表达心动' },
+		{ icon: '💬', title: '优先推荐', desc: '获得更多曝光机会' },
+		{ icon: '🎯', title: '高级筛选', desc: '更精准的匹配条件' },
+		{ icon: '👤', title: '隐身访问', desc: '查看资料不留痕迹' },
+		{ icon: '⚡', title: '超级曝光', desc: '置顶推荐位展示' },
+	]
+
+	// 套餐列表
+	const plans = [
+		{
+			duration: '1个月',
+			price: 88,
+			unit: '月',
+			originalPrice: 0,
+			badge: ''
+		},
+		{
+			duration: '3个月',
+			price: 198,
+			unit: '季',
+			originalPrice: 264,
+			badge: '推荐'
+		},
+		{
+			duration: '12个月',
+			price: 588,
+			unit: '年',
+			originalPrice: 1056,
+			badge: '最划算'
+		},
+	]
+
+	// 选中的套餐
+	let selectedPlan = ref(1) // 默认选中第二个（推荐）
+
+	// 计算选中套餐的价格
+	const selectedPlanPrice = computed(() => {
+		return plans[selectedPlan.value].price
+	})
+
+	// 选择套餐
+	const selectPlan = (index: number) => {
+		selectedPlan.value = index
+	}
+
+	// 立即开通
+	const handleBuy = () => {
+		const plan = plans[selectedPlan.value]
+		uni.showModal({
+			title: '确认开通',
+			content: `确定开通${plan.duration}VIP会员吗？\n需支付¥${plan.price}`,
+			confirmText: '确认支付',
+			success: (res) => {
+				if (res.confirm) {
+					// TODO: 调用支付接口
+					uni.showLoading({
+						title: '支付中...'
+					})
+
+					setTimeout(() => {
+						uni.hideLoading()
+						uni.showToast({
+							title: '开通成功',
+							icon: 'success'
+						})
+						// 更新会员状态
+						isVip.value = true
+					}, 2000)
+				}
+			}
+		})
+	}
+
+	// 续费
+	const handleRenew = () => {
+		isVip.value = false // 切换到选择套餐界面
+	}
+</script>
+
+<style scoped>
+.vip-page {
+	min-height: 100vh;
+	background: var(--canvas);
+	padding-bottom: 120px;
+}
+
+.header-bg {
+	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+	padding: 48px 24px 32px;
+	text-align: center;
+}
+
+.vip-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 20px;
+	background: rgba(255, 255, 255, 0.3);
+	border-radius: 999px;
+	margin-bottom: 16px;
+}
+
+.badge-icon {
+	font-size: 20px;
+}
+
+.badge-text {
+	font-size: 16px;
+	font-weight: 500;
+	color: #FFFFFF;
+}
+
+.header-title {
+	display: block;
+	font-size: 24px;
+	font-weight: 500;
+	color: #FFFFFF;
+	margin-bottom: 8px;
+}
+
+.header-desc {
+	display: block;
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.expire-info {
+	margin-top: 8px;
+}
+
+.expire-text {
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.privileges-section {
+	padding: 24px;
+}
+
+.section-title {
+	display: block;
+	font-size: 18px;
+	font-weight: 500;
+	color: var(--ink);
+	margin-bottom: 16px;
+}
+
+.privilege-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 16px;
+}
+
+.privilege-item {
+	background: var(--surface);
+	border-radius: 12px;
+	padding: 16px;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+.privilege-icon {
+	font-size: 32px;
+}
+
+.privilege-title {
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--ink);
+}
+
+.privilege-desc {
+	font-size: 12px;
+}
+
+.plans-section {
+	padding: 0 24px 24px;
+}
+
+.plan-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.plan-item {
+	position: relative;
+	background: var(--surface);
+	border: 2px solid var(--line);
+	border-radius: 12px;
+	padding: 20px;
+	display: flex;
+	align-items: center;
+	transition: all 0.3s;
+}
+
+.plan-item.selected {
+	border-color: #FFD700;
+	background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%);
+}
+
+.plan-badge {
+	position: absolute;
+	top: -8px;
+	left: 16px;
+	padding: 4px 12px;
+	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+	color: #FFFFFF;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.plan-info {
+	flex: 1;
+	display: flex;
+	align-items: baseline;
+	gap: 4px;
+}
+
+.plan-duration {
+	font-size: 16px;
+	font-weight: 500;
+	color: var(--ink);
+	margin-right: 8px;
+}
+
+.plan-price {
+	font-size: 24px;
+	font-weight: 600;
+	color: #FFA500;
+}
+
+.plan-unit {
+	font-size: 14px;
+	color: var(--muted);
+}
+
+.plan-original {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	margin-right: 32px;
+}
+
+.original-price {
+	font-size: 12px;
+	color: var(--muted);
+	text-decoration: line-through;
+}
+
+.discount {
+	padding: 2px 8px;
+	background: #FF4444;
+	color: #FFFFFF;
+	border-radius: 999px;
+	font-size: 11px;
+}
+
+.check-icon {
+	position: absolute;
+	right: 20px;
+	font-size: 24px;
+	color: #FFD700;
+}
+
+.footer {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+	padding: 12px 24px;
+	padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+.price-info {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	margin-bottom: 12px;
+}
+
+.total-label {
+	font-size: 14px;
+	color: var(--ink2);
+}
+
+.total-price {
+	font-size: 28px;
+	font-weight: 600;
+	color: #FFA500;
+}
+
+.buy-btn {
+	width: 100%;
+	height: 48px;
+	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+	color: #FFFFFF;
+	border-radius: 999px;
+	font-size: 16px;
+	font-weight: 500;
+}
+
+.renew-btn {
+	width: 100%;
+	height: 48px;
+	background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+	color: #FFFFFF;
+	border-radius: 999px;
+	font-size: 16px;
+	font-weight: 500;
+}
+
+.agreement {
+	text-align: center;
+	padding: 16px 24px;
+}
+
+.agreement-text {
+	font-size: 12px;
+}
+
+.agreement-link {
+	font-size: 12px;
+	color: var(--accent2);
+}
+</style>

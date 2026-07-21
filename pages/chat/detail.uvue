@@ -1,0 +1,468 @@
+<template>
+	<view class="chat-page">
+		<!-- 消息列表 -->
+		<scroll-view
+			class="message-list"
+			scroll-y
+			:scroll-into-view="scrollToView"
+			scroll-with-animation
+		>
+			<view class="message-item" v-for="(msg, index) in messages" :key="index" :id="'msg-' + index">
+				<!-- 时间线 -->
+				<view class="time-divider" v-if="msg.showTime">
+					<text class="time-text">{{ msg.time }}</text>
+				</view>
+
+				<!-- 消息内容 -->
+				<view class="message-wrapper" :class="msg.isMine ? 'mine' : 'other'">
+					<!-- 对方头像 -->
+					<image
+						class="avatar"
+						:src="msg.avatar"
+						mode="aspectFill"
+						v-if="!msg.isMine"
+					></image>
+
+					<!-- 消息气泡 -->
+					<view class="message-bubble" :class="msg.type">
+						<!-- 文本消息 -->
+						<text class="text-content" v-if="msg.type === 'text'">{{ msg.content }}</text>
+
+						<!-- 图片消息 -->
+						<image
+							class="image-content"
+							:src="msg.content"
+							mode="aspectFill"
+							@click="previewImage(msg.content)"
+							v-if="msg.type === 'image'"
+						></image>
+
+						<!-- 语音消息 -->
+						<view class="voice-content" v-if="msg.type === 'voice'">
+							<text class="icon">🔊</text>
+							<text class="duration">{{ msg.duration }}''</text>
+						</view>
+					</view>
+
+					<!-- 我的头像 -->
+					<image
+						class="avatar"
+						:src="msg.avatar"
+						mode="aspectFill"
+						v-if="msg.isMine"
+					></image>
+				</view>
+			</view>
+		</scroll-view>
+
+		<!-- 输入栏 -->
+		<view class="input-bar">
+			<view class="input-wrapper">
+				<button class="tool-btn" @click="showMoreMenu">
+					<text class="icon">+</text>
+				</button>
+				<input
+					class="input"
+					type="text"
+					:value="inputText"
+					@input="onInput"
+					placeholder="说点什么..."
+					confirm-type="send"
+					@confirm="sendMessage"
+				/>
+				<button class="tool-btn" @click="sendVoice" v-if="!inputText">
+					<text class="icon">🎤</text>
+				</button>
+				<button class="send-btn" @click="sendMessage" v-else>发送</button>
+			</view>
+		</view>
+
+		<!-- 更多功能菜单 -->
+		<view class="more-menu" v-if="showMore" @click="closeMoreMenu">
+			<view class="menu-content" @click.stop>
+				<view class="menu-grid">
+					<view class="menu-item" @click="chooseImage">
+						<view class="menu-icon">📷</view>
+						<text class="menu-text">相册</text>
+					</view>
+					<view class="menu-item" @click="takePhoto">
+						<view class="menu-icon">📸</view>
+						<text class="menu-text">拍照</text>
+					</view>
+					<view class="menu-item" @click="sendGift">
+						<view class="menu-icon">🎁</view>
+						<text class="menu-text">礼物</text>
+					</view>
+					<view class="menu-item" @click="viewProfile">
+						<view class="menu-icon">👤</view>
+						<text class="menu-text">资料</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	// 消息列表
+	let messages = ref([
+		{
+			id: 1,
+			type: 'text',
+			content: '你好，很高兴认识你',
+			time: '10:30',
+			showTime: true,
+			isMine: false,
+			avatar: '/static/avatar-placeholder.png'
+		},
+		{
+			id: 2,
+			type: 'text',
+			content: '你好呀，我也很高兴认识你',
+			time: '10:31',
+			showTime: false,
+			isMine: true,
+			avatar: '/static/my-avatar.png'
+		},
+	])
+
+	let inputText = ref('')
+	let showMore = ref(false)
+	let scrollToView = ref('')
+
+	// 输入事件
+	const onInput = (e: InputEvent) => {
+		inputText.value = e.detail.value
+	}
+
+	// 发送消息
+	const sendMessage = () => {
+		if (!inputText.value.trim()) {
+			return
+		}
+
+		const newMsg = {
+			id: messages.value.length + 1,
+			type: 'text',
+			content: inputText.value,
+			time: getCurrentTime(),
+			showTime: false,
+			isMine: true,
+			avatar: '/static/my-avatar.png'
+		}
+
+		messages.value.push(newMsg)
+		inputText.value = ''
+
+		// 滚动到底部
+		scrollToBottom()
+
+		// TODO: 调用发送消息接口
+	}
+
+	// 预览图片
+	const previewImage = (url: string) => {
+		const images = messages.value
+			.filter(msg => msg.type === 'image')
+			.map(msg => msg.content)
+
+		uni.previewImage({
+			current: url,
+			urls: images
+		})
+	}
+
+	// 显示更多菜单
+	const showMoreMenu = () => {
+		showMore.value = true
+	}
+
+	// 关闭更多菜单
+	const closeMoreMenu = () => {
+		showMore.value = false
+	}
+
+	// 选择图片
+	const chooseImage = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album'],
+			success: (res) => {
+				const newMsg = {
+					id: messages.value.length + 1,
+					type: 'image',
+					content: res.tempFilePaths[0],
+					time: getCurrentTime(),
+					showTime: false,
+					isMine: true,
+					avatar: '/static/my-avatar.png'
+				}
+				messages.value.push(newMsg)
+				scrollToBottom()
+				closeMoreMenu()
+				// TODO: 上传图片并发送
+			}
+		})
+	}
+
+	// 拍照
+	const takePhoto = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['camera'],
+			success: (res) => {
+				const newMsg = {
+					id: messages.value.length + 1,
+					type: 'image',
+					content: res.tempFilePaths[0],
+					time: getCurrentTime(),
+					showTime: false,
+					isMine: true,
+					avatar: '/static/my-avatar.png'
+				}
+				messages.value.push(newMsg)
+				scrollToBottom()
+				closeMoreMenu()
+			}
+		})
+	}
+
+	// 发送语音
+	const sendVoice = () => {
+		uni.showToast({
+			title: '长按录音',
+			icon: 'none'
+		})
+	}
+
+	// 发送礼物
+	const sendGift = () => {
+		uni.showToast({
+			title: '礼物功能开发中',
+			icon: 'none'
+		})
+		closeMoreMenu()
+	}
+
+	// 查看资料
+	const viewProfile = () => {
+		// TODO: 获取对方用户ID
+		uni.navigateTo({
+			url: '/pages/user/detail?userId=1'
+		})
+		closeMoreMenu()
+	}
+
+	// 滚动到底部
+	const scrollToBottom = () => {
+		setTimeout(() => {
+			scrollToView.value = 'msg-' + (messages.value.length - 1)
+		}, 100)
+	}
+
+	// 获取当前时间
+	const getCurrentTime = (): string => {
+		const now = new Date()
+		const hours = now.getHours().toString().padStart(2, '0')
+		const minutes = now.getMinutes().toString().padStart(2, '0')
+		return `${hours}:${minutes}`
+	}
+
+	// 页面加载时滚动到底部
+	onMounted(() => {
+		scrollToBottom()
+	})
+</script>
+
+<style scoped>
+.chat-page {
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	background: var(--canvas);
+}
+
+.message-list {
+	flex: 1;
+	padding: 16px;
+	overflow-y: auto;
+}
+
+.message-item {
+	margin-bottom: 16px;
+}
+
+.time-divider {
+	text-align: center;
+	margin-bottom: 16px;
+}
+
+.time-text {
+	display: inline-block;
+	padding: 4px 12px;
+	background: var(--line);
+	color: var(--muted);
+	border-radius: 999px;
+	font-size: 12px;
+}
+
+.message-wrapper {
+	display: flex;
+	gap: 8px;
+}
+
+.message-wrapper.mine {
+	flex-direction: row-reverse;
+}
+
+.avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.message-bubble {
+	max-width: 240px;
+	padding: 12px 16px;
+	border-radius: 12px;
+	word-break: break-all;
+}
+
+.message-wrapper.other .message-bubble {
+	background: var(--surface);
+	color: var(--ink);
+}
+
+.message-wrapper.mine .message-bubble {
+	background: var(--accent);
+	color: #FFFFFF;
+}
+
+.text-content {
+	font-size: 15px;
+	line-height: 1.4;
+}
+
+.image-content {
+	display: block;
+	max-width: 200px;
+	max-height: 200px;
+	border-radius: 8px;
+}
+
+.voice-content {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 80px;
+}
+
+.voice-content .icon {
+	font-size: 18px;
+}
+
+.voice-content .duration {
+	font-size: 14px;
+}
+
+.input-bar {
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+	padding: 8px 16px;
+	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+.input-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.tool-btn {
+	width: 36px;
+	height: 36px;
+	background: var(--paper);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.tool-btn .icon {
+	font-size: 20px;
+	color: var(--ink2);
+}
+
+.input {
+	flex: 1;
+	height: 36px;
+	background: var(--paper);
+	border-radius: 18px;
+	padding: 0 16px;
+	font-size: 14px;
+	color: var(--ink);
+}
+
+.send-btn {
+	padding: 0 20px;
+	height: 36px;
+	background: var(--accent);
+	color: #FFFFFF;
+	border-radius: 18px;
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+.more-menu {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	z-index: 999;
+}
+
+.menu-content {
+	background: var(--surface);
+	border-radius: 16px 16px 0 0;
+	padding: 24px;
+	padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.menu-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20px;
+}
+
+.menu-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+.menu-icon {
+	width: 56px;
+	height: 56px;
+	background: var(--paper);
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 28px;
+}
+
+.menu-text {
+	font-size: 12px;
+	color: var(--ink2);
+}
+</style>

@@ -1,0 +1,314 @@
+<template>
+	<view class="community-page">
+		<!-- 顶部 Tab 切换 -->
+		<view class="top-tabs">
+			<view
+				class="tab-item"
+				:class="{ active: currentTab === 0 }"
+				@click="switchTab(0)"
+			>
+				<text class="tab-text">推荐</text>
+			</view>
+			<view
+				class="tab-item"
+				:class="{ active: currentTab === 1 }"
+				@click="switchTab(1)"
+			>
+				<text class="tab-text">关注</text>
+			</view>
+			<view
+				class="tab-item"
+				:class="{ active: currentTab === 2 }"
+				@click="switchTab(2)"
+			>
+				<text class="tab-text">同城</text>
+			</view>
+		</view>
+
+		<!-- 动态列表 -->
+		<scroll-view class="dynamic-list" scroll-y @scrolltolower="handleLoadMore">
+			<!-- 空状态 -->
+			<XsaEmpty
+				v-if="dynamicList.length === 0 && !loading"
+				text="暂无动态"
+				description="快来发布第一条动态吧"
+				:show-action="true"
+				action-text="发布动态"
+				@action="handlePublish"
+			/>
+
+			<!-- 动态列表 -->
+			<view v-else>
+				<XsaDynamicCard
+					v-for="item in dynamicList"
+					:key="item.id"
+					:dynamic="item"
+					@user-click="handleUserClick"
+					@like="handleLike"
+					@comment="handleComment"
+					@share="handleShare"
+					@more="handleMore"
+				/>
+			</view>
+
+			<!-- 加载更多 -->
+			<view class="load-more" v-if="dynamicList.length > 0">
+				<text class="load-text text-muted" v-if="loading">加载中...</text>
+				<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
+			</view>
+		</scroll-view>
+
+		<!-- 发布按钮 -->
+		<view class="publish-fab" @click="handlePublish">
+			<text class="fab-icon">✏️</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaDynamicCard from '@/components/XsaDynamicCard.uvue';
+	import XsaEmpty from '@/components/XsaEmpty.uvue';
+
+	const currentTab = ref(0);
+	const loading = ref(false);
+	const hasMore = ref(true);
+
+	// 动态列表
+	const dynamicList = ref([
+		{
+			id: 1,
+			user: {
+				id: 1,
+				avatar: '/static/logo.png',
+				name: '张小美'
+			},
+			content: '今天天气真好，出门逛街啦～',
+			photos: [
+				'/static/logo.png',
+				'/static/logo.png',
+				'/static/logo.png'
+			],
+			location: '北京·朝阳区',
+			time: '2小时前',
+			likeCount: 25,
+			commentCount: 8,
+			liked: false
+		},
+		{
+			id: 2,
+			user: {
+				id: 2,
+				avatar: '/static/logo.png',
+				name: '李明'
+			},
+			content: '周末去爬山，风景真美！',
+			photos: [
+				'/static/logo.png',
+				'/static/logo.png'
+			],
+			location: '杭州·西湖区',
+			time: '5小时前',
+			likeCount: 42,
+			commentCount: 15,
+			liked: false
+		},
+		{
+			id: 3,
+			user: {
+				id: 3,
+				avatar: '/static/logo.png',
+				name: '王芳'
+			},
+			content: '今天做了一道新菜，味道不错哦！大家有什么推荐的菜谱吗？',
+			photos: [
+				'/static/logo.png'
+			],
+			location: '上海·徐汇区',
+			time: '昨天',
+			likeCount: 38,
+			commentCount: 12,
+			liked: true
+		},
+		{
+			id: 4,
+			user: {
+				id: 4,
+				avatar: '/static/logo.png',
+				name: '刘强'
+			},
+			content: '分享一下最近看的书，推荐给大家～',
+			photos: [],
+			location: '',
+			time: '2天前',
+			likeCount: 18,
+			commentCount: 6,
+			liked: false
+		}
+	]);
+
+	// 切换 Tab
+	const switchTab = (index: number) => {
+		currentTab.value = index;
+		// TODO: 根据不同 Tab 加载不同内容
+	};
+
+	// 点击用户
+	const handleUserClick = (userId: number) => {
+		uni.navigateTo({
+			url: `/pages/user/detail?userId=${userId}`
+		});
+	};
+
+	// 点赞
+	const handleLike = (dynamicId: number) => {
+		const dynamic = dynamicList.value.find(d => d.id === dynamicId);
+		if (dynamic) {
+			// TODO: 调用点赞接口
+			uni.showToast({
+				title: dynamic.liked ? '取消点赞' : '点赞成功',
+				icon: 'none'
+			});
+		}
+	};
+
+	// 评论
+	const handleComment = (dynamicId: number) => {
+		uni.showToast({
+			title: '评论功能开发中',
+			icon: 'none'
+		});
+		// TODO: 跳转到评论页
+	};
+
+	// 分享
+	const handleShare = (dynamicId: number) => {
+		uni.showActionSheet({
+			itemList: ['分享到微信', '分享到朋友圈', '复制链接'],
+			success: (res) => {
+				// TODO: 处理分享
+				uni.showToast({
+					title: '分享成功',
+					icon: 'success'
+				});
+			}
+		});
+	};
+
+	// 更多操作
+	const handleMore = (dynamicId: number) => {
+		uni.showActionSheet({
+			itemList: ['举报', '不感兴趣', '取消'],
+			success: (res) => {
+				// TODO: 处理更多操作
+			}
+		});
+	};
+
+	// 发布动态
+	const handlePublish = () => {
+		uni.navigateTo({
+			url: '/pages/community/publish'
+		});
+	};
+
+	// 加载更多
+	const handleLoadMore = () => {
+		if (loading.value || !hasMore.value) return;
+
+		loading.value = true;
+		// TODO: 调用加载更多接口
+		setTimeout(() => {
+			loading.value = false;
+			if (dynamicList.value.length >= 20) {
+				hasMore.value = false;
+			}
+		}, 1000);
+	};
+</script>
+
+<style scoped>
+.community-page {
+	height: 100vh;
+	background: var(--canvas);
+	display: flex;
+	flex-direction: column;
+}
+
+/* 顶部 Tab */
+.top-tabs {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	height: 52px;
+	padding: 0 16px;
+	background: var(--surface);
+	border-bottom: 1px solid var(--line);
+}
+
+.tab-item {
+	flex: 1;
+	max-width: 100px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+	transition: all 0.22s;
+}
+
+.tab-item.active {
+	background: var(--soft);
+}
+
+.tab-text {
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--muted);
+	transition: all 0.22s;
+}
+
+.tab-item.active .tab-text {
+	color: var(--accent2);
+	font-weight: 600;
+}
+
+/* 动态列表 */
+.dynamic-list {
+	flex: 1;
+	overflow-y: auto;
+}
+
+.load-more {
+	text-align: center;
+	padding: 16px 0;
+}
+
+.load-text {
+	font-size: 13px;
+}
+
+/* 发布按钮 */
+.publish-fab {
+	position: fixed;
+	right: 16px;
+	bottom: 84px;
+	width: 56px;
+	height: 56px;
+	background: var(--accent);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8px 24px oklch(0.35 0.04 45 / 0.18);
+	transition: all 0.22s;
+}
+
+.publish-fab:active {
+	transform: scale(0.92);
+}
+
+.fab-icon {
+	font-size: 24px;
+}
+</style>

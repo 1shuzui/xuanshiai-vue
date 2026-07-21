@@ -1,24 +1,766 @@
 <template>
-	<view>
-		<image class="logo" src="/static/logo.png"></image>
-		<text class="title">{{title}}</text>
+	<view class="home-page">
+		<!-- 顶部 Tab 切换 -->
+		<view class="top-tabs">
+			<view
+				class="tab-item"
+				:class="{ active: currentMode === 'recommend' }"
+				@click="switchMode('recommend')"
+			>
+				<text class="tab-text">推荐</text>
+			</view>
+			<view
+				class="tab-item"
+				:class="{ active: currentMode === 'square' }"
+				@click="switchMode('square')"
+			>
+				<text class="tab-text">广场</text>
+			</view>
+		</view>
+
+		<!-- 滚动容器 -->
+		<scroll-view class="scroller" scroll-y>
+			<!-- 推荐模式 -->
+			<view v-if="currentMode === 'recommend'" class="story-view">
+				<view class="story">
+					<!-- Hero 照片 -->
+					<view class="hero-photo">
+						<image
+							class="photo-img"
+							:src="currentUser.avatar"
+							mode="aspectFill"
+						></image>
+						<view class="photo-index">01 / 04</view>
+						<view class="online-badge">
+							<view class="online-dot"></view>
+							<text>{{ currentUser.online }}</text>
+						</view>
+						<view class="hero-info">
+							<text class="name">{{ currentUser.name }} <text class="age">{{ currentUser.age }}</text></text>
+							<text class="location">{{ currentUser.city }} · {{ currentUser.height }} · {{ currentUser.job }}</text>
+						</view>
+					</view>
+
+					<!-- 标签与匹配度 -->
+					<view class="meta-row">
+						<view class="tags">
+							<XsaTag variant="default" size="small">{{ currentUser.school }}</XsaTag>
+							<XsaTag variant="accent" size="small">{{ currentUser.mbti }}</XsaTag>
+							<XsaTag variant="default" size="small">期待长期关系</XsaTag>
+						</view>
+						<view class="match-stamp">
+							<text class="match-value">{{ currentUser.match }}%</text>
+							<text class="match-label">匹配</text>
+						</view>
+					</view>
+
+					<!-- 自我介绍 -->
+					<view class="story-section">
+						<view class="section-title">
+							<text class="title-main">关于我的生活</text>
+						</view>
+						<view class="intro-box">
+							<text class="intro-text">{{ currentUser.intro }}</text>
+						</view>
+					</view>
+
+					<!-- 四类认证 -->
+					<view class="story-section">
+						<view class="section-title">
+							<text class="title-main">可信档案</text>
+							<text class="title-sub">资料更新于 7 月 18 日</text>
+						</view>
+						<view class="trust-card">
+							<view class="trust-header">
+								<text class="trust-title">四类认证</text>
+								<text class="trust-status">VERIFIED 4 / 4</text>
+							</view>
+							<view class="trust-grid">
+								<view class="trust-item">
+									<text class="trust-icon">✓</text>
+									<text class="trust-name">实名</text>
+									<text class="trust-desc">身份已核验</text>
+								</view>
+								<view class="trust-item">
+									<text class="trust-icon">✓</text>
+									<text class="trust-name">学历</text>
+									<text class="trust-desc">学信资料</text>
+								</view>
+								<view class="trust-item">
+									<text class="trust-icon">✓</text>
+									<text class="trust-name">头像</text>
+									<text class="trust-desc">本人一致</text>
+								</view>
+								<view class="trust-item">
+									<text class="trust-icon">✓</text>
+									<text class="trust-name">单身</text>
+									<text class="trust-desc">本人声明</text>
+								</view>
+							</view>
+						</view>
+					</view>
+				</view>
+			</view>
+
+			<!-- 广场模式 -->
+			<view v-else class="square-view">
+				<!-- 空状态 -->
+				<XsaEmpty
+					v-if="squareUsers.length === 0 && !loading"
+					text="暂无推荐"
+					description="试试调整筛选条件"
+					:show-action="true"
+					action-text="刷新"
+					@action="handleRefresh"
+				/>
+
+				<!-- 用户卡片列表 -->
+				<view class="user-card-list" v-else>
+					<XsaUserCard
+						v-for="user in squareUsers"
+						:key="user.id"
+						:user="user"
+						:compact="false"
+						:show-actions="true"
+						:max-tags="3"
+						@click="handleUserCardClick"
+						@like="handleUserCardLike"
+						@chat="handleUserCardChat"
+					/>
+				</view>
+
+				<!-- 加载更多 -->
+				<view class="load-more" v-if="squareUsers.length > 0">
+					<text class="load-text text-muted" v-if="loading">加载中...</text>
+					<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
+				</view>
+			</view>
+		</scroll-view>
+
+		<!-- 底部操作栏（仅推荐模式显示） -->
+		<view v-if="currentMode === 'recommend'" class="action-dock">
+			<XsaButton
+				variant="secondary"
+				size="small"
+				@click="handleSkip"
+			>
+				跳过
+			</XsaButton>
+			<XsaButton
+				:variant="liked ? 'primary' : 'secondary'"
+				size="small"
+				@click="handleLike"
+			>
+				{{ liked ? '已喜欢' : '喜欢' }}
+			</XsaButton>
+			<XsaButton
+				variant="primary"
+				@click="handleApply"
+			>
+				申请认识
+			</XsaButton>
+		</view>
+
+		<!-- AI 合拍度悬浮按钮 -->
+		<view class="ai-fab" @click="showAiScore">
+			<text class="ai-text">AI</text>
+		</view>
+
+		<!-- Toast 提示 -->
+		<XsaToast
+			:visible="toastVisible"
+			:message="toastMessage"
+			@hide="toastVisible = false"
+		/>
 	</view>
 </template>
 
 <script setup lang="uts">
-	const title = ref('Hello')
+	import XsaButton from '@/components/XsaButton.uvue';
+	import XsaCard from '@/components/XsaCard.uvue';
+	import XsaTag from '@/components/XsaTag.uvue';
+	import XsaToast from '@/components/XsaToast.uvue';
+	import XsaUserCard from '@/components/XsaUserCard.uvue';
+	import XsaEmpty from '@/components/XsaEmpty.uvue';
+
+	// 当前模式
+	const currentMode = ref('recommend');
+	const liked = ref(false);
+	const toastVisible = ref(false);
+	const toastMessage = ref('');
+	const loading = ref(false);
+	const hasMore = ref(true);
+
+	// 当前推荐用户
+	const currentUser = ref({
+		name: '苏晚晴',
+		age: 26,
+		city: '杭州',
+		height: '165cm',
+		job: '插画师',
+		school: '浙江大学 · 本科',
+		mbti: 'INFP',
+		match: 92,
+		avatar: '/static/logo.png',
+		online: '当前在线',
+		intro: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。'
+	});
+
+	// 广场用户列表
+	const squareUsers = ref([
+		{
+			id: 1,
+			name: '林雨桐',
+			age: 28,
+			gender: 2,
+			city: '南京',
+			job: '产品设计师',
+			match: 88,
+			avatar: '/static/logo.png',
+			online: true,
+			certifications: ['实名认证', '学历认证'],
+			tags: ['爱旅行', '喜欢猫', '文艺青年'],
+			location: '南京·鼓楼区',
+			introduction: '喜欢设计，热爱生活。'
+		},
+		{
+			id: 2,
+			name: '陈知夏',
+			age: 27,
+			gender: 2,
+			city: '苏州',
+			job: '建筑设计师',
+			match: 85,
+			avatar: '/static/logo.png',
+			online: false,
+			certifications: ['实名认证'],
+			tags: ['摄影爱好者', '喜欢旅行'],
+			location: '苏州·姑苏区',
+			introduction: '建筑设计师，喜欢摄影和旅行。'
+		},
+		{
+			id: 3,
+			name: '张雨涵',
+			age: 25,
+			gender: 2,
+			city: '杭州',
+			job: 'UI设计师',
+			match: 90,
+			avatar: '/static/logo.png',
+			online: true,
+			certifications: ['实名认证', '学历认证', '职业认证'],
+			tags: ['爱美食', '喜欢烘焙', '健身达人'],
+			location: '杭州·西湖区',
+			introduction: 'UI设计师，热爱美食和烘焙。'
+		},
+		{
+			id: 4,
+			name: '李婉婷',
+			age: 26,
+			gender: 2,
+			city: '上海',
+			job: '市场营销',
+			match: 87,
+			avatar: '/static/logo.png',
+			online: true,
+			certifications: ['实名认证', '学历认证'],
+			tags: ['爱读书', '喜欢电影', '文艺范'],
+			location: '上海·徐汇区',
+			introduction: '市场营销，喜欢读书和看电影。'
+		}
+	]);
+
+	// 切换模式
+	const switchMode = (mode: string) => {
+		currentMode.value = mode;
+	};
+
+	// 跳过
+	const handleSkip = () => {
+		showToast('已跳过 · 为你换一位认真嘉宾');
+		liked.value = false;
+		// TODO: 加载下一个推荐用户
+	};
+
+	// 喜欢
+	const handleLike = () => {
+		liked.value = !liked.value;
+		showToast(liked.value ? '已收藏，仅你自己可见' : '已取消收藏');
+		// TODO: 调用喜欢接口
+	};
+
+	// 申请认识
+	const handleApply = () => {
+		showToast('申请已发送，等待对方回应');
+		// TODO: 调用申请认识接口
+		uni.navigateTo({
+			url: `/pages/chat/detail?userId=${currentUser.value.id}&userName=${currentUser.value.name}`
+		});
+	};
+
+	// 查看用户详情（广场模式）
+	const viewUser = (user: any) => {
+		uni.navigateTo({
+			url: `/pages/user/detail?userId=${user.id}`
+		});
+	};
+
+	// 用户卡片点击（广场模式）
+	const handleUserCardClick = (user: any) => {
+		uni.navigateTo({
+			url: `/pages/user/detail?userId=${user.id}`
+		});
+	};
+
+	// 用户卡片喜欢（广场模式）
+	const handleUserCardLike = (userId: number) => {
+		showToast('已添加到心动列表');
+		// TODO: 调用喜欢接口
+	};
+
+	// 用户卡片打招呼（广场模式）
+	const handleUserCardChat = (userId: number) => {
+		const user = squareUsers.value.find(u => u.id === userId);
+		if (user) {
+			uni.navigateTo({
+				url: `/pages/chat/detail?userId=${user.id}&userName=${user.name}`
+			});
+		}
+	};
+
+	// 显示 AI 合拍度
+	const showAiScore = () => {
+		showToast('AI 合拍度分析');
+		// TODO: 显示AI合拍度弹窗
+	};
+
+	// 下拉刷新
+	const handleRefresh = () => {
+		loading.value = true;
+		// TODO: 调用刷新接口
+		setTimeout(() => {
+			loading.value = false;
+			showToast('刷新成功');
+		}, 1000);
+	};
+
+	// 上拉加载更多
+	const handleLoadMore = () => {
+		if (loading.value || !hasMore.value) return;
+
+		loading.value = true;
+		// TODO: 调用加载更多接口
+		setTimeout(() => {
+			loading.value = false;
+			// 模拟加载完成
+			if (squareUsers.value.length >= 10) {
+				hasMore.value = false;
+				showToast('没有更多了');
+			}
+		}, 1000);
+	};
+
+	// 显示 Toast
+	const showToast = (msg: string) => {
+		toastMessage.value = msg;
+		toastVisible.value = true;
+	};
 </script>
 
-<style>
-	.logo {
-		height: 100px;
-		width: 100px;
-		margin: 100px auto 25px auto;
+<style scoped>
+	/* 页面容器 */
+	.home-page {
+		min-height: 100vh;
+		background: var(--canvas);
 	}
 
-	.title {
+	/* 顶部 Tab */
+	.top-tabs {
+		position: sticky;
+		top: 0;
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 16px;
+		height: 58px;
+		padding: 0 18px;
+		background: var(--paper);
+		border-bottom: 1px solid var(--line);
+	}
+
+	.tab-item {
+		flex: 1;
+		max-width: 160px;
+		height: 40px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 999px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		transition: 0.2s;
+	}
+
+	.tab-item.active {
+		background: var(--accent);
+		border-color: var(--accent);
+	}
+
+	.tab-text {
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--muted);
+	}
+
+	.tab-item.active .tab-text {
+		color: var(--paper);
+	}
+
+	/* 滚动容器 */
+	.scroller {
+		height: calc(100vh - 58px - 74px);
+		overflow-y: scroll;
+	}
+
+	/* 推荐模式 */
+	.story-view {
+		padding: 14px 16px 32px;
+	}
+
+	.story {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	/* Hero 照片 */
+	.hero-photo {
+		position: relative;
+		height: 304px;
+		border-radius: 8px 26px 8px 8px;
+		overflow: hidden;
+		background: var(--warm);
+	}
+
+	.photo-img {
+		width: 100%;
+		height: 100%;
+	}
+
+	.photo-index {
+		position: absolute;
+		top: 13px;
+		left: 13px;
+		padding: 7px 9px;
+		border-radius: 7px;
+		background: var(--paper);
+		font-size: 11px;
+		font-weight: 800;
+		color: var(--ink);
+	}
+
+	.online-badge {
+		position: absolute;
+		top: 13px;
+		right: 13px;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 7px 9px;
+		border-radius: 7px;
+		background: var(--paper);
+		font-size: 11px;
+		color: var(--ink);
+	}
+
+	.online-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--sage);
+		box-shadow: 0 0 0 3px var(--sage-soft);
+	}
+
+	.hero-info {
+		position: absolute;
+		left: 16px;
+		bottom: 16px;
+		z-index: 2;
+		color: var(--paper);
+	}
+
+	.name {
+		font-size: 25px;
+		font-family: var(--serif);
+		font-weight: 700;
+		display: block;
+		margin-bottom: 6px;
+	}
+
+	.age {
+		font-size: 13px;
+		font-family: var(--sans);
+		font-weight: 500;
+		margin-left: 5px;
+	}
+
+	.location {
+		font-size: 12px;
+		display: block;
+		opacity: 0.9;
+	}
+
+	/* 标签与匹配度 */
+	.meta-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 2px;
+	}
+
+	.tags {
+		display: flex;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	.match-stamp {
+		width: 64px;
+		height: 64px;
+		border: 1.5px solid var(--accent);
+		border-radius: 50%;
+		color: var(--accent2);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		transform: rotate(-5deg);
+	}
+
+	.match-value {
 		font-size: 18px;
-		color: #8f8f94;
+		font-family: var(--serif);
+		line-height: 1;
+	}
+
+	.match-label {
+		font-size: 9px;
+		letter-spacing: 0.08em;
+		margin-top: 4px;
+	}
+
+	/* 故事区块 */
+	.story-section {
+		padding: 17px 2px;
+		border-top: 1px solid var(--line);
+	}
+
+	.section-title {
+		display: flex;
+		justify-content: space-between;
+		margin-bottom: 10px;
+	}
+
+	.title-main {
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		color: var(--accent2);
+	}
+
+	.title-sub {
+		font-size: 11px;
+		color: var(--muted);
+	}
+
+	.intro-box {
+		padding: 16px;
+		background: var(--surface);
+		border-left: 3px solid var(--accent);
+		border-radius: 0 12px 12px 0;
+	}
+
+	.intro-text {
+		font-size: 15px;
+		font-family: var(--serif);
+		line-height: 1.8;
+		color: var(--ink2);
+	}
+
+	/* 认证卡片 */
+	.trust-card {
+		border: 1px solid var(--line);
+		background: var(--surface);
+		border-radius: 12px;
+		overflow: hidden;
+	}
+
+	.trust-header {
+		display: flex;
+		justify-content: space-between;
+		padding: 12px 13px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.trust-title {
+		font-size: 16px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.trust-status {
+		font-size: 10px;
+		color: var(--muted);
+		letter-spacing: 0.08em;
+	}
+
+	.trust-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+	}
+
+	.trust-item {
 		text-align: center;
+		padding: 13px 4px;
+		border-left: 1px solid var(--line);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.trust-item:first-child {
+		border-left: none;
+	}
+
+	.trust-icon {
+		width: 19px;
+		height: 19px;
+		color: var(--accent);
+		font-size: 14px;
+		font-weight: 900;
+		margin-bottom: 7px;
+	}
+
+	.trust-name {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.trust-desc {
+		font-size: 9px;
+		color: var(--muted);
+	}
+
+	/* 广场模式 */
+	.square-view {
+		padding: 14px;
+	}
+
+	.user-card-list {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.load-more {
+		text-align: center;
+		padding: 24px 0;
+	}
+
+	.load-text {
+		font-size: 13px;
+	}
+
+	.grid-list {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+	}
+
+	.grid-avatar {
+		width: 100%;
+		height: 176px;
+	}
+
+	.grid-info {
+		padding: 10px;
+	}
+
+	.grid-name {
+		font-size: 16px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+		display: block;
+		margin-bottom: 5px;
+	}
+
+	.grid-age {
+		font-size: 14px;
+		font-family: var(--sans);
+		font-weight: 500;
+	}
+
+	.grid-desc {
+		font-size: 11px;
+		color: var(--muted);
+		display: block;
+		margin-bottom: 8px;
+	}
+
+	.grid-badges {
+		display: flex;
+		gap: 4px;
+	}
+
+	/* 底部操作栏 */
+	.action-dock {
+		position: fixed;
+		z-index: 18;
+		left: 10px;
+		right: 10px;
+		bottom: 68px;
+		height: 74px;
+		padding: 9px;
+		background: oklch(0.986 0.01 70 / 0.97);
+		border: 1px solid var(--line);
+		border-radius: 14px 14px 6px 6px;
+		display: grid;
+		grid-template-columns: 68px 84px 1fr;
+		gap: 8px;
+		box-shadow: 0 -8px 24px oklch(0.35 0.03 45 / 0.09);
+	}
+
+	/* AI 悬浮按钮 */
+	.ai-fab {
+		position: fixed;
+		z-index: 17;
+		right: 15px;
+		bottom: 151px;
+		width: 48px;
+		height: 48px;
+		border-radius: 16px 16px 16px 5px;
+		background: var(--navy);
+		color: var(--paper);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 10px 24px oklch(0.3 0.05 240 / 0.24);
+		cursor: pointer;
+		transition: 0.2s;
+	}
+
+	.ai-fab:hover {
+		transform: translateY(-2px) rotate(-2deg);
+	}
+
+	.ai-text {
+		font-size: 14px;
+		font-weight: 800;
+		color: var(--paper);
 	}
 </style>

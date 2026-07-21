@@ -1,0 +1,214 @@
+<template>
+	<view class="xsa-modal-overlay" :class="{ open: visible }" @click="handleOverlayClick">
+		<view class="xsa-modal" :class="size" @click.stop>
+			<view v-if="icon" class="modal-icon" :class="iconType">
+				<text>{{ iconEmoji }}</text>
+			</view>
+			<text v-if="title" class="modal-title">{{ title }}</text>
+			<view class="modal-content">
+				<slot></slot>
+			</view>
+			<view v-if="showActions" class="modal-actions">
+				<XsaButton
+					v-if="showCancel"
+					variant="secondary"
+					@click="handleCancel"
+				>
+					{{ cancelText }}
+				</XsaButton>
+				<XsaButton
+					variant="primary"
+					:loading="confirmLoading"
+					@click="handleConfirm"
+				>
+					{{ confirmText }}
+				</XsaButton>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+/**
+ * XsaModal - 宣誓爱模态弹窗组件
+ * 遵循 DESIGN.md 设计规范
+ */
+import XsaButton from './XsaButton.uvue';
+
+interface Props {
+	visible: boolean;
+	title?: string;
+	size?: 'small' | 'medium' | 'large';
+	icon?: boolean;
+	iconType?: 'success' | 'warning' | 'error' | 'info';
+	showActions?: boolean;
+	showCancel?: boolean;
+	cancelText?: string;
+	confirmText?: string;
+	confirmLoading?: boolean;
+	closeOnOverlay?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	size: 'medium',
+	iconType: 'info',
+	showActions: true,
+	showCancel: true,
+	cancelText: '取消',
+	confirmText: '确定',
+	confirmLoading: false,
+	closeOnOverlay: true
+});
+
+const emit = defineEmits<{
+	close: [];
+	cancel: [];
+	confirm: [];
+}>();
+
+const iconEmoji = computed(() => {
+	const icons = {
+		success: '✓',
+		warning: '⚠',
+		error: '✕',
+		info: 'i'
+	};
+	return icons[props.iconType] || icons.info;
+});
+
+const handleOverlayClick = () => {
+	if (props.closeOnOverlay) {
+		emit('close');
+	}
+};
+
+const handleCancel = () => {
+	emit('cancel');
+	emit('close');
+};
+
+const handleConfirm = () => {
+	emit('confirm');
+};
+</script>
+
+<style scoped>
+/* 遮罩层 - 遵循 DESIGN.md */
+.xsa-modal-overlay {
+	position: fixed;
+	z-index: 70;
+	inset: 0;
+	background: oklch(0.24 0.02 38 / 0.36);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.22s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+}
+
+.xsa-modal-overlay.open {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Modal 弹窗 */
+.xsa-modal {
+	background: var(--paper);
+	border-radius: 18px;
+	padding: 22px;
+	opacity: 0;
+	transform: scale(0.96);
+	transition: 0.22s;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	max-height: 80vh;
+	overflow-y: auto;
+}
+
+.xsa-modal-overlay.open .xsa-modal {
+	opacity: 1;
+	transform: scale(1);
+}
+
+/* 尺寸变体 */
+.xsa-modal.small {
+	width: 280px;
+}
+
+.xsa-modal.medium {
+	width: 320px;
+}
+
+.xsa-modal.large {
+	width: 90%;
+	max-width: 480px;
+}
+
+/* 图标 */
+.modal-icon {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 14px;
+	font-size: 24px;
+	font-weight: 900;
+}
+
+.modal-icon.success {
+	background: var(--sage-soft);
+	color: var(--sage);
+}
+
+.modal-icon.warning {
+	background: oklch(0.95 0.08 80);
+	color: oklch(0.65 0.15 75);
+}
+
+.modal-icon.error {
+	background: oklch(0.95 0.08 20);
+	color: #d9534f;
+}
+
+.modal-icon.info {
+	background: var(--soft);
+	color: var(--accent);
+}
+
+/* 标题 */
+.modal-title {
+	font-size: 22px;
+	font-family: var(--serif);
+	font-weight: 700;
+	color: var(--ink);
+	margin-bottom: 9px;
+	text-align: center;
+}
+
+/* 内容 */
+.modal-content {
+	width: 100%;
+	font-size: 12px;
+	line-height: 1.65;
+	color: var(--muted);
+	text-align: center;
+	margin-bottom: 14px;
+}
+
+/* 操作按钮 */
+.modal-actions {
+	width: 100%;
+	display: grid;
+	grid-template-columns: 1fr 1.35fr;
+	gap: 8px;
+}
+
+.modal-actions:has(> :only-child) {
+	grid-template-columns: 1fr;
+}
+</style>
