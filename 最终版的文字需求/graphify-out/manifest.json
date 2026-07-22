@@ -1,0 +1,187 @@
+{
+  "00-\u5168\u91cf\u5927\u7eb2.md": {
+    "mtime": 1784639506.9169075,
+    "ast_hash": "e1f1a4e0d7185c7a7673c8dfc7954dae",
+    "semantic_hash": "e1f1a4e0d7185c7a7673c8dfc7954dae"
+  },
+  "pages/01-\u6a21\u5757\u56db\uff1a\u7275\u7ebf\u6a21\u5757__01-\u7275\u7ebf\u9996\u9875.md": {
+    "mtime": 1784639507.1180325,
+    "ast_hash": "e399c962ad2e3b902b8c2f93a98fa63d",
+    "semantic_hash": "e399c962ad2e3b902b8c2f93a98fa63d"
+  },
+  "pages/01-\u6a21\u5757\u56db\uff1a\u7275\u7ebf\u6a21\u5757__02-\u7ea2\u5a18\u4e3b\u9875.md": {
+    "mtime": 1784639507.1243467,
+    "ast_hash": "834e76db6da99799c59a142dfd3cc055",
+    "semantic_hash": "834e76db6da99799c59a142dfd3cc055"
+  },
+  "pages/01-\u6a21\u5757\u56db\uff1a\u7275\u7ebf\u6a21\u5757__03-1v1\u60c5\u611f\u54a8\u8be2.md": {
+    "mtime": 1784639507.1267989,
+    "ast_hash": "08901fd91bfa505d9963307abbd2cb48",
+    "semantic_hash": "08901fd91bfa505d9963307abbd2cb48"
+  },
+  "pages/01-\u6a21\u5757\u56db\uff1a\u7275\u7ebf\u6a21\u5757__04-\u79c1\u4eba\u5b9a\u5236.md": {
+    "mtime": 1784639507.1343222,
+    "ast_hash": "4b03471122db4a67941f0e8958485a2e",
+    "semantic_hash": "4b03471122db4a67941f0e8958485a2e"
+  },
+  "pages/01-\u6a21\u5757\u56db\uff1a\u7275\u7ebf\u6a21\u5757__05-\u6211\u8981\u505a\u7ea2\u5a18.md": {
+    "mtime": 1784639507.1415274,
+    "ast_hash": "606f2fe14ec666a1d622c9e3bbf1b076",
+    "semantic_hash": "606f2fe14ec666a1d622c9e3bbf1b076"
+  },
+  "pages/02-\u6a21\u5757\u4e09\uff1a\u793e\u4ea4\u4e92\u52a8\u4e0e\u6d88\u606f__01-\u5339\u914d\u4e0e\u8fde\u63a5.md": {
+    "mtime": 1784639507.0839128,
+    "ast_hash": "b3f57a3c78f4ee79d148bc5e2212c469",
+    "semantic_hash": "b3f57a3c78f4ee79d148bc5e2212c469"
+  },
+  "pages/02-\u6a21\u5757\u4e09\uff1a\u793e\u4ea4\u4e92\u52a8\u4e0e\u6d88\u606f__02-\u79c1\u4fe1\u804a\u5929\uff08\u53c2\u8003\u9752\u85e4\uff09.md": {
+    "mtime": 1784639507.0910509,
+    "ast_hash": "516e6063bd6287d456fdaf3c2f97e73a",
+    "semantic_hash": "516e6063bd6287d456fdaf3c2f97e73a"
+  },
+  "pages/02-\u6a21\u5757\u4e09\uff1a\u793e\u4ea4\u4e92\u52a8\u4e0e\u6d88\u606f__03-\u793e\u533a-\u52a8\u6001.md": {
+    "mtime": 1784639507.0986152,
+    "ast_hash": "321e223c65044b21139b345a6663ab92",
+    "semantic_hash": "321e223c65044b21139b345a6663ab92"
+  },
+  "pages/02-\u6a21\u5757\u4e09\uff1a\u793e\u4ea4\u4e92\u52a8\u4e0e\u6d88\u606f__04-\u7279\u6b8a\u793e\u4ea4\u73a9\u6cd5.md": {
+    "mtime": 1784639507.1066535,
+    "ast_hash": "6abe6431de162439d537f74adb3aa770",
+    "semantic_hash": "6abe6431de162439d537f74adb3aa770"
+  },
+  "pages/02-\u6a21\u5757\u4e09\uff1a\u793e\u4ea4\u4e92\u52a8\u4e0e\u6d88\u606f__05-\u6d88\u606f\u901a\u77e5.md": {
+    "mtime": 1784639507.113896,
+    "ast_hash": "07c6238e1d0f875a53ae9f55ed5400bb",
+    "semantic_hash": "07c6238e1d0f875a53ae9f55ed5400bb"
+  },
+  "pages/03-\u6a21\u5757\u4e8c\uff1a\u9996\u9875\u63a8\u8350\u4e0e\u5339\u914d__01-\u63a8\u8350\u5361\u7247\u6d41.md": {
+    "mtime": 1784639507.0486603,
+    "ast_hash": "3573f0ffd2dfd044dcdb2e3ebb7970a4",
+    "semantic_hash": "3573f0ffd2dfd044dcdb2e3ebb7970a4"
+  },
+  "pages/03-\u6a21\u5757\u4e8c\uff1a\u9996\u9875\u63a8\u8350\u4e0e\u5339\u914d__02-AI\u667a\u80fd\u63a8\u8350\u7b97\u6cd5.md": {
+    "mtime": 1784639507.0609045,
+    "ast_hash": "798c2fee0f8e12a843341bb07867540c",
+    "semantic_hash": "798c2fee0f8e12a843341bb07867540c"
+  },
+  "pages/03-\u6a21\u5757\u4e8c\uff1a\u9996\u9875\u63a8\u8350\u4e0e\u5339\u914d__03-\u4ea4\u4e92\u64cd\u4f5c.md": {
+    "mtime": 1784639507.062902,
+    "ast_hash": "c87936dcaa2a24b3455f6b0e85313687",
+    "semantic_hash": "c87936dcaa2a24b3455f6b0e85313687"
+  },
+  "pages/03-\u6a21\u5757\u4e8c\uff1a\u9996\u9875\u63a8\u8350\u4e0e\u5339\u914d__04-\u7b5b\u9009\u641c\u7d22\u6846.md": {
+    "mtime": 1784639507.0709035,
+    "ast_hash": "d1ffb56b4c18ad2526064086af097af5",
+    "semantic_hash": "d1ffb56b4c18ad2526064086af097af5"
+  },
+  "pages/03-\u6a21\u5757\u4e8c\uff1a\u9996\u9875\u63a8\u8350\u4e0e\u5339\u914d__05-\u6211\u770b\u8fc7\u8c01\u4e0e\u8c01\u770b\u8fc7\u6211.md": {
+    "mtime": 1784639507.0795574,
+    "ast_hash": "439dc192d7b462530f5b00573db7d774",
+    "semantic_hash": "439dc192d7b462530f5b00573db7d774"
+  },
+  "pages/03-\u6a21\u5757\u4e8c\uff1a\u9996\u9875\u63a8\u8350\u4e0e\u5339\u914d__06-\u5339\u914d\u6210\u529f\u6d41\u7a0b.md": {
+    "mtime": 1784639507.081177,
+    "ast_hash": "f667393aef0fac9d8202cf723cabfc94",
+    "semantic_hash": "f667393aef0fac9d8202cf723cabfc94"
+  },
+  "pages/04-\u6a21\u5757\u4e00\uff1a\u6ce8\u518c\u4e0e\u767b\u5f55\u4e1a\u52a1\u6d41\u7a0b__01-\u767b\u5f55\u4e0e\u6ce8\u518c.md": {
+    "mtime": 1784639507.009463,
+    "ast_hash": "30caaced3dfc32cc56702e6506cb1d55",
+    "semantic_hash": "30caaced3dfc32cc56702e6506cb1d55"
+  },
+  "pages/04-\u6a21\u5757\u4e00\uff1a\u6ce8\u518c\u4e0e\u767b\u5f55\u4e1a\u52a1\u6d41\u7a0b__02-\u5b9e\u540d\u8ba4\u8bc1\u4f53\u7cfb.md": {
+    "mtime": 1784639507.0168462,
+    "ast_hash": "39eb669266bce9f746b847a86c57ede8",
+    "semantic_hash": "39eb669266bce9f746b847a86c57ede8"
+  },
+  "pages/04-\u6a21\u5757\u4e00\uff1a\u6ce8\u518c\u4e0e\u767b\u5f55\u4e1a\u52a1\u6d41\u7a0b__03-\u5b8c\u5584\u8d44\u6599\u4e0e\u6ce8\u518c\u6d41\u7a0b.md": {
+    "mtime": 1784639507.0244174,
+    "ast_hash": "f7ffab41528ad3acb3030422a6206b62",
+    "semantic_hash": "f7ffab41528ad3acb3030422a6206b62"
+  },
+  "pages/04-\u6a21\u5757\u4e00\uff1a\u6ce8\u518c\u4e0e\u767b\u5f55\u4e1a\u52a1\u6d41\u7a0b__04-\u6838\u5fc3\u4e92\u52a8\u6a21\u5757.md": {
+    "mtime": 1784639507.0312808,
+    "ast_hash": "05271cb1ea7fc33845515907ed2d3731",
+    "semantic_hash": "05271cb1ea7fc33845515907ed2d3731"
+  },
+  "pages/04-\u6a21\u5757\u4e00\uff1a\u6ce8\u518c\u4e0e\u767b\u5f55\u4e1a\u52a1\u6d41\u7a0b__05-\u5ba2\u670d\u4e0e\u5e2e\u52a9.md": {
+    "mtime": 1784639507.0379355,
+    "ast_hash": "cc6f06f9339d1adbe8babb66e9152fb9",
+    "semantic_hash": "cc6f06f9339d1adbe8babb66e9152fb9"
+  },
+  "pages/04-\u6a21\u5757\u4e00\uff1a\u6ce8\u518c\u4e0e\u767b\u5f55\u4e1a\u52a1\u6d41\u7a0b__06-\u4e2a\u4eba\u4e2d\u5fc3.md": {
+    "mtime": 1784639507.045645,
+    "ast_hash": "e75eb74458823c7695a2412bd9832dfd",
+    "semantic_hash": "e75eb74458823c7695a2412bd9832dfd"
+  },
+  "pages/05-\u6a21\u5757\u4e94\uff1a\u4f1a\u5458\u3001\u652f\u4ed8\u4e0e\u4efb\u52a1\u7559\u5b58__01-\u4f1a\u5458\u4f53\u7cfb.md": {
+    "mtime": 1784639506.9731152,
+    "ast_hash": "6e2cfa4332655d48d9f030047a5002a1",
+    "semantic_hash": "6e2cfa4332655d48d9f030047a5002a1"
+  },
+  "pages/05-\u6a21\u5757\u4e94\uff1a\u4f1a\u5458\u3001\u652f\u4ed8\u4e0e\u4efb\u52a1\u7559\u5b58__02-\u865a\u62df\u8d27\u5e01\uff08\u79ef\u5206\uff09.md": {
+    "mtime": 1784639506.9806492,
+    "ast_hash": "7b6e9f173cdfce4fa5797262fec28eda",
+    "semantic_hash": "7b6e9f173cdfce4fa5797262fec28eda"
+  },
+  "pages/05-\u6a21\u5757\u4e94\uff1a\u4f1a\u5458\u3001\u652f\u4ed8\u4e0e\u4efb\u52a1\u7559\u5b58__03-\u4ed8\u8d39\u66dd\u5149.md": {
+    "mtime": 1784639506.9891875,
+    "ast_hash": "9527c17cc2c2b67837593c3cee6fa065",
+    "semantic_hash": "9527c17cc2c2b67837593c3cee6fa065"
+  },
+  "pages/05-\u6a21\u5757\u4e94\uff1a\u4f1a\u5458\u3001\u652f\u4ed8\u4e0e\u4efb\u52a1\u7559\u5b58__04-\u865a\u62df\u5546\u54c1.md": {
+    "mtime": 1784639506.990316,
+    "ast_hash": "6c47d9501f2a26fdf22e8a2553e7878f",
+    "semantic_hash": "6c47d9501f2a26fdf22e8a2553e7878f"
+  },
+  "pages/05-\u6a21\u5757\u4e94\uff1a\u4f1a\u5458\u3001\u652f\u4ed8\u4e0e\u4efb\u52a1\u7559\u5b58__05-\u4efb\u52a1.md": {
+    "mtime": 1784639506.9923985,
+    "ast_hash": "074ae54d1697ff0688ec74339810c3f9",
+    "semantic_hash": "074ae54d1697ff0688ec74339810c3f9"
+  },
+  "pages/05-\u6a21\u5757\u4e94\uff1a\u4f1a\u5458\u3001\u652f\u4ed8\u4e0e\u4efb\u52a1\u7559\u5b58__06-\u9080\u8bf7\u597d\u53cb.md": {
+    "mtime": 1784639507.0004575,
+    "ast_hash": "b1ed1ccbb0569682584e11c5f3bb1d7c",
+    "semantic_hash": "b1ed1ccbb0569682584e11c5f3bb1d7c"
+  },
+  "pages/module-01-\u6a21\u5757\u56db\uff1a\u7275\u7ebf\u6a21\u5757.md": {
+    "mtime": 1784639506.921217,
+    "ast_hash": "eabd40032098cdcf967fab606a391886",
+    "semantic_hash": "eabd40032098cdcf967fab606a391886"
+  },
+  "pages/module-02-\u6a21\u5757\u4e09\uff1a\u793e\u4ea4\u4e92\u52a8\u4e0e\u6d88\u606f.md": {
+    "mtime": 1784639506.93382,
+    "ast_hash": "21cee518af5c2093a8caa9038a7e528c",
+    "semantic_hash": "21cee518af5c2093a8caa9038a7e528c"
+  },
+  "pages/module-03-\u6a21\u5757\u4e8c\uff1a\u9996\u9875\u63a8\u8350\u4e0e\u5339\u914d.md": {
+    "mtime": 1784639506.9451253,
+    "ast_hash": "c8f2d300e14c103e51ff999634dfa528",
+    "semantic_hash": "c8f2d300e14c103e51ff999634dfa528"
+  },
+  "pages/module-04-\u6a21\u5757\u4e00\uff1a\u6ce8\u518c\u4e0e\u767b\u5f55\u4e1a\u52a1\u6d41\u7a0b.md": {
+    "mtime": 1784639506.9542782,
+    "ast_hash": "a0fb3dc77c0fb2bf1a0e7d57cf92b8c1",
+    "semantic_hash": "a0fb3dc77c0fb2bf1a0e7d57cf92b8c1"
+  },
+  "pages/module-05-\u6a21\u5757\u4e94\uff1a\u4f1a\u5458\u3001\u652f\u4ed8\u4e0e\u4efb\u52a1\u7559\u5b58.md": {
+    "mtime": 1784639506.9648685,
+    "ast_hash": "c1d6ea1475ea1debb473ee84e0bea9a1",
+    "semantic_hash": "c1d6ea1475ea1debb473ee84e0bea9a1"
+  },
+  "ref-PRODUCT.md": {
+    "mtime": 1784559339.3851058,
+    "ast_hash": "8963001aebdc927ce1c32a67989190bc",
+    "semantic_hash": "8963001aebdc927ce1c32a67989190bc"
+  },
+  "ref-\u524d\u7aef\u5f00\u53d1\u6307\u5357.md": {
+    "mtime": 1784614191.9567971,
+    "ast_hash": "337d8b18cf3d2d77c3943f1c6bd16d69",
+    "semantic_hash": "337d8b18cf3d2d77c3943f1c6bd16d69"
+  },
+  "ref-\u524d\u7aef\u9875\u9762\u529f\u80fd\u8981\u6c42.md": {
+    "mtime": 1784532531.2660236,
+    "ast_hash": "0461afb578eb5a582d4b615c749f710b",
+    "semantic_hash": "0461afb578eb5a582d4b615c749f710b"
+  }
+}
