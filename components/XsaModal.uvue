@@ -8,22 +8,22 @@
 			<view class="modal-content">
 				<slot></slot>
 			</view>
-			<view v-if="showActions" class="modal-actions">
-				<XsaButton
-					v-if="showCancel"
-					variant="secondary"
-					@click="handleCancel"
-				>
-					{{ cancelText }}
-				</XsaButton>
-				<XsaButton
-					variant="primary"
-					:loading="confirmLoading"
-					@click="handleConfirm"
-				>
-					{{ confirmText }}
-				</XsaButton>
-			</view>
+<view v-if="showActions" class="modal-actions" :class="{ single: !showCancel }">
+					<XsaButton
+						v-if="showCancel"
+						variant="secondary"
+						@click="handleCancel"
+					>
+						{{ cancelText }}
+					</XsaButton>
+					<XsaButton
+						variant="primary"
+						:loading="confirmLoading"
+						@click="handleConfirm"
+					>
+						{{ confirmText }}
+					</XsaButton>
+				</view>
 		</view>
 	</view>
 </template>
@@ -98,7 +98,7 @@ const handleConfirm = () => {
 	position: fixed;
 	z-index: 70;
 	inset: 0;
-	background: oklch(0.18 0.01 200 / 0.36);
+	background: rgba(12, 19, 19, 0.36);
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 0.22s;
@@ -166,12 +166,12 @@ const handleConfirm = () => {
 }
 
 .modal-icon.warning {
-	background: oklch(0.88 0.04 160);
-	color: oklch(0.58 0.10 165);
+	background: var(--sage-soft);
+	color: var(--sage);
 }
 
 .modal-icon.error {
-	background: oklch(0.95 0.08 20);
+	background: #FFDAD8;
 	color: #d9534f;
 }
 
@@ -201,14 +201,14 @@ const handleConfirm = () => {
 }
 
 /* 操作按钮 */
-.modal-actions {
-	width: 100%;
-	display: grid;
-	grid-template-columns: 1fr 1.35fr;
-	gap: 8px;
-}
+	.modal-actions {
+		width: 100%;
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
 
-.modal-actions:has(> :only-child) {
-	grid-template-columns: 1fr;
-}
+	.modal-actions.single {
+		/* 单按钮时占满 */
+	}
 </style>

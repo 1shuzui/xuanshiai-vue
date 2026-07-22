@@ -52,7 +52,7 @@ watch(() => props.visible, (newVal) => {
 	opacity: 0;
 	pointer-events: none;
 	transition: 0.22s;
-	box-shadow: 0 8px 20px oklch(0.25 0.03 40 / 0.2);
+	box-shadow: 0 8px 20px rgba(17, 23, 24, 0.20);
 }
 
 .xsa-toast.show {

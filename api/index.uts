@@ -1,15 +1,15 @@
 /**
  * API 统一导出
- *
- * 使用方式：
  * import { getRecommendUser, getMessageList } from '@/api'
  */
 
 // 用户相关
 export {
   getRecommendUser,
+  getRecommendUsers,
   getSquareUsers,
   getUserDetail,
+  getMeProfile,
   applyToMeet,
   likeUser
 } from './user.uts'
@@ -29,6 +29,7 @@ export {
   getTopics,
   getPaperPlanes,
   getActivities,
+  getCommunityBanners,
   publishDynamic,
   likeDynamic
 } from './community.uts'

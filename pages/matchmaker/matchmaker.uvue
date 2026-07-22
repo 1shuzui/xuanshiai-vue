@@ -1,581 +1,575 @@
 <template>
 	<view class="matchmaker-page">
-		<!-- 顶部横幅 -->
-		<view class="header-banner">
-			<view class="banner-content">
-				<text class="banner-title">专属红娘服务</text>
-				<text class="banner-desc">1对1专业牵线，提升匹配成功率</text>
+		<!-- 子 Tab：服务红娘 / 热心红娘 / AI 红娘 -->
+		<view class="subtabs">
+			<view
+				class="subtab"
+				:class="{ active: currentTab === 'service' }"
+				@click="switchTab('service')"
+			>
+				<text>服务红娘</text>
 			</view>
-			<view class="banner-icon">
-				<text class="icon">💝</text>
+			<view
+				class="subtab"
+				:class="{ active: currentTab === 'volunteer' }"
+				@click="switchTab('volunteer')"
+			>
+				<text>热心红娘</text>
 			</view>
-		</view>
-
-		<!-- 我的红娘 -->
-		<view class="section">
-			<view class="section-header">
-				<text class="section-title">我的红娘</text>
-			</view>
-
-			<view class="matchmaker-card" v-if="myMatchmaker" @click="handleChatMatchmaker">
-				<image class="matchmaker-avatar" :src="myMatchmaker.avatar" mode="aspectFill"></image>
-				<view class="matchmaker-info">
-					<text class="matchmaker-name">{{ myMatchmaker.name }}</text>
-					<text class="matchmaker-desc text-muted">{{ myMatchmaker.desc }}</text>
-					<view class="matchmaker-stats">
-						<text class="stat-item">成功牵线 {{ myMatchmaker.successCount }}对</text>
-						<text class="stat-divider">·</text>
-						<text class="stat-item">服务 {{ myMatchmaker.serviceCount }}人</text>
-					</view>
-				</view>
-				<view class="chat-btn">
-					<text class="btn-text">联系TA</text>
-				</view>
-			</view>
-
-			<view class="no-matchmaker" v-else @click="handleApplyMatchmaker">
-				<text class="no-text">还没有专属红娘</text>
-				<text class="apply-text">立即申请 ›</text>
+			<view
+				class="subtab"
+				:class="{ active: currentTab === 'ai' }"
+				@click="switchTab('ai')"
+			>
+				<text>AI 红娘</text>
 			</view>
 		</view>
 
-		<!-- 推荐对象 -->
-		<view class="section">
-			<view class="section-header">
-				<text class="section-title">红娘推荐</text>
-				<text class="section-more text-muted" @click="handleMoreRecommend">查看更多 ›</text>
-			</view>
+		<scroll-view class="scroller" scroll-y>
+			<!-- 服务红娘 -->
+			<view v-if="currentTab === 'service'" class="page-pad">
+				<view class="hero-block">
+					<text class="hero-kicker">SERIOUS CONNECTION</text>
+					<text class="hero-title">专业红娘团队为你牵线</text>
+					<text class="hero-desc text-muted">不替你做决定，但帮你看见更多真实资料、澄清关系需求并安排合适见面。</text>
+				</view>
 
-			<!-- 空状态 -->
-			<XsaEmpty
-				v-if="recommendList.length === 0"
-				icon="💌"
-				text="暂无推荐"
-				description="红娘正在为你寻找合适的对象"
-				size="small"
-			/>
-
-			<!-- 推荐列表 -->
-			<view class="recommend-list" v-else>
-				<XsaUserCard
-					v-for="user in recommendList"
-					:key="user.id"
-					:user="user"
-					:show-actions="true"
-					@click="handleUserClick"
-					@like="handleLike"
-					@chat="handleChat"
+				<XsaEmpty
+					v-if="serviceList.length === 0 && !loading"
+					text="暂无服务红娘"
+					description="稍后再来看看"
+					size="small"
 				/>
-			</view>
-		</view>
 
-		<!-- 线下活动 -->
-		<view class="section">
-			<view class="section-header">
-				<text class="section-title">线下活动</text>
-				<text class="section-more text-muted" @click="handleMoreActivity">查看更多 ›</text>
-			</view>
-
-			<view class="activity-list">
-				<view class="activity-card" v-for="activity in activityList" :key="activity.id" @click="handleActivityClick(activity)">
-					<image class="activity-image" :src="activity.image" mode="aspectFill"></image>
-					<view class="activity-info">
-						<text class="activity-title">{{ activity.title }}</text>
-						<text class="activity-desc text-muted">{{ activity.desc }}</text>
-						<view class="activity-meta">
-							<text class="meta-item">📅 {{ activity.date }}</text>
-							<text class="meta-item">📍 {{ activity.location }}</text>
-							<text class="meta-item">👥 {{ activity.participants }}人参加</text>
+				<view
+					class="mm-card"
+					v-for="item in serviceList"
+					:key="item.id"
+				>
+					<view class="mm-profile">
+						<image class="mm-avatar" :src="item.avatar" mode="aspectFill"></image>
+						<view class="mm-info">
+							<text class="mm-name">{{ item.name }}</text>
+							<text class="mm-title text-muted">{{ item.title }} · {{ item.experience }}</text>
+							<text class="mm-intro text-muted">{{ item.intro }}</text>
 						</view>
 					</view>
-					<view class="activity-tag" :class="activity.status">
-						<text class="tag-text">{{ activity.statusText }}</text>
+					<view class="case-box">
+						<text>服务记录：近服务 {{ item.consultCount }} 人 · 成功牵线 {{ item.successCount }} 对</text>
+					</view>
+					<view class="contact-row">
+						<XsaButton variant="secondary" size="small" @click="handleCall(item)">电话咨询</XsaButton>
+						<XsaButton variant="primary" size="small" @click="handleBook(item)">预约服务</XsaButton>
 					</view>
 				</view>
 			</view>
-		</view>
 
-		<!-- 服务说明 -->
-		<view class="section">
-			<view class="section-header">
-				<text class="section-title">服务介绍</text>
-			</view>
+			<!-- 热心红娘 -->
+			<view v-else-if="currentTab === 'volunteer'" class="page-pad">
+				<view class="hero-block">
+					<text class="hero-kicker">COMMUNITY MATCHMAKERS</text>
+					<text class="hero-title">把靠谱的朋友介绍给靠谱的人</text>
+					<text class="hero-desc text-muted">排行榜只展示真实有效的介绍数量，不承诺匹配结果。</text>
+				</view>
 
-			<view class="service-list">
-				<view class="service-item" v-for="(service, index) in serviceList" :key="index">
-					<text class="service-icon">{{ service.icon }}</text>
-					<view class="service-content">
-						<text class="service-title">{{ service.title }}</text>
-						<text class="service-desc text-muted">{{ service.desc }}</text>
+				<view
+					class="rank-row"
+					v-for="(item, index) in volunteerList"
+					:key="item.id"
+				>
+					<text class="rank-no">0{{ index + 1 }}</text>
+					<image class="rank-avatar" :src="item.avatar" mode="aspectFill"></image>
+					<view class="rank-info">
+						<text class="rank-name">{{ item.name }}</text>
+						<text class="rank-desc text-muted">{{ item.intro }}</text>
 					</view>
+					<text class="rank-count text-muted">已介绍 {{ item.successCount }} 位</text>
 				</view>
 			</view>
-		</view>
+
+			<!-- AI 红娘：情感咨询对话（非直接匹配聊天） -->
+			<view v-else class="page-pad">
+				<view class="ai-intro">
+					<text class="ai-title">AI 红娘小誓</text>
+					<text class="ai-desc">帮你梳理择偶偏好、解读合拍线索和准备第一次对话。不会替代真人判断，也不会承诺匹配结果。</text>
+				</view>
+
+				<view class="mini-chat">
+					<view
+						v-for="(msg, idx) in aiMessages"
+						:key="idx"
+						class="bubble"
+						:class="msg.role"
+					>
+						<text>{{ msg.text }}</text>
+					</view>
+				</view>
+
+				<scroll-view class="prompts" scroll-x>
+					<view
+						class="prompt-chip"
+						v-for="(p, i) in prompts"
+						:key="i"
+						@click="usePrompt(p)"
+					>
+						<text>{{ p }}</text>
+					</view>
+				</scroll-view>
+
+				<view class="ai-input-row">
+					<input
+						class="ai-input"
+						:value="aiInput"
+						placeholder="描述你的困惑…"
+						confirm-type="send"
+						@input="onAiInput"
+						@confirm="sendAi"
+					/>
+					<view class="ai-send" @click="sendAi">
+						<text>发送</text>
+					</view>
+				</view>
+
+				<view class="section-block">
+					<text class="section-title">合拍线索推荐</text>
+					<XsaUserCard
+						v-for="user in aiRecommendUsers"
+						:key="user.id"
+						:user="user"
+						:show-actions="true"
+						@click="handleUserClick"
+						@like="handleLike"
+						@chat="handleApplyOnly"
+					/>
+				</view>
+			</view>
+		</scroll-view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import XsaUserCard from '@/components/XsaUserCard.uvue';
-	import XsaEmpty from '@/components/XsaEmpty.uvue';
+	import XsaUserCard from '@/components/XsaUserCard.uvue'
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaButton from '@/components/XsaButton.uvue'
+	import {
+		getServiceMatchmakers,
+		getVolunteerMatchmakers,
+		getAiRecommendations,
+		bookMatchmaker
+	} from '@/api'
 
-	// 导入 API
-	import { getServiceMatchmakers, getAiRecommendations, getActivities } from '@/api';
+	const currentTab = ref('service')
+	const loading = ref(false)
+	const serviceList = ref([])
+	const volunteerList = ref([])
+	const aiRecommendUsers = ref([])
+	const aiInput = ref('')
+	const prompts = [
+		'帮我整理择偶要求',
+		'分析合拍度',
+		'准备破冰话题'
+	]
+	const aiMessages = ref([
+		{ role: 'ai', text: '你好，我可以先帮你把“想找什么样的人”从模糊感觉整理成可沟通的条件。' },
+		{ role: 'me', text: '我希望对方情绪稳定，也愿意认真沟通。' },
+		{ role: 'ai', text: '可以进一步拆成：冲突时不冷处理、能表达需求、对长期关系有共同规划。哪一项对你最重要？' }
+	])
 
-	// 我的红娘（改为 null 初始值）
-	const myMatchmaker = ref(null);
-
-	// 推荐列表（改为空数组）
-	const recommendList = ref([]);
-
-	// 线下活动（改为空数组）
-	const activityList = ref([]);
-
-	// 服务介绍
-	const serviceList = [
-		{
-			icon: '👤',
-			title: '专属红娘',
-			desc: '资深婚恋顾问1对1服务，深度了解你的需求'
-		},
-		{
-			icon: '🎯',
-			title: '精准推荐',
-			desc: '基于你的条件和偏好，为你筛选合适的对象'
-		},
-		{
-			icon: '💬',
-			title: '全程协助',
-			desc: '从初次见面到后续跟进，全程陪伴和指导'
-		},
-		{
-			icon: '🎉',
-			title: '线下活动',
-			desc: '定期组织高质量单身聚会，扩展社交圈'
-		}
-	];
-
-	// 页面加载时获取数据
 	onMounted(() => {
-		loadMatchmakerData();
-		loadRecommendations();
-		loadActivities();
-	});
+		loadService()
+		loadVolunteer()
+		loadAi()
+	})
 
-	// 加载红娘数据
-	const loadMatchmakerData = async () => {
-		try {
-			const res = await getServiceMatchmakers();
-			if (res.success && res.data.length > 0) {
-				// 模拟分配一个红娘作为"我的红娘"
-				const matchmaker = res.data[0];
-				myMatchmaker.value = {
-					id: matchmaker.id,
-					name: matchmaker.name,
-					avatar: matchmaker.avatar,
-					desc: matchmaker.intro,
-					successCount: matchmaker.successCount,
-					serviceCount: matchmaker.consultCount
-				};
-			}
-		} catch (error) {
-			console.error('获取红娘数据失败', error);
-		}
-	};
+	const switchTab = (tab: string) => {
+		currentTab.value = tab
+	}
 
-	// 加载推荐列表
-	const loadRecommendations = async () => {
+	const loadService = async () => {
 		try {
-			const res = await getAiRecommendations();
-			if (res.success && res.data.length > 0) {
-				// 将 AI 推荐转换为用户卡片格式
-				recommendList.value = res.data.map((item: any) => ({
-					id: item.userId,
-					name: item.name,
-					age: item.age,
-					gender: 2,
-					avatar: item.avatar,
-					online: true,
-					certifications: ['实名认证'],
-					tags: item.tags || [],
-					location: item.city,
-					introduction: item.aiSuggestion
-				}));
-			}
-		} catch (error) {
-			console.error('获取推荐列表失败', error);
-		}
-	};
-
-	// 加载活动列表
-	const loadActivities = async () => {
-		try {
-			const res = await getActivities();
+			loading.value = true
+			const res = await getServiceMatchmakers()
 			if (res.success) {
-				activityList.value = res.data.map((item: any) => ({
-					id: item.id,
-					title: item.title,
-					desc: item.description || item.title,
-					image: item.cover,
-					date: item.date + ' ' + item.time,
-					location: item.location,
-					participants: item.participantCount,
-					status: item.status === 'recruiting' ? 'hot' : 'normal',
-					statusText: item.status === 'recruiting' ? '火热报名中' : item.status === 'full' ? '已满员' : '报名中'
-				}));
+				serviceList.value = res.data
 			}
-		} catch (error) {
-			console.error('获取活动列表失败', error);
+		} catch (e) {
+			console.error(e)
+		} finally {
+			loading.value = false
 		}
-	};
+	}
 
-	// 联系红娘
-	const handleChatMatchmaker = () => {
-		if (myMatchmaker.value) {
-			uni.navigateTo({
-				url: `/pages/chat/detail?userId=${myMatchmaker.value.id}&userName=${myMatchmaker.value.name}`
-			});
+	const loadVolunteer = async () => {
+		try {
+			const res = await getVolunteerMatchmakers()
+			if (res.success) {
+				volunteerList.value = res.data
+			}
+		} catch (e) {
+			console.error(e)
 		}
-	};
+	}
 
-	// 申请红娘
-	const handleApplyMatchmaker = () => {
-		uni.showToast({
-			title: '申请红娘功能开发中',
-			icon: 'none'
-		});
-	};
+	const loadAi = async () => {
+		try {
+			const res = await getAiRecommendations()
+			if (res.success) {
+				aiRecommendUsers.value = (res.data as any[]).map((item: any) => {
+					return {
+						id: item.userId != null ? item.userId : item.id,
+						name: item.name,
+						age: item.age,
+						gender: 2,
+						avatar: item.avatar,
+						online: true,
+						certifications: ['实名认证'],
+						tags: item.tags != null ? item.tags : [],
+						location: item.city,
+						introduction: item.aiSuggestion != null ? item.aiSuggestion : ''
+					}
+				})
+			}
+		} catch (e) {
+			console.error(e)
+		}
+	}
 
-	// 查看更多推荐
-	const handleMoreRecommend = () => {
-		uni.showToast({
-			title: '查看更多推荐',
-			icon: 'none'
-		});
-	};
+	const handleCall = (item: any) => {
+		uni.showToast({ title: '准备打开系统拨号 · 演示', icon: 'none' })
+	}
 
-	// 查看更多活动
-	const handleMoreActivity = () => {
-		uni.showToast({
-			title: '查看更多活动',
-			icon: 'none'
-		});
-	};
+	const handleBook = async (item: any) => {
+		try {
+			const res = await bookMatchmaker(item.id)
+			if (res.success) {
+				uni.showToast({ title: '预约已提交', icon: 'success' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '预约失败', icon: 'none' })
+		}
+	}
 
-	// 点击用户
+	const onAiInput = (e: any) => {
+		aiInput.value = e.detail.value
+	}
+
+	const usePrompt = (p: string) => {
+		aiInput.value = p
+	}
+
+	const sendAi = () => {
+		const text = aiInput.value.trim()
+		if (text.length == 0) return
+		aiMessages.value.push({ role: 'me', text: text })
+		aiInput.value = ''
+		// 本地演示回复，不走即时社交聊天
+		setTimeout(() => {
+			aiMessages.value.push({
+				role: 'ai',
+				text: '我会把这个问题拆成可以观察和沟通的具体线索。原型阶段先展示到这里。'
+			})
+		}, 600)
+	}
+
 	const handleUserClick = (user: any) => {
-		uni.navigateTo({
-			url: `/pages/user/detail?userId=${user.id}`
-		});
-	};
+		uni.navigateTo({ url: `/pages/user/detail?userId=${user.id}` })
+	}
 
-	// 喜欢
 	const handleLike = (userId: number) => {
-		uni.showToast({
-			title: '已添加到心动列表',
-			icon: 'success'
-		});
-	};
+		uni.showToast({ title: '已添加到心动列表', icon: 'success' })
+	}
 
-	// 打招呼
-	const handleChat = (userId: number) => {
-		const user = recommendList.value.find(u => u.id === userId);
-		if (user) {
-			uni.navigateTo({
-				url: `/pages/chat/detail?userId=${user.id}&userName=${user.name}`
-			});
-		}
-	};
-
-	// 点击活动
-	const handleActivityClick = (activity: any) => {
-		uni.showModal({
-			title: activity.title,
-			content: `${activity.desc}\n\n时间：${activity.date}\n地点：${activity.location}\n已有${activity.participants}人报名`,
-			confirmText: '立即报名',
-			success: (res) => {
-				if (res.confirm) {
-					uni.showToast({
-						title: '报名成功',
-						icon: 'success'
-					});
-				}
-			}
-		});
-	};
+	// 产品约束：不能从红娘推荐直接进入聊天，应先申请认识
+	const handleApplyOnly = (userId: number) => {
+		uni.showToast({ title: '请先通过「申请认识」开启聊天', icon: 'none' })
+		uni.switchTab({ url: '/pages/index/index' })
+	}
 </script>
 
 <style scoped>
-.matchmaker-page {
-	min-height: 100vh;
-	background: var(--canvas);
-	padding-bottom: 20px;
-}
+	.matchmaker-page {
+		min-height: 100vh;
+		background: var(--canvas);
+	}
 
-/* 顶部横幅 */
-.header-banner {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 24px 20px;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-	margin-bottom: 12px;
-}
+	.subtabs {
+		position: sticky;
+		top: 0;
+		z-index: 8;
+		height: 48px;
+		display: flex;
+		align-items: flex-end;
+		gap: 18px;
+		padding: 0 18px;
+		background: rgba(250, 252, 252, 0.96);
+		border-bottom: 1px solid var(--line);
+	}
 
-.banner-content {
-	flex: 1;
-}
+	.subtab {
+		height: 48px;
+		display: flex;
+		align-items: center;
+		color: var(--muted);
+		font-size: 13px;
+		position: relative;
+	}
 
-.banner-title {
-	display: block;
-	font-size: 22px;
-	font-weight: 600;
-	color: var(--text-invert);
-	margin-bottom: 8px;
-}
+	.subtab.active {
+		color: var(--ink);
+		font-weight: 800;
+	}
 
-.banner-desc {
-	display: block;
-	font-size: 14px;
-	color: var(--text-invert);
-}
+	.subtab.active::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -1px;
+		height: 3px;
+		background: var(--accent);
+		border-radius: 3px 3px 0 0;
+	}
 
-.banner-icon .icon {
-	font-size: 48px;
-}
+	.scroller {
+		height: calc(100vh - 48px);
+	}
 
-/* 区块 */
-.section {
-	margin-bottom: 12px;
-	padding: 16px;
-	background: var(--surface);
-}
+	.page-pad {
+		padding: 14px 14px 40px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
 
-.section-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 16px;
-}
+	.hero-block {
+		padding: 18px;
+		background: var(--warm);
+		border-left: 3px solid var(--accent);
+		border-radius: 0 12px 12px 0;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
 
-.section-title {
-	font-size: 18px;
-	font-weight: 600;
-	color: var(--ink);
-}
+	.hero-kicker {
+		font-size: 10px;
+		color: var(--accent2);
+		font-weight: 800;
+		letter-spacing: 0.08em;
+	}
 
-.section-more {
-	font-size: 13px;
-}
+	.hero-title {
+		font-size: 22px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
 
-/* 红娘卡片 */
-.matchmaker-card {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 16px;
-	background: var(--paper);
-	border: 1px solid var(--line);
-	border-radius: 12px;
-}
+	.hero-desc {
+		font-size: 12px;
+		line-height: 1.6;
+	}
 
-.matchmaker-avatar {
-	width: 64px;
-	height: 64px;
-	border-radius: 50%;
-	flex-shrink: 0;
-}
+	.mm-card {
+		border: 1px solid var(--line);
+		background: var(--surface);
+		border-radius: 12px;
+		padding: 13px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
 
-.matchmaker-info {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
+	.mm-profile {
+		display: flex;
+		gap: 12px;
+	}
 
-.matchmaker-name {
-	font-size: 16px;
-	font-weight: 600;
-	color: var(--ink);
-}
+	.mm-avatar {
+		width: 72px;
+		height: 88px;
+		border-radius: 8px;
+	}
 
-.matchmaker-desc {
-	font-size: 13px;
-}
+	.mm-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
 
-.matchmaker-stats {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin-top: 4px;
-}
+	.mm-name {
+		font-size: 17px;
+		font-family: var(--serif);
+		font-weight: 700;
+	}
 
-.stat-item {
-	font-size: 12px;
-	color: var(--muted);
-}
+	.mm-title,
+	.mm-intro {
+		font-size: 11px;
+		line-height: 1.55;
+	}
 
-.stat-divider {
-	color: var(--muted);
-}
+	.case-box {
+		padding: 9px 10px;
+		background: var(--warm);
+		border-radius: 7px;
+		font-size: 11px;
+		line-height: 1.5;
+		color: var(--ink2);
+	}
 
-.chat-btn {
-	padding: 8px 16px;
-	background: var(--accent);
-	color: var(--text-invert);
-	border-radius: 999px;
-	flex-shrink: 0;
-}
+	.contact-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
 
-.btn-text {
-	font-size: 13px;
-	font-weight: 500;
-	color: var(--text-invert);
-}
+	.rank-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 2px;
+		border-bottom: 1px solid var(--line);
+	}
 
-/* 没有红娘 */
-.no-matchmaker {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 24px;
-	background: var(--paper);
-	border: 1px dashed var(--line);
-	border-radius: 12px;
-}
+	.rank-no {
+		width: 28px;
+		font-size: 18px;
+		font-family: var(--serif);
+		color: var(--accent);
+	}
 
-.no-text {
-	font-size: 15px;
-	color: var(--muted);
-}
+	.rank-avatar {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+	}
 
-.apply-text {
-	font-size: 14px;
-	color: var(--accent2);
-	font-weight: 500;
-}
+	.rank-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
 
-/* 推荐列表 */
-.recommend-list {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
+	.rank-name {
+		font-size: 13px;
+		font-weight: 700;
+	}
 
-/* 活动列表 */
-.activity-list {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
+	.rank-desc {
+		font-size: 10px;
+	}
 
-.activity-card {
-	position: relative;
-	display: flex;
-	gap: 12px;
-	padding: 12px;
-	background: var(--paper);
-	border: 1px solid var(--line);
-	border-radius: 12px;
-}
+	.rank-count {
+		font-size: 10px;
+	}
 
-.activity-image {
-	width: 80px;
-	height: 80px;
-	border-radius: 8px;
-	flex-shrink: 0;
-}
+	.ai-intro {
+		padding: 14px;
+		background: var(--navy);
+		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
+	}
 
-.activity-info {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
+	.ai-title {
+		font-size: 19px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--paper);
+	}
 
-.activity-title {
-	font-size: 15px;
-	font-weight: 600;
-	color: var(--ink);
-}
+	.ai-desc {
+		font-size: 11px;
+		line-height: 1.6;
+		color: rgba(231, 236, 236, 0.8);
+	}
 
-.activity-desc {
-	font-size: 13px;
-}
+	.mini-chat {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
 
-.activity-meta {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	margin-top: 4px;
-}
+	.bubble {
+		max-width: 82%;
+		padding: 10px 12px;
+		border-radius: 12px;
+		font-size: 12px;
+		line-height: 1.6;
+		background: var(--surface);
+		border: 1px solid var(--line);
+	}
 
-.meta-item {
-	font-size: 12px;
-	color: var(--muted);
-}
+	.bubble.ai {
+		align-self: flex-start;
+		border-radius: 4px 12px 12px 12px;
+	}
 
-.activity-tag {
-	position: absolute;
-	top: 12px;
-	right: 12px;
-	padding: 4px 10px;
-	border-radius: 999px;
-	font-size: 11px;
-}
+	.bubble.me {
+		align-self: flex-end;
+		background: var(--soft);
+		border-color: var(--soft);
+		border-radius: 12px 4px 12px 12px;
+	}
 
-.activity-tag.hot {
-	background: var(--accent);
-	color: var(--text-invert);
-}
+	.prompts {
+		white-space: nowrap;
+		width: 100%;
+	}
 
-.activity-tag.normal {
-	background: var(--accent-bg);
-	color: var(--accent);
-}
+	.prompt-chip {
+		display: inline-flex;
+		align-items: center;
+		min-height: 38px;
+		padding: 0 10px;
+		margin-right: 6px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 7px;
+		font-size: 10px;
+	}
 
-.tag-text {
-	font-weight: 500;
-}
+	.ai-input-row {
+		display: grid;
+		grid-template-columns: 1fr 64px;
+		gap: 8px;
+	}
 
-/* 服务列表 */
-.service-list {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
+	.ai-input {
+		height: 44px;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		border-radius: 9px;
+		padding: 0 12px;
+		font-size: 12px;
+	}
 
-.service-item {
-	display: flex;
-	gap: 12px;
-}
+	.ai-send {
+		height: 44px;
+		border-radius: 9px;
+		background: var(--brown);
+		color: var(--paper);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 12px;
+		font-weight: 800;
+	}
 
-.service-icon {
-	width: 40px;
-	height: 40px;
-	background: var(--soft);
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 20px;
-	flex-shrink: 0;
-}
+	.section-block {
+		margin-top: 8px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
 
-.service-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.service-title {
-	font-size: 15px;
-	font-weight: 500;
-	color: var(--ink);
-}
-
-.service-desc {
-	font-size: 13px;
-	line-height: 1.5;
-}
+	.section-title {
+		font-size: 18px;
+		font-family: var(--serif);
+		font-weight: 700;
+	}
 </style>

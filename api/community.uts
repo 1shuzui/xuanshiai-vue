@@ -1,72 +1,82 @@
 /**
  * 社区相关 API
- * 包含：动态列表、话题列表、纸飞机、线下活动
+ * Mock 对齐高保真：喜欢 / 同城 / 发现
  */
 
 import { request } from './request.uts'
-import { mockDynamicList, mockTopics, mockPaperPlanes, mockActivities } from '@/mock'
+import {
+  mockDynamicList,
+  mockTopics,
+  mockPaperPlanes,
+  mockActivities,
+  mockCommunityBanners
+} from '@/mock'
 
 /**
  * 获取动态列表
- * @param tab 标签页（0: 推荐, 1: 关注, 2: 同城）
- * @param page 页码
+ * @param tab 0 发现(discover) / 1 喜欢(liked) / 2 同城(city)
  */
 export async function getDynamicList(tab: number = 0, page: number = 1) {
+  const all = mockDynamicList as any[]
+  let filtered = all
+  if (tab == 1) {
+    filtered = all.filter((d: any) => d.tab == 'liked' || d.liked == true)
+  } else if (tab == 2) {
+    filtered = all.filter((d: any) => d.tab == 'city' || d.location == '南京')
+  } else {
+    filtered = all.filter((d: any) => d.tab == 'discover' || d.tab == null)
+    if (filtered.length == 0) filtered = all
+  }
   return request({
     url: '/community/dynamic/list',
     cloudFunctionName: 'community',
     action: 'getDynamicList',
     method: 'GET',
     data: { tab, page },
-    mockData: mockDynamicList // Mock 数据
+    mockData: filtered
   })
 }
 
-/**
- * 获取话题列表
- */
 export async function getTopics() {
   return request({
     url: '/community/topics',
     cloudFunctionName: 'community',
     action: 'getTopics',
     method: 'GET',
-    mockData: mockTopics // Mock 数据
+    mockData: mockTopics
   })
 }
 
-/**
- * 获取纸飞机列表
- */
 export async function getPaperPlanes() {
   return request({
     url: '/community/paper-planes',
     cloudFunctionName: 'community',
     action: 'getPaperPlanes',
     method: 'GET',
-    mockData: mockPaperPlanes // Mock 数据
+    mockData: mockPaperPlanes
   })
 }
 
-/**
- * 获取线下活动列表
- */
 export async function getActivities() {
   return request({
     url: '/community/activities',
     cloudFunctionName: 'community',
     action: 'getActivities',
     method: 'GET',
-    mockData: mockActivities // Mock 数据
+    mockData: mockActivities
   })
 }
 
-/**
- * 发布动态
- * @param content 动态内容
- * @param photos 图片列表
- * @param location 位置
- */
+export async function getCommunityBanners() {
+  return request({
+    url: '/community/banners',
+    cloudFunctionName: 'community',
+    action: 'getBanners',
+    method: 'GET',
+    mockData: mockCommunityBanners
+  })
+}
+
 export async function publishDynamic(content: string, photos: string[], location: string) {
   return request({
     url: '/community/dynamic/publish',
@@ -74,14 +84,10 @@ export async function publishDynamic(content: string, photos: string[], location
     action: 'publishDynamic',
     method: 'POST',
     data: { content, photos, location },
-    mockData: { success: true, dynamicId: Date.now() } // Mock 数据
+    mockData: { success: true, dynamicId: Date.now() }
   })
 }
 
-/**
- * 点赞动态
- * @param dynamicId 动态 ID
- */
 export async function likeDynamic(dynamicId: number) {
   return request({
     url: '/community/dynamic/like',
@@ -89,6 +95,6 @@ export async function likeDynamic(dynamicId: number) {
     action: 'likeDynamic',
     method: 'POST',
     data: { dynamicId },
-    mockData: { success: true } // Mock 数据
+    mockData: { success: true }
   })
 }

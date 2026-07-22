@@ -18,17 +18,17 @@
 			<text class="content-text" v-if="dynamic.content">{{ dynamic.content }}</text>
 
 			<!-- 图片内容 -->
-			<view class="photo-grid" v-if="dynamic.photos && dynamic.photos.length > 0">
-				<image
-					class="photo-item"
-					:class="gridClass"
-					v-for="(photo, index) in dynamic.photos"
-					:key="index"
-					:src="photo"
-					mode="aspectFill"
-					@click="handlePhotoClick(index)"
-				></image>
-			</view>
+<view class="photo-grid" :class="gridClass" v-if="dynamic.photos && dynamic.photos.length > 0">
+					<image
+						class="photo-item"
+						:class="gridClass"
+						v-for="(photo, index) in dynamic.photos"
+						:key="index"
+						:src="photo"
+						mode="aspectFill"
+						@click="handlePhotoClick(index)"
+					></image>
+				</view>
 
 			<!-- 位置信息 -->
 			<view class="location" v-if="dynamic.location">
@@ -209,50 +209,52 @@ const handleMore = () => {
 }
 
 /* 图片网格 */
-.photo-grid {
-	display: grid;
-	gap: 4px;
-	margin-bottom: 8px;
-}
+	.photo-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		margin-bottom: 8px;
+	}
 
-.photo-item {
-	border-radius: 8px;
-	overflow: hidden;
-}
+	.photo-item {
+		border-radius: 8px;
+		overflow: hidden;
+	}
 
-/* 单张图片 */
-.photo-item.single {
-	max-width: 280px;
-	max-height: 280px;
-	width: 100%;
-}
+	/* 单张图片 */
+	.photo-item.single {
+		max-width: 280px;
+		max-height: 280px;
+		width: 100%;
+	}
 
-/* 两张图片 */
-.photo-grid:has(.photo-item.double) {
-	grid-template-columns: repeat(2, 1fr);
-}
+	/* 两张图片 */
+	.photo-grid.double {
+		/* 两列布局由子项宽度控制 */
+	}
 
-.photo-item.double {
-	aspect-ratio: 1;
-}
+	.photo-item.double {
+		width: calc(50% - 2px);
+		height: 160px;
+	}
 
-/* 四张图片 */
-.photo-grid:has(.photo-item.quad) {
-	grid-template-columns: repeat(2, 1fr);
-}
+	/* 四张图片 */
+	.photo-grid.quad {
+	}
 
-.photo-item.quad {
-	aspect-ratio: 1;
-}
+	.photo-item.quad {
+		width: calc(50% - 2px);
+		height: 160px;
+	}
 
-/* 多张图片（3张或超过4张） */
-.photo-grid:has(.photo-item.grid) {
-	grid-template-columns: repeat(3, 1fr);
-}
+	/* 多张图片（3张或超过4张） */
+	.photo-grid.grid {
+	}
 
-.photo-item.grid {
-	aspect-ratio: 1;
-}
+	.photo-item.grid {
+		width: calc(33.33% - 3px);
+		height: 110px;
+	}
 
 /* 位置信息 */
 .location {

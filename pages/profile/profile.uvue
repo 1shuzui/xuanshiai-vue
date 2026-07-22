@@ -32,23 +32,23 @@
 			</view>
 		</view>
 
-		<!-- 我的数据 -->
-		<view class="stats-section">
-			<view class="stat-item" @click="handleNavTo('/pages/profile/visitors')">
-				<text class="stat-value">{{ userInfo.visitors }}</text>
-				<text class="stat-label text-muted">访客</text>
+			<!-- 我的数据（对齐高保真：我看过谁 / 谁看过我 / 收藏） -->
+			<view class="stats-section">
+				<view class="stat-item" @click="handleNavTo('/pages/profile/visitors')">
+					<text class="stat-value">{{ userInfo.viewed }}</text>
+					<text class="stat-label text-muted">我看过谁</text>
+				</view>
+				<view class="stat-divider"></view>
+				<view class="stat-item" @click="handleNavTo('/pages/profile/visitors')">
+					<text class="stat-value">{{ userInfo.visitors }}</text>
+					<text class="stat-label text-muted">谁看过我</text>
+				</view>
+				<view class="stat-divider"></view>
+				<view class="stat-item" @click="handleNavTo('/pages/profile/likes')">
+					<text class="stat-value">{{ userInfo.likes }}</text>
+					<text class="stat-label text-muted">我的收藏</text>
+				</view>
 			</view>
-			<view class="stat-divider"></view>
-			<view class="stat-item" @click="handleNavTo('/pages/profile/likes')">
-				<text class="stat-value">{{ userInfo.likes }}</text>
-				<text class="stat-label text-muted">喜欢</text>
-			</view>
-			<view class="stat-divider"></view>
-			<view class="stat-item" @click="handleNavTo('/pages/profile/matches')">
-				<text class="stat-value">{{ userInfo.matches }}</text>
-				<text class="stat-label text-muted">匹配</text>
-			</view>
-		</view>
 
 		<!-- 功能菜单 -->
 		<view class="menu-section">
@@ -107,53 +107,98 @@
 </template>
 
 <script setup lang="uts">
-	// 用户信息
-	const userInfo = ref({
-		id: 1,
-		avatar: '/static/logo.png',
-		name: '张小美',
-		age: 26,
-		gender: 2,
-		certifications: ['实名认证', '学历认证'],
-		introduction: '热爱生活，喜欢旅行和美食',
-		profileProgress: 75,
-		visitors: 128,
-		likes: 45,
-		matches: 12,
-		unverifiedCount: 2,
-		isVip: false,
-		balance: '0.00'
-	});
+		import { getMeProfile } from '@/api'
 
-	// 编辑头像
-	const handleEditAvatar = () => {
-		uni.chooseImage({
-			count: 1,
-			success: (res) => {
-				userInfo.value.avatar = res.tempFilePaths[0];
-				uni.showToast({
-					title: '头像上传成功',
-					icon: 'success'
-				});
-				// TODO: 调用上传头像接口
+		// 高保真「我的」：顾言澄
+		const userInfo = ref({
+			id: 9001,
+			avatar: '/static/portraits/profile-man-light.jpg',
+			name: '顾言澄',
+			age: 29,
+			gender: 1,
+			certifications: ['实名', '头像', '单身'],
+			introduction: '29 岁 · 南京 · 产品经理',
+			profileProgress: 78,
+			visitors: 8,
+			likes: 5,
+			matches: 12,
+			viewed: 12,
+			unverifiedCount: 2,
+			isVip: false,
+			balance: '0.00',
+			points: 680
+		});
+
+		onMounted(async () => {
+			try {
+				const res = await getMeProfile()
+				if (res.success && res.data != null) {
+					const d = res.data
+					userInfo.value = {
+						id: d.id,
+						avatar: d.avatar,
+						name: d.name,
+						age: d.age,
+						gender: d.gender,
+						certifications: d.certifications != null ? d.certifications : userInfo.value.certifications,
+						introduction: d.introduction != null ? d.introduction : (d.city + ' · ' + d.job),
+						profileProgress: d.profileProgress != null ? d.profileProgress : 78,
+						visitors: d.visitors != null ? d.visitors : 8,
+						likes: d.favorites != null ? d.favorites : 5,
+						matches: 0,
+						viewed: d.viewed != null ? d.viewed : 12,
+						unverifiedCount: d.certTotal != null && d.certDone != null ? (d.certTotal - d.certDone) : 2,
+						isVip: false,
+						balance: '0.00',
+						points: d.points != null ? d.points : 680
+					}
+				}
+			} catch (e) {
+				console.error(e)
 			}
-		});
-	};
+		})
 
-	// 编辑资料
-	const handleEditProfile = () => {
-		uni.navigateTo({
-			url: '/pages/user/edit'
-		});
-	};
+		const handleEditAvatar = () => {
+			uni.chooseImage({
+				count: 1,
+				success: (res) => {
+					userInfo.value.avatar = res.tempFilePaths[0];
+					uni.showToast({
+						title: '头像上传成功',
+						icon: 'success'
+					});
+				}
+			});
+		};
 
-	// 导航到页面
-	const handleNavTo = (url: string) => {
-		uni.navigateTo({
-			url: url
-		});
-	};
-</script>
+		const handleEditProfile = () => {
+			uni.navigateTo({
+				url: '/pages/user/edit'
+			});
+		};
+
+		const handleNavTo = (url: string) => {
+			// 未创建的子页降级提示，避免白屏
+			const known = [
+				'/pages/user/edit',
+				'/pages/profile/certification',
+				'/pages/profile/vip',
+				'/pages/profile/settings'
+			]
+			let ok = false
+			for (let i = 0; i < known.length; i++) {
+				if (url.indexOf(known[i]) == 0) {
+					ok = true
+					break
+				}
+			}
+			if (!ok) {
+				uni.showToast({ title: '功能入口 · 原型演示', icon: 'none' })
+				return
+			}
+			uni.navigateTo({ url: url })
+		};
+	</script>
 
 <style scoped>
 .profile-page {

@@ -1,25 +1,45 @@
 <template>
 	<view class="message-page">
-		<!-- 顶部搜索栏 -->
-		<view class="search-bar">
-			<view class="search-input">
-				<text class="search-icon">🔍</text>
-				<input class="input" type="text" placeholder="搜索消息" />
+		<scroll-view class="scroller" scroll-y @scrolltolower="handleLoadMore">
+			<!-- 快捷入口：对齐高保真消息中心 -->
+			<view class="shortcuts">
+				<view class="shortcut" @click="openApplications">
+					<text class="sc-title">认识申请</text>
+					<text class="sc-desc text-muted">{{ applicationHint }}</text>
+				</view>
+				<view class="shortcut" @click="openHint('纸飞机 · 3 次免费机会')">
+					<text class="sc-title">纸飞机</text>
+					<text class="sc-desc text-muted">匿名认真表达</text>
+				</view>
+				<view class="shortcut" @click="openHint('Ta 的动态 · 入口已触发')">
+					<text class="sc-title">Ta 的动态</text>
+					<text class="sc-desc text-muted">关注的人有更新</text>
+				</view>
+				<view class="shortcut" @click="openHint('情感实验室 · 完善 MBTI 线索')">
+					<text class="sc-title">情感实验室</text>
+					<text class="sc-desc text-muted">完善匹配线索</text>
+				</view>
 			</view>
-		</view>
 
-		<!-- 消息列表 -->
-		<scroll-view class="message-list" scroll-y @scrolltolower="handleLoadMore">
-			<!-- 空状态 -->
+			<view class="section-head">
+				<text class="section-title">最近聊天</text>
+				<text class="section-action text-accent" @click="markAllRead">全部已读</text>
+			</view>
+
+			<!-- 认识申请摘要 -->
+			<view class="app-card" v-if="applications.length > 0" @click="openApplications">
+				<text class="app-title">待处理申请 {{ applications.length }}</text>
+				<text class="app-desc text-muted">双方同意后才会开放聊天</text>
+			</view>
+
 			<XsaEmpty
 				v-if="messageList.length === 0 && !loading"
 				text="暂无消息"
-				description="还没有人给你发消息哦"
+				description="申请通过后，对话会出现在这里"
 				size="large"
 			/>
 
-			<!-- 消息列表 -->
-			<view v-else>
+			<view v-else class="list">
 				<XsaMessageItem
 					v-for="msg in messageList"
 					:key="msg.id"
@@ -28,121 +48,339 @@
 				/>
 			</view>
 
-			<!-- 加载更多 -->
 			<view class="load-more" v-if="messageList.length > 0">
 				<text class="load-text text-muted" v-if="loading">加载中...</text>
 				<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
 			</view>
 		</scroll-view>
+
+		<!-- 申请列表 Sheet -->
+		<XsaSheet :visible="appVisible" title="认识申请" @close="appVisible = false">
+			<view class="app-list">
+				<view class="app-item" v-for="item in applications" :key="item.id">
+					<image class="app-avatar" :src="item.avatar" mode="aspectFill"></image>
+					<view class="app-meta">
+						<text class="app-name">{{ item.name }}</text>
+						<text class="app-msg text-muted">{{ item.message }}</text>
+					</view>
+					<view class="app-actions" v-if="item.direction === 'in'">
+						<XsaButton variant="secondary" size="small" @click="rejectApp(item)">拒绝</XsaButton>
+						<XsaButton variant="primary" size="small" @click="acceptApp(item)">同意</XsaButton>
+					</view>
+					<text v-else class="app-status text-muted">{{ item.statusText }}</text>
+				</view>
+				<view v-if="applications.length === 0" class="empty-apps">
+					<text class="text-muted">暂无申请</text>
+				</view>
+			</view>
+		</XsaSheet>
+
+		<XsaToast :visible="toastVisible" :message="toastMessage" @hide="toastVisible = false" />
 	</view>
 </template>
 
 <script setup lang="uts">
-	import XsaMessageItem from '@/components/XsaMessageItem.uvue';
-	import XsaEmpty from '@/components/XsaEmpty.uvue';
+	import XsaMessageItem from '@/components/XsaMessageItem.uvue'
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaSheet from '@/components/XsaSheet.uvue'
+	import XsaButton from '@/components/XsaButton.uvue'
+	import XsaToast from '@/components/XsaToast.uvue'
+	import { getMessageList, getApplications, handleApplication } from '@/api'
 
-	// 导入 API
-	import { getMessageList } from '@/api';
+	const loading = ref(false)
+	const hasMore = ref(true)
+	const messageList = ref([])
+	const applications = ref([])
+	const appVisible = ref(false)
+	const toastVisible = ref(false)
+	const toastMessage = ref('')
 
-	const loading = ref(false);
-	const hasMore = ref(true);
+	const applicationHint = computed(() => {
+		const n = applications.value.length
+		if (n > 0) return `${n} 条待处理`
+		return '暂无新申请'
+	})
 
-	// 消息列表（改为空数组）
-	const messageList = ref([]);
-
-	// 页面加载时获取数据
 	onMounted(() => {
-		loadMessages();
-	});
+		loadMessages()
+		loadApplications()
+	})
 
-	// 加载消息列表
+	const showToast = (msg: string) => {
+		toastMessage.value = msg
+		toastVisible.value = true
+	}
+
 	const loadMessages = async () => {
 		try {
-			loading.value = true;
-			const res = await getMessageList();
+			loading.value = true
+			const res = await getMessageList()
 			if (res.success) {
-				messageList.value = res.data;
+				messageList.value = res.data
 			}
-		} catch (error) {
-			console.error('获取消息列表失败', error);
+		} catch (e) {
+			console.error(e)
 		} finally {
-			loading.value = false;
+			loading.value = false
 		}
-	};
+	}
 
-	// 点击消息项
+	const loadApplications = async () => {
+		try {
+			const res = await getApplications()
+			if (res.success) {
+				// 兼容 mock 结构
+				const data = res.data
+				if (Array.isArray(data)) {
+					applications.value = data.map((x: any) => normalizeApp(x))
+				} else if (data != null) {
+					const list: any[] = []
+					if (data.incoming != null) {
+						(data.incoming as any[]).forEach((x: any) => list.push(normalizeApp(x, 'in')))
+					}
+					if (data.outgoing != null) {
+						(data.outgoing as any[]).forEach((x: any) => list.push(normalizeApp(x, 'out')))
+					}
+					if (list.length == 0 && data.list != null) {
+						(data.list as any[]).forEach((x: any) => list.push(normalizeApp(x)))
+					}
+					applications.value = list
+				}
+			}
+		} catch (e) {
+			// mock 可能未实现时给演示数据
+			applications.value = [
+				{
+					id: 1,
+					userId: 1,
+					name: '苏晚晴',
+					avatar: '/static/portraits/profile-woman-main.jpg',
+					message: '资料匹配度 92% · 想认真认识你',
+					direction: 'out',
+					statusText: '待回应'
+				}
+			]
+		}
+	}
+
+	const normalizeApp = (x: any, dir: string = 'in') => {
+		return {
+			id: x.id != null ? x.id : x.userId,
+			userId: x.userId != null ? x.userId : x.id,
+			name: x.name != null ? x.name : '用户',
+			avatar: x.avatar != null ? x.avatar : '/static/portraits/profile-woman-main.jpg',
+			message: x.message != null ? x.message : (x.remark != null ? x.remark : '申请认识'),
+			direction: x.direction != null ? x.direction : dir,
+			statusText: x.statusText != null ? x.statusText : '待回应'
+		}
+	}
+
+	const openApplications = () => {
+		appVisible.value = true
+	}
+
+	const openHint = (msg: string) => {
+		showToast(msg)
+	}
+
+	const markAllRead = () => {
+		showToast('消息已全部标为已读')
+	}
+
+	// 仅已匹配会话可进入聊天；否则提示申请流程
 	const handleMessageClick = (message: any) => {
+		const matched = message.matched === true || message.canChat === true || message.type === 'chat'
+		if (!matched && message.type === 'system') {
+			showToast(message.lastMessage != null ? message.lastMessage : '系统消息')
+			return
+		}
+		// 默认允许进入详情（mock 会话视为已通过双方同意）
 		uni.navigateTo({
 			url: `/pages/chat/detail?userId=${message.userId}&userName=${message.name}`
-		});
-	};
+		})
+	}
 
-	// 加载更多
-	const handleLoadMore = async () => {
-		if (loading.value || !hasMore.value) return;
-
-		loading.value = true;
+	const acceptApp = async (item: any) => {
 		try {
-			// 实际项目中这里需要传递分页参数
-			await loadMessages();
-			if (messageList.value.length >= 20) {
-				hasMore.value = false;
+			const res = await handleApplication(item.id, 'accept')
+			if (res.success) {
+				showToast('已同意，聊天已开放')
+				appVisible.value = false
+				uni.navigateTo({
+					url: `/pages/chat/detail?userId=${item.userId}&userName=${item.name}`
+				})
 			}
-		} catch (error) {
-			console.error('加载更多失败', error);
-		} finally {
-			loading.value = false;
+		} catch (e) {
+			// mock 容错
+			showToast('已同意，聊天已开放')
+			appVisible.value = false
+			uni.navigateTo({
+				url: `/pages/chat/detail?userId=${item.userId}&userName=${item.name}`
+			})
 		}
-	};
+	}
+
+	const rejectApp = async (item: any) => {
+		try {
+			await handleApplication(item.id, 'reject')
+		} catch (e) {}
+		applications.value = applications.value.filter((x: any) => x.id != item.id)
+		showToast('已拒绝，不扣除对方次数')
+	}
+
+	const handleLoadMore = async () => {
+		if (loading.value || !hasMore.value) return
+		loading.value = true
+		try {
+			await loadMessages()
+			if (messageList.value.length >= 20) hasMore.value = false
+		} finally {
+			loading.value = false
+		}
+	}
 </script>
 
 <style scoped>
-.message-page {
-	height: 100vh;
-	background: var(--canvas);
-	display: flex;
-	flex-direction: column;
-}
+	.message-page {
+		min-height: 100vh;
+		background: var(--canvas);
+	}
 
-/* 搜索栏 */
-.search-bar {
-	padding: 12px 16px;
-	background: var(--surface);
-	border-bottom: 1px solid var(--line);
-}
+	.scroller {
+		height: 100vh;
+		padding: 14px 14px 24px;
+	}
 
-.search-input {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	height: 40px;
-	padding: 0 16px;
-	background: var(--canvas);
-	border-radius: 20px;
-}
+	.shortcuts {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+		margin-bottom: 18px;
+	}
 
-.search-icon {
-	font-size: 16px;
-}
+	.shortcut {
+		min-height: 92px;
+		padding: 13px;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		border-radius: 10px;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		gap: 4px;
+	}
 
-.input {
-	flex: 1;
-	font-size: 14px;
-	color: var(--ink);
-}
+	.sc-title {
+		font-size: 15px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
 
-/* 消息列表 */
-.message-list {
-	flex: 1;
-	overflow-y: auto;
-}
+	.sc-desc {
+		font-size: 10px;
+	}
 
-.load-more {
-	text-align: center;
-	padding: 16px 0;
-}
+	.section-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin: 8px 2px 12px;
+	}
 
-.load-text {
-	font-size: 13px;
-}
+	.section-title {
+		font-size: 18px;
+		font-family: var(--serif);
+		font-weight: 700;
+	}
+
+	.section-action {
+		font-size: 11px;
+		font-weight: 700;
+	}
+
+	.app-card {
+		margin-bottom: 12px;
+		padding: 12px 14px;
+		border-radius: 10px;
+		background: var(--warm);
+		border-left: 3px solid var(--accent);
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.app-title {
+		font-size: 13px;
+		font-weight: 800;
+	}
+
+	.app-desc {
+		font-size: 11px;
+	}
+
+	.list {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.load-more {
+		text-align: center;
+		padding: 20px 0;
+	}
+
+	.load-text {
+		font-size: 13px;
+	}
+
+	.app-list {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.app-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding-bottom: 12px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.app-avatar {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+	}
+
+	.app-meta {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 0;
+	}
+
+	.app-name {
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	.app-msg {
+		font-size: 11px;
+	}
+
+	.app-actions {
+		display: flex;
+		gap: 6px;
+	}
+
+	.app-status {
+		font-size: 11px;
+	}
+
+	.empty-apps {
+		padding: 24px 0;
+		text-align: center;
+	}
 </style>

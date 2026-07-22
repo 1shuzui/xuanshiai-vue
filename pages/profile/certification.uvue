@@ -126,15 +126,17 @@
 </template>
 
 <script setup lang="uts">
-	// 认证状态
-	let certs = ref({
-		realName: true,
-		education: true,
-		occupation: false,
-		income: false,
-		housing: false,
-		vehicle: false
-	})
+		// 认证状态（高保真：实名/头像/单身已完成，学历/房产待认证）
+		let certs = ref({
+			realName: true,
+			education: false,
+			occupation: false,
+			income: false,
+			housing: false,
+			vehicle: false,
+			avatar: true,
+			single: true
+		})
 
 	// 计算是否全部认证
 	const isAllCertified = computed(() => {

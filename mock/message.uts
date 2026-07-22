@@ -1,139 +1,179 @@
 /**
  * 消息相关 Mock 数据
- * 包含：聊天列表、消息详情、申请消息
+ * 对齐 design-demos/final 消息中心 + chat.html
  */
 
-// 聊天列表 Mock 数据
+const PORTRAIT = {
+  main: '/static/portraits/profile-woman-main.jpg',
+  community: '/static/portraits/profile-woman-community.jpg',
+  man: '/static/portraits/profile-man-light.jpg'
+}
+
+/** 会话列表 */
 export const mockMessageList = [
   {
     id: 1,
-    userId: 101,
-    avatar: 'https://i.pravatar.cc/300?img=101',
-    name: '张小美',
-    lastMessage: '你好，很高兴认识你',
-    time: Date.now() - 5 * 60 * 1000, // 5分钟前
-    unreadCount: 3,
+    userId: 1,
+    avatar: PORTRAIT.main,
+    name: '苏晚晴',
+    lastMessage: '你好，谢谢你认真看完我的资料。',
+    time: Date.now() - 2 * 60 * 1000,
+    unreadCount: 1,
     online: true,
-    messageType: 'text'
+    messageType: 'text',
+    type: 'chat',
+    matched: true,
+    canChat: true
   },
   {
     id: 2,
-    userId: 102,
-    avatar: 'https://i.pravatar.cc/300?img=102',
-    name: '李明',
-    lastMessage: '周末有空吗？',
-    time: Date.now() - 2 * 60 * 60 * 1000, // 2小时前
+    userId: 8001,
+    avatar: PORTRAIT.community,
+    name: '红娘沈知意',
+    lastMessage: '我整理了 3 位与你关系目标接近的用户。',
+    time: Date.now() - 24 * 60 * 60 * 1000,
     unreadCount: 0,
     online: false,
-    messageType: 'text'
+    messageType: 'text',
+    type: 'matchmaker',
+    matched: true,
+    canChat: true
   },
   {
     id: 3,
-    userId: 103,
-    avatar: 'https://i.pravatar.cc/300?img=103',
-    name: '王芳',
-    lastMessage: '[图片]',
-    time: Date.now() - 24 * 60 * 60 * 1000, // 1天前
-    unreadCount: 1,
-    online: true,
-    messageType: 'image'
-  },
-  {
-    id: 4,
-    userId: 104,
-    avatar: 'https://i.pravatar.cc/300?img=104',
-    name: '刘强',
-    lastMessage: '[语音]',
-    time: Date.now() - 2 * 24 * 60 * 60 * 1000, // 2天前
+    userId: 8002,
+    avatar: PORTRAIT.man,
+    name: '安全中心',
+    lastMessage: '首次见面请选择公共场所，请勿发生资金往来。',
+    time: Date.now() - 3 * 24 * 60 * 60 * 1000,
     unreadCount: 0,
     online: false,
-    messageType: 'voice'
+    messageType: 'text',
+    type: 'system',
+    matched: false,
+    canChat: false
   }
 ]
 
-// 聊天详情 Mock 数据
+/** 与苏晚晴的聊天详情（chat.html） */
 export const mockChatMessages = [
   {
     id: 1,
-    senderId: 101,
-    senderName: '张小美',
-    senderAvatar: 'https://i.pravatar.cc/300?img=101',
-    content: '你好，看到你的资料觉得很有共鸣',
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '你好，谢谢你认真看完我的资料。',
     type: 'text',
-    time: Date.now() - 60 * 60 * 1000,
-    isMine: false
+    time: Date.now() - 50 * 60 * 1000,
+    isMine: false,
+    showTime: true,
+    timeLabel: '今天 20:36 · 双方已同意认识'
   },
   {
     id: 2,
     senderId: 'me',
     senderName: '我',
-    senderAvatar: 'https://i.pravatar.cc/300?img=99',
-    content: '你好！谢谢你的喜欢',
+    senderAvatar: PORTRAIT.man,
+    content: '你好，我看到你也喜欢看展和城市散步。最近有没有特别喜欢的展？',
     type: 'text',
-    time: Date.now() - 55 * 60 * 1000,
-    isMine: true
+    time: Date.now() - 48 * 60 * 1000,
+    isMine: true,
+    status: '已读'
   },
   {
     id: 3,
-    senderId: 101,
-    senderName: '张小美',
-    senderAvatar: 'https://i.pravatar.cc/300?img=101',
-    content: '看你也喜欢看展，最近有去看什么展吗？',
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '有呀，上周刚去看了一个插画展。你平时更喜欢哪一类？',
     type: 'text',
-    time: Date.now() - 50 * 60 * 1000,
+    time: Date.now() - 45 * 60 * 1000,
     isMine: false
   },
   {
     id: 4,
     senderId: 'me',
     senderName: '我',
-    senderAvatar: 'https://i.pravatar.cc/300?img=99',
-    content: '上周去看了teamLab的展，很震撼！',
+    senderAvatar: PORTRAIT.man,
+    content: '我比较喜欢当代艺术和摄影展。最近在看一个关于城市记忆的摄影系列。',
     type: 'text',
-    time: Date.now() - 45 * 60 * 1000,
-    isMine: true
+    time: Date.now() - 40 * 60 * 1000,
+    isMine: true,
+    status: '已读'
+  },
+  {
+    id: 5,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '听起来很有意思！我一直想找人一起逛展，这样可以交流不同的感受。',
+    type: 'text',
+    time: Date.now() - 35 * 60 * 1000,
+    isMine: false
+  },
+  {
+    id: 6,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '/static/portraits/profile-woman-community.jpg',
+    type: 'image',
+    time: Date.now() - 34 * 60 * 1000,
+    isMine: false
+  },
+  {
+    id: 7,
+    senderId: 'me',
+    senderName: '我',
+    senderAvatar: PORTRAIT.man,
+    content: '这个想法很好！下周末我打算去看一个新开的展览，要不要一起？',
+    type: 'text',
+    time: Date.now() - 30 * 60 * 1000,
+    isMine: true,
+    status: '已读'
+  },
+  {
+    id: 8,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '可以啊，是在哪里的展览？',
+    type: 'text',
+    time: Date.now() - 25 * 60 * 1000,
+    isMine: false
   }
 ]
 
-// 申请消息 Mock 数据
+/** 认识申请 */
 export const mockApplications = [
   {
     id: 1,
-    userId: 201,
-    avatar: 'https://i.pravatar.cc/300?img=201',
-    name: '周晓晓',
-    age: 27,
+    userId: 1,
+    avatar: PORTRAIT.main,
+    name: '苏晚晴',
+    age: 26,
     city: '杭州',
-    job: 'UI设计师',
-    message: '你好，觉得我们很合适，希望能认识你',
-    time: Date.now() - 3 * 60 * 60 * 1000,
-    status: 'pending', // pending | accepted | rejected
-    match: 85
+    job: '插画师',
+    message: '你好，看到你也喜欢看展和城市散步，想认真认识一下。',
+    time: Date.now() - 2 * 60 * 60 * 1000,
+    status: 'pending',
+    match: 92,
+    direction: 'out',
+    statusText: '待回应'
   },
   {
     id: 2,
-    userId: 202,
-    avatar: 'https://i.pravatar.cc/300?img=202',
-    name: '陈浩',
-    age: 29,
-    city: '上海',
-    job: '建筑师',
-    message: '看到你也喜欢建筑和设计，想和你聊聊',
+    userId: 2,
+    avatar: '/static/portraits/profile-woman-alt.jpg',
+    name: '林雨桐',
+    age: 28,
+    city: '南京',
+    job: '产品设计师',
+    message: '资料匹配度 88%，想认真认识你',
     time: Date.now() - 5 * 60 * 60 * 1000,
     status: 'pending',
-    match: 82
-  },
-  {
-    id: 3,
-    userId: 203,
-    avatar: 'https://i.pravatar.cc/300?img=203',
-    name: '林思远',
-    age: 28,
-    city: '杭州',
-    job: '产品经理',
-    message: '你好！',
-    time: Date.now() - 24 * 60 * 60 * 1000,
-    status: 'accepted',
-    match: 88
+    match: 88,
+    direction: 'in',
+    statusText: '待处理'
   }
 ]

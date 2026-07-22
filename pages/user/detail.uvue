@@ -91,63 +91,115 @@
 				<text class="icon">❤️</text>
 				<text class="text">喜欢</text>
 			</button>
-			<button class="action-btn primary" @click="handleChat">
-				<text class="icon">💬</text>
-				<text class="text">打招呼</text>
-			</button>
+				<button class="action-btn primary" @click="handleApply">
+					<text class="icon">💬</text>
+					<text class="text">申请认识</text>
+				</button>
 		</view>
 	</view>
 </template>
 
-<script setup lang="uts">
-	// TODO: 从路由参数获取用户ID，然后请求接口获取用户详情
-	let userInfo = ref({
-		id: 1,
-		avatar: '/static/avatar-placeholder.png',
-		name: '张小美',
-		age: 26,
-		gender: 2, // 1-男 2-女
-		tags: ['温柔体贴', '爱好旅行', '喜欢美食'],
-		location: '北京·朝阳区',
-		certifications: ['实名认证', '学历认证'],
-		height: 165,
-		education: '本科',
-		occupation: '产品经理',
-		income: '10-20K',
-		maritalStatus: '未婚',
-		housing: '已购房',
-		introduction: '热爱生活，喜欢旅行和美食。希望找到一个有责任心、有上进心的另一半，一起经营美好的未来。',
-		requirement: '希望对方：身高175cm以上，本科及以上学历，有稳定工作，性格温和，有责任心。',
-		photos: [
-			'/static/photo1.png',
-			'/static/photo2.png',
-			'/static/photo3.png',
-		]
-	})
+	<script setup lang="uts">
+		import { getUserDetail, likeUser, applyToMeet } from '@/api'
 
-	// 预览照片
-	const previewPhoto = (index: number) => {
-		uni.previewImage({
-			current: index,
-			urls: userInfo.value.photos
+		let userInfo = ref({
+			id: 1,
+			avatar: '/static/portraits/profile-woman-main.jpg',
+			name: '苏晚晴',
+			age: 26,
+			gender: 2,
+			tags: ['看展', '猫', '咖啡', '城市散步'],
+			location: '杭州',
+			certifications: ['实名', '学历', '头像', '单身'],
+			height: '165',
+			education: '本科',
+			occupation: '插画师',
+			income: '15k—30k',
+			maritalStatus: '未婚',
+			housing: '可沟通',
+			introduction: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
+			requirement: '愿意把真实想法说清楚，不用猜来猜去；各自有生活，也愿意为共同计划留出时间。',
+			photos: [
+				'/static/portraits/profile-woman-main.jpg',
+				'/static/portraits/profile-woman-alt.jpg',
+				'/static/portraits/profile-woman-community.jpg'
+			]
 		})
-	}
 
-	// 喜欢
-	const handleLike = () => {
-		uni.showToast({
-			title: '已添加到心动列表',
-			icon: 'success'
+		onMounted(async () => {
+			const pages = getCurrentPages()
+			const currentPage = pages[pages.length - 1]
+			const options = currentPage.options
+			const userId = options != null && options.userId != null ? parseInt(options.userId) : 1
+			try {
+				const res = await getUserDetail(userId)
+				if (res.success && res.data != null) {
+					const d = res.data
+					const certs: string[] = []
+					if (d.certList != null) {
+						for (let i = 0; i < d.certList.length; i++) certs.push(d.certList[i])
+					} else if (d.certifications != null && d.certifications.realName != null) {
+						if (d.certifications.realName) certs.push('实名')
+						if (d.certifications.education) certs.push('学历')
+						if (d.certifications.avatar) certs.push('头像')
+						if (d.certifications.single) certs.push('单身')
+					}
+					const expectText = d.expect != null && d.expect.length > 0
+						? d.expect.join('；')
+						: (d.expectations != null && d.expectations.relationship != null ? d.expectations.relationship : userInfo.value.requirement)
+					userInfo.value = {
+						id: d.id,
+						avatar: d.avatar,
+						name: d.name,
+						age: d.age,
+						gender: d.gender != null ? d.gender : 2,
+						tags: d.tags != null ? d.tags : [],
+						location: d.city != null ? d.city : (d.location != null ? d.location : ''),
+						certifications: certs.length > 0 ? certs : userInfo.value.certifications,
+						height: ('' + (d.height != null ? d.height : '')).replace('cm', ''),
+						education: d.education != null ? d.education : '',
+						occupation: d.job != null ? d.job : (d.occupation != null ? d.occupation : ''),
+						income: d.income != null ? d.income : (d.salary != null ? d.salary : ''),
+						maritalStatus: d.marriage != null ? d.marriage : '未婚',
+						housing: '可沟通',
+						introduction: d.intro != null ? d.intro : (d.introduction != null ? d.introduction : ''),
+						requirement: expectText,
+						photos: d.photos != null && d.photos.length > 0 ? d.photos : [d.avatar]
+					}
+				}
+			} catch (e) {
+				console.error(e)
+			}
 		})
-	}
 
-	// 打招呼
-	const handleChat = () => {
-		uni.navigateTo({
-			url: `/pages/chat/detail?userId=${userInfo.value.id}&userName=${userInfo.value.name}`
-		})
-	}
-</script>
+		const previewPhoto = (index: number) => {
+			uni.previewImage({
+				current: index,
+				urls: userInfo.value.photos
+			})
+		}
+
+		const handleLike = async () => {
+			try {
+				await likeUser(userInfo.value.id)
+				uni.showToast({ title: '已收藏，仅你自己可见', icon: 'none' })
+			} catch (e) {
+				uni.showToast({ title: '操作失败', icon: 'none' })
+			}
+		}
+
+		// 产品约束：先申请认识，双方同意后才能聊天
+		const handleApply = async () => {
+			try {
+				const res = await applyToMeet(userInfo.value.id, '你好，想认真认识一下。')
+				if (res.success) {
+					uni.showToast({ title: '申请已送达，等待对方回应', icon: 'none' })
+				}
+			} catch (e) {
+				uni.showToast({ title: '申请失败', icon: 'none' })
+			}
+		}
+	</script>
 
 <style scoped>
 .user-detail-page {

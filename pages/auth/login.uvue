@@ -39,35 +39,38 @@
 				</view>
 			</view>
 
-			<button class="login-btn" @click="handleLogin">登录</button>
+				<button class="login-btn" @click="handleLogin">登录</button>
 
-			<view class="tips">
-				<text class="tip-text">登录即表示同意</text>
-				<text class="link">《用户协议》</text>
-				<text class="tip-text">和</text>
-				<text class="link">《隐私政策》</text>
-			</view>
-		</view>
-
-		<view class="other-login">
-			<view class="divider">
-				<view class="line"></view>
-				<text class="text text-muted">其他登录方式</text>
-				<view class="line"></view>
-			</view>
-			<view class="social-btns">
-				<view class="social-btn">
-					<text class="icon">📱</text>
-					<text class="text-muted">微信</text>
-				</view>
-				<view class="social-btn">
-					<text class="icon">🅰️</text>
-					<text class="text-muted">支付宝</text>
+				<view class="tips">
+					<text class="tip-text">登录即表示同意</text>
+					<text class="link" @click="openAgreement">《用户协议》</text>
+					<text class="tip-text">和</text>
+					<text class="link" @click="openPrivacy">《隐私政策》</text>
 				</view>
 			</view>
+
+			<view class="other-login">
+				<view class="divider">
+					<view class="line"></view>
+					<text class="text text-muted">其他登录方式</text>
+					<view class="line"></view>
+				</view>
+				<view class="social-btns">
+					<view class="social-btn" @click="handleWechatLogin">
+						<text class="icon">💚</text>
+						<text class="text-muted">微信</text>
+					</view>
+				</view>
+			</view>
+
+			<!-- 高保真演示入口 -->
+			<button class="demo-btn" @click="enterDemo">进入演示原型</button>
+			<view class="demo-hint">
+				<text class="demo-title">高保真交互演示</text>
+				<text class="demo-desc text-muted">无需真实登录，直接体验推荐、申请认识、双方同意后聊天等流程。</text>
+			</view>
 		</view>
-	</view>
-</template>
+	</template>
 
 <script setup lang="uts">
 	// 响应式数据
@@ -119,38 +122,55 @@
 		})
 	}
 
-	// 登录
-	const handleLogin = () => {
-		if (!phone.value || phone.value.length !== 11) {
-			uni.showToast({
-				title: '请输入正确的手机号',
-				icon: 'none'
-			})
-			return
-		}
-
-		if (!code.value || code.value.length !== 6) {
-			uni.showToast({
-				title: '请输入6位验证码',
-				icon: 'none'
-			})
-			return
-		}
-
-		// TODO: 调用登录接口
-		uni.showToast({
-			title: '登录成功',
-			icon: 'success'
-		})
-
-		// 跳转到首页
-		setTimeout(() => {
+		const goHome = () => {
 			uni.switchTab({
 				url: '/pages/index/index'
 			})
-		}, 1500)
-	}
-</script>
+		}
+
+		// 登录
+		const handleLogin = () => {
+			if (!phone.value || phone.value.length !== 11) {
+				uni.showToast({
+					title: '请输入正确的手机号',
+					icon: 'none'
+				})
+				return
+			}
+
+			if (!code.value || code.value.length < 4) {
+				uni.showToast({
+					title: '请输入验证码',
+					icon: 'none'
+				})
+				return
+			}
+
+			uni.showToast({
+				title: '登录成功',
+				icon: 'success'
+			})
+			setTimeout(goHome, 800)
+		}
+
+		const handleWechatLogin = () => {
+			uni.showToast({ title: '正在拉起微信授权…', icon: 'none' })
+			setTimeout(goHome, 900)
+		}
+
+		const enterDemo = () => {
+			uni.showToast({ title: '欢迎来到宣誓爱', icon: 'none' })
+			setTimeout(goHome, 400)
+		}
+
+		const openAgreement = () => {
+			uni.showToast({ title: '用户服务协议 · 原型', icon: 'none' })
+		}
+
+		const openPrivacy = () => {
+			uni.showToast({ title: '隐私政策 · 原型', icon: 'none' })
+		}
+	</script>
 
 <style scoped>
 .login-page {
@@ -292,7 +312,40 @@
 	font-size: 32px;
 }
 
-.social-btn .text-muted {
-	font-size: 12px;
-}
-</style>
+	.social-btn .text-muted {
+		font-size: 12px;
+	}
+
+	.demo-btn {
+		width: 100%;
+		height: 48px;
+		margin-top: 28px;
+		background: var(--brown);
+		color: var(--paper);
+		border-radius: 12px;
+		font-size: 15px;
+		font-weight: 700;
+	}
+
+	.demo-hint {
+		margin-top: 16px;
+		padding: 16px;
+		border-radius: 16px;
+		background: linear-gradient(135deg, var(--soft) 0%, var(--warm) 100%);
+		border: 1px solid var(--accent);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.demo-title {
+		font-size: 14px;
+		font-weight: 800;
+		color: var(--accent2);
+	}
+
+	.demo-desc {
+		font-size: 12px;
+		line-height: 1.6;
+	}
+	</style>

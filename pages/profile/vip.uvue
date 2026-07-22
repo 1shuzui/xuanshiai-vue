@@ -282,7 +282,7 @@
 
 .plan-item.selected {
 	border-color: var(--accent);
-	background: linear-gradient(135deg, oklch(62% 0.09 185 / 0.1) 0%, oklch(50% 0.10 40 / 0.1) 100%);
+	background: linear-gradient(135deg, rgba(56, 152, 141, 0.1) 0%, rgba(56, 152, 141, 0.06) 100%);
 }
 
 .plan-badge {

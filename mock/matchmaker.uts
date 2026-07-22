@@ -1,174 +1,169 @@
 /**
- * 牵线/红娘相关 Mock 数据
- * 包含：服务红娘列表、热心红娘列表、AI红娘推荐
+ * 牵线/红娘 Mock 数据
+ * 对齐 design-demos/final 服务红娘 / 热心红娘 / AI 红娘
  */
 
-// 服务红娘列表 Mock 数据
+const PORTRAIT = {
+  main: '/static/portraits/profile-woman-main.jpg',
+  alt: '/static/portraits/profile-woman-alt.jpg',
+  community: '/static/portraits/profile-woman-community.jpg',
+  man: '/static/portraits/profile-man-light.jpg',
+  sea: '/static/portraits/profile-man-sea.jpg',
+  manAlt: '/static/portraits/profile-man-alt.jpg'
+}
+
+/** 服务红娘 */
 export const mockServiceMatchmakers = [
   {
     id: 1,
-    name: '李红娘',
-    avatar: 'https://i.pravatar.cc/300?img=21',
-    title: '资深红娘',
-    experience: '8年经验',
-    successCount: 520,
+    name: '沈知意',
+    avatar: PORTRAIT.community,
+    title: '国家三级婚姻家庭咨询师',
+    experience: '6 年经验',
+    successCount: 18,
     rating: 4.9,
-    tags: ['高学历', '高收入', '事业型'],
-    intro: '专注于高学历人群的情感咨询，已成功牵线500+对情侣。擅长分析性格匹配度，提供专业的恋爱建议。',
-    price: 1980,
-    consultCount: 1250
+    tags: ['高知青年', '关系澄清', '首次见面'],
+    intro: '国家三级婚姻家庭咨询师 · 6 年经验',
+    price: 0,
+    consultCount: 320,
+    caseRecord: '近 90 天协助 18 对用户完成首次见面'
   },
   {
     id: 2,
-    name: '张老师',
-    avatar: 'https://i.pravatar.cc/300?img=22',
-    title: '情感导师',
-    experience: '10年经验',
-    successCount: 680,
+    name: '程屿',
+    avatar: PORTRAIT.manAlt,
+    title: '职业红娘',
+    experience: '擅长高知青年匹配',
+    successCount: 46,
     rating: 4.8,
-    tags: ['心理咨询', '婚恋指导', '情感修复'],
-    intro: '国家二级心理咨询师，擅长婚恋心理分析和情感问题解决。',
-    price: 2980,
-    consultCount: 980
-  },
-  {
-    id: 3,
-    name: '王姐',
-    avatar: 'https://i.pravatar.cc/300?img=23',
-    title: '金牌红娘',
-    experience: '12年经验',
-    successCount: 850,
-    rating: 5.0,
-    tags: ['高端定制', 'VIP服务', '一对一'],
-    intro: '专注于高端人群的婚恋服务，提供私人定制化方案。',
-    price: 4980,
-    consultCount: 650
+    tags: ['高知', '长期关系'],
+    intro: '职业红娘 · 擅长高知青年匹配',
+    price: 0,
+    consultCount: 320,
+    caseRecord: '服务过 320 位认真婚恋用户'
   }
 ]
 
-// 热心红娘列表 Mock 数据（普通用户兼职）
+/** 热心红娘排行 */
 export const mockVolunteerMatchmakers = [
   {
     id: 101,
     userId: 501,
-    name: '小美',
-    avatar: 'https://i.pravatar.cc/300?img=51',
-    age: 28,
+    name: '晚风阿姨',
+    avatar: PORTRAIT.community,
+    age: 48,
     city: '杭州',
-    successCount: 12,
-    rating: 4.7,
-    tags: ['95后', '文艺', '咖啡爱好者'],
-    intro: '喜欢帮朋友牵线搭桥，已经成功撮合了12对情侣！',
+    successCount: 46,
+    rating: 4.9,
+    tags: ['热心', '靠谱'],
+    intro: '认真、克制地帮朋友扩大认识范围',
     available: true
   },
   {
     id: 102,
     userId: 502,
-    name: '阿明',
-    avatar: 'https://i.pravatar.cc/300?img=52',
-    age: 30,
-    city: '上海',
-    successCount: 8,
-    rating: 4.5,
-    tags: ['互联网', '篮球', '旅行'],
-    intro: '乐于助人，希望能帮更多人找到幸福',
+    name: '陈老师',
+    avatar: PORTRAIT.man,
+    age: 42,
+    city: '南京',
+    successCount: 39,
+    rating: 4.7,
+    tags: ['教育圈'],
+    intro: '认真、克制地帮朋友扩大认识范围',
     available: true
   },
   {
     id: 103,
     userId: 503,
-    name: '晓雯',
-    avatar: 'https://i.pravatar.cc/300?img=53',
-    age: 26,
-    city: '北京',
-    successCount: 15,
-    rating: 4.8,
-    tags: ['设计师', '看展', '猫奴'],
-    intro: '资深月老，朋友圈里的牵线达人',
+    name: '一杯温水',
+    avatar: PORTRAIT.alt,
+    age: 31,
+    city: '杭州',
+    successCount: 31,
+    rating: 4.6,
+    tags: ['同城'],
+    intro: '认真、克制地帮朋友扩大认识范围',
+    available: true
+  },
+  {
+    id: 104,
+    userId: 504,
+    name: '老周同学',
+    avatar: PORTRAIT.sea,
+    age: 35,
+    city: '苏州',
+    successCount: 24,
+    rating: 4.5,
+    tags: ['老友介绍'],
+    intro: '认真、克制地帮朋友扩大认识范围',
     available: false
   }
 ]
 
-// AI 红娘推荐 Mock 数据
+/** AI 合拍线索推荐（不是直接匹配） */
 export const mockAiRecommendations = [
   {
-    userId: 601,
-    name: '林思雨',
-    age: 28,
-    city: '上海',
-    avatar: 'https://i.pravatar.cc/300?img=61',
+    userId: 1,
+    name: '苏晚晴',
+    age: 26,
+    city: '杭州',
+    avatar: PORTRAIT.main,
     matchScore: 92,
-    matchReasons: [
-      '性格互补：你们一个内向一个外向，能互相平衡',
-      '兴趣相似：都喜欢看展、咖啡、独立音乐',
-      '价值观一致：对长期关系和婚姻有相同期待',
-      '生活节奏契合：都是周末爱出门的活跃型'
-    ],
-    aiSuggestion: '你们的匹配度很高！建议先从共同兴趣（如看展）开始聊天，约个周末一起去美术馆。',
-    tags: ['UI设计师', 'ENFP', '旅行达人']
+    tags: ['看展', '咖啡', '长期关系'],
+    aiSuggestion: '关系目标接近，可从展览与城市散步破冰。'
   },
   {
-    userId: 602,
-    name: '陈悦',
+    userId: 5,
+    name: '徐锦瑟',
     age: 25,
-    city: '北京',
-    avatar: 'https://i.pravatar.cc/300?img=62',
-    matchScore: 85,
-    matchReasons: [
-      '教育背景相近：都是985高校毕业',
-      '职业稳定：律师和产品经理都是稳定职业',
-      '性格沉稳：适合建立长期稳定关系'
-    ],
-    aiSuggestion: '她性格偏内向，建议以真诚、理性的方式沟通，避免过于活跃的社交场景。',
-    tags: ['律师助理', 'ISTJ', '健身']
+    city: '南京',
+    avatar: PORTRAIT.alt,
+    matchScore: 90,
+    tags: ['心理学', '表达', '成长'],
+    aiSuggestion: '双方都重视情绪沟通，适合先聊边界与节奏。'
+  },
+  {
+    userId: 2,
+    name: '林雨桐',
+    age: 28,
+    city: '南京',
+    avatar: PORTRAIT.alt,
+    matchScore: 88,
+    tags: ['徒步', '烘焙', '沟通'],
+    aiSuggestion: '生活节奏互补，可从周末计划切入。'
   }
 ]
 
-// 私人定制套餐 Mock 数据
+/** 透明会员/服务套餐信息结构（非诱导） */
 export const mockCustomPackages = [
   {
     id: 1,
-    name: '基础套餐',
-    price: 1980,
-    duration: '1个月',
-    features: [
-      '专业红娘1对1服务',
-      '3次线上咨询',
-      '推荐5位匹配对象',
-      '约会建议指导'
-    ],
-    popular: false
+    name: '基础咨询',
+    price: 0,
+    unit: '次',
+    desc: '了解服务流程与匹配思路（演示）'
   },
   {
     id: 2,
-    name: '进阶套餐',
-    price: 3980,
-    duration: '3个月',
-    features: [
-      '资深红娘1对1服务',
-      '不限次线上咨询',
-      '推荐10位匹配对象',
-      '约会全程指导',
-      '形象设计建议',
-      '心理测评分析'
-    ],
-    popular: true
+    name: '深度资料梳理',
+    price: 199,
+    unit: '次',
+    desc: '澄清关系期待与资料完整度'
+  }
+]
+
+/** AI 红娘预设对话 */
+export const mockAiChatSeed = [
+  {
+    role: 'ai',
+    text: '你好，我可以先帮你把“想找什么样的人”从模糊感觉整理成可沟通的条件。'
   },
   {
-    id: 3,
-    name: '尊享套餐',
-    price: 9980,
-    duration: '6个月',
-    features: [
-      '金牌红娘1对1专属服务',
-      '24小时在线咨询',
-      '无限次推荐',
-      '线下约会陪同',
-      '形象改造服务',
-      '心理深度分析',
-      '家庭背景调查',
-      '成功后跟踪服务'
-    ],
-    popular: false
+    role: 'me',
+    text: '我希望对方情绪稳定，也愿意认真沟通。'
+  },
+  {
+    role: 'ai',
+    text: '可以进一步拆成：冲突时不冷处理、能表达需求、对长期关系有共同规划。哪一项对你最重要？'
   }
 ]

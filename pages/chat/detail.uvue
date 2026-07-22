@@ -108,13 +108,14 @@
 	import { getChatMessages, sendMessage as sendMessageApi } from '@/api';
 
 	// 消息列表（改为空数组）
-	let messages = ref([])
+		let messages = ref([])
 
-	let inputText = ref('')
-	let showMore = ref(false)
-	let scrollToView = ref('')
-	let loading = ref(false)
-	let userId = ref(0)
+		let inputText = ref('')
+		let showMore = ref(false)
+		let scrollToView = ref('')
+		let loading = ref(false)
+		let userId = ref(0)
+		let peerAvatar = ref('/static/portraits/profile-woman-main.jpg')
 
 	// 页面加载时获取数据
 	onMounted(() => {
@@ -128,30 +129,36 @@
 		}
 	})
 
-	// 加载聊天记录
-	const loadChatMessages = async () => {
-		try {
-			loading.value = true
-			const res = await getChatMessages(userId.value)
-			if (res.success) {
-				// 转换消息格式
-				messages.value = res.data.map((msg: any) => ({
-					id: msg.id,
-					type: msg.type,
-					content: msg.content,
-					time: formatTime(msg.time),
-					showTime: true, // 可以根据时间间隔判断是否显示
-					isMine: msg.isMine,
-					avatar: msg.senderAvatar
-				}))
-				scrollToBottom()
+		// 加载聊天记录
+		const loadChatMessages = async () => {
+			try {
+				loading.value = true
+				const res = await getChatMessages(userId.value)
+				if (res.success) {
+					const list = res.data as any[]
+					if (list.length > 0) {
+						const firstOther = list.find((m: any) => m.isMine != true)
+						if (firstOther != null && firstOther.senderAvatar != null) {
+							peerAvatar.value = firstOther.senderAvatar
+						}
+					}
+					messages.value = list.map((msg: any, idx: number) => ({
+						id: msg.id,
+						type: msg.type,
+						content: msg.content,
+						time: msg.timeLabel != null ? msg.timeLabel : formatTime(msg.time),
+						showTime: msg.showTime == true || idx == 0,
+						isMine: msg.isMine,
+						avatar: msg.senderAvatar
+					}))
+					scrollToBottom()
+				}
+			} catch (error) {
+				console.error('获取聊天记录失败', error)
+			} finally {
+				loading.value = false
 			}
-		} catch (error) {
-			console.error('获取聊天记录失败', error)
-		} finally {
-			loading.value = false
 		}
-	}
 
 	// 格式化时间
 	const formatTime = (timestamp: number): string => {
@@ -173,36 +180,52 @@
 		}
 
 		const content = inputText.value
-		const newMsg = {
-			id: Date.now(),
-			type: 'text',
-			content: content,
-			time: getCurrentTime(),
-			showTime: false,
-			isMine: true,
-			avatar: '/static/my-avatar.png'
-		}
-
-		// 立即添加到界面
-		messages.value.push(newMsg)
-		inputText.value = ''
-		scrollToBottom()
-
-		// 调用发送消息接口
-		try {
-			const res = await sendMessageApi(userId.value, content, 'text')
-			if (res.success) {
-				// 更新消息ID
-				newMsg.id = res.data.messageId
+			const newMsg = {
+				id: Date.now(),
+				type: 'text',
+				content: content,
+				time: getCurrentTime(),
+				showTime: false,
+				isMine: true,
+				avatar: '/static/portraits/profile-man-light.jpg'
 			}
-		} catch (error) {
-			console.error('发送消息失败', error)
-			uni.showToast({
-				title: '发送失败',
-				icon: 'none'
-			})
+
+			// 立即添加到界面
+			messages.value.push(newMsg)
+			inputText.value = ''
+			scrollToBottom()
+
+			// 调用发送消息接口
+			try {
+				const res = await sendMessageApi(userId.value, content, 'text')
+				if (res.success) {
+					if (res.data != null && res.data.messageId != null) {
+						newMsg.id = res.data.messageId
+					}
+					// 高保真演示：自动回复
+					setTimeout(() => {
+						const replies = ['听起来不错！', '我也这么觉得。', '有道理，我们可以约个时间详细聊聊。', '好的，期待和你见面。', '这个想法很棒！']
+						const i = Math.floor(Math.random() * replies.length)
+						messages.value.push({
+							id: Date.now() + 1,
+							type: 'text',
+							content: replies[i],
+							time: getCurrentTime(),
+							showTime: false,
+							isMine: false,
+							avatar: peerAvatar.value
+						})
+						scrollToBottom()
+					}, 1600)
+				}
+			} catch (error) {
+				console.error('发送消息失败', error)
+				uni.showToast({
+					title: '发送失败',
+					icon: 'none'
+				})
+			}
 		}
-	}
 
 	// 预览图片
 	const previewImage = (url: string) => {
@@ -240,7 +263,7 @@
 					time: getCurrentTime(),
 					showTime: false,
 					isMine: true,
-					avatar: '/static/my-avatar.png'
+					avatar: '/static/portraits/profile-man-light.jpg'
 				}
 				messages.value.push(newMsg)
 				scrollToBottom()
@@ -264,7 +287,7 @@
 					time: getCurrentTime(),
 					showTime: false,
 					isMine: true,
-					avatar: '/static/my-avatar.png'
+					avatar: '/static/portraits/profile-man-light.jpg'
 				}
 				messages.value.push(newMsg)
 				scrollToBottom()

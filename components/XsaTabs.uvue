@@ -102,7 +102,7 @@ const handleTabClick = (index: number) => {
 	padding: 4px;
 	background: var(--surface);
 	border-radius: 999px;
-	box-shadow: 0 2px 8px oklch(0.35 0.03 45 / 0.06);
+	box-shadow: 0 2px 8px rgba(17, 23, 24, 0.06);
 }
 
 .tabs-header.pill .tab-item {

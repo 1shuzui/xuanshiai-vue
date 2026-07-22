@@ -105,7 +105,7 @@ const handleClear = () => {
 }
 
 .xsa-input-wrapper.focused .input-container {
-	outline: 3px solid oklch(0.62 0.09 185 / 0.45);
+	outline: 3px solid rgba(56, 152, 141, 0.45);
 	outline-offset: 2px;
 	border-color: var(--accent);
 }

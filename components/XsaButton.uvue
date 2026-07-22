@@ -84,12 +84,12 @@ const handleClick = () => {
 .xsa-button.primary {
 	background: var(--brown);
 	color: var(--paper);
-	box-shadow: 0 2px 8px oklch(0.35 0.03 45 / 0.06);
+	box-shadow: 0 2px 8px rgba(17, 23, 24, 0.06);
 }
 
 .xsa-button.primary:hover:not(.disabled):not(.loading) {
 	transform: translateY(-1px);
-	box-shadow: 0 4px 12px oklch(0.35 0.04 45 / 0.12);
+	box-shadow: 0 4px 12px rgba(17, 23, 24, 0.12);
 }
 
 /* 次要按钮 - 浅色背景 + 边框 */
