@@ -1,441 +1,433 @@
 <template>
-	<view class="profile-page">
-		<!-- 用户信息卡片 -->
-		<view class="user-card">
-			<view class="user-header">
-				<image class="avatar" :src="userInfo.avatar" mode="aspectFill" @click="handleEditAvatar"></image>
-				<view class="user-info">
-					<view class="name-row">
-						<text class="name">{{ userInfo.name }}</text>
-						<text class="age">{{ userInfo.age }}</text>
-						<text class="gender-icon">{{ userInfo.gender === 1 ? '♂' : '♀' }}</text>
+	<view class="page">
+		<!-- 导航栏 -->
+		<view class="nav-bar">
+			<text class="nav-title">我的</text>
+			<view class="nav-right">
+				<view class="nav-icon-btn" @tap="onMessages">
+					<text class="nav-icon">🔔</text>
+				</view>
+				<view class="nav-icon-btn" @tap="onSettings">
+					<text class="nav-icon">⚙</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 滚动内容区 -->
+		<scroll-view scroll-y class="content-scroll" enhanced show-scrollbar="false">
+			<!-- 个人资料卡 -->
+			<view class="profile-card" @tap="onViewMyProfile">
+				<view class="profile-top">
+					<view class="avatar-wrap">
+						<image class="avatar-img" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
 					</view>
-					<view class="cert-badges">
-						<view class="cert-badge" v-for="(cert, index) in userInfo.certifications" :key="index">
-							<text class="cert-text">{{ cert }}</text>
+					<text class="nickname">林悦</text>
+					<text class="user-id">ID: 20240818</text>
+					<view class="edit-btn" @tap="onEditProfile">
+						<text class="edit-icon">✎</text>
+						<text class="edit-text">编辑资料</text>
+					</view>
+				</view>
+			</view>
+
+			<!-- VIP会员卡 -->
+			<view class="vip-card" @tap="onOpenVIP">
+				<view class="vip-row">
+					<view class="vip-left">
+						<text class="vip-crown">👑</text>
+						<text class="vip-title">开通VIP会员</text>
+					</view>
+					<text class="vip-arrow">→</text>
+				</view>
+			</view>
+
+			<!-- 功能入口网格 -->
+			<view class="features-card">
+				<!-- 第一行 -->
+				<view class="feat-row">
+					<view class="feat-cell" v-for="feat in featureRow1" :key="feat.label" @tap="feat.action">
+						<view class="feat-icon-circle" :style="{ backgroundColor: feat.bgColor }">
+							<text class="feat-icon">{{ feat.icon }}</text>
 						</view>
+						<text class="feat-label">{{ feat.label }}</text>
 					</view>
-					<text class="intro text-muted">{{ userInfo.introduction }}</text>
 				</view>
-			</view>
-
-			<!-- 资料完善度 -->
-			<view class="progress-section" @click="handleEditProfile">
-				<view class="progress-header">
-					<text class="progress-label">资料完善度</text>
-					<text class="progress-value">{{ userInfo.profileProgress }}%</text>
-				</view>
-				<view class="progress-bar">
-					<view class="progress-fill" :style="{ width: userInfo.profileProgress + '%' }"></view>
-				</view>
-				<text class="progress-tip text-muted">完善资料可以获得更多曝光</text>
-			</view>
-		</view>
-
-			<!-- 我的数据（对齐高保真：我看过谁 / 谁看过我 / 收藏） -->
-			<view class="stats-section">
-				<view class="stat-item" @click="handleNavTo('/pages/profile/visitors')">
-					<text class="stat-value">{{ userInfo.viewed }}</text>
-					<text class="stat-label text-muted">我看过谁</text>
-				</view>
-				<view class="stat-divider"></view>
-				<view class="stat-item" @click="handleNavTo('/pages/profile/visitors')">
-					<text class="stat-value">{{ userInfo.visitors }}</text>
-					<text class="stat-label text-muted">谁看过我</text>
-				</view>
-				<view class="stat-divider"></view>
-				<view class="stat-item" @click="handleNavTo('/pages/profile/likes')">
-					<text class="stat-value">{{ userInfo.likes }}</text>
-					<text class="stat-label text-muted">我的收藏</text>
-				</view>
-			</view>
-
-		<!-- 功能菜单 -->
-		<view class="menu-section">
-			<view class="menu-group">
-				<view class="menu-item" @click="handleNavTo('/pages/user/edit')">
-					<text class="menu-icon">✏️</text>
-					<text class="menu-title">编辑资料</text>
-					<text class="menu-arrow">›</text>
-				</view>
-				<view class="menu-item" @click="handleNavTo('/pages/profile/certification')">
-					<text class="menu-icon">✓</text>
-					<text class="menu-title">身份认证</text>
-					<view class="menu-badge" v-if="userInfo.unverifiedCount > 0">
-						<text class="badge-text">{{ userInfo.unverifiedCount }}</text>
+				<view class="divider"></view>
+				<!-- 第二行 -->
+				<view class="feat-row">
+					<view class="feat-cell" v-for="feat in featureRow2" :key="feat.label" @tap="feat.action">
+						<view class="feat-icon-circle" :style="{ backgroundColor: feat.bgColor }">
+							<text class="feat-icon">{{ feat.icon }}</text>
+						</view>
+						<text class="feat-label">{{ feat.label }}</text>
 					</view>
-					<text class="menu-arrow">›</text>
 				</view>
-				<view class="menu-item" @click="handleNavTo('/pages/profile/vip')">
-					<text class="menu-icon">👑</text>
-					<text class="menu-title">会员中心</text>
-					<view class="vip-tag" v-if="userInfo.isVip">
-						<text class="vip-text">VIP</text>
+			</view>
+
+			<!-- 设置菜单 -->
+			<view class="settings-card">
+				<view class="setting-row" v-for="item in settingItems" :key="item.label" @tap="item.action">
+					<view class="setting-left">
+						<text class="setting-icon">{{ item.icon }}</text>
+						<text class="setting-label">{{ item.label }}</text>
 					</view>
-					<text class="menu-arrow">›</text>
+					<text class="setting-arrow">›</text>
 				</view>
 			</view>
 
-			<view class="menu-group">
-				<view class="menu-item" @click="handleNavTo('/pages/profile/wallet')">
-					<text class="menu-icon">💰</text>
-					<text class="menu-title">我的钱包</text>
-					<text class="menu-value text-muted">余额 {{ userInfo.balance }}</text>
-					<text class="menu-arrow">›</text>
-				</view>
-				<view class="menu-item" @click="handleNavTo('/pages/profile/orders')">
-					<text class="menu-icon">📋</text>
-					<text class="menu-title">我的订单</text>
-					<text class="menu-arrow">›</text>
-				</view>
-			</view>
-
-			<view class="menu-group">
-				<view class="menu-item" @click="handleNavTo('/pages/profile/settings')">
-					<text class="menu-icon">⚙️</text>
-					<text class="menu-title">设置</text>
-					<text class="menu-arrow">›</text>
-				</view>
-				<view class="menu-item" @click="handleNavTo('/pages/profile/help')">
-					<text class="menu-icon">❓</text>
-					<text class="menu-title">帮助与反馈</text>
-					<text class="menu-arrow">›</text>
-				</view>
-			</view>
-		</view>
+			<!-- 底部留白 -->
+			<view class="scroll-bottom-spacer"></view>
+		</scroll-view>
 	</view>
 </template>
 
 <script setup lang="uts">
-		import { getMeProfile } from '@/api'
+const onMessages = () => {
+	uni.switchTab({ url: '/pages/index/index' })
+}
+const onSettings = () => {
+	uni.navigateTo({ url: '/pages/profile/settings' })
+}
+const onViewMyProfile = () => {
+	uni.navigateTo({ url: '/pages/user/edit' })
+}
+const onEditProfile = () => {
+	uni.navigateTo({ url: '/pages/user/edit' })
+}
+const onOpenVIP = () => {
+	uni.navigateTo({ url: '/pages/profile/vip' })
+}
+const onMyMatch = () => {
+	uni.showToast({ title: '我的牵线', icon: 'none' })
+}
+const onMyFav = () => {
+	uni.showToast({ title: '我的收藏', icon: 'none' })
+}
+const onWhoViewed = () => {
+	uni.showToast({ title: '谁看过我', icon: 'none' })
+}
+const onHistory = () => {
+	uni.showToast({ title: '浏览记录', icon: 'none' })
+}
+const onMyMoments = () => {
+	uni.showToast({ title: '我的动态', icon: 'none' })
+}
+const onVerify = () => {
+	uni.navigateTo({ url: '/pages/profile/certification' })
+}
+const onMyGifts = () => {
+	uni.showToast({ title: '我的礼物', icon: 'none' })
+}
+const onHelp = () => {
+	uni.showToast({ title: '帮助中心', icon: 'none' })
+}
+const onAccountSecurity = () => {
+	uni.showToast({ title: '账号安全', icon: 'none' })
+}
+const onNotifySettings = () => {
+	uni.showToast({ title: '消息通知', icon: 'none' })
+}
+const onPrivacySettings = () => {
+	uni.showToast({ title: '隐私设置', icon: 'none' })
+}
+const onAbout = () => {
+	uni.showToast({ title: '关于我们', icon: 'none' })
+}
 
-		// 高保真「我的」：顾言澄
-		const userInfo = ref({
-			id: 9001,
-			avatar: '/static/portraits/profile-man-light.jpg',
-			name: '顾言澄',
-			age: 29,
-			gender: 1,
-			certifications: ['实名', '头像', '单身'],
-			introduction: '29 岁 · 南京 · 产品经理',
-			profileProgress: 78,
-			visitors: 8,
-			likes: 5,
-			matches: 12,
-			viewed: 12,
-			unverifiedCount: 2,
-			isVip: false,
-			balance: '0.00',
-			points: 680
-		});
-
-		onMounted(async () => {
-			try {
-				const res = await getMeProfile()
-				if (res.success && res.data != null) {
-					const d = res.data
-					userInfo.value = {
-						id: d.id,
-						avatar: d.avatar,
-						name: d.name,
-						age: d.age,
-						gender: d.gender,
-						certifications: d.certifications != null ? d.certifications : userInfo.value.certifications,
-						introduction: d.introduction != null ? d.introduction : (d.city + ' · ' + d.job),
-						profileProgress: d.profileProgress != null ? d.profileProgress : 78,
-						visitors: d.visitors != null ? d.visitors : 8,
-						likes: d.favorites != null ? d.favorites : 5,
-						matches: 0,
-						viewed: d.viewed != null ? d.viewed : 12,
-						unverifiedCount: d.certTotal != null && d.certDone != null ? (d.certTotal - d.certDone) : 2,
-						isVip: false,
-						balance: '0.00',
-						points: d.points != null ? d.points : 680
-					}
-				}
-			} catch (e) {
-				console.error(e)
-			}
-		})
-
-		const handleEditAvatar = () => {
-			uni.chooseImage({
-				count: 1,
-				success: (res) => {
-					userInfo.value.avatar = res.tempFilePaths[0];
-					uni.showToast({
-						title: '头像上传成功',
-						icon: 'success'
-					});
-				}
-			});
-		};
-
-		const handleEditProfile = () => {
-			uni.navigateTo({
-				url: '/pages/user/edit'
-			});
-		};
-
-		const handleNavTo = (url: string) => {
-			// 未创建的子页降级提示，避免白屏
-			const known = [
-				'/pages/user/edit',
-				'/pages/profile/certification',
-				'/pages/profile/vip',
-				'/pages/profile/settings'
-			]
-			let ok = false
-			for (let i = 0; i < known.length; i++) {
-				if (url.indexOf(known[i]) == 0) {
-					ok = true
-					break
-				}
-			}
-			if (!ok) {
-				uni.showToast({ title: '功能入口 · 原型演示', icon: 'none' })
-				return
-			}
-			uni.navigateTo({ url: url })
-		};
-	</script>
+const featureRow1 = [
+	{ icon: '♥', label: '我的牵线', bgColor: '#FEF0F0', action: onMyMatch },
+	{ icon: '★', label: '我的收藏', bgColor: '#FEF9F0', action: onMyFav },
+	{ icon: '👁', label: '谁看过我', bgColor: '#F0F8F4', action: onWhoViewed },
+	{ icon: '🕐', label: '浏览记录', bgColor: '#F0F4FA', action: onHistory }
+]
+const featureRow2 = [
+	{ icon: '👥', label: '我的动态', bgColor: '#F5F0FF', action: onMyMoments },
+	{ icon: '🛡', label: '实名认证', bgColor: '#F0FCF6', action: onVerify },
+	{ icon: '🎁', label: '我的礼物', bgColor: '#FFFCF0', action: onMyGifts },
+	{ icon: '💬', label: '帮助中心', bgColor: '#F5F5F8', action: onHelp }
+]
+const settingItems = [
+	{ icon: '👤', label: '个人资料', action: onEditProfile },
+	{ icon: '🔒', label: '账号安全', action: onAccountSecurity },
+	{ icon: '🔔', label: '消息通知', action: onNotifySettings },
+	{ icon: '🛡', label: '隐私设置', action: onPrivacySettings },
+	{ icon: 'ℹ', label: '关于我们', action: onAbout }
+]
+</script>
 
 <style scoped>
-.profile-page {
+/* ==================== 页面容器 ==================== */
+.page {
+	position: relative;
+	width: 100%;
+	max-width: 750rpx;
 	min-height: 100vh;
-	background: var(--canvas);
-	padding-bottom: 20px;
-}
-
-/* 用户信息卡片 */
-.user-card {
-	background: var(--surface);
-	padding: 24px 16px;
-	margin-bottom: 12px;
-}
-
-.user-header {
-	display: flex;
-	gap: 16px;
-	margin-bottom: 20px;
-}
-
-.avatar {
-	width: 80px;
-	height: 80px;
-	border-radius: 50%;
-	flex-shrink: 0;
-}
-
-.user-info {
-	flex: 1;
+	margin: 0 auto;
+	background-color: var(--canvas);
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
 }
 
-.name-row {
+/* ==================== 状态栏占位 ==================== */
+.status-bar-placeholder {
+	height: 88rpx;
+}
+
+/* ==================== 导航栏 ==================== */
+.nav-bar {
 	display: flex;
+	flex-direction: row;
 	align-items: center;
-	gap: 6px;
+	justify-content: center;
+	padding: 32rpx 40rpx 24rpx 40rpx;
+	position: relative;
+	background-color: var(--canvas);
 }
 
-.name {
-	font-size: 20px;
-	font-weight: 600;
+.nav-title {
+	font-family: var(--serif);
+	font-size: 36rpx;
+	font-weight: 700;
 	color: var(--ink);
 }
 
-.age {
-	font-size: 16px;
-	color: var(--ink2);
-}
-
-.gender-icon {
-	font-size: 16px;
-	color: var(--accent);
-}
-
-.cert-badges {
+.nav-right {
+	position: absolute;
+	right: 40rpx;
+	top: 32rpx;
 	display: flex;
-	gap: 6px;
-	flex-wrap: wrap;
-}
-
-.cert-badge {
-	padding: 4px 10px;
-	background: var(--accent-bg);
-	border-radius: 999px;
-}
-
-.cert-text {
-	font-size: 12px;
-	color: var(--accent);
-}
-
-.intro {
-	font-size: 13px;
-	line-height: 1.5;
-}
-
-/* 资料完善度 */
-.progress-section {
-	padding: 16px;
-	background: var(--paper);
-	border: 1px solid var(--line);
-	border-radius: 12px;
-}
-
-.progress-header {
-	display: flex;
-	justify-content: space-between;
-	margin-bottom: 8px;
-}
-
-.progress-label {
-	font-size: 14px;
-	color: var(--ink);
-}
-
-.progress-value {
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--accent);
-}
-
-.progress-bar {
-	height: 8px;
-	background: var(--canvas);
-	border-radius: 999px;
-	overflow: hidden;
-	margin-bottom: 8px;
-}
-
-.progress-fill {
-	height: 100%;
-	background: var(--accent);
-	border-radius: 999px;
-	transition: width 0.3s;
-}
-
-.progress-tip {
-	font-size: 12px;
-}
-
-/* 数据统计 */
-.stats-section {
-	display: flex;
+	flex-direction: row;
 	align-items: center;
-	justify-content: space-around;
-	padding: 20px 16px;
-	background: var(--surface);
-	margin-bottom: 12px;
+	gap: 16rpx;
 }
 
-.stat-item {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 6px;
-}
-
-.stat-value {
-	font-size: 22px;
-	font-weight: 600;
-	color: var(--ink);
-}
-
-.stat-label {
-	font-size: 13px;
-}
-
-.stat-divider {
-	width: 1px;
-	height: 32px;
-	background: var(--line);
-}
-
-/* 功能菜单 */
-.menu-section {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.menu-group {
-	background: var(--surface);
-	border-radius: 12px;
-	overflow: hidden;
-}
-
-.menu-item {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 16px;
-	border-bottom: 1px solid var(--line);
-	transition: background 0.18s;
-}
-
-.menu-item:last-child {
-	border-bottom: none;
-}
-
-.menu-item:active {
-	background: var(--canvas);
-}
-
-.menu-icon {
-	width: 28px;
-	font-size: 20px;
-	flex-shrink: 0;
-}
-
-.menu-title {
-	flex: 1;
-	font-size: 15px;
-	color: var(--ink);
-}
-
-.menu-value {
-	font-size: 14px;
-	margin-right: 4px;
-}
-
-.menu-badge {
-	min-width: 18px;
-	height: 18px;
-	padding: 0 5px;
-	background: var(--accent);
+.nav-icon-btn {
+	width: 72rpx;
+	height: 72rpx;
 	border-radius: 999px;
+	background-color: var(--warm);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	margin-right: 8px;
 }
 
-.badge-text {
-	font-size: 11px;
-	font-weight: 600;
-	color: var(--text-invert);
+.nav-icon {
+	font-size: 32rpx;
 }
 
-.vip-tag {
-	padding: 3px 8px;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-	border-radius: 999px;
-	margin-right: 8px;
+/* ==================== 滚动内容区 ==================== */
+.content-scroll {
+	flex: 1;
+	padding: 0 32rpx;
 }
 
-.vip-text {
-	font-size: 11px;
-	font-weight: 600;
-	color: var(--text-invert);
+/* ==================== 个人资料卡 ==================== */
+.profile-card {
+	display: flex;
+	flex-direction: column;
+	background-color: var(--surface);
+	border-radius: 16px;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	margin-bottom: 24rpx;
 }
 
-.menu-arrow {
-	font-size: 20px;
+.profile-top {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16rpx;
+	padding: 64rpx 40rpx 40rpx 40rpx;
+}
+
+.avatar-wrap {
+	width: 160rpx;
+	height: 160rpx;
+	border-radius: 80rpx;
+	overflow: hidden;
+	background-color: var(--warm);
+}
+
+.avatar-img {
+	width: 100%;
+	height: 100%;
+}
+
+.nickname {
+	font-family: var(--serif);
+	font-size: 40rpx;
+	font-weight: 700;
+	color: var(--ink);
+}
+
+.user-id {
+	font-size: 24rpx;
 	color: var(--muted);
-	flex-shrink: 0;
+}
+
+.edit-btn {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8rpx;
+	padding: 16rpx 40rpx;
+	border-radius: 999px;
+	background-color: var(--accent-bg);
+	margin-top: 8rpx;
+}
+
+.edit-icon {
+	font-size: 26rpx;
+	color: var(--accent2);
+}
+
+.edit-text {
+	font-size: 26rpx;
+	font-weight: 600;
+	color: var(--accent2);
+}
+
+/* ==================== VIP会员卡 ==================== */
+.vip-card {
+	margin-bottom: 24rpx;
+	height: 144rpx;
+	border-radius: 16px;
+	background: linear-gradient(135deg, #2D4A3E, #3D5640, #C9A96E);
+	display: flex;
+	align-items: center;
+	padding: 0 40rpx;
+}
+
+.vip-row {
+	width: 100%;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.vip-left {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 20rpx;
+}
+
+.vip-crown {
+	font-size: 56rpx;
+}
+
+.vip-title {
+	font-size: 30rpx;
+	font-weight: 700;
+	color: var(--text-invert);
+}
+
+.vip-arrow {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #C9A96E;
+}
+
+/* ==================== 功能入口网格 ==================== */
+.features-card {
+	display: flex;
+	flex-direction: column;
+	background-color: var(--surface);
+	border-radius: 16px;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	margin-bottom: 24rpx;
+}
+
+.feat-row {
+	display: flex;
+	flex-direction: row;
+	padding: 32rpx 24rpx;
+}
+
+.feat-cell {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16rpx;
+}
+
+.feat-icon-circle {
+	width: 96rpx;
+	height: 96rpx;
+	border-radius: 48rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.feat-icon {
+	font-size: 44rpx;
+}
+
+.feat-label {
+	font-size: 24rpx;
+	font-weight: 500;
+	color: var(--ink2);
+}
+
+.divider {
+	width: 100%;
+	height: 2rpx;
+	background-color: var(--line);
+}
+
+/* ==================== 设置菜单 ==================== */
+.settings-card {
+	display: flex;
+	flex-direction: column;
+	background-color: var(--surface);
+	border-radius: 16px;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	margin-bottom: 24rpx;
+}
+
+.setting-row {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	padding: 32rpx 40rpx;
+	border-bottom: 2rpx solid var(--line);
+}
+
+.setting-row:last-child {
+	border-bottom: none;
+}
+
+.setting-left {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 24rpx;
+}
+
+.setting-icon {
+	font-size: 36rpx;
+}
+
+.setting-label {
+	font-size: 30rpx;
+	font-weight: 500;
+	color: var(--ink);
+}
+
+.setting-arrow {
+	font-size: 40rpx;
+	font-weight: 400;
+	color: var(--muted);
+}
+
+/* 底部留白 */
+.scroll-bottom-spacer {
+	height: 120rpx;
 }
 </style>

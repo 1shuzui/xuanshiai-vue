@@ -23,17 +23,23 @@ export const mockRecommendUsers = [
     gender: 2,
     city: '杭州',
     height: '165cm',
+    weight: '50kg',
+    constellation: '金牛座',
     job: '插画师',
     school: '浙江大学 · 本科',
     education: '本科',
     mbti: 'INFP',
     match: 92,
     online: '当前在线',
+    activeStatus: '积极营业',
+    distance: '距你约 3.2km',
+    recentActivity: '近期活跃',
     avatar: PORTRAIT.main,
     photos: [PORTRAIT.main, PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main],
+    lifePhotos: [PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main, PORTRAIT.alt],
     photoPosition: 'center 34%',
-    tags: ['看展', '猫', '咖啡', '城市散步'],
-    intro: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
+    tags: ['颜控', '宠物', '看展', '咖啡'],
+    intro: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。对生活保持好奇心，也愿意为重要的人留出时间。平时比较安静，但聊到喜欢的话题会很投入。',
     income: '15k—30k',
     marriage: '未婚',
     hometown: '浙江绍兴',
@@ -47,7 +53,20 @@ export const mockRecommendUsers = [
       realName: true,
       education: true,
       avatar: true,
-      single: true
+      single: true,
+      property: false
+    },
+    qualificationTags: ['已实名', '学历认证', '头像认证', '单身认证'],
+    deepInfo: {
+      family: '独生女，父母在绍兴老家，家庭关系和睦。',
+      interests: '画画、看展、撸猫、咖啡探店、城市漫步。',
+      loveView: '长期关系是两个人一起完成的作品，需要耐心和用心。',
+      singleReason: '圈子比较小，工作环境以自由职业者为主。',
+      idealPartner: '有责任心、情绪稳定，能一起安静地待着也能一起探索城市。'
+    },
+    dynamics: {
+      latest: '最近更新',
+      summary: '正在认真生活，也愿意分享值得记住的片刻。'
     }
   },
   {
@@ -58,17 +77,23 @@ export const mockRecommendUsers = [
     gender: 2,
     city: '南京',
     height: '168cm',
+    weight: '55kg',
+    constellation: '天秤座',
     job: '产品设计师',
     school: '同济大学 · 硕士',
     education: '硕士',
     mbti: 'ENFJ',
     match: 88,
     online: '3 分钟前在线',
+    activeStatus: '积极营业',
+    distance: '距你约 5.8km',
+    recentActivity: '3 分钟前在线',
     avatar: PORTRAIT.alt,
     photos: [PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main],
+    lifePhotos: [PORTRAIT.community, PORTRAIT.main, PORTRAIT.alt, PORTRAIT.community],
     photoPosition: 'center 35%',
     tags: ['徒步', '纪录片', '烘焙', '羽毛球'],
-    intro: '工作之外，我喜欢把周末交给山野和厨房。期待遇见愿意沟通、对生活保持好奇的人。',
+    intro: '工作之外，我喜欢把周末交给山野和厨房。期待遇见愿意沟通、对生活保持好奇的人。相信好的关系来自两个独立灵魂的相互吸引。',
     income: '20k—35k',
     marriage: '未婚',
     hometown: '江苏无锡',
@@ -82,7 +107,20 @@ export const mockRecommendUsers = [
       realName: true,
       education: true,
       avatar: true,
-      single: true
+      single: true,
+      property: false
+    },
+    qualificationTags: ['已实名', '学历认证', '头像认证', '单身认证'],
+    deepInfo: {
+      family: '有一个弟弟，父母经营小生意，家庭氛围开放民主。',
+      interests: '徒步登山、看纪录片、烘焙面包、打羽毛球。',
+      loveView: '好的关系是相互成就，不是相互消耗。',
+      singleReason: '前两年专注职业转型，现在想认真考虑感情。',
+      idealPartner: '有担当、爱运动、愿意花时间经营关系。'
+    },
+    dynamics: {
+      latest: '3 天前更新',
+      summary: '上周刚完成紫金山徒步，在慢慢记录生活的轨迹。'
     }
   },
   {
@@ -93,17 +131,23 @@ export const mockRecommendUsers = [
     gender: 2,
     city: '苏州',
     height: '170cm',
+    weight: '53kg',
+    constellation: '处女座',
     job: '建筑设计师',
     school: '东南大学 · 硕士',
     education: '硕士',
     mbti: 'INTJ',
     match: 85,
     online: '15 分钟前在线',
+    activeStatus: '积极营业',
+    distance: '距你约 12.5km',
+    recentActivity: '15 分钟前在线',
     avatar: PORTRAIT.community,
     photos: [PORTRAIT.community, PORTRAIT.alt],
+    lifePhotos: [PORTRAIT.alt, PORTRAIT.main, PORTRAIT.community, PORTRAIT.alt],
     photoPosition: 'center 40%',
     tags: ['建筑', '摄影', '咖啡', '阅读'],
-    intro: '设计建筑，也设计生活。喜欢用相机记录城市的温度，周末在独立书店待一下午。',
+    intro: '设计建筑，也设计生活。喜欢用相机记录城市的温度，周末在独立书店待一下午。理性但不冷漠，对在意的人会很用心。',
     income: '25k—40k',
     marriage: '未婚',
     hometown: '江苏苏州',
@@ -117,7 +161,20 @@ export const mockRecommendUsers = [
       realName: true,
       education: true,
       avatar: true,
-      single: true
+      single: true,
+      property: true
+    },
+    qualificationTags: ['已实名', '学历认证', '头像认证', '单身认证', '房产认证'],
+    deepInfo: {
+      family: '苏州本地人，和父母关系亲近，家庭重视教育。',
+      interests: '建筑摄影、手冲咖啡、独立书店、城市建筑导览。',
+      loveView: '爱情是两个人共同设计的空间，需要结构和温度。',
+      singleReason: '对感情比较慎重，不想为了谈恋爱而谈恋爱。',
+      idealPartner: '有自己热爱的事业、懂得尊重边界、愿意深度交流。'
+    },
+    dynamics: {
+      latest: '1 周前更新',
+      summary: '最近在研究苏州园林的空间叙事，拍了些照片。'
     }
   },
   {
@@ -128,17 +185,23 @@ export const mockRecommendUsers = [
     gender: 2,
     city: '杭州',
     height: '172cm',
+    weight: '56kg',
+    constellation: '射手座',
     job: '策展人',
     school: '中国美院 · 本科',
     education: '本科',
     mbti: 'ENFP',
     match: 83,
     online: '1 小时前在线',
+    activeStatus: '积极营业',
+    distance: '距你约 2.1km',
+    recentActivity: '1 小时前在线',
     avatar: PORTRAIT.main,
     photos: [PORTRAIT.main, PORTRAIT.community],
+    lifePhotos: [PORTRAIT.community, PORTRAIT.alt, PORTRAIT.main, PORTRAIT.community],
     photoPosition: 'center 28%',
     tags: ['艺术', '旅行', '电影', '音乐'],
-    intro: '做过十几个展览，见过很多人与故事。现在想找一个能一起看世界、也能一起安静待着的人。',
+    intro: '做过十几个展览，见过很多人与故事。现在想找一个能一起看世界、也能一起安静待着的人。开朗但不聒噪，对生活永远保持热情。',
     income: '18k—32k',
     marriage: '未婚',
     hometown: '浙江宁波',
@@ -152,7 +215,20 @@ export const mockRecommendUsers = [
       realName: true,
       education: true,
       avatar: true,
-      single: true
+      single: true,
+      property: false
+    },
+    qualificationTags: ['已实名', '学历认证', '头像认证', '单身认证'],
+    deepInfo: {
+      family: '宁波人，父母已退休，家庭氛围轻松自由。',
+      interests: '当代艺术、独立电影、背包旅行、Livehouse。',
+      loveView: '真正的亲密关系是两个独立的人选择在一起。',
+      singleReason: '工作涉及频繁出差和布展，生活节奏不太规律。',
+      idealPartner: '对世界有好奇心、能接受偶尔的即兴和不完美。'
+    },
+    dynamics: {
+      latest: '昨天更新',
+      summary: '刚结束一个展览项目，这个周末想好好休息一下。'
     }
   },
   {
@@ -163,17 +239,23 @@ export const mockRecommendUsers = [
     gender: 2,
     city: '南京',
     height: '163cm',
+    weight: '48kg',
+    constellation: '双鱼座',
     job: '心理咨询师',
     school: '南京师范大学 · 硕士',
     education: '硕士',
     mbti: 'INFJ',
     match: 90,
     online: '刚刚在线',
+    activeStatus: '积极营业',
+    distance: '距你约 6.3km',
+    recentActivity: '刚刚在线',
     avatar: PORTRAIT.alt,
     photos: [PORTRAIT.alt, PORTRAIT.main],
+    lifePhotos: [PORTRAIT.main, PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main],
     photoPosition: 'center 38%',
     tags: ['心理学', '瑜伽', '写作', '园艺'],
-    intro: '倾听别人的故事，也在寻找自己的故事。喜欢安静的生活方式，但内心住着一个冒险家。',
+    intro: '倾听别人的故事，也在寻找自己的故事。喜欢安静的生活方式，但内心住着一个冒险家。擅长倾听，也懂得表达自己的感受。',
     income: '12k—25k',
     marriage: '未婚',
     hometown: '安徽合肥',
@@ -187,7 +269,20 @@ export const mockRecommendUsers = [
       realName: true,
       education: true,
       avatar: true,
-      single: true
+      single: true,
+      property: false
+    },
+    qualificationTags: ['已实名', '学历认证', '头像认证', '单身认证'],
+    deepInfo: {
+      family: '有一个姐姐已结婚，父母在合肥生活。',
+      interests: '阅读心理学书籍、瑜伽冥想、园艺种植、写随笔。',
+      loveView: '关系是一场修行，两个人在其中看见自己、接纳彼此。',
+      singleReason: '硕士毕业后忙于考证和职业起步。',
+      idealPartner: '情绪成熟、有自省能力、愿意在关系中共同成长。'
+    },
+    dynamics: {
+      latest: '5 天前更新',
+      summary: '最近在读《依恋与亲密关系》，有些感悟想分享。'
     }
   },
   {
@@ -198,17 +293,23 @@ export const mockRecommendUsers = [
     gender: 2,
     city: '杭州',
     height: '167cm',
+    weight: '52kg',
+    constellation: '巨蟹座',
     job: '新媒体编辑',
     school: '复旦大学 · 本科',
     education: '本科',
     mbti: 'ISFP',
     match: 86,
     online: '5 分钟前在线',
+    activeStatus: '积极营业',
+    distance: '距你约 4.7km',
+    recentActivity: '5 分钟前在线',
     avatar: PORTRAIT.community,
     photos: [PORTRAIT.community, PORTRAIT.alt],
+    lifePhotos: [PORTRAIT.alt, PORTRAIT.main, PORTRAIT.community, PORTRAIT.alt],
     photoPosition: 'center 45%',
     tags: ['写作', '植物', '手工', '独立音乐'],
-    intro: '用文字记录生活，用植物装点日常。不追热闹，更喜欢两个人的小确幸。',
+    intro: '用文字记录生活，用植物装点日常。不追热闹，更喜欢两个人的小确幸。温柔但有主见，对生活品质有自己的坚持。',
     income: '15k—28k',
     marriage: '未婚',
     hometown: '浙江温州',
@@ -222,7 +323,20 @@ export const mockRecommendUsers = [
       realName: true,
       education: true,
       avatar: true,
-      single: true
+      single: true,
+      property: false
+    },
+    qualificationTags: ['已实名', '学历认证', '头像认证', '单身认证'],
+    deepInfo: {
+      family: '温州人，有一个哥哥，家庭重视亲情和传统。',
+      interests: '写公众号、养绿植、做手工皮具、收集独立音乐。',
+      loveView: '好的爱情不需要轰轰烈烈，能在日常里感受到安心就好。',
+      singleReason: '社交圈偏小，对线上交友持谨慎态度。',
+      idealPartner: '尊重个体空间、有生活情趣、不浮躁。'
+    },
+    dynamics: {
+      latest: '2 天前更新',
+      summary: '阳台上种的绣球花开了，生活总有小惊喜。'
     }
   }
 ]
@@ -327,18 +441,24 @@ export const mockUserDetail = {
   marriage: '未婚',
   match: 92,
   online: '当前在线',
+  activeStatus: '积极营业',
+  distance: '距你约 3.2km',
+  recentActivity: '近期活跃',
   avatar: PORTRAIT.main,
   photos: [PORTRAIT.main, PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main],
-  intro: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
-  introduction: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
-  tags: ['看展', '猫', '咖啡', '城市散步'],
+  lifePhotos: [PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main, PORTRAIT.alt],
+  intro: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。对生活保持好奇心，也愿意为重要的人留出时间。',
+  introduction: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。对生活保持好奇心，也愿意为重要的人留出时间。',
+  tags: ['颜控', '宠物', '看展', '咖啡'],
   certifications: {
     realName: true,
     education: true,
     avatar: true,
-    single: true
+    single: true,
+    property: false
   },
   certList: ['实名', '学历', '头像', '单身'],
+  qualificationTags: ['已实名', '学历认证', '头像认证', '单身认证'],
   expect: [
     '愿意把真实想法说清楚，不用猜来猜去',
     '各自有生活，也愿意为共同计划留出时间',
@@ -348,6 +468,17 @@ export const mockUserDetail = {
     relationship: '期待长期关系',
     marriage: '认真考虑婚姻',
     children: '可沟通'
+  },
+  deepInfo: {
+    family: '独生女，父母在绍兴老家，家庭关系和睦。',
+    interests: '画画、看展、撸猫、咖啡探店、城市漫步。',
+    loveView: '长期关系是两个人一起完成的作品，需要耐心和用心。',
+    singleReason: '圈子比较小，工作环境以自由职业者为主。',
+    idealPartner: '有责任心、情绪稳定，能一起安静地待着也能一起探索城市。'
+  },
+  dynamics: {
+    latest: '最近更新',
+    summary: '正在认真生活，也愿意分享值得记住的片刻。'
   },
   updated: '资料更新于 7 月 18 日'
 }

@@ -3,7 +3,8 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "首页"
+				"navigationBarTitleText": "首页",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -34,6 +35,13 @@
 			"path": "pages/auth/login",
 			"style": {
 				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/onboarding/profile",
+			"style": {
+				"navigationBarTitleText": "完善资料",
 				"navigationStyle": "custom"
 			}
 		},

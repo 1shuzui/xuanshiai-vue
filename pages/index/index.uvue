@@ -1,396 +1,606 @@
 <template>
-	<view class="home-page">
-		<!-- 顶部 Tab：推荐 / 广场 -->
-		<view class="top-tabs">
-			<view
-				class="tab-item"
-				:class="{ active: currentMode === 'recommend' }"
-				@click="switchMode('recommend')"
-			>
-				<text class="tab-text">推荐</text>
+	<view class="page-shell">
+		<!-- 欢迎页 -->
+		<view v-if="welcomeVisible" class="welcome-screen">
+			<image class="welcome-image" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+			<view class="welcome-scrim"></view>
+			<view class="welcome-service" @click="showWelcomeService">联系客服</view>
+			<view class="welcome-copy">
+				<view class="brand-mark"><image src="/static/logo.png" mode="aspectFit"></image></view>
+				<text class="welcome-title">宣誓爱</text>
+				<text class="welcome-subtitle">认真认识一个人，慢慢走进一段关系</text>
 			</view>
-			<view
-				class="tab-item"
-				:class="{ active: currentMode === 'square' }"
-				@click="switchMode('square')"
-			>
-				<text class="tab-text">广场</text>
+			<view class="welcome-actions">
+				<button class="welcome-start-button" @click="openWelcomeAgreement">开始邂逅</button>
 			</view>
-			<view class="header-actions">
-				<view class="icon-chip" @click="openFilter">
-					<text class="chip-text">筛选</text>
+			<view v-if="welcomeAgreementVisible" class="agreement-mask" @click="closeWelcomeAgreement">
+				<view class="agreement-dialog" @click.stop>
+					<text class="agreement-title">欢迎来到宣誓爱</text>
+					<text class="agreement-copy">为了给你更好的交友体验，请先阅读并同意用户协议与隐私政策。</text>
+					<view class="agreement-actions">
+						<button class="agreement-cancel" @click="closeWelcomeAgreement">暂不进入</button>
+						<button class="agreement-confirm" @click="acceptWelcomeAgreement">同意并继续</button>
+					</view>
 				</view>
 			</view>
 		</view>
 
-		<scroll-view class="scroller" scroll-y @scrolltolower="handleLoadMore">
-			<!-- 推荐故事 -->
-			<view v-if="currentMode === 'recommend'" class="story-view">
-				<view v-if="currentUser == null" class="loading-box">
-					<text class="text-muted">{{ loading ? '认真为你匹配中…' : '暂无推荐' }}</text>
+		<view v-else class="page">
+			<!-- 状态栏 -->
+			<view class="status-bar">
+				<text class="time-text">9:41</text>
+				<view class="status-icons">
+					<text class="signal-icon">●●●●</text>
+					<text class="wifi-icon">◉</text>
+					<text class="battery-icon">●●●</text>
 				</view>
+			</view>
 
-				<view v-else class="story">
-					<view class="hero-photo">
-						<image class="photo-img" :src="currentUser.avatar" mode="aspectFill"></image>
-						<view class="photo-index">
-							<text>01 / 04</text>
-						</view>
-						<view class="online-badge">
-							<view class="online-dot"></view>
-							<text>{{ currentUser.online }}</text>
-						</view>
-						<view class="hero-info">
-							<text class="name">{{ currentUser.name }} <text class="age">{{ currentUser.age }}</text></text>
-							<text class="location">{{ currentUser.city }} · {{ currentUser.height }} · {{ currentUser.job }}</text>
-						</view>
+			<!-- 导航栏 -->
+			<view class="nav-bar">
+				<view class="nav-tabs">
+					<view class="nav-tab-item" v-for="(tab, i) in navTabs" :key="i" @click="switchTab(i)">
+						<text :class="['nav-tab-text', currentTab === i ? 'active' : '']">{{ tab }}</text>
+						<view v-if="currentTab === i" class="active-indicator"></view>
+					</view>
+				</view>
+				<view class="history-btn" @click="onHistory">
+					<text class="history-icon">🕐</text>
+				</view>
+			</view>
+
+			<!-- 筛选搜索栏 -->
+			<view v-if="currentTab === 0" class="filter-bar">
+				<view class="search-box" @click="onSearch">
+					<text class="search-icon">🔍</text>
+					<text class="search-placeholder">按城市、年龄、学历、MBTI筛选…</text>
+				</view>
+			</view>
+			<view v-if="currentTab === 1" class="filter-bar filter-bar-square">
+				<view class="search-box square-search-box" @click="onSearch">
+					<text class="search-icon">🔍</text>
+					<text class="search-placeholder">按城市、年龄、学历、MBTI…</text>
+				</view>
+				<view class="ai-match-btn" @click="showAiScore">
+					<text class="ai-match-icon">✦</text>
+					<text class="ai-match-text">AI匹配</text>
+				</view>
+			</view>
+
+			<!-- 推荐 Tab -->
+			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll" enhanced show-scrollbar="false">
+				<view class="profile-card">
+					<view class="cover-wrap">
+						<image class="cover-img" src="/static/portraits/profile-woman-alt.jpg" mode="aspectFill"></image>
 					</view>
 
-					<view class="meta-row">
-						<view class="tags">
-							<XsaTag variant="default" size="small">{{ currentUser.school }}</XsaTag>
-							<XsaTag variant="accent" size="small">{{ currentUser.mbti }}</XsaTag>
-							<XsaTag variant="default" size="small">期待长期关系</XsaTag>
-						</view>
-						<view class="match-stamp">
-							<text class="match-value">{{ currentUser.match }}%</text>
-							<text class="match-label">匹配</text>
-						</view>
+					<!-- 头像在 profile-card 下独立定位，不被 card-body 盖住 -->
+					<view class="avatar-wrap" @tap="goUserDetail">
+						<image class="avatar-img" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
 					</view>
-
-					<view class="story-section">
-						<view class="section-title">
-							<text class="title-main">关于我的生活</text>
-						</view>
-						<view class="intro-box">
-							<text class="intro-text">{{ currentUser.intro }}</text>
-						</view>
-					</view>
-
-					<!-- 语音线索（原型交互：点击提示） -->
-					<view class="story-section">
-						<view class="section-title">
-							<text class="title-main">听见本人</text>
-							<text class="title-sub">真实表达线索</text>
-						</view>
-						<view class="voice-card" @click="playVoice">
-							<view class="voice-play">
-								<text>▶</text>
+					<view class="card-body">
+						<view class="user-info-header">
+							<text class="name-age">林悦，26岁</text>
+							<view class="basic-line">
+								<text class="basic-text">本科</text>
+								<view class="dot-sep"></view>
+								<text class="basic-text">互联网·产品经理</text>
+								<view class="dot-sep"></view>
+								<text class="basic-text">北京</text>
 							</view>
-							<view class="voice-body">
-								<text class="voice-title">听听TA怎么介绍自己</text>
-								<text class="voice-sub text-muted">00:18 · 仅演示</text>
+							<view class="online-row">
+								<view class="online-dot"></view>
+								<text class="online-text">在线</text>
+								<text class="distance-text">· 距你 3.2km · 近期活跃</text>
 							</view>
 						</view>
-					</view>
 
-						<view class="story-section">
-							<view class="section-title">
-								<text class="title-main">可信档案</text>
-								<text class="title-sub">{{ currentUser.updated != null ? currentUser.updated : '资料更新于演示数据' }}</text>
+						<view class="tags-row">
+							<view class="tag accent-tag">
+								<view class="tag-dot"></view>
+								<text class="tag-text-accent">积极营业</text>
 							</view>
-							<view class="trust-card">
-								<view class="trust-header">
-									<text class="trust-title">四类认证</text>
-									<text class="trust-status">VERIFIED 4 / 4</text>
+							<view class="tag"><text class="tag-text">ENFJ</text></view>
+							<view class="tag"><text class="tag-text">颜控</text></view>
+							<view class="tag"><text class="tag-text">宠物</text></view>
+							<view class="tag"><text class="tag-text">旅行</text></view>
+							<view class="tag"><text class="tag-text">摄影</text></view>
+						</view>
+
+						<view class="divider"></view>
+
+						<view class="about-section">
+							<text class="section-title">关于我</text>
+							<text class="about-content">性格温和，热爱生活～ 平时喜欢旅行探索世界，也享受宅家的宁静时光。希望遇到一个真诚、有责任心的人，一起经营温暖的小日子。相信爱情是相互成就，期待双向奔赴的美好。🌿</text>
+						</view>
+
+						<view class="divider"></view>
+
+						<view class="cert-section">
+							<text class="cert-label">已认证:</text>
+							<view class="cert-tag">
+								<text class="cert-icon">🛡</text>
+								<text class="cert-text">实名</text>
+							</view>
+							<view class="cert-tag">
+								<text class="cert-icon">🎓</text>
+								<text class="cert-text">学历</text>
+							</view>
+							<view class="cert-tag">
+								<text class="cert-icon gold-icon">♥</text>
+								<text class="cert-text">单身</text>
+							</view>
+							<view class="cert-tag">
+								<text class="cert-icon">📷</text>
+								<text class="cert-text">头像</text>
+							</view>
+						</view>
+
+						<view class="divider"></view>
+
+						<view class="match-section" @click="showAiScore">
+							<view class="match-ring">
+								<view class="ring-outer">
+									<view class="ring-inner"></view>
 								</view>
-								<view class="trust-grid">
-									<view class="trust-item" v-for="item in trustItems" :key="item.name">
-										<text class="trust-icon">✓</text>
-										<text class="trust-name">{{ item.name }}</text>
-										<text class="trust-desc">{{ item.desc }}</text>
+								<text class="ring-percent">92%</text>
+							</view>
+							<view class="match-info">
+								<text class="match-title">AI 匹配度分析</text>
+								<text class="match-desc">MBTI高度契合 · 兴趣重合度高 · 三观相近</text>
+							</view>
+						</view>
+
+						<view class="divider"></view>
+
+						<view class="info-grid-section">
+							<text class="section-title">基础资料</text>
+							<view class="info-grid">
+								<view class="info-row" v-for="(row, ri) in basicInfoRows" :key="ri">
+									<view class="info-item" v-for="(item, ii) in row" :key="ii">
+										<text class="info-label">{{ item.label }}</text>
+										<text class="info-value">{{ item.value }}</text>
 									</view>
 								</view>
 							</view>
 						</view>
 
-						<!-- 生活切片 -->
-						<view class="story-section">
-							<view class="section-title">
-								<text class="title-main">生活切片</text>
-								<text class="title-sub">兴趣不是标签墙</text>
+						<view class="divider"></view>
+
+						<view class="photos-section">
+							<text class="section-title">Ta的瞬间</text>
+							<image class="photo-large" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
+							<view class="qa-card">
+								<text class="qa-question">💭 爱情观</text>
+								<text class="qa-answer">相信爱情是两个人相互成就的旅程。期待双向奔赴的美好，一起经营温暖的小日子。不需要轰轰烈烈，但求细水长流的陪伴与理解。</text>
 							</view>
-							<view class="life-grid">
-								<image class="life-main" :src="currentUser.avatar" mode="aspectFill"></image>
-								<view class="life-slice">
-									<text class="slice-kicker">周六下午</text>
-									<text class="slice-title">{{ lifeTag(0) }}与一杯{{ lifeTag(2) }}</text>
-								</view>
-								<view class="life-slice dark">
-									<text class="slice-kicker">最近常做</text>
-									<text class="slice-title">{{ lifeTag(3) }}</text>
-								</view>
+							<image class="photo-large" src="/static/portraits/profile-man-light.jpg" mode="aspectFill"></image>
+							<view class="qa-card">
+								<text class="qa-question">🏃 喜欢什么运动</text>
+								<text class="qa-answer">平时喜欢瑜伽和慢跑，周末偶尔去爬山。运动让我保持身心平衡，也希望找到一起挥洒汗水的伙伴～</text>
+							</view>
+							<image class="photo-large" src="/static/portraits/profile-man-sea.jpg" mode="aspectFill"></image>
+							<view class="qa-card">
+								<text class="qa-question">✈️ 下一个旅行目的地</text>
+								<text class="qa-answer">想去日本的京都，感受古都的宁静与禅意。也想去冰岛看极光！如果你也喜欢旅行，我们可以一起规划下一次冒险 🌍</text>
 							</view>
 						</view>
 
-						<!-- 关系期待 -->
-						<view class="story-section">
-							<view class="section-title">
-								<text class="title-main">关系期待</text>
-								<text class="title-sub">TA 如何理解长期关系</text>
+						<view class="divider"></view>
+
+						<view class="activity-row">
+							<text class="activity-text">🟢 近期活跃 · 距你 3.2km</text>
+							<text class="viewed-text">23人看过</text>
+						</view>
+					</view>
+				</view>
+
+				<view class="scroll-bottom-spacer"></view>
+			</scroll-view>
+
+			<!-- 广场 Tab -->
+			<scroll-view v-if="currentTab === 1" scroll-y class="content-scroll" enhanced show-scrollbar="false">
+				<view class="pinned-bar">
+					<view class="pinned-left">
+						<text class="pinned-flame">🔥</text>
+						<text class="pinned-title">置顶推荐</text>
+						<view class="quality-badge"><text class="quality-text">优质</text></view>
+					</view>
+					<view class="want-top-btn">
+						<text class="want-top-icon">↑</text>
+						<text class="want-top-text">我要置顶</text>
+					</view>
+				</view>
+
+				<view class="square-feed">
+					<view class="square-user-card" @tap="goUserDetail">
+						<view class="sq-photo-wrap">
+							<image class="sq-photo" src="/static/portraits/profile-woman-alt.jpg" mode="aspectFill"></image>
+							<view class="vip-tag"><text class="vip-tag-text">👑 VIP</text></view>
+						</view>
+						<view class="sq-card-info">
+							<view class="sq-left-info">
+								<view class="sq-name-row">
+									<text class="sq-name">林悦</text>
+									<text class="sq-age">26岁 · 女</text>
+								</view>
+								<view class="sq-meta-row">
+									<text class="sq-meta-text">📍 距你 3.2km</text>
+									<view class="sq-dot"></view>
+									<text class="sq-meta-text">产品经理 · 北京</text>
+								</view>
 							</view>
-							<text class="expect-heading">靠近之前，先确认彼此要去哪里</text>
-							<view class="expect-list">
-								<view class="expect-item" v-for="(line, idx) in expectList" :key="idx">
-									<view class="expect-no">
-										<text>0{{ idx + 1 }}</text>
+							<view class="sq-like-btn" @click="onLike">
+								<text class="sq-heart">♥</text>
+							</view>
+						</view>
+					</view>
+
+					<view class="square-user-card" @tap="goUserDetail">
+						<view class="sq-photo-wrap">
+							<image class="sq-photo" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+						</view>
+						<view class="sq-card-info">
+							<view class="sq-left-info">
+								<view class="sq-name-row">
+									<text class="sq-name">周思涵</text>
+									<text class="sq-age">24岁 · 女</text>
+								</view>
+								<view class="sq-meta-row">
+									<text class="sq-meta-text">📍 距你 1.8km</text>
+									<view class="sq-dot"></view>
+									<text class="sq-meta-text">UI设计师 · 上海</text>
+								</view>
+							</view>
+							<view class="sq-like-btn" @click="onLike">
+								<text class="sq-heart">♥</text>
+							</view>
+						</view>
+					</view>
+
+					<view class="sq-section">
+						<view class="sq-section-header">
+							<view class="sq-section-title-group">
+								<text class="sq-section-icon">👑</text>
+								<text class="sq-section-title">会员专区</text>
+								<text class="sq-section-count">128位</text>
+							</view>
+							<text class="sq-section-more">查看全部 →</text>
+						</view>
+						<view class="sq-vip-row">
+							<view class="sq-vip-mini" @tap="goUserDetail">
+								<image class="sq-vip-photo" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
+								<view class="sq-vip-info">
+									<view class="sq-vip-left">
+										<text class="sq-vip-name">小倩</text>
+										<text class="sq-vip-detail">26岁 · 165cm</text>
 									</view>
-									<text class="expect-text">{{ line }}</text>
+									<view class="sq-vip-like"><text class="sq-heart-sm">♥</text></view>
+								</view>
+							</view>
+							<view class="sq-vip-mini" @tap="goUserDetail">
+								<image class="sq-vip-photo" src="/static/portraits/profile-man-light.jpg" mode="aspectFill"></image>
+								<view class="sq-vip-info">
+									<view class="sq-vip-left">
+										<text class="sq-vip-name">思思</text>
+										<text class="sq-vip-detail">24岁 · 168cm</text>
+									</view>
+									<view class="sq-vip-like"><text class="sq-heart-sm">♥</text></view>
 								</view>
 							</view>
 						</view>
+					</view>
 
-						<!-- 合拍度摘要 -->
-						<view class="story-section">
-							<view class="section-title">
-								<text class="title-main">合拍度</text>
-								<text class="title-sub">仅供破冰参考</text>
-							</view>
-							<view class="compat-card" @click="showAiScore">
-								<view class="compat-score">
-									<text class="compat-num">{{ currentUser.match }}%</text>
+					<view class="square-user-card" @tap="goUserDetail">
+						<view class="sq-photo-wrap">
+							<image class="sq-photo" src="/static/portraits/profile-man-sea.jpg" mode="aspectFill"></image>
+						</view>
+						<view class="sq-card-info">
+							<view class="sq-left-info">
+								<view class="sq-name-row">
+									<text class="sq-name">陈雨晴</text>
+									<text class="sq-age">28岁 · 女</text>
 								</view>
-								<view class="compat-copy">
-									<text class="compat-title">长期目标与生活节奏相近</text>
-									<text class="compat-desc text-muted">你们有兴趣交集。建议从「{{ lifeTag(0) }}」开始聊。</text>
+								<view class="sq-meta-row">
+									<text class="sq-meta-text">📍 距你 5.1km</text>
+									<view class="sq-dot"></view>
+									<text class="sq-meta-text">律师 · 深圳</text>
+								</view>
+							</view>
+							<view class="sq-like-btn" @click="onLike">
+								<text class="sq-heart">♥</text>
+							</view>
+						</view>
+					</view>
+
+					<view class="square-user-card" @tap="goUserDetail">
+						<view class="sq-photo-wrap">
+							<image class="sq-photo" src="/static/portraits/profile-woman-alt.jpg" mode="aspectFill"></image>
+						</view>
+						<view class="sq-card-info">
+							<view class="sq-left-info">
+								<view class="sq-name-row">
+									<text class="sq-name">赵晓雯</text>
+									<text class="sq-age">25岁 · 女</text>
+								</view>
+								<view class="sq-meta-row">
+									<text class="sq-meta-text">📍 距你 2.5km</text>
+									<view class="sq-dot"></view>
+									<text class="sq-meta-text">医生 · 广州</text>
+								</view>
+							</view>
+							<view class="sq-like-btn" @click="onLike">
+								<text class="sq-heart">♥</text>
+							</view>
+						</view>
+					</view>
+
+					<view class="sq-section">
+						<view class="sq-section-header">
+							<view class="sq-section-title-group">
+								<text class="sq-section-icon">👑</text>
+								<text class="sq-section-title">高收入专区</text>
+								<text class="sq-section-count">56位</text>
+							</view>
+							<text class="sq-section-more">查看全部 →</text>
+						</view>
+						<view class="sq-vip-row">
+							<view class="sq-vip-mini" @tap="goUserDetail">
+								<image class="sq-vip-photo" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
+								<view class="sq-vip-info">
+									<view class="sq-vip-left">
+										<text class="sq-vip-name">杨总</text>
+										<text class="sq-vip-detail">32岁 · 182cm</text>
+									</view>
+									<view class="sq-vip-like"><text class="sq-heart-sm">♥</text></view>
+								</view>
+							</view>
+							<view class="sq-vip-mini" @tap="goUserDetail">
+								<image class="sq-vip-photo" src="/static/portraits/profile-man-light.jpg" mode="aspectFill"></image>
+								<view class="sq-vip-info">
+									<view class="sq-vip-left">
+										<text class="sq-vip-name">海归姐</text>
+										<text class="sq-vip-detail">29岁 · 166cm</text>
+									</view>
+									<view class="sq-vip-like"><text class="sq-heart-sm">♥</text></view>
 								</view>
 							</view>
 						</view>
+					</view>
 
-					<view class="detail-link" @click="openProfileSheet">
-						<text>查看完整人物档案</text>
+					<view class="square-user-card" @tap="goUserDetail">
+						<view class="sq-photo-wrap">
+							<image class="sq-photo" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+						</view>
+						<view class="sq-card-info">
+							<view class="sq-left-info">
+								<view class="sq-name-row">
+									<text class="sq-name">王梓萱</text>
+									<text class="sq-age">27岁 · 女</text>
+								</view>
+								<view class="sq-meta-row">
+									<text class="sq-meta-text">📍 距你 4.2km</text>
+									<view class="sq-dot"></view>
+									<text class="sq-meta-text">金融分析师 · 上海</text>
+								</view>
+							</view>
+							<view class="sq-like-btn" @click="onLike">
+								<text class="sq-heart">♥</text>
+							</view>
+						</view>
+					</view>
+
+					<view class="square-user-card" @tap="goUserDetail">
+						<view class="sq-photo-wrap">
+							<image class="sq-photo" src="/static/portraits/profile-man-sea.jpg" mode="aspectFill"></image>
+						</view>
+						<view class="sq-card-info">
+							<view class="sq-left-info">
+								<view class="sq-name-row">
+									<text class="sq-name">孙悦然</text>
+									<text class="sq-age">29岁 · 女</text>
+								</view>
+								<view class="sq-meta-row">
+									<text class="sq-meta-text">📍 距你 6.3km</text>
+									<view class="sq-dot"></view>
+									<text class="sq-meta-text">建筑师 · 杭州</text>
+								</view>
+							</view>
+							<view class="sq-like-btn" @click="onLike">
+								<text class="sq-heart">♥</text>
+							</view>
+						</view>
 					</view>
 				</view>
+				<view class="scroll-bottom-spacer"></view>
+			</scroll-view>
+
+			<!-- 会员专区 Tab -->
+			<scroll-view v-if="currentTab === 2" scroll-y class="content-scroll" enhanced show-scrollbar="false">
+				<view class="vip-hero">
+					<view class="vip-hero-gold-line"></view>
+					<view class="vip-hero-content">
+						<text class="vip-hero-title">会员专属特权</text>
+						<text class="vip-hero-subtitle">解锁全部嘉宾资料，遇见心仪的TA</text>
+					</view>
+					<view class="vip-hero-badges">
+						<view class="vip-hero-badge">
+							<text class="vip-hero-badge-icon">✦</text>
+							<text class="vip-hero-badge-text">VIP标识</text>
+						</view>
+						<view class="vip-hero-badge">
+							<text class="vip-hero-badge-icon">✦</text>
+							<text class="vip-hero-badge-text">多重认证</text>
+						</view>
+						<view class="vip-hero-badge">
+							<text class="vip-hero-badge-icon">✦</text>
+							<text class="vip-hero-badge-text">优先匹配</text>
+						</view>
+					</view>
+				</view>
+
+				<view class="vip-cat-tabs">
+					<view class="vip-cat-tab" v-for="(cat, ci) in vipCategories" :key="cat" @click="switchVipCat(ci)">
+						<text :class="['vip-cat-tab-text', vipCatIndex === ci ? 'active' : '']">{{ cat }}</text>
+						<view v-if="vipCatIndex === ci" class="vip-cat-indicator"></view>
+					</view>
+				</view>
+
+				<view class="vip-filter-row">
+					<text class="vip-result-count">共128位嘉宾</text>
+					<view class="vip-filter-right">
+						<view class="vip-sort-btn">
+							<text class="vip-sort-text">综合排序</text>
+							<text class="vip-sort-icon">▼</text>
+						</view>
+						<view class="vip-accelerate-btn">
+							<text class="vip-accel-icon">✦</text>
+							<text class="vip-accel-text">加速匹配</text>
+						</view>
+					</view>
+				</view>
+
+				<view class="vip-card-grid">
+					<view class="vip-card-row" v-for="(row, ri) in vipCardRows" :key="ri">
+						<view class="vip-card-item" v-for="(card, ci) in row" :key="ci" @tap="goUserDetail">
+							<view class="vip-card-photo">
+								<image class="vip-card-photo-img" :src="card.photo" mode="aspectFill"></image>
+								<view class="vip-card-crown"><text class="vip-card-crown-icon">👑</text></view>
+								<view :class="['vip-card-gender', card.gender === '女' ? 'female' : 'male']">
+									<text :class="['vip-gender-icon', card.gender === '女' ? 'female' : 'male']">{{ card.gender === '女' ? '♀' : '♂' }}</text>
+								</view>
+							</view>
+							<view class="vip-card-bottom">
+								<text class="vip-card-name">{{ card.name }}</text>
+								<view class="vip-card-meta">
+									<text class="vip-card-age">{{ card.age }}</text>
+									<view class="vip-card-dot"></view>
+									<text class="vip-card-height">{{ card.height }}</text>
+								</view>
+							</view>
+						</view>
+					</view>
+				</view>
+
+				<view class="vip-privilege-section">
+					<view class="vip-priv-header">
+						<text class="vip-priv-title">VIP会员专属特权</text>
+						<view class="vip-upgrade-btn">
+							<text class="vip-upgrade-icon">👑</text>
+							<text class="vip-upgrade-text">立即开通</text>
+						</view>
+					</view>
+					<view class="vip-priv-row">
+						<view class="vip-priv-card" v-for="priv in vipPrivileges" :key="priv.title">
+							<view class="vip-priv-icon-circle">
+								<text class="vip-priv-icon-text">{{ priv.icon }}</text>
+							</view>
+							<text class="vip-priv-card-title">{{ priv.title }}</text>
+							<text class="vip-priv-card-desc">{{ priv.desc }}</text>
+						</view>
+					</view>
+				</view>
+
+				<view class="divider"></view>
+
+				<view class="vip-spotlight">
+					<view class="vip-spot-header">
+						<view class="vip-spot-title-group">
+							<text class="vip-spot-icon">🔥</text>
+							<text class="vip-spot-title">人气爆灯嘉宾</text>
+							<text class="vip-spot-count">32人</text>
+						</view>
+						<text class="vip-spot-more">查看全部 →</text>
+					</view>
+					<text class="vip-spot-desc">爆灯后系统将短信通知对方，头像将显示在对方爆灯栏中</text>
+					<view class="vip-spot-row">
+						<view class="vip-spot-card" v-for="spot in vipSpots" :key="spot.name">
+							<view class="vip-spot-photo">
+								<text class="vip-spot-photo-icon">👤</text>
+							</view>
+							<view class="vip-spot-info">
+								<text class="vip-spot-name">{{ spot.name }}</text>
+								<text class="vip-spot-age">{{ spot.age }} · {{ spot.job }}</text>
+							</view>
+						</view>
+					</view>
+				</view>
+
+				<view class="vip-bottom-cta">
+					<text class="vip-cta-title">🚀 升级VIP会员</text>
+					<text class="vip-cta-desc">解锁全部会员资料 · 无限牵线次数 · 优先展示曝光</text>
+					<view class="vip-price-row">
+						<view class="vip-price-opt">
+							<text class="vip-price-period">7天</text>
+							<text class="vip-price-value">¥99</text>
+						</view>
+						<view class="vip-price-opt recommended">
+							<view class="vip-price-badge"><text class="vip-price-badge-text">推荐</text></view>
+							<text class="vip-price-period">30天</text>
+							<text class="vip-price-value">¥299</text>
+						</view>
+						<view class="vip-price-opt">
+							<text class="vip-price-period">90天</text>
+							<text class="vip-price-value">¥799</text>
+						</view>
+					</view>
+					<view class="vip-cta-btn">
+						<text class="vip-cta-btn-text">立即开通VIP</text>
+					</view>
+					<text class="vip-cta-hint">付费即同意《会员服务协议》· 可随时取消</text>
+				</view>
+
+				<view class="scroll-bottom-spacer"></view>
+			</scroll-view>
+
+			<!-- 底部操作栏（仅推荐页显示） -->
+			<view v-if="currentTab === 0" class="bottom-bar">
+				<view class="share-btn" @click="shareProfile">
+					<text class="share-icon">↗</text>
+				</view>
+				<view class="chat-btn" @click="openApplyModal">
+					<text class="chat-icon">💬</text>
+					<text class="chat-text">申请牵线</text>
+				</view>
+				<view class="like-btn" @click="onLike">
+					<text class="heart-icon">♥</text>
+				</view>
 			</view>
 
-			<!-- 广场 -->
-			<view v-else class="square-view">
-				<XsaEmpty
-					v-if="squareUsers.length === 0 && !loading"
-					text="暂无推荐"
-					description="试试调整筛选条件"
-					:show-action="true"
-					action-text="刷新"
-					@action="handleRefresh"
-				/>
-				<view class="user-card-list" v-else>
-					<XsaUserCard
-						v-for="user in squareUsers"
-						:key="user.id"
-						:user="user"
-						:compact="false"
-						:show-actions="true"
-						:max-tags="3"
-						@click="handleUserCardClick"
-						@like="handleUserCardLike"
-						@chat="handleUserCardChat"
-					/>
-				</view>
-				<view class="load-more" v-if="squareUsers.length > 0">
-					<text class="load-text text-muted" v-if="loading">加载中...</text>
-					<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
-				</view>
+			<!-- AI悬浮按钮（仅推荐页显示） -->
+			<view v-if="currentTab === 0" class="ai-float-btn" @click="showAiScore">
+				<text class="ai-icon">✦</text>
 			</view>
-		</scroll-view>
-
-		<!-- 底部操作栏：仅推荐模式 -->
-		<view v-if="currentMode === 'recommend' && currentUser != null" class="action-dock">
-			<XsaButton variant="secondary" size="small" @click="handleSkip">跳过</XsaButton>
-			<XsaButton :variant="liked ? 'primary' : 'secondary'" size="small" @click="handleLike">
-				{{ liked ? '已喜欢' : '喜欢' }}
-			</XsaButton>
-			<XsaButton variant="primary" @click="openApplyModal">
-				{{ applied ? '已申请' : '申请认识' }}
-			</XsaButton>
 		</view>
 
-		<!-- AI 合拍 FAB -->
-		<view class="ai-fab" :class="{ raised: currentMode === 'recommend' }" @click="showAiScore">
-			<text class="ai-text">合拍</text>
-		</view>
-
-		<!-- 筛选 Sheet -->
-		<XsaSheet :visible="filterVisible" title="筛选认真关系" :tall="true" @close="filterVisible = false">
-			<view class="filter-group">
-				<view class="filter-label-row">
-					<text class="filter-label">性别</text>
-					<text class="filter-hint">必选</text>
-				</view>
-				<view class="choice-row">
-					<view
-						class="choice-chip"
-						:class="{ selected: filterGender === 'female' }"
-						@click="filterGender = 'female'"
-					>
-						<text>女生</text>
-					</view>
-					<view
-						class="choice-chip"
-						:class="{ selected: filterGender === 'male' }"
-						@click="filterGender = 'male'"
-					>
-						<text>男生</text>
-					</view>
-				</view>
-			</view>
-			<view class="filter-group">
-				<view class="filter-label-row">
-					<text class="filter-label">常住城市</text>
-					<text class="filter-hint">可多选</text>
-				</view>
-				<view class="choice-row">
-					<view
-						v-for="city in cityOptions"
-						:key="city"
-						class="choice-chip"
-						:class="{ selected: filterCities.indexOf(city) >= 0 }"
-						@click="toggleCity(city)"
-					>
-						<text>{{ city }}</text>
-					</view>
-				</view>
-			</view>
-			<view class="filter-group">
-				<view class="filter-label-row">
-					<text class="filter-label">学历</text>
-					<text class="filter-hint">多选</text>
-				</view>
-				<view class="choice-row">
-					<view
-						v-for="edu in eduOptions"
-						:key="edu"
-						class="choice-chip"
-						:class="{ selected: filterEdu.indexOf(edu) >= 0 }"
-						@click="toggleEdu(edu)"
-					>
-						<text>{{ edu }}</text>
-					</view>
-				</view>
-			</view>
-			<view class="sheet-actions">
-				<XsaButton variant="secondary" @click="resetFilter">重置</XsaButton>
-				<XsaButton variant="primary" @click="applyFilter">查看符合条件的人</XsaButton>
-			</view>
-		</XsaSheet>
-
-		<!-- 完整档案 Sheet -->
-		<XsaSheet :visible="profileVisible" title="完整人物档案" :tall="true" @close="profileVisible = false">
-			<view v-if="currentUser != null" class="profile-sheet">
-				<view class="profile-hero">
-					<image class="profile-avatar" :src="currentUser.avatar" mode="aspectFill"></image>
-					<view class="profile-meta">
-						<text class="profile-name">{{ currentUser.name }} {{ currentUser.age }}</text>
-						<text class="profile-line text-muted">{{ currentUser.city }} · {{ currentUser.height }} · {{ currentUser.job }}</text>
-						<text class="profile-line text-muted">{{ currentUser.school }}</text>
-						<text class="profile-match">AI 合拍度 {{ currentUser.match }}%</text>
-					</view>
-				</view>
-				<view class="profile-row"><text class="k">基本资料</text><text class="v">{{ currentUser.age }} 岁 · {{ currentUser.height }}</text></view>
-				<view class="profile-row"><text class="k">工作情况</text><text class="v">{{ currentUser.job }}</text></view>
-				<view class="profile-row"><text class="k">教育经历</text><text class="v">{{ currentUser.school }}</text></view>
-				<view class="profile-row"><text class="k">MBTI</text><text class="v">{{ currentUser.mbti }}</text></view>
-				<view class="profile-copy">
-					<text class="profile-copy-title">关于我</text>
-					<text class="profile-copy-text">{{ currentUser.intro }}</text>
-				</view>
-				<view class="safety-box">
-					<text>安全提示：认证只能降低虚假资料风险。首次见面请选择公共场所，不转账、不共享验证码。</text>
-				</view>
-			</view>
-		</XsaSheet>
-
-		<!-- AI 合拍度 Sheet -->
+		<!-- ====== Sheets & Modals ====== -->
 		<XsaSheet :visible="aiVisible" title="AI 合拍度解读" @close="aiVisible = false">
-			<view v-if="currentUser != null" class="ai-sheet">
-				<view class="score-head">
-					<view class="score-circle">
-						<text class="score-big">{{ currentUser.match }}%</text>
-					</view>
-					<view class="score-copy">
-						<text class="score-title">高匹配，但仍要靠真实交流</text>
-						<text class="score-desc text-muted">基于公开资料与兴趣交集生成，不代表平台承诺结果。</text>
-					</view>
+			<view class="ai-sheet">
+				<view class="ai-mbti-row">
+					<view class="ai-mbti-card"><text class="ai-mbti-label">你的 MBTI</text><text class="ai-mbti-type">INFP</text></view>
+					<text class="ai-mbti-x">×</text>
+					<view class="ai-mbti-card you"><text class="ai-mbti-label">TA 的 MBTI</text><text class="ai-mbti-type">ENFJ</text></view>
 				</view>
-				<view class="bar-item" v-for="bar in aiBars" :key="bar.label">
-					<view class="bar-label-row">
-						<text>{{ bar.label }}</text>
-						<text class="bar-pct">{{ bar.value }}%</text>
-					</view>
-					<view class="bar-track">
-						<view class="bar-fill" :style="{ width: bar.value + '%' }"></view>
-					</view>
-				</view>
-				<view class="ai-advice">
-					<text class="advice-title">破冰建议：</text>
-					<text class="advice-text">可以从共同兴趣或城市周末安排开始聊，先建立安全、真诚的对话节奏。</text>
-				</view>
+				<view class="ai-score-big"><text>92%</text></view>
+				<view class="ai-bars"><view v-for="b in aiBars" :key="b.label" class="ai-bar"><view class="ai-bar-head"><text>{{ b.label }}</text><text>{{ b.value }}%</text></view><view class="ai-bar-trk"><view class="ai-bar-fill" :style="{ width: b.value + '%' }"></view></view></view></view>
+				<view class="ai-tip"><text>基于公开资料与兴趣交集生成，不代表平台承诺结果。建议从共同兴趣或城市周末安排开始聊。</text></view>
 			</view>
 		</XsaSheet>
 
-		<!-- 申请认识 Modal：必须双方同意后才能聊天 -->
-		<XsaModal
-			:visible="applyVisible"
-			title="认真地申请认识"
-			:icon="true"
-			icon-type="info"
-			cancel-text="先想想"
-			confirm-text="确认申请"
-			:confirm-loading="applyLoading"
-			@close="applyVisible = false"
-			@cancel="applyVisible = false"
-			@confirm="confirmApply"
-		>
+		<XsaModal :visible="applyVisible" title="认真地申请认识" :icon="true" icon-type="info" cancel-text="先想想" confirm-text="确认申请" :confirm-loading="applyLoading" @close="applyVisible = false" @cancel="applyVisible = false" @confirm="confirmApply">
 			<view class="apply-body">
 				<text class="apply-desc">申请发出后，只有对方也愿意认识你，双方才会开启聊天。</text>
-				<view class="apply-note">
-					<text>你今天还有 <text class="em">{{ remainApply }} 次</text>免费申请。对方拒绝不会扣除次数。</text>
-				</view>
-				<textarea
-					class="apply-input"
-					:value="applyMessage"
-					maxlength="120"
-					placeholder="写一句真诚的申请附言…"
-					@input="onApplyInput"
-				/>
+				<view class="apply-note"><text>你今天还有 <text class="em">{{ remainApply }} 次</text>免费申请。对方拒绝不会扣除次数。</text></view>
+				<textarea class="apply-input" :value="applyMessage" maxlength="120" placeholder="写一句真诚的申请附言…" @input="onApplyInput" />
 			</view>
 		</XsaModal>
 
-		<!-- 申请成功 -->
-		<XsaModal
-			:visible="successVisible"
-			title="申请已送达"
-			:icon="true"
-			icon-type="success"
-			cancel-text="查看申请"
-			confirm-text="演示对方同意"
-			@close="successVisible = false"
-			@cancel="goMessages"
-			@confirm="simulateMatch"
-		>
-			<view class="success-body">
-				<text>平台已保护双方联系方式。只有双方都愿意，聊天才会开启。</text>
-				<view class="timeline">
-					<text class="tl-item">1. 申请已通过平台安全检查</text>
-					<text class="tl-item">2. 等待对方回应，通常在 24 小时内</text>
-					<text class="tl-item">3. 双方同意后开放聊天</text>
-				</view>
-			</view>
+		<XsaModal :visible="successVisible" title="申请已送达" :icon="true" icon-type="success" cancel-text="查看申请" confirm-text="演示对方同意" @close="successVisible = false" @cancel="goMessages" @confirm="simulateMatch">
+			<view class="apply-body"><text>平台已保护双方联系方式。只有双方都愿意，聊天才会开启。</text></view>
 		</XsaModal>
 
-		<!-- 双方同意 -->
-		<XsaModal
-			:visible="matchedVisible"
-			title="你们都愿意认识彼此"
-			:icon="true"
-			icon-type="success"
-			:show-cancel="false"
-			confirm-text="开始聊天"
-			@close="matchedVisible = false"
-			@confirm="startChat"
-		>
-			<view class="matched-body">
-				<text>认真关系从一段真诚对话开始。请注意保护隐私与财产安全。</text>
-			</view>
+		<XsaModal :visible="matchedVisible" title="你们都愿意认识彼此" :icon="true" icon-type="success" :show-cancel="false" confirm-text="开始聊天" @close="matchedVisible = false" @confirm="startChat">
+			<view class="apply-body"><text>认真关系从一段真诚对话开始。请注意保护隐私与财产安全。</text></view>
 		</XsaModal>
 
 		<XsaToast :visible="toastVisible" :message="toastMessage" @hide="toastVisible = false" />
@@ -398,1045 +608,476 @@
 </template>
 
 <script setup lang="uts">
-	import XsaButton from '@/components/XsaButton.uvue'
-	import XsaTag from '@/components/XsaTag.uvue'
-	import XsaToast from '@/components/XsaToast.uvue'
-	import XsaUserCard from '@/components/XsaUserCard.uvue'
-	import XsaEmpty from '@/components/XsaEmpty.uvue'
 	import XsaSheet from '@/components/XsaSheet.uvue'
 	import XsaModal from '@/components/XsaModal.uvue'
-	import { getRecommendUser, getSquareUsers, likeUser, applyToMeet } from '@/api'
+	import XsaToast from '@/components/XsaToast.uvue'
 
-	const currentMode = ref('recommend')
-	const liked = ref(false)
-	const applied = ref(false)
-	const toastVisible = ref(false)
-	const toastMessage = ref('')
-	const loading = ref(false)
-	const hasMore = ref(true)
-	const currentUser = ref(null)
-	const squareUsers = ref([])
-	const recommendIndex = ref(0)
+	// ========== 欢迎页 ==========
+	const welcomeVisible = ref(true)
+	const welcomeAgreementVisible = ref(false)
 
-	const filterVisible = ref(false)
-	const profileVisible = ref(false)
+	const showWelcomeService = () => { uni.showToast({ title: '客服功能将在完成登录后提供', icon: 'none' }) }
+	const openWelcomeAgreement = () => { welcomeAgreementVisible.value = true }
+	const closeWelcomeAgreement = () => { welcomeAgreementVisible.value = false }
+	const acceptWelcomeAgreement = () => {
+		uni.setStorageSync('xsa_welcome_agreed', true)
+		welcomeAgreementVisible.value = false; welcomeVisible.value = false
+		uni.showTabBar({ animation: false })
+		uni.navigateTo({ url: '/pages/auth/login' })
+	}
+
+	// ========== 导航 ==========
+	const currentTab = ref(0)
+	const navTabs = ['推荐', '广场', '会员专区']
+
+	const switchTab = (index: number) => { currentTab.value = index }
+	const onHistory = () => {}
+	const onSearch = () => {}
+
+	// ========== 推荐页数据 ==========
+	const basicInfoRows = [
+		[
+			{ label: '年龄', value: '26岁' },
+			{ label: '身高', value: '168cm' },
+			{ label: '体重', value: '52kg' }
+		],
+		[
+			{ label: '星座', value: '天秤座' },
+			{ label: '学历', value: '本科' },
+			{ label: '职业', value: '产品经理' }
+		],
+		[
+			{ label: '现居', value: '北京朝阳' },
+			{ label: '家乡', value: '浙江杭州' },
+			{ label: '收入', value: '30-50万' }
+		]
+	]
+
+	// ========== 会员专区数据 ==========
+	const vipCatIndex = ref(0)
+	const vipCategories = ['高颜值专区', '高收入专区', '高学历专区', '95后专区']
+
+	const vipCardRows = [
+		[
+			{ name: '林悦', age: '26岁', height: '165cm', gender: '女', photo: '/static/portraits/profile-woman-alt.jpg' },
+			{ name: '周思涵', age: '24岁', height: '168cm', gender: '女', photo: '/static/portraits/profile-woman-main.jpg' },
+			{ name: '陈雨晴', age: '28岁', height: '162cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' }
+		],
+		[
+			{ name: '赵晓雯', age: '25岁', height: '170cm', gender: '女', photo: '/static/portraits/profile-man-light.jpg' },
+			{ name: '王梓萱', age: '27岁', height: '163cm', gender: '女', photo: '/static/portraits/profile-man-sea.jpg' },
+			{ name: '张俊杰', age: '30岁', height: '180cm', gender: '男', photo: '/static/portraits/profile-woman-alt.jpg' }
+		],
+		[
+			{ name: '李浩然', age: '29岁', height: '178cm', gender: '男', photo: '/static/portraits/profile-woman-main.jpg' },
+			{ name: '孙悦然', age: '29岁', height: '166cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' },
+			{ name: '刘子轩', age: '32岁', height: '182cm', gender: '男', photo: '/static/portraits/profile-man-light.jpg' }
+		]
+	]
+
+	const vipPrivileges = [
+		{ icon: '🎙', title: 'Ta的语音', desc: '聆听心动声音' },
+		{ icon: '💝', title: '择偶要求', desc: '了解TA的期待' },
+		{ icon: '💥', title: '爆灯特权', desc: '短信即时通知TA' }
+	]
+
+	const vipSpots = [
+		{ name: '黄思琪', age: '27岁', job: '空乘' },
+		{ name: '马薇薇', age: '31岁', job: '主持人' },
+		{ name: '龙斌', age: '33岁', job: '企业主' }
+	]
+
+	const switchVipCat = (index: number) => { vipCatIndex.value = index }
+
+	// ========== AI 合拍度 ==========
 	const aiVisible = ref(false)
+	const aiBars = [{ label: '关系目标', value: 96 }, { label: '生活节奏', value: 89 }, { label: '兴趣交集', value: 86 }]
+
+	const showAiScore = () => { aiVisible.value = true }
+
+	// ========== 申请认识 ==========
 	const applyVisible = ref(false)
 	const successVisible = ref(false)
 	const matchedVisible = ref(false)
 	const applyLoading = ref(false)
 	const applyMessage = ref('你好，看到你的资料很认真，想认识一下。')
 	const remainApply = ref(2)
+	const toastVisible = ref(false)
+	const toastMessage = ref('')
 
-	const filterGender = ref('female')
-	const filterCities = ref(['杭州', '南京'])
-	const filterEdu = ref(['本科', '硕士'])
-	const cityOptions = ['杭州', '南京', '上海', '苏州', '宁波']
-	const eduOptions = ['本科', '硕士', '博士', '大专']
-
-	const trustItems = [
-		{ name: '实名', desc: '身份已核验' },
-		{ name: '学历', desc: '学信资料' },
-		{ name: '头像', desc: '本人一致' },
-		{ name: '单身', desc: '本人声明' }
-	]
-
-	const aiBars = [
-		{ label: '关系目标', value: 96 },
-		{ label: '生活节奏', value: 89 },
-		{ label: '兴趣交集', value: 86 }
-	]
-
-	onMounted(() => {
-		loadRecommendUser()
-		loadSquareUsers()
-	})
-
-	const showToast = (msg: string) => {
-		toastMessage.value = msg
-		toastVisible.value = true
-	}
-
-	const mapCardUser = (raw: any) => {
-		return {
-			id: raw.id,
-			avatar: raw.avatar,
-			name: raw.name,
-			age: raw.age,
-			gender: raw.gender != null ? raw.gender : 2,
-			online: raw.online === true || (typeof raw.online === 'string' && raw.online.indexOf('在线') >= 0),
-			certifications: raw.certifications != null
-				? (Array.isArray(raw.certifications) ? raw.certifications : ['实名', '学历'])
-				: ['实名'],
-			tags: raw.tags != null ? raw.tags : [raw.job, raw.mbti].filter((x: any) => !!x),
-			location: raw.location != null ? raw.location : (raw.city != null ? raw.city : ''),
-			introduction: raw.introduction != null ? raw.introduction : (raw.intro != null ? raw.intro : '')
-		}
-	}
-
-	const loadRecommendUser = async () => {
-		try {
-			loading.value = true
-			const res = await getRecommendUser(recommendIndex.value)
-			if (res.success) {
-				currentUser.value = res.data
-				liked.value = false
-				applied.value = false
-			}
-		} catch (e) {
-			showToast('加载失败，请稍后重试')
-		} finally {
-			loading.value = false
-		}
-	}
-
-	const loadSquareUsers = async () => {
-		try {
-			const res = await getSquareUsers({ page: 1, limit: 10 })
-			if (res.success) {
-				const list = res.data as any[]
-				squareUsers.value = list.map((u: any) => mapCardUser(u))
-			}
-		} catch (e) {
-			console.error(e)
-		}
-	}
-
-	const switchMode = (mode: string) => {
-		currentMode.value = mode
-	}
-
-	const handleSkip = async () => {
-		showToast('已跳过 · 为你换一位认真嘉宾')
-		recommendIndex.value = recommendIndex.value + 1
-		await loadRecommendUser()
-	}
-
-	const handleLike = async () => {
-		if (currentUser.value == null) return
-		try {
-			const res = await likeUser(currentUser.value.id)
-			if (res.success) {
-				liked.value = !liked.value
-				showToast(liked.value ? '已收藏，仅你自己可见' : '已取消收藏')
-			}
-		} catch (e) {
-			showToast('操作失败，请重试')
-		}
-	}
+	const showToast = (m: string) => { toastMessage.value = m; toastVisible.value = true }
 
 	const openApplyModal = () => {
-		if (currentUser.value == null) return
-		if (applied.value) {
-			showToast('已申请，等待对方回应')
-			return
-		}
-		applyMessage.value = `你好，看到你在${currentUser.value.city}，想认真认识一下。`
+		applyMessage.value = '你好，看到你的资料很认真，想认识一下。'
 		applyVisible.value = true
 	}
 
 	const confirmApply = async () => {
-		if (currentUser.value == null) return
-		if (applyMessage.value.trim().length == 0) {
-			showToast('请填写申请附言')
-			return
-		}
+		if (!applyMessage.value.trim()) { showToast('请填写附言'); return }
+		applyLoading.value = true
 		try {
-			applyLoading.value = true
-			const res = await applyToMeet(currentUser.value.id, applyMessage.value.trim())
-			if (res.success) {
-				applied.value = true
-				if (remainApply.value > 0) {
-					remainApply.value = remainApply.value - 1
-				}
-				applyVisible.value = false
-				// 产品规则：申请后不直接进入聊天
-				successVisible.value = true
-			}
-		} catch (e) {
-			showToast('发送失败，请重试')
-		} finally {
-			applyLoading.value = false
-		}
+			const { applyToMeet } = await import('@/api')
+			const r = await applyToMeet('user_001', applyMessage.value.trim())
+			if (r.success) { if (remainApply.value > 0) remainApply.value--; applyVisible.value = false; successVisible.value = true }
+		} catch (e) { showToast('发送失败') }
+		finally { applyLoading.value = false }
 	}
 
-	const goMessages = () => {
-		successVisible.value = false
-		uni.switchTab({ url: '/pages/message/message' })
-	}
+	const goMessages = () => { successVisible.value = false; uni.switchTab({ url: '/pages/message/message' }) }
+	const simulateMatch = () => { successVisible.value = false; matchedVisible.value = true }
+	const startChat = () => { matchedVisible.value = false; uni.navigateTo({ url: '/pages/chat/detail?userId=user_001&userName=林悦' }) }
 
-	const simulateMatch = () => {
-		successVisible.value = false
-		matchedVisible.value = true
-	}
+	const onApplyInput = (e: any) => { applyMessage.value = e.detail.value }
 
-	const startChat = () => {
-		if (currentUser.value == null) return
-		matchedVisible.value = false
-		// 仅在双方同意后允许进入聊天
-		uni.navigateTo({
-			url: `/pages/chat/detail?userId=${currentUser.value.id}&userName=${currentUser.value.name}`
-		})
-	}
+	// ========== 通用操作 ==========
+	const goUserDetail = () => { uni.navigateTo({ url: '/pages/user/detail?userId=1' }) }
+	const shareProfile = () => { showToast('已生成分享入口') }
+	const onLike = () => { showToast('已添加喜欢') }
 
-	const handleUserCardClick = (user: any) => {
-		uni.navigateTo({ url: `/pages/user/detail?userId=${user.id}` })
-	}
-
-	const handleUserCardLike = async (userId: number) => {
-		try {
-			const res = await likeUser(userId)
-			if (res.success) showToast('已添加到心动列表')
-		} catch (e) {
-			showToast('操作失败，请重试')
-		}
-	}
-
-	// 广场「打招呼」仍走申请认识，而不是直接聊天
-	const handleUserCardChat = (userId: number) => {
-		const user = squareUsers.value.find((u: any) => u.id == userId)
-		if (user != null) {
-			currentUser.value = {
-				id: user.id,
-				name: user.name,
-				age: user.age,
-				city: user.location,
-				height: '',
-				job: '',
-				school: '',
-				mbti: '',
-				match: 85,
-				online: user.online ? '当前在线' : '近期在线',
-				avatar: user.avatar,
-				intro: user.introduction
-			}
-			openApplyModal()
-		}
-	}
-
-	const openFilter = () => {
-		filterVisible.value = true
-	}
-
-	const toggleCity = (city: string) => {
-		const idx = filterCities.value.indexOf(city)
-		if (idx >= 0) {
-			filterCities.value.splice(idx, 1)
-		} else {
-			filterCities.value.push(city)
-		}
-	}
-
-	const toggleEdu = (edu: string) => {
-		const idx = filterEdu.value.indexOf(edu)
-		if (idx >= 0) {
-			filterEdu.value.splice(idx, 1)
-		} else {
-			filterEdu.value.push(edu)
-		}
-	}
-
-	const resetFilter = () => {
-		filterGender.value = 'female'
-		filterCities.value = ['杭州', '南京']
-		filterEdu.value = ['本科', '硕士']
-		showToast('筛选条件已重置')
-	}
-
-	const applyFilter = () => {
-		filterVisible.value = false
-		showToast('筛选已保存 · 找到符合条件的人')
-		loadSquareUsers()
-		currentMode.value = 'square'
-	}
-
-	const openProfileSheet = () => {
-		profileVisible.value = true
-	}
-
-	const showAiScore = () => {
-		if (currentUser.value == null) {
-			showToast('请先浏览推荐嘉宾')
-			return
-		}
-		aiVisible.value = true
-	}
-
-	const playVoice = () => {
-		showToast('语音播放 · 原型演示')
-	}
-
-	const onApplyInput = (e: any) => {
-		applyMessage.value = e.detail.value
-	}
-
-	const handleRefresh = async () => {
-		loading.value = true
-		await loadSquareUsers()
-		loading.value = false
-		showToast('刷新成功')
-	}
-
-	const handleLoadMore = async () => {
-		if (currentMode.value != 'square' || loading.value || !hasMore.value) return
-		loading.value = true
-		try {
-			const page = Math.floor(squareUsers.value.length / 10) + 1
-			const res = await getSquareUsers({ page, limit: 10 })
-			if (res.success && res.data.length > 0) {
-				const list = (res.data as any[]).map((u: any) => mapCardUser(u))
-				squareUsers.value = squareUsers.value.concat(list)
-			} else {
-				hasMore.value = false
-			}
-		} catch (e) {
-			console.error(e)
-		} finally {
-			loading.value = false
-		}
-	}
+	// ========== 生命周期 ==========
+	onMounted(() => {
+		welcomeVisible.value = true
+		uni.hideTabBar({ animation: false })
+	})
 </script>
 
 <style scoped>
-	.home-page {
-		min-height: 100vh;
-		background: var(--canvas);
-	}
-
-	.top-tabs {
-		position: sticky;
-		top: 0;
-		z-index: 10;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 12px;
-		height: 58px;
-		padding: 0 12px 0 18px;
-		background: var(--paper);
-		border-bottom: 1px solid var(--line);
-	}
-
-	.tab-item {
-		flex: 1;
-		max-width: 120px;
-		height: 40px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 999px;
-		background: var(--surface);
-		border: 1px solid var(--line);
-	}
-
-	.tab-item.active {
-		background: var(--accent);
-		border-color: var(--accent);
-	}
-
-	.tab-text {
-		font-size: 14px;
-		font-weight: 700;
-		color: var(--muted);
-	}
-
-	.tab-item.active .tab-text {
-		color: var(--paper);
-	}
-
-	.header-actions {
-		margin-left: auto;
-	}
-
-	.icon-chip {
-		height: 36px;
-		padding: 0 12px;
-		border-radius: 10px;
-		border: 1px solid var(--line);
-		background: var(--surface);
-		display: flex;
-		align-items: center;
-	}
-
-	.chip-text {
-		font-size: 12px;
-		font-weight: 700;
-		color: var(--ink2);
-	}
-
-	.scroller {
-		height: calc(100vh - 58px);
-	}
-
-	.story-view {
-		padding: 14px 16px 120px;
-	}
-
-	.loading-box {
-		padding: 80px 0;
-		display: flex;
-		justify-content: center;
-	}
-
-	.story {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-	}
-
-	.hero-photo {
-		position: relative;
-		height: 304px;
-		border-radius: 8px 26px 8px 8px;
-		overflow: hidden;
-		background: var(--warm);
-	}
-
-	.photo-img {
-		width: 100%;
-		height: 100%;
-	}
-
-	.photo-index {
-		position: absolute;
-		top: 13px;
-		left: 13px;
-		padding: 7px 9px;
-		border-radius: 7px;
-		background: var(--paper);
-		font-size: 11px;
-		font-weight: 800;
-		color: var(--ink);
-	}
-
-	.online-badge {
-		position: absolute;
-		top: 13px;
-		right: 13px;
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 7px 9px;
-		border-radius: 7px;
-		background: var(--paper);
-		font-size: 11px;
-		color: var(--ink);
-	}
-
-	.online-dot {
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-		background: var(--sage);
-		box-shadow: 0 0 0 3px var(--sage-soft);
-	}
-
-	.hero-info {
-		position: absolute;
-		left: 16px;
-		bottom: 16px;
-		z-index: 2;
-		color: var(--paper);
-	}
-
-	.name {
-		font-size: 25px;
-		font-family: var(--serif);
-		font-weight: 700;
-		display: block;
-		margin-bottom: 6px;
-	}
-
-	.age {
-		font-size: 13px;
-		font-family: var(--sans);
-		font-weight: 500;
-		margin-left: 5px;
-	}
-
-	.location {
-		font-size: 12px;
-		display: block;
-		opacity: 0.9;
-	}
-
-	.meta-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.tags {
-		display: flex;
-		gap: 6px;
-		flex-wrap: wrap;
-		flex: 1;
-	}
-
-	.match-stamp {
-		width: 64px;
-		height: 64px;
-		border: 1.5px solid var(--accent);
-		border-radius: 50%;
-		color: var(--accent2);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		transform: rotate(-5deg);
-	}
-
-	.match-value {
-		font-size: 18px;
-		font-family: var(--serif);
-		line-height: 1;
-	}
-
-	.match-label {
-		font-size: 9px;
-		letter-spacing: 0.08em;
-		margin-top: 4px;
-	}
-
-	.story-section {
-		padding-top: 8px;
-		border-top: 1px solid var(--line);
-	}
-
-	.section-title {
-		display: flex;
-		justify-content: space-between;
-		margin-bottom: 10px;
-	}
-
-	.title-main {
-		font-size: 11px;
-		font-weight: 800;
-		letter-spacing: 0.06em;
-		color: var(--accent2);
-	}
-
-	.title-sub {
-		font-size: 11px;
-		color: var(--muted);
-	}
-
-	.intro-box {
-		padding: 16px;
-		background: var(--surface);
-		border-left: 3px solid var(--accent);
-		border-radius: 0 12px 12px 0;
-	}
-
-	.intro-text {
-		font-size: 15px;
-		font-family: var(--serif);
-		line-height: 1.8;
-		color: var(--ink2);
-	}
-
-	.voice-card {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 13px;
-		background: var(--brown);
-		border-radius: 12px 12px 24px 12px;
-	}
-
-	.voice-play {
-		width: 42px;
-		height: 42px;
-		border-radius: 50%;
-		background: var(--soft);
-		color: var(--brown);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-weight: 800;
-	}
-
-	.voice-body {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.voice-title {
-		font-size: 13px;
-		color: var(--paper);
-		font-weight: 700;
-	}
-
-	.voice-sub {
-		font-size: 11px;
-		color: rgba(231, 236, 236, 0.8);
-	}
-
-	.trust-card {
-		border: 1px solid var(--line);
-		background: var(--surface);
-		border-radius: 12px;
-		overflow: hidden;
-	}
-
-	.trust-header {
-		display: flex;
-		justify-content: space-between;
-		padding: 12px 13px;
-		border-bottom: 1px solid var(--line);
-	}
-
-	.trust-title {
-		font-size: 16px;
-		font-family: var(--serif);
-		font-weight: 700;
-	}
-
-	.trust-status {
-		font-size: 10px;
-		color: var(--muted);
-	}
-
-	.trust-grid {
-		display: flex;
-		flex-direction: row;
-	}
-
-	.trust-item {
-		flex: 1;
-		text-align: center;
-		padding: 13px 4px;
-		border-left: 1px solid var(--line);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 4px;
-	}
-
-	.trust-item:first-child {
-		border-left: none;
-	}
-
-	.trust-icon {
-		color: var(--accent);
-		font-size: 14px;
-		font-weight: 900;
-	}
-
-	.trust-name {
-		font-size: 12px;
-		font-weight: 700;
-	}
-
-	.trust-desc {
-		font-size: 9px;
-		color: var(--muted);
-	}
-
-	.compat-card {
-		display: flex;
-		align-items: center;
-		gap: 14px;
-		padding: 15px;
-		background: var(--warm);
-		border-radius: 12px 24px 12px 12px;
-	}
-
-	.compat-score {
-		width: 74px;
-		height: 74px;
-		border-radius: 50%;
-		border: 7px solid var(--paper);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--surface);
-	}
-
-	.compat-num {
-		font-size: 20px;
-		color: var(--accent2);
-		font-weight: 800;
-	}
-
-	.compat-copy {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.compat-title {
-		font-size: 16px;
-		font-family: var(--serif);
-		font-weight: 700;
-	}
-
-	.compat-desc {
-		font-size: 12px;
-	}
-
-	.detail-link {
-		min-height: 44px;
-		border: 1px solid var(--line);
-		background: var(--surface);
-		border-radius: 8px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-weight: 700;
-		font-size: 13px;
-		color: var(--ink);
-	}
-
-	.square-view {
-		padding: 14px 14px 40px;
-	}
-
-	.user-card-list {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.load-more {
-		text-align: center;
-		padding: 24px 0;
-	}
-
-	.load-text {
-		font-size: 13px;
-	}
-
-	.action-dock {
-		position: fixed;
-		z-index: 18;
-		left: 10px;
-		right: 10px;
-		bottom: 12px;
-		height: 74px;
-		padding: 9px;
-		background: rgba(250, 252, 252, 0.97);
-		border: 1px solid var(--line);
-		border-radius: 14px;
-		display: grid;
-		grid-template-columns: 68px 84px 1fr;
-		gap: 8px;
-		box-shadow: 0 -8px 24px rgba(17, 23, 24, 0.09);
-	}
-
-	.ai-fab {
-		position: fixed;
-		z-index: 17;
-		right: 15px;
-		bottom: 96px;
-		width: 48px;
-		height: 48px;
-		border-radius: 16px 16px 16px 5px;
-		background: var(--navy);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 0 10px 24px rgba(24, 65, 93, 0.24);
-	}
-
-	.ai-fab.raised {
-		bottom: 100px;
-	}
-
-	.ai-text {
-		font-size: 12px;
-		font-weight: 800;
-		color: var(--paper);
-	}
-
-	.filter-group {
-		padding-bottom: 16px;
-		margin-bottom: 16px;
-		border-bottom: 1px solid var(--line);
-	}
-
-	.filter-label-row {
-		display: flex;
-		justify-content: space-between;
-		margin-bottom: 10px;
-	}
-
-	.filter-label {
-		font-size: 13px;
-		font-weight: 800;
-	}
-
-	.filter-hint {
-		font-size: 10px;
-		color: var(--muted);
-	}
-
-	.choice-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-	}
-
-	.choice-chip {
-		min-height: 38px;
-		padding: 0 12px;
-		border: 1px solid var(--line);
-		background: var(--surface);
-		border-radius: 7px;
-		display: flex;
-		align-items: center;
-		font-size: 12px;
-	}
-
-	.choice-chip.selected {
-		background: var(--soft);
-		border-color: var(--accent);
-		color: var(--accent2);
-		font-weight: 800;
-	}
-
-	.sheet-actions {
-		display: grid;
-		grid-template-columns: 96px 1fr;
-		gap: 8px;
-		margin-top: 8px;
-	}
-
-	.profile-sheet {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.profile-hero {
-		display: flex;
-		gap: 12px;
-		padding-bottom: 12px;
-		border-bottom: 1px solid var(--line);
-	}
-
-	.profile-avatar {
-		width: 102px;
-		height: 128px;
-		border-radius: 8px 20px 8px 8px;
-	}
-
-	.profile-meta {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.profile-name {
-		font-size: 22px;
-		font-family: var(--serif);
-		font-weight: 700;
-	}
-
-	.profile-line {
-		font-size: 12px;
-	}
-
-	.profile-match {
-		margin-top: 4px;
-		padding: 5px 8px;
-		border: 1px solid var(--accent);
-		border-radius: 6px;
-		color: var(--accent2);
-		font-size: 11px;
-		font-weight: 800;
-		align-self: flex-start;
-	}
-
-	.profile-row {
-		display: flex;
-		padding: 10px 0;
-		border-bottom: 1px solid var(--line);
-		font-size: 12px;
-	}
-
-	.profile-row .k {
-		width: 82px;
-		color: var(--muted);
-	}
-
-	.profile-row .v {
-		flex: 1;
-		color: var(--ink);
-		font-weight: 600;
-	}
-
-	.profile-copy-title {
-		display: block;
-		font-size: 16px;
-		font-family: var(--serif);
-		font-weight: 700;
-		margin-bottom: 8px;
-	}
-
-	.profile-copy-text {
-		font-size: 13px;
-		line-height: 1.7;
-		color: var(--ink2);
-	}
-
-	.safety-box {
-		margin-top: 8px;
-		padding: 12px;
-		background: var(--sage-soft);
-		border-radius: 8px;
-		font-size: 11px;
-		line-height: 1.6;
-		color: #2A5745;
-	}
-
-	.ai-sheet {
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-	}
-
-	.score-head {
-		display: flex;
-		gap: 14px;
-		align-items: center;
-	}
-
-	.score-circle {
-		width: 88px;
-		height: 88px;
-		border-radius: 50%;
-		border: 9px solid var(--soft);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.score-big {
-		font-size: 22px;
-		font-weight: 900;
-		color: var(--accent2);
-	}
-
-	.score-copy {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.score-title {
-		font-size: 17px;
-		font-family: var(--serif);
-		font-weight: 700;
-	}
-
-	.score-desc {
-		font-size: 11px;
-		line-height: 1.55;
-	}
-
-	.bar-item {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.bar-label-row {
-		display: flex;
-		justify-content: space-between;
-		font-size: 11px;
-	}
-
-	.bar-pct {
-		font-weight: 800;
-	}
-
-	.bar-track {
-		height: 7px;
-		background: var(--warm);
-		border-radius: 4px;
-		overflow: hidden;
-	}
-
-	.bar-fill {
-		height: 100%;
-		background: var(--accent);
-	}
-
-	.ai-advice {
-		padding: 13px;
-		border-left: 3px solid var(--navy);
-		background: var(--surface);
-	}
-
-	.advice-title {
-		font-size: 12px;
-		font-weight: 800;
-		color: var(--ink);
-	}
-
-	.advice-text {
-		font-size: 11px;
-		line-height: 1.65;
-		color: var(--ink2);
-	}
-
-	.apply-body,
-	.success-body,
-	.matched-body {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		text-align: left;
-		width: 100%;
-	}
-
-	.apply-desc,
-	.success-body text,
-	.matched-body text {
-		font-size: 12px;
-		line-height: 1.65;
-		color: var(--muted);
-	}
-
-	.apply-note {
-		padding: 12px;
-		background: var(--warm);
-		border-radius: 8px;
-		font-size: 11px;
-		line-height: 1.6;
-	}
-
-	.apply-note .em {
-		color: var(--accent2);
-		font-weight: 800;
-	}
-
-	.apply-input {
-		width: 100%;
-		min-height: 78px;
-		border: 1px solid var(--line);
-		background: var(--surface);
-		border-radius: 9px;
-		padding: 10px 11px;
-		font-size: 12px;
-		color: var(--ink);
-	}
-
-	.timeline {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		margin-top: 4px;
-	}
-
-	.tl-item {
-		font-size: 11px;
-		color: var(--muted);
-		text-align: left;
-	}
+/* ============================================================
+   欢迎页
+   ============================================================ */
+.welcome-screen { position: fixed; z-index: 60; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden; background: var(--navy); }
+.welcome-image, .welcome-scrim { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; }
+.welcome-scrim { background: rgba(12, 19, 19, 0.28); }
+.welcome-service { position: absolute; top: 48px; right: 20px; z-index: 1; padding: 8px 0; color: var(--text-invert); font-size: 14px; }
+.welcome-copy { position: absolute; z-index: 1; top: 15%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-invert); }
+.brand-mark { width: 52px; height: 52px; padding: 7px; background: var(--paper); border-radius: 12px; }
+.brand-mark image { width: 100%; height: 100%; }
+.welcome-title { font-family: var(--serif); font-size: 34px; font-weight: 700; }
+.welcome-subtitle { font-family: var(--serif); font-size: 16px; }
+.welcome-actions { position: absolute; z-index: 1; left: 12%; right: 12%; bottom: calc(40px + env(safe-area-inset-bottom)); }
+.welcome-start-button { width: 100%; height: 50px; border-radius: 999px; border: 0; background: var(--accent2); color: var(--text-invert); font-weight: 800; font-size: 18px; line-height: 50px; }
+.welcome-start-button:active { transform: scale(0.98); }
+.agreement-mask { position: absolute; z-index: 2; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(12, 19, 19, 0.36); }
+.agreement-dialog { width: 100%; padding: 22px; background: var(--paper); border-radius: 12px; }
+.agreement-title { display: block; margin-bottom: 12px; font-family: var(--serif); font-size: 20px; font-weight: 700; text-align: center; }
+.agreement-copy { display: block; font-size: 14px; line-height: 1.7; color: var(--ink2); text-align: center; }
+.agreement-actions { display: flex; gap: 8px; margin-top: 18px; }
+.agreement-cancel, .agreement-confirm { flex: 1; height: 44px; border-radius: 999px; font-size: 14px; line-height: 44px; }
+.agreement-cancel { border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.agreement-confirm { border: 1px solid var(--accent); background: var(--accent); color: var(--text-invert); }
+
+/* ============================================================
+   YYY 页面主体
+   ============================================================ */
+.page {
+	position: relative;
+	width: 100%;
+	max-width: 750rpx;
+	min-height: 100vh;
+	margin: 0 auto;
+	background-color: var(--bg-primary, #FAF8F5);
+	display: flex;
+	flex-direction: column;
+	--accent: #7EC8A0;
+	--accent-dark: #5BAF80;
+	--accent-soft: #E8F5EE;
+	--bg-primary: #FAF8F5;
+	--bg-card: #FFFFFF;
+	--bg-card-soft: #F5F9F2;
+	--text-primary: #1A1A1A;
+	--text-secondary: #5A6B5C;
+	--text-muted: #A0B0A2;
+	--text-inverse: #FFFFFF;
+	--border-soft: #E8EDE6;
+	--heart-red: #F08282;
+	--gold: #C9A96E;
+	--radius-sm: 12rpx;
+	--radius-md: 24rpx;
+	--radius-lg: 32rpx;
+	--radius-xl: 40rpx;
+	--radius-full: 9999rpx;
+}
+
+/* ==================== 状态栏 ==================== */
+.status-bar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; height: 124rpx; padding: 32rpx 40rpx 16rpx 40rpx; box-sizing: border-box; }
+.time-text { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
+.status-icons { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
+.signal-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
+.wifi-icon { font-size: 24rpx; color: var(--text-primary); }
+.battery-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
+
+/* ==================== 导航栏 ==================== */
+.nav-bar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0 40rpx 24rpx 40rpx; }
+.nav-tabs { display: flex; flex-direction: row; align-items: center; gap: 48rpx; }
+.nav-tab-item { display: flex; flex-direction: column; align-items: center; gap: 12rpx; position: relative; }
+.nav-tab-text { font-size: 28rpx; font-weight: 500; color: var(--text-muted); }
+.nav-tab-text.active { font-size: 36rpx; font-weight: 700; color: var(--text-primary); }
+.active-indicator { width: 40rpx; height: 6rpx; background-color: var(--accent); border-radius: 3rpx; }
+.history-btn { width: 72rpx; height: 72rpx; border-radius: var(--radius-full); background-color: var(--bg-card-soft); display: flex; align-items: center; justify-content: center; }
+.history-icon { font-size: 32rpx; }
+
+/* ==================== 筛选栏 ==================== */
+.filter-bar { padding: 0 40rpx; }
+.filter-bar-square { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.square-search-box { flex: 1; width: auto; }
+.search-box { display: flex; flex-direction: row; align-items: center; gap: 16rpx; height: 80rpx; border-radius: var(--radius-xl); background-color: var(--bg-card); padding: 0 24rpx; }
+.search-icon { font-size: 28rpx; opacity: 0.5; }
+.search-placeholder { font-size: 26rpx; color: var(--text-muted); }
+.ai-match-btn { display: flex; flex-direction: row; align-items: center; gap: 6rpx; padding: 10rpx 20rpx; border-radius: var(--radius-xl); background-color: var(--accent); flex-shrink: 0; height: 78rpx; box-sizing: border-box; }
+.ai-match-icon { font-size: 24rpx; color: var(--text-inverse); }
+.ai-match-text { font-size: 24rpx; color: var(--text-inverse); font-weight: 600; }
+
+/* ==================== 滚动内容区 ==================== */
+.content-scroll { flex: 1; padding: 24rpx 32rpx 0 32rpx; }
+
+/* ==================== 个人资料卡 ==================== */
+.profile-card { position: relative; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: 40rpx; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
+.cover-wrap { width: 100%; height: 440rpx; overflow: hidden; border-radius: 40rpx 40rpx 0 0; }
+.card-body { display: flex; flex-direction: column; gap: 28rpx; padding: 32rpx; }
+.cover-img { width: 100%; height: 100%; }
+.user-info-header { display: flex; flex-direction: column; gap: 8rpx; padding-top: 8rpx; padding-left: 230rpx; }
+.avatar-wrap { position: absolute; left: 30rpx; top: 348rpx; width: 184rpx; height: 184rpx; border-radius: 50%; overflow: hidden; border: 6rpx solid var(--bg-card); background-color: var(--bg-card-soft); z-index: 10; }
+.avatar-img { width: 100%; height: 100%; }
+.name-age { font-size: 44rpx; font-weight: 700; color: var(--text-primary); margin-top: 8rpx; }
+.basic-line { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.basic-text { font-size: 26rpx; color: var(--text-secondary); }
+.dot-sep { width: 6rpx; height: 6rpx; border-radius: 50%; background-color: var(--text-muted); }
+.online-row { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
+.online-dot { width: 14rpx; height: 14rpx; border-radius: 50%; background-color: var(--accent); }
+.online-text { font-size: 24rpx; color: var(--accent-dark); }
+.distance-text { font-size: 24rpx; color: var(--text-muted); }
+
+/* 标签行 */
+.tags-row { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12rpx; }
+.tag { display: flex; flex-direction: row; align-items: center; gap: 8rpx; padding: 8rpx 16rpx; border-radius: var(--radius-full); background-color: var(--bg-card-soft); }
+.accent-tag { background-color: var(--accent-soft); }
+.tag-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background-color: var(--accent); }
+.tag-text-accent { font-size: 22rpx; font-weight: 600; color: var(--accent-dark); }
+.tag-text { font-size: 22rpx; font-weight: 600; color: var(--text-secondary); }
+
+/* 分割线 */
+.divider { width: 100%; height: 2rpx; background-color: var(--border-soft); margin: 0; }
+
+/* 关于我 */
+.about-section { display: flex; flex-direction: column; gap: 20rpx; }
+.section-title { font-size: 28rpx; font-weight: 700; color: var(--text-primary); }
+.about-content { font-size: 26rpx; color: var(--text-secondary); line-height: 1.6; }
+
+/* 认证信息 */
+.cert-section { display: flex; flex-direction: row; align-items: center; gap: 16rpx; flex-wrap: wrap; }
+.cert-label { font-size: 24rpx; color: var(--text-muted); }
+.cert-tag { display: flex; flex-direction: row; align-items: center; gap: 8rpx; padding: 8rpx 16rpx; border-radius: 12rpx; background-color: var(--bg-card-soft); }
+.cert-icon { font-size: 24rpx; }
+.gold-icon { color: var(--gold); }
+.cert-text { font-size: 22rpx; color: var(--text-secondary); }
+
+/* AI匹配度 */
+.match-section { display: flex; flex-direction: row; align-items: center; gap: 24rpx; padding: 24rpx; border-radius: var(--radius-md); background-color: var(--bg-card-soft); }
+.match-ring { position: relative; width: 104rpx; height: 104rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ring-outer { position: absolute; top: 0; left: 0; width: 104rpx; height: 104rpx; border-radius: 50%; background-color: var(--accent-soft); display: flex; align-items: center; justify-content: center; }
+.ring-inner { width: 84rpx; height: 84rpx; border-radius: 50%; background-color: var(--bg-card); }
+.ring-percent { position: relative; z-index: 1; font-size: 30rpx; font-weight: 800; color: var(--accent-dark); }
+.match-info { flex: 1; display: flex; flex-direction: column; gap: 8rpx; }
+.match-title { font-size: 28rpx; font-weight: 700; color: var(--text-primary); }
+.match-desc { font-size: 24rpx; color: var(--text-muted); }
+
+/* 基础资料 */
+.info-grid-section { display: flex; flex-direction: column; gap: 16rpx; }
+.info-grid { display: flex; flex-direction: column; gap: 12rpx; }
+.info-row { display: flex; flex-direction: row; gap: 12rpx; }
+.info-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4rpx; padding: 16rpx 0; border-radius: var(--radius-sm); background-color: var(--bg-primary); }
+.info-label { font-size: 20rpx; color: var(--text-muted); }
+.info-value { font-size: 26rpx; font-weight: 600; color: var(--text-primary); }
+
+/* 照片区 */
+.photos-section { display: flex; flex-direction: column; gap: 16rpx; }
+.photo-large { width: 100%; height: 520rpx; border-radius: var(--radius-md); }
+.qa-card { display: flex; flex-direction: column; gap: 8rpx; padding: 24rpx; border-radius: var(--radius-md); background-color: var(--bg-card-soft); }
+.qa-question { font-size: 24rpx; font-weight: 700; color: var(--accent-dark); }
+.qa-answer { font-size: 24rpx; color: var(--text-secondary); line-height: 1.5; }
+
+/* 活跃信息 */
+.activity-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
+.activity-text { font-size: 24rpx; color: var(--text-muted); }
+.viewed-text { font-size: 24rpx; color: var(--text-muted); }
+
+/* 滚动区域底部留白 */
+.scroll-bottom-spacer { height: 200rpx; }
+
+/* ==================== 底部操作栏 ==================== */
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; flex-direction: row; align-items: center; gap: 24rpx; padding: 32rpx 40rpx; padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); background-color: transparent; box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.02); }
+.share-btn { width: 88rpx; height: 88rpx; border-radius: 44rpx; background-color: var(--bg-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04); }
+.share-icon { font-size: 40rpx; font-weight: 700; color: var(--text-secondary); transform: rotate(-45deg); }
+.chat-btn { flex: 1; height: 96rpx; border-radius: 48rpx; background-color: var(--accent); display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 16rpx; }
+.chat-icon { font-size: 36rpx; }
+.chat-text { font-size: 30rpx; font-weight: 700; color: var(--text-inverse); }
+.like-btn { width: 112rpx; height: 112rpx; border-radius: 56rpx; background-color: var(--bg-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04); }
+.heart-icon { font-size: 52rpx; color: var(--heart-red); }
+
+/* ==================== AI悬浮按钮 ==================== */
+.ai-float-btn { position: fixed; right: 28rpx; bottom: 200rpx; width: 112rpx; height: 112rpx; border-radius: 56rpx; background-color: var(--accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 8rpx 32rpx rgba(126, 200, 160, 0.25), 0 4rpx 16rpx rgba(0, 0, 0, 0.06); z-index: 10; }
+.ai-icon { font-size: 48rpx; color: var(--text-inverse); }
+
+/* ==================== 广场页面 ==================== */
+.pinned-bar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 32rpx 0 16rpx 0; }
+.pinned-left { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.pinned-flame { font-size: 36rpx; }
+.pinned-title { font-size: 32rpx; font-weight: 700; color: var(--text-primary); }
+.quality-badge { padding: 4rpx 12rpx; border-radius: 8rpx; background-color: #FEF3C7; }
+.quality-text { font-size: 22rpx; font-weight: 600; color: #D97706; }
+.want-top-btn { display: flex; flex-direction: row; align-items: center; gap: 8rpx; padding: 12rpx 28rpx; border-radius: var(--radius-full); background-color: var(--accent); }
+.want-top-icon { font-size: 28rpx; color: var(--text-inverse); font-weight: 700; }
+.want-top-text { font-size: 24rpx; color: var(--text-inverse); font-weight: 600; }
+
+.square-feed { display: flex; flex-direction: column; gap: 28rpx; }
+.square-user-card { display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-xl); overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
+.sq-photo-wrap { width: 100%; height: 440rpx; position: relative; overflow: hidden; }
+.sq-photo { width: 100%; height: 100%; }
+.vip-tag { position: absolute; top: 16rpx; left: 16rpx; display: flex; flex-direction: row; align-items: center; gap: 6rpx; padding: 6rpx 16rpx; border-radius: var(--radius-full); background-color: #C9A96E; }
+.vip-tag-text { font-size: 22rpx; font-weight: 700; color: var(--text-inverse); }
+.sq-card-info { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 24rpx; }
+.sq-left-info { flex: 1; display: flex; flex-direction: column; gap: 8rpx; }
+.sq-name-row { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.sq-name { font-size: 32rpx; font-weight: 700; color: var(--text-primary); }
+.sq-age { font-size: 26rpx; color: var(--text-secondary); }
+.sq-meta-row { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
+.sq-meta-text { font-size: 24rpx; color: var(--text-muted); }
+.sq-dot { width: 6rpx; height: 6rpx; border-radius: 50%; background-color: var(--text-muted); }
+.sq-like-btn { width: 80rpx; height: 80rpx; border-radius: 50%; background-color: #FFF0F0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sq-heart { font-size: 40rpx; color: var(--heart-red); }
+
+.sq-section { display: flex; flex-direction: column; gap: 24rpx; }
+.sq-section-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
+.sq-section-title-group { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.sq-section-icon { font-size: 36rpx; }
+.sq-section-title { font-size: 30rpx; font-weight: 700; color: var(--gold); }
+.sq-section-count { font-size: 24rpx; color: var(--gold); font-weight: 500; }
+.sq-section-more { font-size: 24rpx; color: var(--text-muted); }
+.sq-vip-row { display: flex; flex-direction: row; gap: 24rpx; }
+.sq-vip-mini { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-xl); overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
+.sq-vip-photo { width: 100%; height: 320rpx; }
+.sq-vip-info { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20rpx; }
+.sq-vip-left { display: flex; flex-direction: column; gap: 4rpx; }
+.sq-vip-name { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
+.sq-vip-detail { font-size: 22rpx; color: var(--text-muted); }
+.sq-vip-like { width: 64rpx; height: 64rpx; border-radius: 50%; background-color: #FFF0F0; display: flex; align-items: center; justify-content: center; }
+.sq-heart-sm { font-size: 32rpx; color: var(--heart-red); }
+
+/* ==================== 会员专区页面 ==================== */
+.vip-hero { display: flex; flex-direction: column; justify-content: center; gap: 16rpx; height: 320rpx; padding: 40rpx 48rpx; background: linear-gradient(135deg, #2D4A3E, #1A3328); border-radius: var(--radius-xl); margin-bottom: 24rpx; }
+.vip-hero-gold-line { width: 120rpx; height: 6rpx; background-color: var(--gold); border-radius: 3rpx; }
+.vip-hero-content { display: flex; flex-direction: column; gap: 16rpx; }
+.vip-hero-title { font-size: 44rpx; font-weight: 700; color: var(--text-inverse); }
+.vip-hero-subtitle { font-size: 26rpx; color: #C9D5CA; }
+.vip-hero-badges { display: flex; flex-direction: row; gap: 32rpx; padding-top: 24rpx; }
+.vip-hero-badge { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
+.vip-hero-badge-icon { font-size: 28rpx; color: var(--gold); }
+.vip-hero-badge-text { font-size: 24rpx; color: #C9D5CA; }
+
+.vip-cat-tabs { display: flex; flex-direction: row; background-color: var(--bg-card); border-radius: var(--radius-lg); padding: 0 8rpx; margin-bottom: 24rpx; }
+.vip-cat-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16rpx; padding: 28rpx 0 20rpx 0; }
+.vip-cat-tab-text { font-size: 26rpx; font-weight: 500; color: var(--text-muted); }
+.vip-cat-tab-text.active { font-size: 28rpx; font-weight: 700; color: var(--text-primary); }
+.vip-cat-indicator { width: 48rpx; height: 6rpx; background-color: var(--accent); border-radius: 3rpx; }
+
+.vip-filter-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 24rpx 0; }
+.vip-result-count { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
+.vip-filter-right { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.vip-sort-btn { display: flex; flex-direction: row; align-items: center; gap: 8rpx; padding: 10rpx 20rpx; border-radius: var(--radius-full); background-color: var(--bg-card); }
+.vip-sort-text { font-size: 24rpx; color: var(--text-secondary); }
+.vip-sort-icon { font-size: 20rpx; color: var(--text-muted); }
+.vip-accelerate-btn { display: flex; flex-direction: row; align-items: center; gap: 8rpx; padding: 10rpx 20rpx; border-radius: var(--radius-full); background-color: var(--accent); }
+.vip-accel-icon { font-size: 24rpx; color: var(--text-inverse); }
+.vip-accel-text { font-size: 24rpx; color: var(--text-inverse); font-weight: 600; }
+
+.vip-card-grid { display: flex; flex-direction: column; gap: 20rpx; }
+.vip-card-row { display: flex; flex-direction: row; gap: 20rpx; }
+.vip-card-item { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
+.vip-card-photo { width: 100%; height: 280rpx; position: relative; overflow: hidden; }
+.vip-card-photo-img { width: 100%; height: 100%; }
+.vip-card-crown { position: absolute; top: 12rpx; left: 12rpx; display: flex; align-items: center; padding: 4rpx 10rpx; border-radius: var(--radius-sm); background-color: #C9A96E; }
+.vip-card-crown-icon { font-size: 16rpx; }
+.vip-card-gender { position: absolute; top: 12rpx; right: 12rpx; display: flex; align-items: center; padding: 4rpx 10rpx; border-radius: var(--radius-sm); }
+.vip-card-gender.female { background-color: #FFE4E6; }
+.vip-card-gender.male { background-color: #DBEAFE; }
+.vip-gender-icon { font-size: 20rpx; font-weight: 700; }
+.vip-gender-icon.female { color: #E11D48; }
+.vip-gender-icon.male { color: #2563EB; }
+.vip-card-bottom { display: flex; flex-direction: column; gap: 8rpx; padding: 20rpx; }
+.vip-card-name { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
+.vip-card-meta { display: flex; flex-direction: row; align-items: center; gap: 8rpx; }
+.vip-card-age { font-size: 24rpx; color: var(--text-secondary); }
+.vip-card-dot { width: 4rpx; height: 4rpx; border-radius: 50%; background-color: var(--text-muted); }
+.vip-card-height { font-size: 24rpx; color: var(--text-secondary); }
+
+.vip-privilege-section { display: flex; flex-direction: column; gap: 24rpx; padding: 32rpx 16rpx; }
+.vip-priv-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
+.vip-priv-title { font-size: 30rpx; font-weight: 700; color: var(--text-primary); }
+.vip-upgrade-btn { display: flex; flex-direction: row; align-items: center; gap: 8rpx; padding: 16rpx 32rpx; border-radius: var(--radius-full); background-color: var(--accent); }
+.vip-upgrade-icon { font-size: 28rpx; }
+.vip-upgrade-text { font-size: 26rpx; font-weight: 600; color: var(--text-inverse); }
+.vip-priv-row { display: flex; flex-direction: row; gap: 20rpx; }
+.vip-priv-card { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16rpx; padding: 28rpx; border-radius: var(--radius-lg); background-color: var(--bg-card); box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
+.vip-priv-icon-circle { width: 88rpx; height: 88rpx; border-radius: 50%; background-color: #FEF9F0; display: flex; align-items: center; justify-content: center; }
+.vip-priv-icon-text { font-size: 44rpx; }
+.vip-priv-card-title { font-size: 26rpx; font-weight: 600; color: var(--text-primary); }
+.vip-priv-card-desc { font-size: 22rpx; color: var(--text-muted); text-align: center; }
+
+.vip-spotlight { display: flex; flex-direction: column; gap: 24rpx; padding: 32rpx 16rpx; }
+.vip-spot-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
+.vip-spot-title-group { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.vip-spot-icon { font-size: 36rpx; }
+.vip-spot-title { font-size: 30rpx; font-weight: 700; color: var(--text-primary); }
+.vip-spot-count { font-size: 24rpx; color: var(--gold); font-weight: 600; }
+.vip-spot-more { font-size: 24rpx; color: var(--text-muted); }
+.vip-spot-desc { font-size: 24rpx; color: var(--text-muted); line-height: 1.5; }
+.vip-spot-row { display: flex; flex-direction: row; gap: 20rpx; }
+.vip-spot-card { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
+.vip-spot-photo { width: 100%; height: 200rpx; background-color: var(--bg-card-soft); display: flex; align-items: center; justify-content: center; }
+.vip-spot-photo-icon { font-size: 64rpx; color: var(--text-muted); }
+.vip-spot-info { display: flex; flex-direction: column; gap: 4rpx; padding: 20rpx; }
+.vip-spot-name { font-size: 26rpx; font-weight: 600; color: var(--text-primary); }
+.vip-spot-age { font-size: 22rpx; color: var(--text-muted); }
+
+.vip-bottom-cta { display: flex; flex-direction: column; align-items: center; gap: 20rpx; padding: 40rpx 32rpx 48rpx 32rpx; background: linear-gradient(135deg, #2D4A3E, #C9A96E); border-radius: var(--radius-xl); }
+.vip-cta-title { font-size: 36rpx; font-weight: 700; color: #FFFFFF; }
+.vip-cta-desc { font-size: 24rpx; color: #CCCCCC; text-align: center; line-height: 1.5; }
+.vip-price-row { display: flex; flex-direction: row; gap: 16rpx; width: 100%; }
+.vip-price-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8rpx; padding: 20rpx; border-radius: var(--radius-md); background-color: rgba(255, 255, 255, 0.1); position: relative; }
+.vip-price-opt.recommended { background-color: rgba(201, 169, 110, 0.2); border: 2rpx solid var(--gold); }
+.vip-price-badge { position: absolute; top: -20rpx; padding: 4rpx 12rpx; border-radius: var(--radius-sm); background-color: var(--gold); }
+.vip-price-badge-text { font-size: 20rpx; color: #FFFFFF; font-weight: 600; }
+.vip-price-period { font-size: 24rpx; color: #CCCCCC; }
+.vip-price-value { font-size: 36rpx; font-weight: 700; color: var(--gold); }
+.vip-cta-btn { width: 100%; height: 96rpx; border-radius: 48rpx; background-color: var(--accent); display: flex; align-items: center; justify-content: center; }
+.vip-cta-btn-text { font-size: 30rpx; font-weight: 700; color: #FFFFFF; }
+.vip-cta-hint { font-size: 22rpx; color: #888888; text-align: center; }
+
+/* ============================================================
+   AI Sheet
+   ============================================================ */
+.ai-sheet { display: flex; flex-direction: column; gap: 16px; }
+.ai-mbti-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.ai-mbti-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 20px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.ai-mbti-card.you { background: var(--accent-bg); border-color: var(--accent); }
+.ai-mbti-label { font-size: 10px; color: var(--muted); }
+.ai-mbti-type { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--accent2); }
+.ai-mbti-x { font-size: 18px; color: var(--ink2); }
+.ai-score-big text { font-size: 48px; font-weight: 900; color: var(--accent2); font-family: var(--serif); }
+.ai-score-big { text-align: center; }
+.ai-bars { display: flex; flex-direction: column; gap: 10px; }
+.ai-bar { display: flex; flex-direction: column; gap: 4px; }
+.ai-bar-head { display: flex; justify-content: space-between; font-size: 11px; }
+.ai-bar-trk { height: 6px; border-radius: 3px; background: var(--warm); overflow: hidden; }
+.ai-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s; }
+.ai-tip { padding: 12px; background: var(--accent-bg); border-radius: 8px; font-size: 11px; line-height: 1.6; color: var(--ink2); }
+
+/* ============================================================
+   Modal
+   ============================================================ */
+.apply-body { display: flex; flex-direction: column; gap: 10px; }
+.apply-desc { font-size: 12px; line-height: 1.6; color: var(--muted); }
+.apply-note { padding: 10px; background: var(--warm); border-radius: 8px; font-size: 11px; }
+.apply-note .em { color: var(--accent2); font-weight: 800; }
+.apply-input { width: 100%; min-height: 72px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
 </style>
