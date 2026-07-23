@@ -216,6 +216,7 @@
 
 .user-header {
 	display: flex;
+		flex-direction: row;
 	gap: 16px;
 	margin-bottom: 20px;
 }
@@ -236,6 +237,7 @@
 
 .name-row {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 6px;
 }
@@ -258,6 +260,7 @@
 
 .cert-badges {
 	display: flex;
+		flex-direction: row;
 	gap: 6px;
 	flex-wrap: wrap;
 }
@@ -288,6 +291,7 @@
 
 .progress-header {
 	display: flex;
+		flex-direction: row;
 	justify-content: space-between;
 	margin-bottom: 8px;
 }
@@ -325,6 +329,7 @@
 /* 数据统计 */
 .stats-section {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: space-around;
 	padding: 20px 16px;
@@ -370,6 +375,7 @@
 
 .menu-item {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 12px;
 	padding: 16px;
@@ -409,6 +415,7 @@
 	background: var(--accent);
 	border-radius: 999px;
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	margin-right: 8px;

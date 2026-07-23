@@ -8,8 +8,11 @@ import {
   mockRecommendUsers,
   mockSquareUsers,
   mockUserDetail,
-  mockMeProfile
+  mockMeProfile,
+  mockCommunityQuotas,
+  mockApplyStates
 } from '@/mock'
+import { __syncApplyStatus } from './community.uts'
 
 /**
  * 获取推荐用户（支持轮换 index）
@@ -102,15 +105,102 @@ export async function getMeProfile() {
 
 /**
  * 申请认识用户
+ * 门槛：仅实名（页面 guardRealName）；每日免费 3 次 + 积分加次说明
+ * pending/accepted 幂等，不重复扣次；rejected 可再申请
+ * 聊天仍须双方同意后开启；会员不可绕过同意门槛
+ * 注意：request 外层 success 恒为 true，业务成败看 data.success / data.code
  */
 export async function applyToMeet(userId: number, message: string) {
+  const key = '' + userId
+  const states = mockApplyStates as any
+  const current = states[key] != null ? (states[key] as string) : 'none'
+
+  if (current == 'pending') {
+    return request({
+      url: '/user/apply',
+      cloudFunctionName: 'user',
+      action: 'apply',
+      method: 'POST',
+      data: { userId, message },
+      mockData: {
+        success: true,
+        code: 'ALREADY_PENDING',
+        applyStatus: 'pending',
+        remain: mockCommunityQuotas.applyDaily.remain,
+        message: '申请已发送，请等待对方回应'
+      }
+    })
+  }
+
+  if (current == 'accepted') {
+    return request({
+      url: '/user/apply',
+      cloudFunctionName: 'user',
+      action: 'apply',
+      method: 'POST',
+      data: { userId, message },
+      mockData: {
+        success: true,
+        code: 'ALREADY_ACCEPTED',
+        applyStatus: 'accepted',
+        remain: mockCommunityQuotas.applyDaily.remain,
+        message: '对方已同意，可在消息中继续沟通'
+      }
+    })
+  }
+
+  const quotas = mockCommunityQuotas as any
+  const applyQ = quotas.applyDaily
+  // 与 me.remainApply 对齐（取较小值，避免双源漂移）
+  if (mockMeProfile != null && mockMeProfile.remainApply != null) {
+    const meRemain = mockMeProfile.remainApply as number
+    if (meRemain < applyQ.remain) {
+      applyQ.remain = meRemain
+      applyQ.used = Math.max(0, applyQ.total - meRemain)
+    }
+  }
+
+  if (applyQ.remain <= 0) {
+    if (mockMeProfile != null) {
+      mockMeProfile.remainApply = 0
+    }
+    return request({
+      url: '/user/apply',
+      cloudFunctionName: 'user',
+      action: 'apply',
+      method: 'POST',
+      data: { userId, message },
+      mockData: {
+        success: false,
+        code: 'QUOTA_EXCEEDED',
+        remain: 0,
+        applyStatus: current,
+        message: '今日免费申请次数已用完，可用积分加次'
+      }
+    })
+  }
+
+  applyQ.used = (applyQ.used as number) + 1
+  applyQ.remain = (applyQ.remain as number) - 1
+  if (mockMeProfile != null) {
+    mockMeProfile.remainApply = applyQ.remain
+  }
+
+  states[key] = 'pending'
+  __syncApplyStatus(userId, 'pending')
+
   return request({
     url: '/user/apply',
     cloudFunctionName: 'user',
     action: 'apply',
     method: 'POST',
     data: { userId, message },
-    mockData: { success: true, remain: 1 }
+    mockData: {
+      success: true,
+      remain: applyQ.remain,
+      applyStatus: 'pending',
+      message: '申请已发送，对方同意后才能开始聊天'
+    }
   })
 }
 

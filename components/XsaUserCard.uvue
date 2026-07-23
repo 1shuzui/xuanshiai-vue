@@ -164,6 +164,7 @@ const handleLike = () => {
 
 .user-basic {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 6px;
 	margin-bottom: 8px;
@@ -188,6 +189,7 @@ const handleLike = () => {
 /* 认证徽章 */
 .cert-badges {
 	display: flex;
+		flex-direction: row;
 	gap: 4px;
 	margin-bottom: 8px;
 }
@@ -198,6 +200,7 @@ const handleLike = () => {
 	background: var(--sage-soft);
 	border-radius: 50%;
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 }
@@ -210,6 +213,7 @@ const handleLike = () => {
 /* 标签 */
 .tags {
 	display: flex;
+		flex-direction: row;
 	flex-wrap: wrap;
 	gap: 6px;
 	margin-bottom: 8px;
@@ -226,6 +230,7 @@ const handleLike = () => {
 /* 位置 */
 .location {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 4px;
 	margin-bottom: 8px;
@@ -253,6 +258,7 @@ const handleLike = () => {
 /* 操作按钮 */
 .card-footer {
 	display: flex;
+		flex-direction: row;
 	gap: 8px;
 	padding: 0 16px 16px;
 }
@@ -262,6 +268,7 @@ const handleLike = () => {
 	height: 40px;
 	border-radius: 999px;
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	gap: 4px;

@@ -225,6 +225,7 @@
 
 .code-input-wrapper {
 	display: flex;
+		flex-direction: row;
 	gap: 12px;
 }
 
@@ -279,6 +280,7 @@
 
 .divider {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 12px;
 	margin-bottom: 24px;
@@ -297,6 +299,7 @@
 
 .social-btns {
 	display: flex;
+		flex-direction: row;
 	justify-content: center;
 	gap: 40px;
 }

@@ -327,55 +327,35 @@
 			</view>
 		</XsaSheet>
 
-		<!-- 申请认识 Modal：必须双方同意后才能聊天 -->
-		<XsaModal
-			:visible="applyVisible"
-			title="认真地申请认识"
-			:icon="true"
-			icon-type="info"
-			cancel-text="先想想"
-			confirm-text="确认申请"
-			:confirm-loading="applyLoading"
-			@close="applyVisible = false"
-			@cancel="applyVisible = false"
-			@confirm="confirmApply"
-		>
-			<view class="apply-body">
-				<text class="apply-desc">申请发出后，只有对方也愿意认识你，双方才会开启聊天。</text>
-				<view class="apply-note">
-					<text>你今天还有 <text class="em">{{ remainApply }} 次</text>免费申请。对方拒绝不会扣除次数。</text>
-				</view>
-				<textarea
-					class="apply-input"
-					:value="applyMessage"
-					maxlength="120"
-					placeholder="写一句真诚的申请附言…"
-					@input="onApplyInput"
-				/>
-			</view>
-		</XsaModal>
+<!-- 申请认识：统一 XsaApplySheet（与社区同源） -->
+			<XsaApplySheet
+				:visible="applyVisible"
+				:user-id="applyUserId"
+				@close="applyVisible = false"
+				@success="onApplySheetSuccess"
+			/>
 
-		<!-- 申请成功 -->
-		<XsaModal
-			:visible="successVisible"
-			title="申请已送达"
-			:icon="true"
-			icon-type="success"
-			cancel-text="查看申请"
-			confirm-text="演示对方同意"
-			@close="successVisible = false"
-			@cancel="goMessages"
-			@confirm="simulateMatch"
-		>
-			<view class="success-body">
-				<text>平台已保护双方联系方式。只有双方都愿意，聊天才会开启。</text>
-				<view class="timeline">
-					<text class="tl-item">1. 申请已通过平台安全检查</text>
-					<text class="tl-item">2. 等待对方回应，通常在 24 小时内</text>
-					<text class="tl-item">3. 双方同意后开放聊天</text>
+			<!-- 申请成功说明 -->
+			<XsaModal
+				:visible="successVisible"
+				title="申请已送达"
+				:icon="true"
+				icon-type="success"
+				cancel-text="查看申请"
+				confirm-text="演示对方同意"
+				@close="successVisible = false"
+				@cancel="goMessages"
+				@confirm="simulateMatch"
+			>
+				<view class="success-body">
+					<text>平台已保护双方联系方式。只有双方都愿意，聊天才会开启。</text>
+					<view class="timeline">
+						<text class="tl-item">1. 申请已通过平台安全检查</text>
+						<text class="tl-item">2. 等待对方回应，通常在 24 小时内</text>
+						<text class="tl-item">3. 双方同意后开放聊天</text>
+					</view>
 				</view>
-			</view>
-		</XsaModal>
+			</XsaModal>
 
 		<!-- 双方同意 -->
 		<XsaModal
@@ -398,35 +378,35 @@
 </template>
 
 <script setup lang="uts">
-	import XsaButton from '@/components/XsaButton.uvue'
-	import XsaTag from '@/components/XsaTag.uvue'
-	import XsaToast from '@/components/XsaToast.uvue'
-	import XsaUserCard from '@/components/XsaUserCard.uvue'
-	import XsaEmpty from '@/components/XsaEmpty.uvue'
-	import XsaSheet from '@/components/XsaSheet.uvue'
-	import XsaModal from '@/components/XsaModal.uvue'
-	import { getRecommendUser, getSquareUsers, likeUser, applyToMeet } from '@/api'
+import XsaButton from '@/components/XsaButton.uvue'
+		import XsaTag from '@/components/XsaTag.uvue'
+		import XsaToast from '@/components/XsaToast.uvue'
+		import XsaUserCard from '@/components/XsaUserCard.uvue'
+		import XsaEmpty from '@/components/XsaEmpty.uvue'
+		import XsaSheet from '@/components/XsaSheet.uvue'
+		import XsaModal from '@/components/XsaModal.uvue'
+		import XsaApplySheet from '@/components/XsaApplySheet.uvue'
+		import { getRecommendUser, getSquareUsers, likeUser } from '@/api'
+		import { guardRealName } from '@/utils/realNameGate.uts'
 
-	const currentMode = ref('recommend')
-	const liked = ref(false)
-	const applied = ref(false)
-	const toastVisible = ref(false)
-	const toastMessage = ref('')
-	const loading = ref(false)
-	const hasMore = ref(true)
-	const currentUser = ref(null)
-	const squareUsers = ref([])
-	const recommendIndex = ref(0)
+		const currentMode = ref('recommend')
+		const liked = ref(false)
+		const applied = ref(false)
+		const toastVisible = ref(false)
+		const toastMessage = ref('')
+		const loading = ref(false)
+		const hasMore = ref(true)
+		const currentUser = ref(null)
+		const squareUsers = ref([])
+		const recommendIndex = ref(0)
 
-	const filterVisible = ref(false)
-	const profileVisible = ref(false)
-	const aiVisible = ref(false)
-	const applyVisible = ref(false)
-	const successVisible = ref(false)
-	const matchedVisible = ref(false)
-	const applyLoading = ref(false)
-	const applyMessage = ref('你好，看到你的资料很认真，想认识一下。')
-	const remainApply = ref(2)
+		const filterVisible = ref(false)
+		const profileVisible = ref(false)
+		const aiVisible = ref(false)
+		const applyVisible = ref(false)
+		const applyUserId = ref(0)
+		const successVisible = ref(false)
+		const matchedVisible = ref(false)
 
 	const filterGender = ref('female')
 	const filterCities = ref(['杭州', '南京'])
@@ -441,16 +421,33 @@
 		{ name: '单身', desc: '本人声明' }
 	]
 
+	const fallbackTags = ['看展', '猫', '咖啡', '城市散步']
+	const lifeTag = (index: number): string => {
+		const u = currentUser.value as any
+		const tags = u != null && u.tags != null && u.tags.length > 0 ? u.tags : fallbackTags
+		if (index < tags.length) return tags[index] as string
+		return fallbackTags[index % fallbackTags.length]
+	}
+	const expectList = computed((): string[] => {
+		const u = currentUser.value as any
+		if (u != null && u.expect != null && u.expect.length > 0) return u.expect as string[]
+		return [
+			'希望关系是慢慢靠近，而不是情绪消费',
+			'更看重日常陪伴与长期规划是否同频',
+			'愿意把生活里的真实一面认真介绍给你'
+		]
+	})
+
 	const aiBars = [
 		{ label: '关系目标', value: 96 },
 		{ label: '生活节奏', value: 89 },
 		{ label: '兴趣交集', value: 86 }
 	]
 
-	onMounted(() => {
-		loadRecommendUser()
-		loadSquareUsers()
-	})
+onMounted(() => {
+			loadRecommendUser()
+			loadSquareUsers()
+		})
 
 	const showToast = (msg: string) => {
 		toastMessage.value = msg
@@ -525,40 +522,26 @@
 		}
 	}
 
-	const openApplyModal = () => {
-		if (currentUser.value == null) return
-		if (applied.value) {
-			showToast('已申请，等待对方回应')
-			return
-		}
-		applyMessage.value = `你好，看到你在${currentUser.value.city}，想认真认识一下。`
-		applyVisible.value = true
-	}
-
-	const confirmApply = async () => {
-		if (currentUser.value == null) return
-		if (applyMessage.value.trim().length == 0) {
-			showToast('请填写申请附言')
-			return
-		}
-		try {
-			applyLoading.value = true
-			const res = await applyToMeet(currentUser.value.id, applyMessage.value.trim())
-			if (res.success) {
-				applied.value = true
-				if (remainApply.value > 0) {
-					remainApply.value = remainApply.value - 1
-				}
-				applyVisible.value = false
-				// 产品规则：申请后不直接进入聊天
-				successVisible.value = true
+const openApplyModal = async () => {
+			if (currentUser.value == null) return
+			if (applied.value) {
+				showToast('已申请，等待对方回应')
+				return
 			}
-		} catch (e) {
-			showToast('发送失败，请重试')
-		} finally {
-			applyLoading.value = false
+			const ok = await guardRealName('apply')
+			if (!ok) return
+			applyUserId.value = currentUser.value.id as number
+			applyVisible.value = true
 		}
-	}
+
+		const onApplySheetSuccess = (payload: any) => {
+			applied.value = true
+			// 产品规则：申请后不直接进入聊天
+			successVisible.value = true
+			if (payload != null && payload.code == 'ALREADY_PENDING') {
+				showToast('申请已发送，请等待对方回应')
+			}
+		}
 
 	const goMessages = () => {
 		successVisible.value = false
@@ -662,15 +645,11 @@
 		aiVisible.value = true
 	}
 
-	const playVoice = () => {
-		showToast('语音播放 · 原型演示')
-	}
+const playVoice = () => {
+			showToast('语音播放 · 原型演示')
+		}
 
-	const onApplyInput = (e: any) => {
-		applyMessage.value = e.detail.value
-	}
-
-	const handleRefresh = async () => {
+		const handleRefresh = async () => {
 		loading.value = true
 		await loadSquareUsers()
 		loading.value = false
@@ -708,6 +687,7 @@
 		top: 0;
 		z-index: 10;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
@@ -722,6 +702,7 @@
 		max-width: 120px;
 		height: 40px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		border-radius: 999px;
@@ -755,6 +736,7 @@
 		border: 1px solid var(--line);
 		background: var(--surface);
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 	}
 
@@ -769,12 +751,13 @@
 	}
 
 	.story-view {
-		padding: 14px 16px 120px;
+		padding: 14px 16px calc(50px + 74px + 36px + env(safe-area-inset-bottom));
 	}
 
 	.loading-box {
 		padding: 80px 0;
 		display: flex;
+		flex-direction: row;
 		justify-content: center;
 	}
 
@@ -814,6 +797,7 @@
 		top: 13px;
 		right: 13px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		gap: 6px;
 		padding: 7px 9px;
@@ -862,12 +846,14 @@
 
 	.meta-row {
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
 	}
 
 	.tags {
 		display: flex;
+		flex-direction: row;
 		gap: 6px;
 		flex-wrap: wrap;
 		flex: 1;
@@ -905,6 +891,7 @@
 
 	.section-title {
 		display: flex;
+		flex-direction: row;
 		justify-content: space-between;
 		margin-bottom: 10px;
 	}
@@ -937,6 +924,7 @@
 
 	.voice-card {
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		gap: 12px;
 		padding: 13px;
@@ -951,6 +939,7 @@
 		background: var(--soft);
 		color: var(--brown);
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		font-weight: 800;
@@ -982,6 +971,7 @@
 
 	.trust-header {
 		display: flex;
+		flex-direction: row;
 		justify-content: space-between;
 		padding: 12px 13px;
 		border-bottom: 1px solid var(--line);
@@ -1036,6 +1026,7 @@
 
 	.compat-card {
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		gap: 14px;
 		padding: 15px;
@@ -1049,6 +1040,7 @@
 		border-radius: 50%;
 		border: 7px solid var(--paper);
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		background: var(--surface);
@@ -1083,6 +1075,7 @@
 		background: var(--surface);
 		border-radius: 8px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		font-weight: 700;
@@ -1114,7 +1107,7 @@
 		z-index: 18;
 		left: 10px;
 		right: 10px;
-		bottom: 12px;
+		bottom: calc(50px + 12px + env(safe-area-inset-bottom));
 		height: 74px;
 		padding: 9px;
 		background: rgba(250, 252, 252, 0.97);
@@ -1130,19 +1123,20 @@
 		position: fixed;
 		z-index: 17;
 		right: 15px;
-		bottom: 96px;
+		bottom: calc(50px + 24px + env(safe-area-inset-bottom));
 		width: 48px;
 		height: 48px;
 		border-radius: 16px 16px 16px 5px;
 		background: var(--navy);
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		box-shadow: 0 10px 24px rgba(24, 65, 93, 0.24);
 	}
 
 	.ai-fab.raised {
-		bottom: 100px;
+		bottom: calc(50px + 12px + 74px + 16px + env(safe-area-inset-bottom));
 	}
 
 	.ai-text {
@@ -1159,6 +1153,7 @@
 
 	.filter-label-row {
 		display: flex;
+		flex-direction: row;
 		justify-content: space-between;
 		margin-bottom: 10px;
 	}
@@ -1175,6 +1170,7 @@
 
 	.choice-row {
 		display: flex;
+		flex-direction: row;
 		flex-wrap: wrap;
 		gap: 8px;
 	}
@@ -1186,6 +1182,7 @@
 		background: var(--surface);
 		border-radius: 7px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		font-size: 12px;
 	}
@@ -1212,6 +1209,7 @@
 
 	.profile-hero {
 		display: flex;
+		flex-direction: row;
 		gap: 12px;
 		padding-bottom: 12px;
 		border-bottom: 1px solid var(--line);
@@ -1253,6 +1251,7 @@
 
 	.profile-row {
 		display: flex;
+		flex-direction: row;
 		padding: 10px 0;
 		border-bottom: 1px solid var(--line);
 		font-size: 12px;
@@ -1301,6 +1300,7 @@
 
 	.score-head {
 		display: flex;
+		flex-direction: row;
 		gap: 14px;
 		align-items: center;
 	}
@@ -1311,6 +1311,7 @@
 		border-radius: 50%;
 		border: 9px solid var(--soft);
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 	}
@@ -1347,6 +1348,7 @@
 
 	.bar-label-row {
 		display: flex;
+		flex-direction: row;
 		justify-content: space-between;
 		font-size: 11px;
 	}
@@ -1385,36 +1387,21 @@
 		color: var(--ink2);
 	}
 
-	.apply-body,
-	.success-body,
-	.matched-body {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		text-align: left;
-		width: 100%;
-	}
+.success-body,
+		.matched-body {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+			text-align: left;
+			width: 100%;
+		}
 
-	.apply-desc,
-	.success-body text,
-	.matched-body text {
-		font-size: 12px;
-		line-height: 1.65;
-		color: var(--muted);
-	}
-
-	.apply-note {
-		padding: 12px;
-		background: var(--warm);
-		border-radius: 8px;
-		font-size: 11px;
-		line-height: 1.6;
-	}
-
-	.apply-note .em {
-		color: var(--accent2);
-		font-weight: 800;
-	}
+		.success-body text,
+		.matched-body text {
+			font-size: 12px;
+			line-height: 1.65;
+			color: var(--muted);
+		}
 
 	.apply-input {
 		width: 100%;

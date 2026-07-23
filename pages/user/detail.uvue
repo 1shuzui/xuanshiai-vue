@@ -91,16 +91,19 @@
 				<text class="icon">❤️</text>
 				<text class="text">喜欢</text>
 			</button>
-				<button class="action-btn primary" @click="handleApply">
-					<text class="icon">💬</text>
-					<text class="text">申请认识</text>
-				</button>
+			<button class="action-btn primary" @click="openApply">
+				<text class="icon">💬</text>
+				<text class="text">申请认识</text>
+			</button>
 		</view>
+
+		<XsaApplySheet :visible="applyVisible" :user-id="userInfo.id" @close="applyVisible = false" />
 	</view>
 </template>
 
 	<script setup lang="uts">
-		import { getUserDetail, likeUser, applyToMeet } from '@/api'
+		import XsaApplySheet from '@/components/XsaApplySheet.uvue'
+	import { getUserDetail, likeUser } from '@/api'
 
 		let userInfo = ref({
 			id: 1,
@@ -179,6 +182,8 @@
 			})
 		}
 
+		const applyVisible = ref(false)
+
 		const handleLike = async () => {
 			try {
 				await likeUser(userInfo.value.id)
@@ -188,16 +193,9 @@
 			}
 		}
 
-		// 产品约束：先申请认识，双方同意后才能聊天
-		const handleApply = async () => {
-			try {
-				const res = await applyToMeet(userInfo.value.id, '你好，想认真认识一下。')
-				if (res.success) {
-					uni.showToast({ title: '申请已送达，等待对方回应', icon: 'none' })
-				}
-			} catch (e) {
-				uni.showToast({ title: '申请失败', icon: 'none' })
-			}
+		// 产品约束：先申请认识，双方同意后才能聊天；统一走 XsaApplySheet
+		const openApply = () => {
+			applyVisible.value = true
 		}
 	</script>
 
@@ -212,6 +210,7 @@
 	background: var(--surface);
 	padding: 24px;
 	display: flex;
+		flex-direction: row;
 	gap: 16px;
 }
 
@@ -228,6 +227,7 @@
 
 .name-row {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 8px;
 	margin-bottom: 8px;
@@ -251,6 +251,7 @@
 
 .tags {
 	display: flex;
+		flex-direction: row;
 	flex-wrap: wrap;
 	gap: 8px;
 	margin-bottom: 12px;
@@ -266,6 +267,7 @@
 
 .location {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 4px;
 }
@@ -280,6 +282,7 @@
 
 .certification-badges {
 	display: flex;
+		flex-direction: row;
 	gap: 12px;
 	padding: 16px 24px;
 	background: var(--surface);
@@ -288,6 +291,7 @@
 
 .badge {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 4px;
 	padding: 6px 12px;
@@ -360,6 +364,7 @@
 	left: 0;
 	right: 0;
 	display: flex;
+		flex-direction: row;
 	gap: 12px;
 	padding: 12px 24px;
 	background: var(--surface);
@@ -371,6 +376,7 @@
 	height: 48px;
 	border-radius: 999px;
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	gap: 6px;

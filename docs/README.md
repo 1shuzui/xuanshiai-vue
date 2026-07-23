@@ -8,7 +8,8 @@
 2. [`../PRODUCT.md`](../PRODUCT.md) — 产品定位、功能边界与核心流程。
 3. [`../DESIGN.md`](../DESIGN.md) — 设计 Token、组件与视觉规范。
 4. [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) — 当前实现状态、已知差异和待确认项。
-5. [`前端开发注意事项.md`](./前端开发注意事项.md) — 日常开发约定。
+5. [`DEV_PLAN_HBUILDERX.md`](./DEV_PLAN_HBUILDERX.md) — 下一阶段完整开发计划（HBuilderX / 小程序约束、分阶段与验收）。
+6. [`前端开发注意事项.md`](./前端开发注意事项.md) — 日常开发约定。
 
 ## 运行与排错
 
@@ -22,8 +23,9 @@
 
 | 文档 | 说明 |
 |---|---|
+| [`DEV_PLAN_HBUILDERX.md`](./DEV_PLAN_HBUILDERX.md) | 下一阶段完整开发文档：P0 壳层/首页 → 主路径 → 会员付费；立刻开工 8 项 |
 | [`小程序UI样式注意事项.md`](./小程序UI样式注意事项.md) | 小程序优先的标签、布局、样式与交互规则 |
-| [`MOCK_API_GUIDE.md`](./MOCK_API_GUIDE.md) | 当前 Mock/API 结构与真实接口切换前提 |
+| [`MOCK_API_GUIDE.md`](./MOCK_API_GUIDE.md) | 当前 Mock/API 结构与真实接口切换前提（含社区话题/活动/纸飞机/通知） |
 | [`Mock使用与退役约定.md`](./Mock使用与退役约定.md) | Mock 分模块退役规则 |
 | [`图片上传与包体注意事项.md`](./图片上传与包体注意事项.md) | 图片、上传、静态资源与包体规则 |
 | [`开发自检清单.md`](./开发自检清单.md) | 合并或提测前检查清单 |

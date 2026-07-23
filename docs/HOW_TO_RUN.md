@@ -1,6 +1,6 @@
 ﻿# 运行与构建
 
-> 请在 `xuanshiai-vue` 项目目录操作，不依赖某台电脑的绝对路径。更新日期：2026-07-22。
+> 请在 `xuanshiai-vue` 项目目录操作，不依赖某台电脑的绝对路径。更新日期：2026-07-23。
 
 ## 1. 环境准备
 
@@ -71,10 +71,25 @@ unpackage/dist/dev/mp-weixin
 在微信开发者工具中：
 
 1. 导入项目 → 目录选上面的 `mp-weixin`。
-2. AppID 可选测试号；开发期关闭域名校验（与当前 `urlCheck: false` 一致）。
-3. 编译并确认首页、五个 Tab 能切换。
+2. AppID 可选测试号 / 游客模式；开发期关闭域名校验（与当前 `urlCheck: false` 一致）。
+3. 编译并确认首页、五个 Tab 能切换；社区 Tab 应能加载 Mock 动态，而不是固定“网络异常”。
 
-仓库中可能已有历史 `unpackage/` 产物，只能用于临时打开验证，**不能替代本次 HBuilderX 重新编译**。改过页面后请重新运行生成新产物。
+仓库中可能已有历史 `unpackage/` 产物，只能用于临时打开验证，**不能替代本次 HBuilderX 重新编译**。改过页面或 `api/*.uts` 后请重新运行生成新产物。
+
+#### HBuilderX CLI 编译（可选，本机已验证路径）
+
+图形界面「运行到小程序模拟器 → 微信开发者工具」仍是主路径。本机也可在项目根用 CLI 触发编译（路径按本机安装位置调整）：
+
+```bash
+# 示例：HBuilderX 5.15 系列
+"<HBuilderX安装目录>/cli.exe" launch mp-weixin --project "<项目绝对路径>/xuanshiai-vue" --compile true
+```
+
+编译成功后，用微信开发者工具打开/刷新 `unpackage/dist/dev/mp-weixin`。CLI 失败时仍以 HBuilderX 菜单运行为准；不要改用 `npm run dev:mp-weixin` 顶替。
+
+#### H5 预览端口
+
+HBuilderX 跑到浏览器时，本机常见入口是 `http://localhost:8080`。`:5173` 不是本工程有效 UI 端口，不要拿该端口 404 当业务失败。
 
 #### 导入/打开自检（本机 2 分钟）
 
@@ -110,12 +125,13 @@ open editor with no exists file: D:/Users/ASUS/Desktop/前端/xuanshiai-vue/fron
 2. 底部 Tab：首页 / 社区 / 牵线 / 消息 / 我的 均可切换。
 3. 首页推荐区出现 Mock 用户故事，或显示“认真为你匹配中… / 暂无推荐”。
 4. 点“申请认识”能弹出说明与附言（Mock 成功提示即可）。
-5. 社区、牵线、消息列表至少有加载态或列表内容。
-6. 控制台无阻断级红错；`USE_MOCK = true` 时不应因未关联 uniCloud 而无法浏览。
+5. 社区列表能出 Mock 动态（关注/同城/发现可切换）；不应长期停在“网络异常”。
+6. 牵线、消息列表至少有加载态或列表内容。
+7. 控制台无阻断级红错；`USE_MOCK = true` 时不应因未关联 uniCloud 而无法浏览。
 
 不在本轮强求：真实登录、真实支付、真实云函数、正式 AppID 发布。
 
-本文没有声称当前会话已完成端侧业务验收；是否“顺畅”以你本机 HBuilderX 重新运行结果为准。
+2026-07-23 本会话已用 HBuilderX 重编 mp-weixin 并导入开发者工具；H5 社区列表在 `:8080` 冒烟可见动态。完整手测回归仍以你本机模拟器为准。
 
 ## 4. npm CLI 的当前限制
 

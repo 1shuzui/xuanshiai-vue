@@ -50,7 +50,14 @@ Mock 与真实接口至少对齐字段名、类型、分页、状态码、错误
 |---|---|
 | `user.uts` | 推荐、广场、详情、我的资料、喜欢、申请认识 |
 | `message.uts` | 消息列表、聊天记录、发送消息、认识申请 |
-| `community.uts` | 动态、话题、纸飞机、活动、Banner、发布、点赞 |
+| `community.uts` | 动态列表（tab/filter 分页 `list+hasMore`）、详情、话题加入、纸飞机收发、活动报名与我的活动、Banner、通知已读/未读数、配额、发布/评论、点赞/收藏/关注、举报/拉黑、同城城市 |
 | `matchmaker.uts` | 服务红娘、志愿红娘、AI 推荐、套餐、预约 |
+
+### 社区列表约定（Mock）
+
+- `getDynamicList({ tab, filter, page, pageSize })` → `{ list, page, pageSize, hasMore, total, tab, filter }`
+- 主 Tab：`follow | city | discover`；二级筛选：`all | media | topic | hot | latest`
+- 会话态：`mockBlockedUserIds`、`mockApplyStates`、`mockCurrentCity`
+- `applyToMeet` 与 `mockApplyStates` 幂等：`pending`/`accepted` 不重复扣免费次数
 
 实际能力以代码导出为准；文档不得先于实现宣称功能完成。

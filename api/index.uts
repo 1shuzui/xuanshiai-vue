@@ -26,12 +26,33 @@ export {
 // 社区相关
 export {
   getDynamicList,
+  getDynamicDetail,
   getTopics,
+  getTopicDetail,
+  joinTopic,
   getPaperPlanes,
+  sendPaperPlane,
+  replyPaperPlane,
   getActivities,
+  getActivityDetail,
+  signupActivity,
+  getMyActivities,
   getCommunityBanners,
+  getCommunityNotifications,
+  getUnreadNotificationCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getCommunityQuotas,
   publishDynamic,
-  likeDynamic
+  likeDynamic,
+  collectDynamic,
+  followUserFromCommunity,
+  commentDynamic,
+  reportContent,
+  blockUser,
+  getReportReasons,
+  getCurrentCity,
+  setCurrentCity
 } from './community.uts'
 
 // 牵线/红娘相关

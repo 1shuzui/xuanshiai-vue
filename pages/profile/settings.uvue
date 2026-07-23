@@ -250,6 +250,7 @@
 
 .item {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
 	height: 52px;
@@ -268,6 +269,7 @@
 
 .value-wrapper {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 8px;
 }

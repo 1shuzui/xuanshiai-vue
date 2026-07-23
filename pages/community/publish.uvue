@@ -79,12 +79,15 @@
 </template>
 
 <script setup lang="uts">
-	// 表单数据
-	let photos = ref<string[]>([])
-	let content = ref('')
-	let location = ref('')
-	let visibility = ref(0) // 0-所有人 1-仅好友 2-仅自己
-	let mentions = ref<number[]>([])
+import { publishDynamic } from '@/api'
+		import { guardRealName } from '@/utils/realNameGate.uts'
+		// 表单数据
+		let photos = ref<string[]>([])
+		let content = ref('')
+		let location = ref('')
+		let visibility = ref(0) // 0-所有人 1-仅好友 2-仅自己
+		let mentions = ref<number[]>([])
+		let publishing = ref(false)
 
 	// 可见范围文本
 	const visibilityText = computed(() => {
@@ -165,33 +168,47 @@
 		}
 	}
 
-	// 发布
-	const handlePublish = () => {
-		if (!canPublish.value) {
-			uni.showToast({
-				title: '请添加内容或图片',
-				icon: 'none'
-			})
-			return
+// 发布
+		const handlePublish = async () => {
+			if (publishing.value) return
+			const ok = await guardRealName('publish')
+			if (!ok) return
+			if (!canPublish.value) {
+				uni.showToast({
+					title: '请添加内容或图片',
+					icon: 'none'
+				})
+				return
+			}
+
+			publishing.value = true
+			uni.showLoading({ title: '发布中...' })
+			try {
+				const res = await publishDynamic({
+					content: content.value.trim(),
+					media: photos.value,
+					location: location.value,
+					visibility: visibility.value
+				})
+				const data = res != null ? res.data : null
+				const bizOk = res != null && res.success && (data == null || data.success != false)
+				uni.hideLoading()
+				if (bizOk) {
+					uni.showToast({ title: '发布成功', icon: 'success' })
+					setTimeout(() => {
+						uni.navigateBack()
+					}, 800)
+				} else {
+					const msg = data != null && data.message != null ? data.message : '发布失败，请重试'
+					uni.showToast({ title: msg, icon: 'none' })
+				}
+			} catch (e) {
+				uni.hideLoading()
+				uni.showToast({ title: '网络异常，请重试', icon: 'none' })
+			} finally {
+				publishing.value = false
+			}
 		}
-
-		uni.showLoading({
-			title: '发布中...'
-		})
-
-		// TODO: 调用发布接口
-		setTimeout(() => {
-			uni.hideLoading()
-			uni.showToast({
-				title: '发布成功',
-				icon: 'success'
-			})
-
-			setTimeout(() => {
-				uni.navigateBack()
-			}, 1500)
-		}, 2000)
-	}
 </script>
 
 <style scoped>
@@ -239,6 +256,7 @@
 	background: rgba(0, 0, 0, 0.6);
 	border-radius: 50%;
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 }
@@ -297,6 +315,7 @@
 
 .option-item {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
 	height: 52px;
@@ -308,6 +327,7 @@
 
 .option-left {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 12px;
 }
@@ -323,6 +343,7 @@
 
 .option-right {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 8px;
 }
@@ -338,6 +359,7 @@
 
 .footer {
 	display: flex;
+		flex-direction: row;
 	gap: 12px;
 	padding: 12px 16px;
 	background: var(--surface);
