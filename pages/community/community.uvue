@@ -1,22 +1,63 @@
 <template>
 	<view class="community-page">
-		<!-- 高保真子 Tab：喜欢 / 同城 / 发现 -->
+		<!-- 主 Tab：关注 / 同城 / 发现（喜欢为私有轻意向，不作为主 Tab） -->
 		<view class="subtabs">
-			<view class="subtab" :class="{ active: currentTab === 1 }" @click="switchTab(1)">
-				<text>喜欢</text>
+			<view class="subtab" :class="{ active: currentTab === 'follow' }" @click="switchTab('follow')">
+				<text>关注</text>
 			</view>
-			<view class="subtab" :class="{ active: currentTab === 2 }" @click="switchTab(2)">
+			<view class="subtab" :class="{ active: currentTab === 'city' }" @click="switchTab('city')">
 				<text>同城</text>
 			</view>
-			<view class="subtab" :class="{ active: currentTab === 0 }" @click="switchTab(0)">
+			<view class="subtab" :class="{ active: currentTab === 'discover' }" @click="switchTab('discover')">
 				<text>发现</text>
+			</view>
+			<view class="notify-chip" @click="openNotifications">
+				<text class="notify-text">通知</text>
+				<view class="badge" v-if="unreadCount > 0">
+					<text class="badge-text">{{ unreadCount > 99 ? '99+' : unreadCount }}</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 二级筛选 -->
+		<view class="filter-row">
+			<view
+				class="filter-chip"
+				:class="{ active: currentFilter === f.key }"
+				v-for="f in filterOptions"
+				:key="f.key"
+				@click="switchFilter(f.key)"
+			>
+				<text>{{ f.label }}</text>
 			</view>
 		</view>
 
 		<scroll-view class="dynamic-list" scroll-y @scrolltolower="handleLoadMore">
-			<!-- 发现：活动 Banner + 话题 -->
-			<view v-if="currentTab === 0" class="discover-head">
-				<view class="feature" v-if="activity != null" @click="openActivity">
+			<!-- 发现：功能入口 + 话题 -->
+			<view v-if="currentTab === 'discover'" class="discover-head">
+				<swiper
+					v-if="banners.length > 0"
+					class="banner-swiper"
+					circular
+					autoplay
+					:interval="4200"
+					indicator-dots
+					indicator-color="rgba(231,236,236,0.35)"
+					indicator-active-color="var(--soft)"
+				>
+					<swiper-item v-for="b in banners" :key="b.id">
+						<view class="feature" :class="'type-' + b.type" @click="openBanner(b)">
+							<text class="feature-kicker">{{ b.kicker != null ? b.kicker : bannerKicker(b.type) }}</text>
+							<text class="feature-title">{{ b.title }}</text>
+							<text class="feature-desc">{{ b.description }}</text>
+							<view class="feature-btn">
+								<text>{{ bannerCta(b.type) }}</text>
+							</view>
+						</view>
+					</swiper-item>
+				</swiper>
+
+				<view class="feature" v-else-if="activity != null" @click="openActivity">
 					<text class="feature-kicker">{{ activity.kicker != null ? activity.kicker : 'OFFLINE' }}</text>
 					<text class="feature-title">{{ activity.title }}</text>
 					<text class="feature-desc">{{ activity.description }}</text>
@@ -39,18 +80,27 @@
 			</view>
 
 			<!-- 同城提示 -->
-			<view v-if="currentTab === 2" class="city-bar">
-				<text class="city-name">南京</text>
-				<text class="city-switch text-accent">切换城市</text>
+			<view v-if="currentTab === 'city'" class="city-bar">
+				<text class="city-name">{{ cityName }}</text>
+				<text class="city-switch text-accent" @click="switchCity">切换城市</text>
+			</view>
+
+			<view v-if="loading && dynamicList.length === 0" class="state-box">
+				<text class="text-muted">加载中…</text>
+			</view>
+
+			<view v-else-if="loadError && dynamicList.length === 0" class="state-box">
+				<text class="text-muted">{{ loadError }}</text>
+				<text class="retry text-accent" @click="reload">点击重试</text>
 			</view>
 
 			<XsaEmpty
-				v-if="dynamicList.length === 0 && !loading"
-				text="暂无动态"
-				description="快来发布第一条动态吧"
+				v-else-if="dynamicList.length === 0 && !loading"
+				:text="emptyTitle"
+				:description="emptyDesc"
 				:show-action="true"
-				action-text="发布动态"
-				@action="handlePublish"
+				:action-text="emptyAction"
+				@action="handleEmptyAction"
 			/>
 
 			<view v-else class="feed">
@@ -61,8 +111,12 @@
 					@user-click="handleUserClick"
 					@like="handleLike"
 					@comment="handleComment"
-					@share="handleShare"
+					@collect="handleCollect"
+					@follow="handleFollow"
+					@apply="handleApply"
 					@more="handleMore"
+					@topic="handleTopic"
+					@open="handleOpen"
 				/>
 			</view>
 
@@ -75,31 +129,93 @@
 		<view class="publish-fab" @click="handlePublish">
 			<text class="fab-icon">+</text>
 		</view>
+
+		<XsaApplySheet :visible="applyVisible" :user-id="applyUserId" @close="applyVisible = false" @success="onApplyOk" />
+		<XsaReportSheet
+			:visible="reportVisible"
+			target-type="post"
+			:target-id="reportTargetId"
+			:user-id="reportUserId"
+			@close="reportVisible = false"
+			@blocked="onBlocked"
+		/>
 	</view>
 </template>
 
 <script setup lang="uts">
 	import XsaDynamicCard from '@/components/XsaDynamicCard.uvue'
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
+	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
 	import {
 		getDynamicList,
 		getTopics,
 		getActivities,
-		likeDynamic
+		getCommunityBanners,
+		getUnreadNotificationCount,
+		getCurrentCity,
+		setCurrentCity,
+		likeDynamic,
+		collectDynamic,
+		followUserFromCommunity
 	} from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
 
-	// 0 发现 / 1 喜欢 / 2 同城
-	const currentTab = ref(0)
+	// 主 Tab：follow | city | discover
+	const currentTab = ref('discover')
+	const currentFilter = ref('all')
+	const filterOptions = [
+		{ key: 'all', label: '全部' },
+		{ key: 'media', label: '有图' },
+		{ key: 'topic', label: '话题' },
+		{ key: 'hot', label: '热门' },
+		{ key: 'latest', label: '最新' }
+	]
 	const loading = ref(false)
+	const loadError = ref('')
 	const hasMore = ref(true)
+	const page = ref(1)
+	const pageSize = 10
 	const dynamicList = ref([])
 	const topics = ref([])
 	const activity = ref(null)
+	const banners = ref([])
+	const cityName = ref('南京')
+	const unreadCount = ref(0)
+	const applyVisible = ref(false)
+	const applyUserId = ref(0)
+	const reportVisible = ref(false)
+	const reportTargetId = ref(0)
+	const reportUserId = ref(0)
 
 	onMounted(() => {
-		loadDynamics()
+		loadCity()
+		loadDynamics(true)
 		loadTopics()
 		loadActivity()
+		loadBanners()
+		loadUnread()
+	})
+
+	onShow(() => {
+		loadUnread()
+	})
+
+	const emptyTitle = computed(() => {
+		if (currentTab.value === 'follow') return '还没有关注动态'
+		if (currentTab.value === 'city') return '同城暂无动态'
+		return '暂无动态'
+	})
+
+	const emptyDesc = computed(() => {
+		if (currentTab.value === 'follow') return '关注认真嘉宾后，他们的动态会出现在这里'
+		if (currentTab.value === 'city') return '切换城市或发布一条同城动态'
+		return '快来发布第一条动态吧'
+	})
+
+	const emptyAction = computed(() => {
+		if (currentTab.value === 'follow') return '去发现'
+		return '发布动态'
 	})
 
 	const formatTime = (t: any) => {
@@ -113,139 +229,339 @@
 	}
 
 	const normalizeDynamic = (item: any) => {
+		const photos = item.photos != null ? item.photos : item.media
 		return {
 			id: item.id,
 			user: item.user,
 			content: item.content,
-			photos: item.photos,
+			photos,
 			location: item.location,
-			time: item.timeText != null ? item.timeText : formatTime(item.time),
+			time: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
+			timeText: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
 			likeCount: item.likeCount,
 			commentCount: item.commentCount,
-			liked: item.liked
+			collectCount: item.collectCount,
+			liked: item.liked,
+			collected: item.collected,
+			followed: item.followed,
+			applyStatus: item.applyStatus,
+			topicId: item.topicId,
+			tags: item.tags,
+			declaration: item.declaration
 		}
 	}
 
-	const loadDynamics = async () => {
+	const extractListPayload = (data: any) => {
+		// 新结构 { list, hasMore, total }；兼容旧数组
+		if (data == null) {
+			return { list: [] as any[], hasMore: false, total: 0 }
+		}
+		if (Array.isArray(data)) {
+			return {
+				list: data as any[],
+				hasMore: (data as any[]).length >= pageSize,
+				total: (data as any[]).length
+			}
+		}
+		const list = data.list != null ? (data.list as any[]) : []
+		const more = data.hasMore != null ? data.hasMore == true : list.length >= pageSize
+		const total = data.total != null ? (data.total as number) : list.length
+		return { list, hasMore: more, total }
+	}
+
+	const loadDynamics = async (reset: boolean = false) => {
+		if (loading.value) return
+		if (reset) {
+			page.value = 1
+			hasMore.value = true
+			loadError.value = ''
+		}
+		if (!hasMore.value && !reset) return
+		loading.value = true
 		try {
-			loading.value = true
-			const res = await getDynamicList(currentTab.value, 1)
+			const res = await getDynamicList({
+				tab: currentTab.value,
+				filter: currentFilter.value,
+				page: page.value,
+				pageSize,
+				city: cityName.value
+			})
 			if (res.success) {
-				dynamicList.value = res.data
-				hasMore.value = true
+				const payload = extractListPayload(res.data)
+				if (reset) {
+					dynamicList.value = payload.list
+				} else {
+					dynamicList.value = (dynamicList.value as any[]).concat(payload.list)
+				}
+				hasMore.value = payload.hasMore
+				if (payload.list.length > 0) {
+					page.value = page.value + 1
+				}
+			} else {
+				loadError.value = '加载失败，请稍后重试'
+				if (reset) {
+					uni.showToast({ title: loadError.value, icon: 'none' })
+				}
 			}
 		} catch (e) {
-			console.error(e)
+			loadError.value = '网络异常，请检查后重试'
+			if (reset || dynamicList.value.length == 0) {
+				uni.showToast({ title: loadError.value, icon: 'none' })
+			}
 		} finally {
 			loading.value = false
 		}
 	}
 
+	const reload = () => {
+		dynamicList.value = []
+		loadDynamics(true)
+	}
+
 	const loadTopics = async () => {
 		try {
-			const res = await getTopics()
+			const res = await getTopics('hot')
 			if (res.success) {
-				topics.value = (res.data as any[]).slice(0, 2)
+				topics.value = (res.data as any[]).slice(0, 4)
 			}
 		} catch (e) {
-			console.error(e)
+			// 次要模块，不打断主列表
 		}
 	}
 
 	const loadActivity = async () => {
 		try {
-			const res = await getActivities()
+			const res = await getActivities('all')
 			if (res.success && (res.data as any[]).length > 0) {
 				activity.value = (res.data as any[])[0]
 			}
-		} catch (e) {
-			console.error(e)
+		} catch (e) {}
+	}
+
+	const loadBanners = async () => {
+		try {
+			const res = await getCommunityBanners()
+			if (res.success && res.data != null) {
+				banners.value = res.data as any[]
+			}
+		} catch (e) {}
+	}
+
+	const loadUnread = async () => {
+		try {
+			const res = await getUnreadNotificationCount()
+			if (res.success && res.data != null && res.data.count != null) {
+				unreadCount.value = res.data.count as number
+			}
+		} catch (e) {}
+	}
+
+	const loadCity = async () => {
+		try {
+			const res = await getCurrentCity()
+			if (res.success && res.data != null && res.data.name != null) {
+				cityName.value = res.data.name as string
+			}
+		} catch (e) {}
+	}
+
+	const switchTab = (tab: string) => {
+		if (currentTab.value === tab) return
+		currentTab.value = tab
+		dynamicList.value = []
+		loadDynamics(true)
+	}
+
+	const switchFilter = (key: string) => {
+		if (currentFilter.value === key) return
+		currentFilter.value = key
+		dynamicList.value = []
+		loadDynamics(true)
+	}
+
+	const bannerKicker = (type: string) => {
+		if (type === 'topic') return 'TOPIC'
+		if (type === 'plane') return 'PAPER PLANE'
+		return 'OFFLINE'
+	}
+
+	const bannerCta = (type: string) => {
+		if (type === 'topic') return '进入话题'
+		if (type === 'plane') return '去漂流'
+		return '查看活动'
+	}
+
+	const openBanner = (b: any) => {
+		if (b == null) return
+		if (b.type === 'topic') {
+			uni.navigateTo({ url: '/pages/community/topic-list' })
+			return
+		}
+		if (b.type === 'plane') {
+			uni.navigateTo({ url: '/pages/community/paper-plane' })
+			return
+		}
+		if (b.type === 'activity') {
+			const id = b.targetId != null ? b.targetId : (activity.value != null ? activity.value.id : 0)
+			uni.navigateTo({ url: '/pages/community/activity-detail?id=' + id })
+			return
 		}
 	}
 
-	const switchTab = async (index: number) => {
-		currentTab.value = index
-		await loadDynamics()
-	}
-
 	const handleUserClick = (userId: number) => {
-		uni.navigateTo({ url: `/pages/user/detail?userId=${userId}` })
+		uni.navigateTo({ url: '/pages/user/detail?userId=' + userId })
 	}
 
 	const handleLike = async (dynamicId: number) => {
+		const ok = await guardRealName('like')
+		if (!ok) return
 		try {
 			const res = await likeDynamic(dynamicId)
-			if (res.success) {
-				const dynamic = dynamicList.value.find((d: any) => d.id == dynamicId)
-				if (dynamic != null) {
-					dynamic.liked = !dynamic.liked
-					dynamic.likeCount += dynamic.liked ? 1 : -1
+			if (res.success && res.data != null) {
+				const list = dynamicList.value as any[]
+				const idx = list.findIndex((d: any) => d.id == dynamicId)
+				if (idx >= 0) {
+					list[idx].liked = res.data.liked
+					list[idx].likeCount = res.data.likeCount
 				}
 			}
 		} catch (e) {
-			uni.showToast({ title: '操作失败', icon: 'none' })
+			uni.showToast({ title: '点赞失败，请重试', icon: 'none' })
 		}
 	}
 
 	const handleComment = (dynamicId: number) => {
-		uni.showToast({ title: '评论 · 原型演示', icon: 'none' })
+		uni.navigateTo({ url: '/pages/community/post-detail?id=' + dynamicId })
 	}
 
-	const handleShare = (dynamicId: number) => {
-		uni.showToast({ title: '分享 · 原型演示', icon: 'none' })
+	const handleCollect = async (dynamicId: number) => {
+		const ok = await guardRealName('collect')
+		if (!ok) return
+		try {
+			const res = await collectDynamic(dynamicId)
+			if (res.success && res.data != null) {
+				const list = dynamicList.value as any[]
+				const idx = list.findIndex((d: any) => d.id == dynamicId)
+				if (idx >= 0) {
+					list[idx].collected = res.data.collected
+					list[idx].collectCount = res.data.collectCount
+				}
+			}
+		} catch (e) {
+			uni.showToast({ title: '收藏失败，请重试', icon: 'none' })
+		}
 	}
 
-	const handleMore = (dynamicId: number) => {
-		uni.showActionSheet({
-			itemList: ['举报', '不感兴趣'],
-			success: () => {
-				uni.showToast({ title: '已记录', icon: 'none' })
+	const handleFollow = async (userId: number) => {
+		const ok = await guardRealName('follow')
+		if (!ok) return
+		try {
+			const res = await followUserFromCommunity(userId)
+			if (res.success) {
+				const list = dynamicList.value as any[]
+				list.forEach((d: any) => {
+					if (d.user != null && d.user.id == userId) d.followed = true
+				})
+				uni.showToast({ title: '已关注', icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '关注失败，请重试', icon: 'none' })
+		}
+	}
+
+	const handleApply = (userId: number) => {
+		applyUserId.value = userId
+		applyVisible.value = true
+	}
+
+	const onApplyOk = (payload: any) => {
+		const status =
+			payload != null && payload.applyStatus != null ? (payload.applyStatus as string) : 'pending'
+		const list = dynamicList.value as any[]
+		list.forEach((d: any) => {
+			if (d.user != null && d.user.id == applyUserId.value) {
+				d.applyStatus = status
 			}
 		})
 	}
 
-	const handlePublish = () => {
+	const handleMore = (dynamicId: number, userId: number) => {
+		reportTargetId.value = dynamicId
+		reportUserId.value = userId
+		reportVisible.value = true
+	}
+
+	const onBlocked = () => {
+		const list = dynamicList.value as any[]
+		dynamicList.value = list.filter((d: any) => d.user == null || d.user.id != reportUserId.value)
+	}
+
+	const handleTopic = (topicId: number) => {
+		uni.navigateTo({ url: '/pages/community/topic-detail?id=' + topicId })
+	}
+
+	const handleOpen = (dynamicId: number) => {
+		uni.navigateTo({ url: '/pages/community/post-detail?id=' + dynamicId })
+	}
+
+	const handlePublish = async () => {
+		const ok = await guardRealName('publish')
+		if (!ok) return
 		uni.navigateTo({ url: '/pages/community/publish' })
+	}
+
+	const handleEmptyAction = () => {
+		if (currentTab.value === 'follow') {
+			switchTab('discover')
+			return
+		}
+		handlePublish()
 	}
 
 	const openActivity = () => {
 		if (activity.value == null) return
-		uni.showModal({
-			title: activity.value.title,
-			content: activity.value.description + '\n费用 ' + activity.value.price + ' 元 · 完成实名后可报名',
-			confirmText: '我要报名',
-			success: (res) => {
-				if (res.confirm) {
-					uni.showToast({ title: '报名信息已提交', icon: 'success' })
+		uni.navigateTo({ url: '/pages/community/activity-detail?id=' + activity.value.id })
+	}
+
+	const openTopics = () => {
+		uni.navigateTo({ url: '/pages/community/topic-list' })
+	}
+
+	const openTopic = (t: any) => {
+		uni.navigateTo({ url: '/pages/community/topic-detail?id=' + t.id })
+	}
+
+	const openNotifications = () => {
+		uni.navigateTo({ url: '/pages/community/notifications' })
+	}
+
+	const switchCity = () => {
+		const cities = ['南京', '杭州', '上海', '苏州', '宁波']
+		uni.showActionSheet({
+			itemList: cities,
+			success: async (res) => {
+				const name = cities[res.tapIndex]
+				if (name == null || name == cityName.value) return
+				try {
+					const r = await setCurrentCity(name)
+					if (r.success) {
+						cityName.value = name
+						if (currentTab.value === 'city') {
+							dynamicList.value = []
+							loadDynamics(true)
+						}
+						uni.showToast({ title: '已切换到' + name, icon: 'none' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '切换失败', icon: 'none' })
 				}
 			}
 		})
 	}
 
-	const openTopics = () => {
-		uni.showToast({ title: '全部话题 · 原型入口', icon: 'none' })
-	}
-
-	const openTopic = (t: any) => {
-		uni.showToast({ title: t.title, icon: 'none' })
-	}
-
-	const handleLoadMore = async () => {
+	const handleLoadMore = () => {
 		if (loading.value || !hasMore.value) return
-		loading.value = true
-		try {
-			const page = Math.floor(dynamicList.value.length / 10) + 1
-			const res = await getDynamicList(currentTab.value, page)
-			if (res.success && (res.data as any[]).length > 0) {
-				dynamicList.value = dynamicList.value.concat(res.data)
-			} else {
-				hasMore.value = false
-			}
-		} catch (e) {
-			console.error(e)
-		} finally {
-			loading.value = false
-		}
+		loadDynamics(false)
 	}
 </script>
 
@@ -260,9 +576,10 @@
 	.subtabs {
 		height: 48px;
 		display: flex;
+		flex-direction: row;
 		align-items: flex-end;
-		gap: 22px;
-		padding: 0 18px;
+		gap: 18px;
+		padding: 0 14px;
 		background: rgba(250, 252, 252, 0.96);
 		border-bottom: 1px solid var(--line);
 	}
@@ -270,6 +587,7 @@
 	.subtab {
 		height: 48px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		color: var(--muted);
 		font-size: 13px;
@@ -292,6 +610,82 @@
 		border-radius: 3px 3px 0 0;
 	}
 
+	.notify-chip {
+		margin-left: auto;
+		height: 28px;
+		padding: 0 10px;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 4px;
+		margin-bottom: 10px;
+		position: relative;
+	}
+
+	.notify-text {
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--ink2);
+	}
+
+	.badge {
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: var(--accent);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.badge-text {
+		font-size: 10px;
+		color: var(--paper);
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	.filter-row {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding: 10px 14px 6px;
+		background: var(--canvas);
+	}
+
+	.filter-chip {
+		height: 28px;
+		padding: 0 12px;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.filter-chip text {
+		font-size: 12px;
+		color: var(--muted);
+		font-weight: 600;
+	}
+
+	.filter-chip.active {
+		border-color: var(--accent);
+		background: var(--soft);
+	}
+
+	.filter-chip.active text {
+		color: var(--accent2);
+		font-weight: 700;
+	}
+
 	.dynamic-list {
 		flex: 1;
 		height: 0;
@@ -304,14 +698,32 @@
 		gap: 12px;
 	}
 
+	.banner-swiper {
+		height: 168px;
+	}
+
 	.feature {
 		min-height: 148px;
+		height: 100%;
 		background: var(--navy);
 		border-radius: 12px 28px 12px 12px;
 		padding: 18px;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+		box-sizing: border-box;
+	}
+
+	.feature.type-topic {
+		background: linear-gradient(135deg, #18415d 0%, #2a5f7a 100%);
+	}
+
+	.feature.type-plane {
+		background: linear-gradient(135deg, #3d5a45 0%, #5a7d64 100%);
+	}
+
+	.feature.type-activity {
+		background: var(--navy);
 	}
 
 	.feature-kicker {
@@ -343,6 +755,7 @@
 		background: var(--soft);
 		border-radius: 7px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 	}
 
@@ -354,6 +767,7 @@
 
 	.section-head {
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
 		margin-top: 4px;
@@ -413,6 +827,7 @@
 		border-radius: 10px;
 		padding: 0 12px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
 	}
@@ -427,8 +842,21 @@
 		font-weight: 700;
 	}
 
+	.state-box {
+		padding: 48px 16px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.retry {
+		font-size: 13px;
+		font-weight: 700;
+	}
+
 	.feed {
-		padding-bottom: 24px;
+		padding-bottom: calc(50px + 72px + env(safe-area-inset-bottom));
 	}
 
 	.load-more {
@@ -443,15 +871,17 @@
 	.publish-fab {
 		position: fixed;
 		right: 16px;
-		bottom: 84px;
+		bottom: calc(50px + 24px + env(safe-area-inset-bottom));
 		width: 48px;
 		height: 48px;
 		background: var(--sage);
 		border-radius: 50%;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		box-shadow: 0 8px 20px rgba(17, 23, 24, 0.16);
+		z-index: 20;
 	}
 
 	.fab-icon {

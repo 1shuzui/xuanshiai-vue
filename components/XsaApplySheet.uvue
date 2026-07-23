@@ -1,0 +1,228 @@
+<template>
+	<XsaSheet :visible="visible" title="申请认识" :tall="false" @close="handleClose">
+		<view class="apply-sheet">
+			<text class="lead">对方同意后才能开始聊天。请用具体、尊重的话说明你为什么想认识 TA。</text>
+			<view class="meta-row">
+				<text class="meta-label">今日剩余免费次数</text>
+				<text class="meta-value">{{ remainText }}</text>
+			</view>
+			<textarea
+				class="message-input"
+				:value="message"
+				@input="onInput"
+				placeholder="例如：看到你也喜欢看展，想认真了解一下…"
+				maxlength="120"
+			></textarea>
+			<text class="count">{{ message.length }}/120</text>
+			<view class="tips">
+				<text class="tip">· 仅需实名认证；学历不作为拦截条件</text>
+				<text class="tip">· 未双方同意前不可交换联系方式</text>
+				<text class="tip">· 次数用尽可用积分加次，会员权益仅作说明</text>
+			</view>
+			<view class="actions">
+				<button class="btn secondary" @click="handleClose">取消</button>
+				<button class="btn primary" :disabled="submitting || message.trim().length == 0" @click="handleSubmit">
+					{{ submitting ? '提交中…' : '发送申请' }}
+				</button>
+			</view>
+		</view>
+	</XsaSheet>
+</template>
+
+<script setup lang="uts">
+	import XsaSheet from '@/components/XsaSheet.uvue'
+	import { applyToMeet, getCommunityQuotas } from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	interface Props {
+		visible: boolean
+		userId: number
+	}
+
+	const props = withDefaults(defineProps<Props>(), {
+		visible: false,
+		userId: 0
+	})
+
+	const emit = defineEmits<{
+		close: []
+		success: [payload: any]
+	}>()
+
+	const message = ref('')
+	const submitting = ref(false)
+	const remain = ref(2)
+
+	watch(
+		() => props.visible,
+		async (v: boolean) => {
+			if (v) {
+				message.value = ''
+				try {
+					const res = await getCommunityQuotas()
+					if (res.success && res.data != null && res.data.applyDaily != null) {
+						remain.value = res.data.applyDaily.remain
+					}
+				} catch (e) {
+					console.error(e)
+				}
+			}
+		}
+	)
+
+	const remainText = computed(() => {
+		return remain.value + ' 次'
+	})
+
+	const onInput = (e: any) => {
+		message.value = e.detail.value
+	}
+
+	const handleClose = () => {
+		emit('close')
+	}
+
+	const handleSubmit = async () => {
+		if (submitting.value) return
+		const text = message.value.trim()
+		if (text.length == 0) {
+			uni.showToast({ title: '请填写申请附言', icon: 'none' })
+			return
+		}
+const ok = await guardRealName('apply')
+			if (!ok) return
+			if (remain.value <= 0) {
+				uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+				return
+			}
+			submitting.value = true
+			try {
+				const res = await applyToMeet(props.userId, text)
+				// request 外层 success 恒 true；业务成败看 data.success
+				const data = res != null ? res.data : null
+				const bizOk = res != null && res.success && (data == null || data.success != false)
+				if (bizOk) {
+					if (data != null && data.remain != null) {
+						remain.value = data.remain
+					} else {
+						remain.value = Math.max(0, remain.value - 1)
+					}
+					uni.showToast({ title: '申请已发送', icon: 'success' })
+					emit('success', data)
+					emit('close')
+				} else {
+					const msg =
+						data != null && data.message != null ? data.message : '发送失败，请重试'
+					uni.showToast({ title: msg, icon: 'none' })
+					if (data != null && data.remain != null) {
+						remain.value = data.remain
+					}
+				}
+			} catch (e) {
+				uni.showToast({ title: '网络异常，请重试', icon: 'none' })
+			} finally {
+				submitting.value = false
+			}
+		}
+</script>
+
+<style scoped>
+	.apply-sheet {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.lead {
+		font-size: 13px;
+		line-height: 1.6;
+		color: var(--muted);
+	}
+
+	.meta-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		padding: 10px 12px;
+		background: var(--soft);
+		border-radius: 10px;
+	}
+
+	.meta-label {
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.meta-value {
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--accent);
+	}
+
+	.message-input {
+		width: 100%;
+		min-height: 96px;
+		padding: 12px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		font-size: 14px;
+		color: var(--ink);
+		line-height: 1.55;
+	}
+
+	.count {
+		align-self: flex-end;
+		font-size: 11px;
+		color: var(--muted);
+	}
+
+	.tips {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.tip {
+		font-size: 11px;
+		color: var(--muted);
+		line-height: 1.5;
+	}
+
+.actions {
+			display: flex;
+		flex-direction: row;
+			gap: 10px;
+			margin-top: 6px;
+			padding-bottom: 8px;
+		}
+
+	.btn {
+		flex: 1;
+		height: 44px;
+		border-radius: 999px;
+		font-size: 14px;
+		font-weight: 600;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		border: none;
+	}
+
+	.btn.secondary {
+		background: var(--paper);
+		color: var(--ink);
+		border: 1px solid var(--line);
+	}
+
+	.btn.primary {
+		background: var(--accent);
+		color: var(--text-invert);
+	}
+
+	.btn[disabled] {
+		opacity: 0.5;
+	}
+</style>

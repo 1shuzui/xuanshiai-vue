@@ -1,6 +1,7 @@
 /**
  * 社区相关 Mock 数据
- * 对齐 design-demos/final 社区：喜欢 / 同城 / 发现
+ * 主 Tab：关注 / 同城 / 发现；喜欢为私有轻意向，不作为主 Tab
+ * 互动门槛：仅实名；学历仅展示，不拦截
  */
 
 const PORTRAIT = {
@@ -11,7 +12,15 @@ const PORTRAIT = {
   sea: '/static/portraits/profile-man-sea.jpg'
 }
 
-/** 动态流 */
+/** 会话内拉黑列表（全局过滤动态 / 纸飞机作者） */
+export const mockBlockedUserIds: number[] = []
+
+/** 申请认识状态：userId -> none | pending | accepted | rejected */
+export const mockApplyStates: Record<string, string> = {
+  '2': 'pending'
+}
+
+/** 动态流（含评论骨架，详情页复用） */
 export const mockDynamicList = [
   {
     id: 1,
@@ -21,17 +30,56 @@ export const mockDynamicList = [
       name: '林雨桐',
       age: 28,
       city: '南京',
-      verified: true
+      height: '168cm',
+      job: '产品设计师',
+      education: '硕士',
+      verified: true,
+      realNameStatus: 'passed',
+      educationStatus: 'passed'
     },
     content: '下班后绕路去看了晚霞。认真生活，大概就是不因为忙碌而错过这些小事。',
     photos: [PORTRAIT.community],
-    location: '南京',
+    media: [PORTRAIT.community],
+    location: '南京 · 玄武区',
+    cityTag: true,
+    city: '南京',
+    topicId: 1,
+    tags: ['认真关系', '晚霞'],
+    declaration: '',
     time: Date.now() - 10 * 60 * 1000,
     timeText: '刚刚',
     likeCount: 36,
-    commentCount: 5,
+    commentCount: 2,
+    collectCount: 4,
     liked: false,
-    tab: 'discover'
+    collected: false,
+    followed: false,
+    applyStatus: 'pending',
+    tabs: ['discover', 'city'],
+    tab: 'discover',
+    visibility: 0,
+    comments: [
+      {
+        id: 101,
+        user: { id: 7, name: '顾言澄', avatar: PORTRAIT.man, realNameStatus: 'passed' },
+        content: '晚霞那条路我也常走，下次可以一起绕一圈。',
+        timeText: '8 分钟前',
+        likeCount: 3,
+        liked: false,
+        replyTo: null,
+        replyToCommentId: null
+      },
+      {
+        id: 102,
+        user: { id: 1, name: '苏晚晴', avatar: PORTRAIT.main, realNameStatus: 'passed' },
+        content: '认真生活这句说得好。',
+        timeText: '5 分钟前',
+        likeCount: 1,
+        liked: false,
+        replyTo: null,
+        replyToCommentId: null
+      }
+    ]
   },
   {
     id: 2,
@@ -41,17 +89,46 @@ export const mockDynamicList = [
       name: '苏晚晴',
       age: 26,
       city: '杭州',
-      verified: true
+      height: '165cm',
+      job: '插画师',
+      education: '本科',
+      verified: true,
+      realNameStatus: 'passed',
+      educationStatus: 'passed'
     },
     content: '最近的一张速写。比起画得像不像，我更喜欢保留当时的风和声音。',
     photos: [PORTRAIT.main],
-    location: '杭州',
+    media: [PORTRAIT.main],
+    location: '杭州 · 西湖',
+    cityTag: false,
+    city: '杭州',
+    topicId: 2,
+    tags: ['城市周末', '速写'],
+    declaration: '',
     time: Date.now() - 30 * 60 * 1000,
     timeText: '30 分钟前',
     likeCount: 58,
-    commentCount: 12,
+    commentCount: 1,
+    collectCount: 11,
     liked: true,
-    tab: 'liked'
+    collected: true,
+    followed: true,
+    applyStatus: 'none',
+    tabs: ['discover', 'follow'],
+    tab: 'discover',
+    visibility: 0,
+    comments: [
+      {
+        id: 201,
+        user: { id: 2, name: '林雨桐', avatar: PORTRAIT.alt, realNameStatus: 'passed' },
+        content: '线条很温柔，像在西湖边写生。',
+        timeText: '20 分钟前',
+        likeCount: 2,
+        liked: false,
+        replyTo: null,
+        replyToCommentId: null
+      }
+    ]
   },
   {
     id: 3,
@@ -61,17 +138,46 @@ export const mockDynamicList = [
       name: '顾言澄',
       age: 29,
       city: '南京',
-      verified: true
+      height: '178cm',
+      job: '产品经理',
+      education: '本科',
+      verified: true,
+      realNameStatus: 'passed',
+      educationStatus: 'missing'
     },
     content: '周日准备去玄武湖跑步，有同样喜欢慢跑的人吗？',
     photos: [PORTRAIT.sea],
-    location: '南京',
+    media: [PORTRAIT.sea],
+    location: '南京 · 玄武湖',
+    cityTag: true,
+    city: '南京',
+    topicId: 2,
+    tags: ['同城', '跑步'],
+    declaration: '',
     time: Date.now() - 12 * 60 * 1000,
     timeText: '12 分钟前',
     likeCount: 21,
-    commentCount: 4,
+    commentCount: 1,
+    collectCount: 2,
     liked: false,
-    tab: 'city'
+    collected: false,
+    followed: false,
+    applyStatus: 'none',
+    tabs: ['discover', 'city'],
+    tab: 'city',
+    visibility: 0,
+    comments: [
+      {
+        id: 301,
+        user: { id: 2, name: '林雨桐', avatar: PORTRAIT.alt, realNameStatus: 'passed' },
+        content: '同城可以组慢跑，公共路线更安心。',
+        timeText: '10 分钟前',
+        likeCount: 0,
+        liked: false,
+        replyTo: null,
+        replyToCommentId: null
+      }
+    ]
   },
   {
     id: 4,
@@ -81,17 +187,111 @@ export const mockDynamicList = [
       name: '林雨桐',
       age: 28,
       city: '南京',
-      verified: true
+      height: '168cm',
+      job: '产品设计师',
+      education: '硕士',
+      verified: true,
+      realNameStatus: 'passed',
+      educationStatus: 'passed'
     },
     content: '第一次把自己做的面包带给朋友，收到的评价比项目评审温柔多了。',
     photos: [PORTRAIT.community],
-    location: '南京',
+    media: [PORTRAIT.community],
+    location: '南京 · 鼓楼',
+    cityTag: true,
+    city: '南京',
+    topicId: 1,
+    tags: ['认真关系', '烘焙'],
+    declaration: '',
     time: Date.now() - 24 * 60 * 60 * 1000,
     timeText: '昨天',
     likeCount: 44,
-    commentCount: 9,
+    commentCount: 0,
+    collectCount: 6,
     liked: false,
-    tab: 'liked'
+    collected: false,
+    followed: true,
+    applyStatus: 'pending',
+    tabs: ['discover', 'follow', 'city'],
+    tab: 'follow',
+    visibility: 0,
+    comments: []
+  },
+  {
+    id: 5,
+    user: {
+      id: 3,
+      avatar: PORTRAIT.community,
+      name: '陈知夏',
+      age: 27,
+      city: '苏州',
+      height: '170cm',
+      job: '建筑设计师',
+      education: '硕士',
+      verified: true,
+      realNameStatus: 'passed',
+      educationStatus: 'passed'
+    },
+    content: '第一次见面，我会优先约在公共场所。安全感不是冷淡，是对彼此的尊重。',
+    photos: [],
+    media: [],
+    location: '苏州 · 姑苏区',
+    cityTag: false,
+    city: '苏州',
+    topicId: 3,
+    tags: ['第一次见面', '边界'],
+    declaration: '',
+    time: Date.now() - 3 * 60 * 60 * 1000,
+    timeText: '3 小时前',
+    likeCount: 19,
+    commentCount: 0,
+    collectCount: 3,
+    liked: false,
+    collected: false,
+    followed: false,
+    applyStatus: 'none',
+    tabs: ['discover'],
+    tab: 'discover',
+    visibility: 0,
+    comments: []
+  },
+  {
+    id: 6,
+    user: {
+      id: 1,
+      avatar: PORTRAIT.main,
+      name: '苏晚晴',
+      age: 26,
+      city: '杭州',
+      height: '165cm',
+      job: '插画师',
+      education: '本科',
+      verified: true,
+      realNameStatus: 'passed',
+      educationStatus: 'passed'
+    },
+    content: '把画室角落收拾了一遍。新的一周，从整理工作台开始。',
+    photos: [PORTRAIT.alt],
+    media: [PORTRAIT.alt],
+    location: '杭州',
+    cityTag: false,
+    city: '杭州',
+    topicId: 2,
+    tags: ['城市周末'],
+    declaration: '',
+    time: Date.now() - 5 * 60 * 60 * 1000,
+    timeText: '5 小时前',
+    likeCount: 12,
+    commentCount: 0,
+    collectCount: 1,
+    liked: false,
+    collected: false,
+    followed: true,
+    applyStatus: 'none',
+    tabs: ['discover', 'follow'],
+    tab: 'follow',
+    visibility: 0,
+    comments: []
   }
 ]
 
@@ -101,31 +301,37 @@ export const mockTopics = [
     id: 1,
     tag: '# 认真关系',
     title: '什么让你决定靠近一个人？',
-    description: '认真关系里的靠近与边界',
+    description: '认真关系里的靠近与边界。欢迎分享真实经历，不评价、不围观式起哄。',
     cover: PORTRAIT.main,
     participantCount: 328,
     postCount: 890,
-    isHot: true
+    isHot: true,
+    joined: false,
+    rules: ['尊重边界', '不索要联系方式', '不攻击他人选择']
   },
   {
     id: 2,
     tag: '# 城市周末',
     title: '一个人也会去的地方',
-    description: '城市里的独处与偶遇',
+    description: '城市里的独处与偶遇。记录你愿意认真度过的周末。',
     cover: PORTRAIT.alt,
     participantCount: 214,
     postCount: 560,
-    isHot: true
+    isHot: true,
+    joined: true,
+    rules: ['分享真实体验', '注明城市', '不约私下见面细节']
   },
   {
     id: 3,
     tag: '# 第一次见面',
     title: '公共场所的安全感',
-    description: '安全见面与边界感',
+    description: '安全见面与边界感。把安全感说清楚，也是一种认真。',
     cover: PORTRAIT.community,
     participantCount: 156,
     postCount: 320,
-    isHot: false
+    isHot: false,
+    joined: false,
+    rules: ['公共场所优先', '不鼓励私下地址', '可分享安全经验']
   }
 ]
 
@@ -133,42 +339,54 @@ export const mockTopics = [
 export const mockPaperPlanes = [
   {
     id: 1,
-    content: '希望能遇到一个喜欢看展的人，一起去看艺术展',
+    content: '希望能遇到一个喜欢看展的人，一起去看艺术展。',
     anonymous: true,
+    scope: 'city',
     gender: '女',
     age: 26,
     city: '杭州',
+    userId: 1,
     time: Date.now() - 30 * 60 * 1000,
-    replyCount: 5
+    timeText: '30 分钟前',
+    replyCount: 5,
+    replied: false
   },
   {
     id: 2,
-    content: '周末想找人一起爬山，有没有同城的小伙伴',
+    content: '周末想找人一起爬山，有没有同城、愿意认真沟通的人。',
     anonymous: true,
+    scope: 'city',
     gender: '男',
     age: 28,
     city: '南京',
+    userId: 7,
     time: Date.now() - 60 * 60 * 1000,
-    replyCount: 12
+    timeText: '1 小时前',
+    replyCount: 12,
+    replied: false
   },
   {
     id: 3,
-    content: '最近在学烘焙，想找个一起研究食谱的朋友',
+    content: '最近在学烘焙，想找个一起研究食谱、也认真生活的朋友。',
     anonymous: true,
+    scope: 'all',
     gender: '女',
     age: 25,
     city: '杭州',
+    userId: 3,
     time: Date.now() - 2 * 60 * 60 * 1000,
-    replyCount: 8
+    timeText: '2 小时前',
+    replyCount: 8,
+    replied: true
   }
 ]
 
-/** 线下活动（高保真：周末城市散步局） */
+/** 线下活动 */
 export const mockActivities = [
   {
     id: 1,
     title: '周末城市散步局',
-    description: '12 位完成实名认证的单身青年，在南京颐和路慢慢认识彼此。',
+    description: '12 位完成实名认证的单身青年，在南京颐和路慢慢认识彼此。公共路线、小规模、可退出。',
     cover: PORTRAIT.community,
     date: '2026-07-26',
     time: '14:00',
@@ -182,7 +400,13 @@ export const mockActivities = [
     },
     price: 49,
     status: 'recruiting',
-    kicker: 'OFFLINE · 07/26'
+    kicker: 'OFFLINE · 07/26',
+    safetyNotes: [
+      '仅面向已实名用户报名',
+      '集合点审核通过后私信告知',
+      '全程公共场所，可随时安全退出'
+    ],
+    myStatus: 'none'
   },
   {
     id: 2,
@@ -201,31 +425,146 @@ export const mockActivities = [
     },
     price: 39,
     status: 'recruiting',
-    kicker: 'OFFLINE · 08/02'
+    kicker: 'OFFLINE · 08/02',
+    safetyNotes: [
+      '公共场馆内活动',
+      '不交换私人联系方式为默认规则',
+      '需实名后报名'
+    ],
+    myStatus: 'pending'
+  },
+  {
+    id: 3,
+    title: '同城慢跑轻局',
+    description: '玄武湖环线慢跑，结束后公共区域简短认识，不强制社交。',
+    cover: PORTRAIT.sea,
+    date: '2026-07-20',
+    time: '07:30',
+    location: '南京 · 玄武湖',
+    participantCount: 10,
+    maxParticipants: 10,
+    tags: ['同城', '运动'],
+    organizer: {
+      name: '宣誓爱活动组',
+      avatar: PORTRAIT.man
+    },
+    price: 0,
+    status: 'ended',
+    kicker: 'ENDED · 07/20',
+    safetyNotes: ['已结束活动仅供回看'],
+    myStatus: 'joined'
   }
 ]
 
-/** 发现页 Banner */
+/** 发现页入口轮播：话题 / 线下活动 / 纸飞机 */
 export const mockCommunityBanners = [
   {
     id: 1,
-    type: 'activity',
-    title: '周末城市散步局',
-    subtitle: '12 位完成实名认证的单身青年',
-    cover: PORTRAIT.community
+    type: 'topic',
+    title: '正在讨论：认真关系',
+    subtitle: '328 人参与 · 靠近与边界',
+    description: '328 人参与 · 靠近与边界',
+    cta: '进入话题',
+    kicker: 'TOPIC',
+    cover: PORTRAIT.main,
+    targetId: 1
   },
   {
     id: 2,
-    type: 'topic',
-    title: '正在讨论：认真关系',
-    subtitle: '328 人正在参与',
-    cover: PORTRAIT.main
+    type: 'activity',
+    title: '周末城市散步局',
+    subtitle: '07/26 · 实名后可报名',
+    description: '07/26 · 实名后可报名',
+    cta: '查看活动',
+    kicker: 'OFFLINE',
+    cover: PORTRAIT.community,
+    targetId: 1
   },
   {
     id: 3,
     type: 'plane',
     title: '纸飞机',
-    subtitle: '3 次免费认真表达',
-    cover: PORTRAIT.alt
+    subtitle: '每日 3 次认真表达',
+    description: '每日 3 次认真表达',
+    cta: '去放飞',
+    kicker: 'PAPER PLANE',
+    cover: PORTRAIT.alt,
+    targetId: 0
   }
 ]
+
+/** 社区通知 */
+export const mockCommunityNotifications = [
+  {
+    id: 1,
+    type: 'like',
+    title: '苏晚晴 赞了你的动态',
+    content: '「第一次把自己做的面包…」',
+    timeText: '10 分钟前',
+    read: false,
+    targetType: 'post',
+    targetId: 4
+  },
+  {
+    id: 2,
+    type: 'comment',
+    title: '顾言澄 评论了你',
+    content: '晚霞那条路我也常走…',
+    timeText: '30 分钟前',
+    read: false,
+    targetType: 'post',
+    targetId: 1
+  },
+  {
+    id: 3,
+    type: 'apply',
+    title: '有人向你发起申请认识',
+    content: '对方已完成实名，附言已送达',
+    timeText: '昨天',
+    read: true,
+    targetType: 'message',
+    targetId: 0
+  },
+  {
+    id: 4,
+    type: 'activity',
+    title: '活动报名审核中',
+    content: '艺术沙龙 | 插画与城市记忆',
+    timeText: '2 天前',
+    read: true,
+    targetType: 'activity',
+    targetId: 2
+  }
+]
+
+/** 额度：申请认识 / 纸飞机（免费 3 次 + 积分说明） */
+export const mockCommunityQuotas = {
+  applyDaily: {
+    total: 3,
+    used: 1,
+    remain: 2,
+    pointsAvailable: true,
+    pointsCost: 20
+  },
+  paperPlaneDaily: {
+    total: 3,
+    used: 0,
+    remain: 3,
+    pointsAvailable: true,
+    pointsCost: 10
+  }
+}
+
+/** 举报原因 */
+export const mockReportReasons = [
+  { id: 'harass', label: '骚扰或不适内容' },
+  { id: 'fake', label: '虚假资料或冒充' },
+  { id: 'ad', label: '广告或引流' },
+  { id: 'other', label: '其他安全问题' }
+]
+
+/** 当前演示城市（同城 Tab） */
+export const mockCurrentCity = {
+  name: '南京',
+  code: 'nanjing'
+}

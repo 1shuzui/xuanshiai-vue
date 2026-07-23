@@ -298,6 +298,7 @@
 		z-index: 8;
 		height: 48px;
 		display: flex;
+		flex-direction: row;
 		align-items: flex-end;
 		gap: 18px;
 		padding: 0 18px;
@@ -308,6 +309,7 @@
 	.subtab {
 		height: 48px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		color: var(--muted);
 		font-size: 13px;
@@ -382,6 +384,7 @@
 
 	.mm-profile {
 		display: flex;
+		flex-direction: row;
 		gap: 12px;
 	}
 
@@ -427,6 +430,7 @@
 
 	.rank-row {
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		gap: 10px;
 		padding: 12px 2px;
@@ -523,6 +527,7 @@
 
 	.prompt-chip {
 		display: inline-flex;
+		flex-direction: row;
 		align-items: center;
 		min-height: 38px;
 		padding: 0 10px;
@@ -554,6 +559,7 @@
 		background: var(--brown);
 		color: var(--paper);
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		font-size: 12px;

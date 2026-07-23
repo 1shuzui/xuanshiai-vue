@@ -1,0 +1,151 @@
+<template>
+	<view class="page">
+		<view class="toolbar" v-if="list.length > 0">
+			<text class="mark-all text-accent" @click="markAll">全部已读</text>
+		</view>
+		<scroll-view class="list" scroll-y>
+			<XsaEmpty v-if="!loading && list.length == 0" text="暂无社区通知" description="点赞、评论与活动进展会在这里出现" />
+			<view
+				class="item"
+				:class="{ unread: !n.read }"
+				v-for="n in list"
+				:key="n.id"
+				@click="open(n)"
+			>
+				<view class="dot" v-if="!n.read"></view>
+				<view class="body">
+					<text class="title">{{ n.title }}</text>
+					<text class="content text-muted">{{ n.content }}</text>
+					<text class="time text-muted">{{ n.timeText }}</text>
+				</view>
+			</view>
+			<view class="pad"></view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import {
+		getCommunityNotifications,
+		markNotificationRead,
+		markAllNotificationsRead
+	} from '@/api'
+
+	const list = ref([])
+	const loading = ref(false)
+
+	onMounted(() => {
+		load()
+	})
+
+	const load = async () => {
+		loading.value = true
+		try {
+			const res = await getCommunityNotifications()
+			if (res.success) list.value = res.data as any[]
+		} catch (e) {
+			uni.showToast({ title: '通知加载失败', icon: 'none' })
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const open = async (n: any) => {
+		if (n.read != true) {
+			n.read = true
+			try {
+				await markNotificationRead(n.id as number)
+			} catch (e) {}
+		}
+		if (n.targetType == 'post' && n.targetId > 0) {
+			uni.navigateTo({ url: `/pages/community/post-detail?id=${n.targetId}` })
+		} else if (n.targetType == 'activity' && n.targetId > 0) {
+			uni.navigateTo({ url: `/pages/community/activity-detail?id=${n.targetId}` })
+		} else if (n.targetType == 'message') {
+			uni.switchTab({ url: '/pages/message/message' })
+		}
+	}
+
+	const markAll = async () => {
+		try {
+			const res = await markAllNotificationsRead()
+			if (res.success) {
+				const items = list.value as any[]
+				for (let i = 0; i < items.length; i++) {
+					items[i].read = true
+				}
+				uni.showToast({ title: '已全部标为已读', icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '操作失败', icon: 'none' })
+		}
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100vh;
+		background: var(--canvas);
+		display: flex;
+		flex-direction: column;
+	}
+	.toolbar {
+		height: 40px;
+		padding: 0 16px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-end;
+		border-bottom: 1px solid var(--line);
+		background: var(--surface);
+	}
+	.mark-all {
+		font-size: 12px;
+		font-weight: 700;
+	}
+	.list {
+		flex: 1;
+		height: 0;
+	}
+	.item {
+		display: flex;
+		flex-direction: row;
+		gap: 10px;
+		padding: 14px 16px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+	}
+	.item.unread {
+		background: var(--soft);
+	}
+	.dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--accent);
+		margin-top: 6px;
+		flex-shrink: 0;
+	}
+	.body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.title {
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--ink);
+	}
+	.content {
+		font-size: 12px;
+		line-height: 1.45;
+	}
+	.time {
+		font-size: 11px;
+	}
+	.pad {
+		height: 24px;
+	}
+</style>

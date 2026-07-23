@@ -55,6 +55,35 @@ export const USE_MOCK = true
 
 检查 `api/config.uts` 的 `USE_MOCK`、页面是否从 `@/api` 导入、对应 API 是否传入 `mockData`，并查看控制台的 `[Mock Request]` 日志或真实错误。
 
+## 5.1 社区显示“网络异常”但并非真断网
+
+**现象：** 社区 Tab 或动态列表 toast/空态为“网络异常，请检查后重试”，H5 与小程序都可能出现；`USE_MOCK = true` 时仍复现。
+
+**原因（2026-07-23 已定位并修源码）：**
+
+1. 页面 `catch` 把任意异常都映射成“网络异常”文案（见 `pages/community/community.uvue` 的 `loadDynamics`）。
+2. 真实抛错来自 UTS 编译坑：`api/community.uts` 的 `normalizeListQuery` 使用对象属性简写（如 `return { tab, filter, page }`）时，编译产物可能丢掉局部变量绑定，运行时报 `ReferenceError: tab is not defined`。
+3. 该错误被页面 catch 后伪装成网络问题。
+
+**处理：**
+
+1. 源码保持 `resolveTabValue` + 显式属性名（`tab: tabName` 等），避免 UTS 对象简写。
+2. 用 HBuilderX **重新**运行到微信 / 浏览器，确认 `unpackage/dist/dev/mp-weixin/api/community.js` 中为 `tab: tabName_1` 一类显式键值，而不是裸 `tab`。
+3. 若仍失败：在开发者工具 Console 看首条真实堆栈，不要只信 toast 文案。
+
+同类风险：其它 `.uts` 里 `return { foo }` / 短属性简写若再出现诡异 ReferenceError，优先对照编译产物，而不是先查网络。
+
+## 5.2 更改微信 AppID 失败或“改了没生效”
+
+常见原因（开发期）：
+
+1. `manifest.json` 里 `mp-weixin.appid` 仍为空；只改了 `unpackage/.../project.config.json` 的 `touristappid`，下次 HBuilderX 编译会覆盖产物。
+2. 填成了 uni-app 应用标识（如 `__UNI__...`）而不是微信小程序 AppID。
+3. 未获授权修改受保护的 `manifest.json`，或开发者工具无该 AppID 权限。
+4. 微信开发者工具项目仍指向旧目录或旧产物。
+
+正式 AppID 需负责人授权后改 `manifest.json`，再重新编译导入；游客/测试号足够做 Mock 烟测。
+
 ## 6. 微信开发者工具未自动打开
 
 确认已安装工具、开启“设置 → 安全设置 → 服务端口”，并在 HBuilderX 中检查工具路径。当前 npm CLI 入口未通过，不要依赖 `npm run dev:mp-weixin` 生成新产物；只能导入本次由 HBuilderX 成功生成且路径明确的构建目录。

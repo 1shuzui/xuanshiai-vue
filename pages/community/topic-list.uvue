@@ -1,0 +1,145 @@
+<template>
+	<view class="page">
+		<view class="filter-row">
+			<view class="chip" :class="{ active: sort == 'hot' }" @click="changeSort('hot')"><text>热门</text></view>
+			<view class="chip" :class="{ active: sort == 'new' }" @click="changeSort('new')"><text>最新</text></view>
+		</view>
+		<scroll-view class="list" scroll-y>
+			<XsaEmpty v-if="!loading && topics.length == 0" text="暂无话题" description="稍后再来看看" />
+			<view class="topic-card" v-for="t in topics" :key="t.id" @click="openTopic(t.id)">
+				<image class="cover" :src="t.cover" mode="aspectFill"></image>
+				<view class="body">
+					<text class="tag">{{ t.tag }}</text>
+					<text class="title">{{ t.title }}</text>
+					<text class="desc text-muted">{{ t.description }}</text>
+					<text class="meta text-muted">{{ t.participantCount }} 人 · {{ t.postCount }} 帖</text>
+				</view>
+			</view>
+			<view class="pad"></view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import { getTopics } from '@/api'
+
+	const sort = ref('hot')
+	const loading = ref(false)
+	const topics = ref([])
+
+	onMounted(() => {
+		load()
+	})
+
+	const load = async () => {
+		loading.value = true
+		try {
+			const res = await getTopics(sort.value)
+			if (res.success) topics.value = res.data as any[]
+		} catch (e) {
+			console.error(e)
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const changeSort = async (s: string) => {
+		sort.value = s
+		await load()
+	}
+
+	const openTopic = (id: number) => {
+		uni.navigateTo({ url: `/pages/community/topic-detail?id=${id}` })
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100vh;
+		background: var(--canvas);
+		display: flex;
+		flex-direction: column;
+	}
+	.filter-row {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+		padding: 12px 14px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+	}
+	.chip {
+		height: 30px;
+		padding: 0 12px;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+	.chip text {
+		font-size: 12px;
+		color: var(--muted);
+	}
+	.chip.active {
+		background: var(--soft);
+		border-color: var(--accent);
+	}
+	.chip.active text {
+		color: var(--accent);
+		font-weight: 700;
+	}
+	.list {
+		flex: 1;
+		height: 0;
+		padding: 12px 14px;
+	}
+	.topic-card {
+		display: flex;
+		flex-direction: row;
+		gap: 12px;
+		padding: 12px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		margin-bottom: 10px;
+	}
+	.cover {
+		width: 72px;
+		height: 72px;
+		border-radius: 10px;
+		flex-shrink: 0;
+	}
+	.body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 0;
+	}
+	.tag {
+		font-size: 11px;
+		font-weight: 800;
+		color: var(--accent);
+	}
+	.title {
+		font-size: 16px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+	.desc {
+		font-size: 12px;
+		line-height: 1.45;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.meta {
+		font-size: 11px;
+	}
+	.pad {
+		height: 24px;
+	}
+</style>

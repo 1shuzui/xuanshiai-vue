@@ -115,6 +115,7 @@ const handleClick = () => {
 <style scoped>
 .xsa-message-item {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	gap: 12px;
 	padding: 12px 16px;
@@ -150,6 +151,7 @@ const handleClick = () => {
 	border: 2px solid var(--surface);
 	border-radius: 999px;
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 }
@@ -172,6 +174,7 @@ const handleClick = () => {
 
 .content-top {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
@@ -194,6 +197,7 @@ const handleClick = () => {
 
 .content-bottom {
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 }
 

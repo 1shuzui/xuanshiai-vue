@@ -1,23 +1,31 @@
 ﻿# 当前工程状态与已知差异
 
-> 更新日期：2026-07-22  
+> 更新日期：2026-07-23
 > 用途：防止文档把占位实现、Mock 或历史配置描述成已完成生产能力。
 
 ## 1. 当前可确认的工程事实
 
 - 技术栈：UniApp / Vue 3，页面和组件以 `.uvue` 为主，逻辑以 `.uts` 为主。
 - 主目标端：微信小程序；H5 用于快速调试。
-- 已注册 14 个页面，其中 5 个 Tab：首页、社区、牵线、消息、我的。
-- 已有 15 个 `Xsa*` 组件，包含按钮、卡片、输入、弹窗、Sheet、Toast、用户卡、动态卡和消息项。
-- 已有 `api/` 与 `mock/` 分层；当前 `USE_MOCK = true`。
+- 已注册 22 个页面，其中 5 个 Tab：首页、社区、牵线、消息、我的。
+- 社区闭环子路由（`pages.json` 已登记）：话题列表/详情、动态详情、活动列表/详情/我的活动、纸飞机、社区通知、发布。
+- 社区主 Tab：**关注 / 同城 / 发现**（喜欢为私有轻意向，不作为主 Tab）；二级筛选：全部/有图/话题/热门/最新。
+- 已有 `Xsa*` 组件含 `XsaDynamicCard`、`XsaApplySheet`、`XsaReportSheet` 等；实名门槛见 `utils/realNameGate.uts`（`passed|missing|reviewing|rejected`，兼容 pending/failed）。
+- 已有 `api/` 与 `mock/` 分层；社区 API 支持分页 list+hasMore、结构化 publish/comment/paperPlane、通知已读、拉黑过滤、同城城市；当前 `USE_MOCK = true`。
+- 申请认识：`applyToMeet` 与 `mockApplyStates` 幂等（pending/accepted 不重复扣次）；首页与社区统一 `XsaApplySheet`。
 - 用户肖像资源位于 `static/portraits/`。
+- HTML 参考 `design-demos/community-shell/` 已冻结，不再作为实现主线。
 
 ## 2. 运行与构建状态
 
-- `node tests/test-mock-system.js` 已于 2026-07-22 在本地执行通过。
-- npm CLI 当前未通过：默认会读取不存在的 `src/manifest.json`；手动指定项目根目录后，又会在解析 `App.uvue` 时失败。
-- 因此当前应以 HBuilderX 作为端侧编译入口，并分别在浏览器和微信开发者工具验证；本文不把未实际执行的 HBuilderX 结果写成已通过。
+- 2026-07-23 结构验证：`node tests/test-mock-system.js` 与 `node tests/test-community-flow.js` 均 exit 0；`git diff --check` 无错误（仅有 CRLF 提示）。工作区根目录 graphify 见 `../graphify-out/`（本项目目录内无独立 `graphify-out/`）。
+- **HBuilderX 端侧编译（本会话已执行，2026-07-23 17:57 产物）：** 以 HBuilderX CLI `launch mp-weixin --compile true` 重新生成 `unpackage/dist/dev/mp-weixin`；社区子页与 `api/community.js` 同步刷新；微信开发者工具可导入该目录。H5 冒烟预览端口为本机 `http://localhost:8080`（`:5173` 不是本工程 UI）。
+- **社区列表曾报“网络异常”：** 根因不是真实网络失败，而是 UTS 编译对象属性简写时丢掉局部变量（`normalizeListQuery` 返回 `{ tab }` 被编成裸 `tab` → ReferenceError → 页面 catch 文案）。源码已改为 `resolveTabValue` + 显式 `tab: tabName` 等属性名；产物中可见 `tab: tabName_1`。同类对象简写在 `.uts` 中应避免。
+- npm CLI 当前未通过：默认会读取不存在的 `src/manifest.json`；手动指定项目根目录后，又会在解析 `App.uvue` 时失败。`npm run build:mp-weixin` / `dev:mp-weixin` 不能作为端侧验收结论。
+- 因此当前应以 HBuilderX 作为端侧编译入口，并分别在浏览器和微信开发者工具验证；旧 `unpackage` 不能代替本次重新编译。
 - 不得通过移动受保护配置、复制双份 `manifest.json` / `pages.json` 或批量改写 `.uvue` 来隐藏该架构差异。
+- **微信 AppID 现状：** 产物 `project.config.json` 为 `touristappid`；`manifest.json` 的 `mp-weixin.appid` 为空。正式 AppID 须负责人授权后改 `manifest.json`（受保护文件），不要只改产物里的临时字段。
+- **社区门槛（实现覆盖）：** 浏览无需认证；互动与申请认识仅 `realNameStatus === 'passed'`；学历只展示不拦截；举报/拉黑无门槛。
 
 ## 3. 页面成熟度说明
 
@@ -51,7 +59,16 @@
 - **Token 运行时（2026-07-22 方案 A）**：语义名不变；色值为 hex/rgba。全局注入在 `App.uvue` 的 `page { --token }`（进入微信 `app.wxss`），并与 `uni.scss` 对齐。业务继续用 `var(--token)`，禁止 `oklch()` 与页面散落字面色。
 - 历史产物 `unpackage/dist/dev/mp-weixin` 在未重新编译前可能仍是旧样式；验收以 HBuilderX 重新运行到微信开发者工具后的结果为准。
 
-## 7. 当前需求依据
+## 7. 下一阶段开发计划
+
+分阶段执行与验收以 [`DEV_PLAN_HBUILDERX.md`](./DEV_PLAN_HBUILDERX.md) 为准（2026-07-22 v1.0.0）：
+
+- **P0：** Tab 顺序与图标、首页壳层/故事卡/广场双列（对照冷白 HTML final，不回 HTML 主线）
+- **P1：** 申请认识 → 双方同意 → 聊天主路径；社区/牵线/我的/认证
+- **P2：** 会员拦截、爆灯/置顶/积分 Mock 付费
+- **工具链：** HBuilderX + 微信开发者工具验收；不以 npm CLI 构建为门禁
+
+## 8. 当前需求依据
 
 定版 PRD 已于 2026-07-22 在仓库登记，冲突时以决策层为准：
 
