@@ -5,6 +5,26 @@
 
 import { USE_MOCK, API_CONFIG, MOCK_DELAY } from './config.uts'
 
+// 兼容项目里旧的 API 调用约定，避免 HBuilderX 增量编译时仍引用历史类型名。
+export class RequestOptions {
+  url : string = ''
+  method ?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  data ?: any
+  skipAuth ?: boolean
+  mockData ?: any
+  cloudFunctionName ?: string
+  action ?: string
+}
+
+export class RequestResult {
+  ok : boolean = false
+  success : boolean = false
+  data ?: any
+  error ?: string
+  message ?: string
+  code ?: number
+}
+
 /**
  * 统一请求方法
  * @param options 请求配置

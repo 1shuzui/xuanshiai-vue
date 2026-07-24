@@ -1,0 +1,310 @@
+<template>
+	<view class="matchmaker-card" @click="handleDetail">
+		<view class="card-media">
+			<image class="card-avatar" :src="data.avatar" mode="aspectFill"></image>
+			<view class="card-badge" v-if="data.badge">
+				<text>{{ data.badge }}</text>
+			</view>
+			<view class="card-status" :class="statusClass">
+				<view class="status-dot"></view>
+				<text>{{ statusText }}</text>
+			</view>
+		</view>
+
+		<view class="card-body">
+			<view class="card-name-row">
+				<text class="card-name">{{ data.name }}</text>
+				<view class="card-rate">
+					<text>★ {{ rateText }}</text>
+				</view>
+			</view>
+			<text class="card-title">{{ data.title }}</text>
+			<text class="card-copy">{{ cardCopy }}</text>
+
+			<view class="card-meta">
+				<view class="meta-item">
+					<text class="meta-value">{{ data.successCount }}</text>
+					<text class="meta-label">牵线成功</text>
+				</view>
+				<view class="meta-item">
+					<text class="meta-value">{{ data.serviceCount }}</text>
+					<text class="meta-label">累计服务</text>
+				</view>
+			</view>
+
+			<view class="card-tags" v-if="data.tags != null && data.tags.length > 0">
+				<XsaTag v-for="(tag, index) in data.tags.slice(0, 2)" :key="index" variant="default" size="small">
+					{{ tag }}
+				</XsaTag>
+			</view>
+
+			<view class="card-footer">
+				<view class="card-price">
+					<text class="price-symbol">¥</text>
+					<text class="price-value">{{ priceText }}</text>
+					<text class="price-unit">{{ unitText }}</text>
+				</view>
+				<view class="card-button" @click.stop="handleContact">
+					<text>{{ actionText }}</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+import XsaTag from '@/components/XsaTag.uvue'
+
+interface Props {
+	data: any;
+	actionText?: string;
+	unitText?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	actionText: '联系她',
+	unitText: '/次'
+});
+
+const emit = defineEmits<{
+	detail: [item: any];
+	contact: [item: any];
+}>();
+
+const statusText = computed(() => {
+	if (props.data == null || props.data.status == null) return '可咨询';
+	if (props.data.status === 'busy') return '咨询中';
+	if (props.data.status === 'offline') return '稍后联系';
+	return '可咨询';
+});
+
+const statusClass = computed(() => {
+	if (props.data == null || props.data.status == null) return 'online';
+	return props.data.status;
+});
+
+const rateText = computed(() => {
+	if (props.data == null || props.data.rating == null) return '4.8';
+	return String(props.data.rating);
+});
+
+const priceText = computed(() => {
+	if (props.data == null || props.data.price == null) return '199';
+	return String(props.data.price);
+});
+
+const cardCopy = computed(() => {
+	if (props.data == null) return '';
+	if (props.data.caseRecord != null && props.data.caseRecord.length > 0) return props.data.caseRecord;
+	if (props.data.introduction != null && props.data.introduction.length > 0) return props.data.introduction;
+	return props.data.description != null ? props.data.description : '';
+});
+
+const handleDetail = () => {
+	emit('detail', props.data);
+};
+
+const handleContact = () => {
+	emit('contact', props.data);
+};
+</script>
+
+<style scoped>
+	.matchmaker-card {
+		width: 316rpx;
+		flex-shrink: 0;
+		border-radius: 24rpx;
+		background: var(--surface);
+		overflow: hidden;
+		box-shadow: var(--shadow-sm);
+		border: 1px solid rgba(211, 217, 216, 0.65);
+	}
+
+	.card-media {
+		position: relative;
+		height: 262rpx;
+		background: var(--warm);
+	}
+
+	.card-avatar {
+		width: 100%;
+		height: 100%;
+	}
+
+	.card-badge {
+		position: absolute;
+		top: 16rpx;
+		left: 16rpx;
+		height: 42rpx;
+		padding: 0 14rpx;
+		border-radius: 999rpx;
+		background: rgba(44, 128, 124, 0.92);
+		color: var(--paper);
+		display: flex;
+		align-items: center;
+		font-size: 18rpx;
+		font-weight: 800;
+	}
+
+	.card-status {
+		position: absolute;
+		top: 16rpx;
+		right: 16rpx;
+		height: 42rpx;
+		padding: 0 12rpx;
+		border-radius: 999rpx;
+		background: rgba(250, 252, 252, 0.92);
+		color: var(--ink2);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8rpx;
+		font-size: 18rpx;
+	}
+
+	.status-dot {
+		width: 12rpx;
+		height: 12rpx;
+		border-radius: 50%;
+		background: var(--sage);
+	}
+
+	.card-status.busy .status-dot {
+		background: var(--brown);
+	}
+
+	.card-status.offline .status-dot {
+		background: var(--muted);
+	}
+
+	.card-body {
+		padding: 22rpx 22rpx 24rpx;
+		display: flex;
+		flex-direction: column;
+		gap: 12rpx;
+	}
+
+	.card-name-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12rpx;
+	}
+
+	.card-name {
+		font-size: 36rpx;
+		line-height: 1.2;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.card-rate {
+		height: 38rpx;
+		padding: 0 10rpx;
+		border-radius: 999rpx;
+		background: var(--warm);
+		color: var(--brown);
+		display: flex;
+		align-items: center;
+		font-size: 18rpx;
+		font-weight: 800;
+		flex-shrink: 0;
+	}
+
+	.card-title {
+		font-size: 22rpx;
+		line-height: 1.45;
+		color: var(--accent2);
+		font-weight: 700;
+	}
+
+	.card-copy {
+		min-height: 64rpx;
+		font-size: 22rpx;
+		line-height: 1.55;
+		color: var(--ink2);
+	}
+
+	.card-meta {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12rpx;
+		padding: 16rpx 0 4rpx;
+		border-top: 1px solid var(--line);
+	}
+
+	.meta-item {
+		display: flex;
+		flex-direction: column;
+		gap: 4rpx;
+	}
+
+	.meta-value {
+		font-size: 30rpx;
+		line-height: 1;
+		font-weight: 800;
+		color: var(--ink);
+	}
+
+	.meta-label {
+		font-size: 18rpx;
+		color: var(--muted);
+	}
+
+	.card-tags {
+		display: flex;
+		flex-direction: row;
+		gap: 8rpx;
+		flex-wrap: wrap;
+	}
+
+	.card-footer {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12rpx;
+		margin-top: 6rpx;
+	}
+
+	.card-price {
+		display: flex;
+		flex-direction: row;
+		align-items: baseline;
+		gap: 4rpx;
+		color: var(--brown);
+		flex-shrink: 0;
+	}
+
+	.price-symbol {
+		font-size: 22rpx;
+		font-weight: 800;
+	}
+
+	.price-value {
+		font-size: 42rpx;
+		line-height: 1;
+		font-weight: 800;
+	}
+
+	.price-unit {
+		font-size: 20rpx;
+		color: var(--muted);
+	}
+
+	.card-button {
+		height: 56rpx;
+		padding: 0 22rpx;
+		border-radius: 18rpx;
+		background: linear-gradient(135deg, rgba(44, 128, 124, 0.16), rgba(56, 152, 141, 0.24));
+		border: 1px solid rgba(44, 128, 124, 0.18);
+		color: var(--accent2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 22rpx;
+		font-weight: 800;
+	}
+</style>

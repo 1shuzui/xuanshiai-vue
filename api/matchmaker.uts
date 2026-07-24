@@ -5,11 +5,40 @@
 
 import { request } from './request.uts'
 import {
+  mockMatchmakerBanners,
   mockServiceMatchmakers,
+  mockCustomMatchmakers,
+  mockCustomPlans,
   mockVolunteerMatchmakers,
   mockAiRecommendations,
   mockCustomPackages
 } from '@/mock'
+
+/**
+ * 获取牵线首页 Banner 列表
+ */
+export async function getMatchmakerBanners() {
+  return request({
+    url: '/matchmaker/banners',
+    cloudFunctionName: 'matchmaker',
+    action: 'getBanners',
+    method: 'GET',
+    mockData: mockMatchmakerBanners
+  })
+}
+
+/**
+ * 获取红娘详情
+ */
+export async function getMatchmakerDetail(id: number) {
+  return request({
+    url: '/matchmaker/detail/' + id,
+    cloudFunctionName: 'matchmaker',
+    action: 'getDetail',
+    method: 'GET',
+    mockData: null // 降级到列表匹配
+  })
+}
 
 /**
  * 获取服务红娘列表
@@ -25,7 +54,20 @@ export async function getServiceMatchmakers() {
 }
 
 /**
- * 获取热心红娘列表
+ * 获取私人定制专属红娘列表
+ */
+export async function getCustomMatchmakers() {
+  return request({
+    url: '/matchmaker/custom/list',
+    cloudFunctionName: 'matchmaker',
+    action: 'getCustomList',
+    method: 'GET',
+    mockData: mockCustomMatchmakers // Mock 数据
+  })
+}
+
+/**
+ * 获取热心红娘列表（兼容旧命名）
  */
 export async function getVolunteerMatchmakers() {
   return request({
@@ -51,7 +93,20 @@ export async function getAiRecommendations() {
 }
 
 /**
- * 获取私人定制套餐
+ * 获取私人定制方案
+ */
+export async function getCustomPlans() {
+  return request({
+    url: '/matchmaker/custom/plans',
+    cloudFunctionName: 'matchmaker',
+    action: 'getCustomPlans',
+    method: 'GET',
+    mockData: mockCustomPlans // Mock 数据
+  })
+}
+
+/**
+ * 获取私人定制套餐（兼容旧命名）
  */
 export async function getCustomPackages() {
   return request({
@@ -60,6 +115,59 @@ export async function getCustomPackages() {
     action: 'getPackages',
     method: 'GET',
     mockData: mockCustomPackages // Mock 数据
+  })
+}
+
+/**
+ * 提交红娘入驻申请（我要做红娘）
+ */
+export async function submitMatchmakerApplication(data: any) {
+  return request({
+    url: '/matchmaker/become/apply',
+    cloudFunctionName: 'matchmaker',
+    action: 'becomeApply',
+    method: 'POST',
+    data,
+    mockData: { success: true, applicationId: 'app_' + Date.now(), status: 'pending' }
+  })
+}
+
+/**
+ * 提交合伙人入驻申请
+ */
+export async function submitPartnerApplication(data: any) {
+  return request({
+    url: '/partner/become/apply',
+    cloudFunctionName: 'matchmaker',
+    action: 'partnerApply',
+    method: 'POST',
+    data,
+    mockData: { success: true, applicationId: 'app_' + Date.now(), status: 'pending' }
+  })
+}
+
+/**
+ * 提交推广红娘入驻申请
+ */
+export async function submitPromoterApplication(data: any) {
+  return request({
+    url: '/promoter/become/apply',
+    cloudFunctionName: 'matchmaker',
+    action: 'promoterApply',
+    method: 'POST',
+    data,
+    mockData: { success: true, applicationId: 'app_' + Date.now(), status: 'pending' }
+  })
+}
+
+export async function submitConnectionApplication(data: any) {
+  return request({
+    url: '/matchmaker/apply',
+    cloudFunctionName: 'matchmaker',
+    action: 'apply',
+    method: 'POST',
+    data,
+    mockData: { success: true, applicationId: Date.now() }
   })
 }
 

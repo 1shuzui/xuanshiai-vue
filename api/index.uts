@@ -36,9 +36,17 @@ export {
 
 // 牵线/红娘相关
 export {
+  getMatchmakerBanners,
+  getMatchmakerDetail,
   getServiceMatchmakers,
+  getCustomMatchmakers,
+  getCustomPlans,
   getVolunteerMatchmakers,
   getAiRecommendations,
   getCustomPackages,
+  submitConnectionApplication,
+  submitMatchmakerApplication,
+  submitPartnerApplication,
+  submitPromoterApplication,
   bookMatchmaker
 } from './matchmaker.uts'

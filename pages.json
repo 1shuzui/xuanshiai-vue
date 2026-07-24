@@ -19,6 +19,45 @@
 			}
 		},
 		{
+			"path": "pages/matchmaker/detail",
+			"style": {
+				"navigationBarTitleText": "红娘详情"
+			}
+		},
+		{
+			"path": "pages/matchmaker/apply",
+			"style": {
+				"navigationBarTitleText": "申请牵线"
+			}
+		},
+		{
+			"path": "pages/matchmaker/become-matchmaker",
+			"style": {
+				"navigationBarTitleText": "我要做红娘",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/matchmaker/become-partner",
+			"style": {
+				"navigationBarTitleText": "申请成为合伙人",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/matchmaker/become-promoter",
+			"style": {
+				"navigationBarTitleText": "申请推广红娘",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/matchmaker/custom",
+			"style": {
+				"navigationBarTitleText": "私人定制"
+			}
+		},
+		{
 			"path": "pages/message/message",
 			"style": {
 				"navigationBarTitleText": "消息"

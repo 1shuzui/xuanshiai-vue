@@ -1,0 +1,137 @@
+<template>
+	<view class="apply-page">
+		<scroll-view scroll-y class="page-scroller" :show-scrollbar="false">
+			<view class="page-content">
+				<view class="intro-card">
+					<text class="intro-kicker">认真牵线</text>
+					<text class="intro-title">先让红娘了解你</text>
+					<text class="intro-copy">填写的信息仅用于评估服务匹配与联系你，不会向其他用户公开。</text>
+				</view>
+
+				<view class="target-card" v-if="matchmakerName.length > 0">
+					<text class="target-label">意向服务</text>
+					<text class="target-name">{{ matchmakerName }}</text>
+					<text class="target-copy">{{ typeLabel }}会在确认需求后与你联系。</text>
+				</view>
+
+				<view class="form-card">
+					<text class="section-title">基本信息</text>
+					<view class="form-field"><text class="field-label">真实姓名</text><input class="field-input" :value="realName" placeholder="请填写姓名" @input="onNameInput" /></view>
+					<view class="form-field"><text class="field-label">手机号码</text><input class="field-input" type="number" maxlength="11" :value="phone" placeholder="用于红娘回访" @input="onPhoneInput" /></view>
+					<view class="form-field"><text class="field-label">所在城市</text><input class="field-input" :value="city" placeholder="例如：杭州" @input="onCityInput" /></view>
+					<view class="form-field">
+						<text class="field-label">性别</text>
+						<view class="choice-row"><view class="choice" :class="{ selected: gender === '男' }" @click="gender = '男'"><text>男</text></view><view class="choice" :class="{ selected: gender === '女' }" @click="gender = '女'"><text>女</text></view></view>
+					</view>
+				</view>
+
+				<view class="form-card">
+					<text class="section-title">关系期待</text>
+					<view class="form-field"><text class="field-label">自我介绍</text><textarea class="field-textarea" :value="description" maxlength="300" placeholder="介绍一下你的生活状态、关系目标和你在意的事" @input="onDescriptionInput" /></view>
+					<view class="form-field"><text class="field-label">择偶要求</text><textarea class="field-textarea" :value="requirements" maxlength="300" placeholder="希望认识怎样的人？" @input="onRequirementsInput" /></view>
+				</view>
+
+				<view class="privacy-card"><text class="privacy-title">隐私与安全</text><text class="privacy-copy">平台会对你的资料进行必要核验。请如实填写，不要提交他人的联系方式或敏感身份信息。</text></view>
+			</view>
+		</scroll-view>
+
+		<view class="footer-safe"><view class="submit-button" :class="{ disabled: submitting }" @click="submitApplication"><text>{{ submitting ? '提交中…' : '提交牵线申请' }}</text></view></view>
+	</view>
+</template>
+
+<script setup lang="uts">
+import { submitConnectionApplication } from '@/api'
+
+const realName = ref('')
+const phone = ref('')
+const city = ref('')
+const gender = ref('女')
+const description = ref('')
+const requirements = ref('')
+const matchmakerId = ref(0)
+const matchmakerName = ref('')
+const type = ref('service')
+const submitting = ref(false)
+
+const typeLabel = computed(() => type.value == 'custom' ? '专属定制顾问' : (type.value == 'ai' ? 'AI 红娘服务' : '服务红娘'))
+
+onMounted(() => {
+	const pages = getCurrentPages()
+	const currentPage = pages[pages.length - 1]
+	const options = currentPage.options
+	if (options != null) {
+		matchmakerId.value = options.matchmakerId != null ? parseInt(options.matchmakerId) : 0
+		matchmakerName.value = options.matchmakerName != null ? decodeURIComponent(options.matchmakerName) : ''
+		type.value = options.type != null ? options.type : 'service'
+	}
+})
+
+const onNameInput = (event: any) => { realName.value = event.detail.value }
+const onPhoneInput = (event: any) => { phone.value = event.detail.value }
+const onCityInput = (event: any) => { city.value = event.detail.value }
+const onDescriptionInput = (event: any) => { description.value = event.detail.value }
+const onRequirementsInput = (event: any) => { requirements.value = event.detail.value }
+
+const submitApplication = async () => {
+	if (submitting.value) return
+	if (realName.value.trim().length == 0 || city.value.trim().length == 0) {
+		uni.showToast({ title: '请填写姓名和所在城市', icon: 'none' })
+		return
+	}
+	if (!/^1\d{10}$/.test(phone.value)) {
+		uni.showToast({ title: '请填写正确的手机号码', icon: 'none' })
+		return
+	}
+	if (requirements.value.trim().length == 0) {
+		uni.showToast({ title: '请填写择偶要求', icon: 'none' })
+		return
+	}
+	try {
+		submitting.value = true
+		const result = await submitConnectionApplication({
+			matchmakerId: matchmakerId.value,
+			matchmakerType: type.value,
+			realName: realName.value.trim(),
+			phone: phone.value,
+			city: city.value.trim(),
+			gender: gender.value,
+			description: description.value.trim(),
+			requirements: requirements.value.trim()
+		})
+		if (result.success) {
+			uni.showModal({ title: '申请已提交', content: '红娘会在核对资料后联系你，请保持手机畅通。', showCancel: false, confirmText: '知道了', success: () => uni.navigateBack() })
+		}
+	} catch (e) {
+		uni.showToast({ title: '提交失败，请稍后重试', icon: 'none' })
+	} finally {
+		submitting.value = false
+	}
+}
+</script>
+
+<style scoped>
+.apply-page { min-height: 100vh; background: var(--canvas); }
+.page-scroller { height: 100vh; }
+.page-content { padding: 28rpx 32rpx 176rpx; display: flex; flex-direction: column; gap: 20rpx; }
+.intro-card { padding: 32rpx 28rpx; border-radius: 24rpx 36rpx 24rpx 24rpx; background: var(--navy); display: flex; flex-direction: column; gap: 12rpx; }
+.intro-kicker { font-size: 20rpx; letter-spacing: .08em; font-weight: 800; color: var(--soft); }
+.intro-title { font-size: 42rpx; font-family: var(--serif); font-weight: 700; color: var(--paper); }
+.intro-copy { font-size: 22rpx; line-height: 1.65; color: rgba(250, 252, 252, .76); }
+.target-card, .form-card { padding: 28rpx; border-radius: 22rpx; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 16rpx; }
+.target-label, .field-label { font-size: 21rpx; color: var(--muted); }
+.target-name { font-size: 34rpx; font-family: var(--serif); font-weight: 700; color: var(--accent2); }
+.target-copy { font-size: 22rpx; line-height: 1.55; color: var(--ink2); }
+.section-title { font-size: 34rpx; font-family: var(--serif); font-weight: 700; color: var(--ink); }
+.form-field { display: flex; flex-direction: column; gap: 12rpx; padding-top: 18rpx; border-top: 1px solid var(--line); }
+.field-input { height: 78rpx; padding: 0 20rpx; border: 1px solid var(--line); border-radius: 16rpx; background: var(--canvas); font-size: 25rpx; color: var(--ink); }
+.field-textarea { width: 100%; min-height: 170rpx; padding: 18rpx 20rpx; box-sizing: border-box; border: 1px solid var(--line); border-radius: 16rpx; background: var(--canvas); font-size: 24rpx; line-height: 1.6; color: var(--ink); }
+.choice-row { display: flex; gap: 14rpx; }
+.choice { height: 66rpx; min-width: 130rpx; border: 1px solid var(--line); border-radius: 16rpx; background: var(--canvas); display: flex; align-items: center; justify-content: center; font-size: 24rpx; color: var(--ink2); }
+.choice.selected { background: var(--accent-bg); border-color: var(--accent); color: var(--accent2); font-weight: 800; }
+.privacy-card { padding: 22rpx 24rpx; border-radius: 18rpx; background: var(--sage-soft); display: flex; flex-direction: column; gap: 8rpx; }
+.privacy-title { font-size: 25rpx; font-weight: 800; color: var(--accent2); }
+.privacy-copy { font-size: 21rpx; line-height: 1.6; color: var(--ink2); }
+.footer-safe { position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 32rpx calc(env(safe-area-inset-bottom) + 16rpx); background: rgba(250, 252, 252, .96); border-top: 1px solid var(--line); }
+.submit-button { height: 86rpx; border-radius: 20rpx; background: var(--brown); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 800; }
+.submit-button.disabled { opacity: .56; }
+</style>

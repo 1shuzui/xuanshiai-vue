@@ -1,0 +1,933 @@
+<template>
+	<view class="custom-page">
+		<scroll-view scroll-y class="page-scroller" :show-scrollbar="false">
+			<view class="page-content">
+
+				<!-- ============ Hero 主视觉 ============ -->
+				<view class="hero">
+					<view class="hero-bg"></view>
+					<view class="hero-inner">
+						<view class="hero-copy">
+							<text class="hero-eyebrow">VIP 私人定制婚恋服务</text>
+						<text class="hero-title">专属红娘 · 精准匹配</text>
+							<view class="hero-tags">
+								<view v-for="tag in heroTags" :key="tag" class="hero-tag">
+									<text class="hero-tag-dot"></text>
+									<text class="hero-tag-text">{{ tag }}</text>
+								</view>
+							</view>
+						</view>
+						<image class="hero-illustration" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+					</view>
+				</view>
+
+				<!-- ============ 服务红娘轮播 ============ -->
+				<view class="section" v-if="customMatchmakers.length > 0">
+					<view class="section-head row">
+						<view class="section-head-text">
+							<text class="section-title">专属服务红娘</text>
+							<text class="section-sub">一对一为你匹配推进</text>
+						</view>
+						<text class="section-link" @click="showAllMatchmakers">查看全部 ›</text>
+					</view>
+
+					<scroll-view scroll-x :enable-flex="true" class="matchmaker-scroll" :show-scrollbar="false">
+						<view class="matchmaker-list">
+							<MatchmakerCard
+								v-for="item in customMatchmakers"
+								:key="item.id"
+								:data="item"
+								actionText="联系她"
+								unitText="/次"
+								@detail="handleMatchmakerDetail"
+								@contact="handleMatchmakerContact"
+							/>
+						</view>
+					</scroll-view>
+				</view>
+
+				<!-- ============ 为什么选择 / 七大专属服务 ============ -->
+				<view class="section">
+					<view class="section-head">
+						<text class="section-title">为什么选择私人定制？</text>
+						<text class="section-sub">七大专属服务</text>
+					</view>
+
+					<view class="service-grid">
+						<view
+							v-for="(item, index) in exclusiveServices"
+							:key="item.title"
+							class="service-card"
+							@click="showServiceDetail(item)"
+						>
+							<view class="service-icon">
+								<text class="service-icon-text">{{ item.icon }}</text>
+							</view>
+							<text class="service-title">{{ item.title }}</text>
+							<text class="service-copy">{{ item.copy }}</text>
+						</view>
+						<!-- 占位第 8 格：查看更多 -->
+						<view class="service-card more-card" @click="showAllServices">
+							<view class="service-icon more-icon">
+								<text class="service-icon-text">···</text>
+							</view>
+							<text class="service-title">查看更多</text>
+							<text class="service-copy">了解全部服务细节</text>
+						</view>
+					</view>
+				</view>
+
+				<!-- ============ 服务流程 ============ -->
+				<view class="section">
+					<view class="section-head">
+						<text class="section-title">服务流程</text>
+						<text class="section-sub">每一步，都有红娘陪着你</text>
+					</view>
+
+					<scroll-view scroll-x :enable-flex="true" class="process-scroll" :show-scrollbar="false">
+						<view class="process-list">
+							<view
+								v-for="(step, index) in processSteps"
+								:key="step.title"
+								class="process-item"
+							>
+								<view class="process-circle">
+									<text class="process-num">{{ index + 1 }}</text>
+								</view>
+								<view v-if="index < processSteps.length - 1" class="process-line"></view>
+								<text class="process-title">{{ step.title }}</text>
+								<text class="process-copy">{{ step.copy }}</text>
+							</view>
+						</view>
+					</scroll-view>
+				</view>
+
+				<!-- ============ 成功案例 ============ -->
+				<view class="section">
+					<view class="section-head row">
+						<view class="section-head-text">
+							<text class="section-title">成功案例</text>
+							<text class="section-sub">真实故事，已完成隐私脱敏</text>
+						</view>
+						<text class="section-link" @click="showAllCases">查看更多 ›</text>
+					</view>
+
+					<scroll-view scroll-x :enable-flex="true" class="case-scroll" :show-scrollbar="false">
+						<view class="case-list">
+							<view
+								v-for="item in successCases"
+								:key="item.name"
+								class="case-card"
+							>
+								<image class="case-image" :src="item.image" mode="aspectFill"></image>
+								<view class="case-body">
+									<text class="case-name">{{ item.name }}</text>
+									<text class="case-meta">{{ item.matchTime }}</text>
+									<text class="case-copy">{{ item.copy }}</text>
+								</view>
+							</view>
+						</view>
+					</scroll-view>
+				</view>
+
+				<!-- ============ 服务套餐 ============ -->
+				<view class="section">
+					<view class="section-head">
+						<text class="section-title">服务套餐</text>
+						<text class="section-sub">选择适合自己的服务节奏</text>
+					</view>
+
+					<scroll-view scroll-x :enable-flex="true" class="plan-scroll" :show-scrollbar="false">
+						<view class="plan-list">
+							<view
+								v-for="item in plans"
+								:key="item.id"
+								class="plan-card"
+								:class="{ selected: selectedPlanId === item.id, hot: item.isHot }"
+								@click="selectPlan(item)"
+							>
+								<view v-if="item.tag" class="plan-badge"><text>{{ item.tag }}</text></view>
+								<text class="plan-name">{{ item.name }}</text>
+								<view class="plan-price-row">
+									<text class="plan-price-symbol">¥</text>
+									<text class="plan-price-value">{{ item.price }}</text>
+									<text v-if="item.originalPrice" class="plan-price-original">¥{{ item.originalPrice }}</text>
+								</view>
+								<text class="plan-duration">{{ item.duration }}</text>
+								<view class="plan-divider"></view>
+								<view class="plan-benefits">
+									<view v-for="(b, i) in item.benefits.slice(0, 3)" :key="i" class="plan-benefit">
+										<text class="plan-benefit-dot"></text>
+										<text class="plan-benefit-text">{{ b }}</text>
+									</view>
+								</view>
+							</view>
+						</view>
+					</scroll-view>
+				</view>
+
+				<!-- ============ 底部说明 ============ -->
+				<view class="page-note">
+					<text class="page-note-text">所有案例均经用户授权并做隐私脱敏处理</text>
+					<text class="page-note-text">服务全程由平台认证红娘一对一跟进</text>
+				</view>
+
+			</view>
+		</scroll-view>
+
+		<!-- ============ 底部固定 CTA ============ -->
+		<view class="footer-safe">
+			<view class="footer-actions">
+				<view class="contact-btn" @click="contactMatchmaker">
+					<text class="contact-btn-text">联系红娘</text>
+				</view>
+				<view class="apply-btn" @click="applyPlan">
+					<text class="apply-btn-text">立即申请私人定制</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+import { getCustomPlans, getCustomMatchmakers } from '@/api'
+import MatchmakerCard from '@/components/MatchmakerCard.uvue'
+
+interface PlanItem {
+	id: number
+	name: string
+	price: number
+	originalPrice?: number
+	duration: string
+	services: string[]
+	features: string[]
+	benefits: string[]
+	matchmakerCount: number
+	description: string
+	isHot: boolean
+	tag: string
+}
+
+const fallbackPlans: PlanItem[] = [
+	{
+		id: 1, name: '基础版', price: 2999, originalPrice: 3999, duration: '3 个月',
+		services: ['精准匹配 3 次', '见面节奏建议', '资料优化 1 次'],
+		features: ['1 位专属红娘', '每月回访'],
+		benefits: ['专属红娘 1 名', '精准匹配 3 次', '资料优化 1 次'],
+		matchmakerCount: 1,
+		description: '适合初次尝试私人定制服务',
+		isHot: false, tag: ''
+	},
+	{
+		id: 2, name: '高级版', price: 5999, originalPrice: 8999, duration: '6 个月',
+		services: ['精准匹配不限次', '见面复盘 5 次', '一对一沟通指导'],
+		features: ['金牌红娘 1 名', '每周反馈'],
+		benefits: ['金牌红娘 1 名', '精准匹配不限次', '线下约会安排'],
+		matchmakerCount: 2,
+		description: '平台推荐，匹配更精准',
+		isHot: true, tag: '推荐'
+	},
+	{
+		id: 3, name: '尊享版', price: 9990, originalPrice: 12999, duration: '12 个月',
+		services: ['长期候选池筛选', '资深红娘团队', 'VIP 专属服务'],
+		features: ['资深红娘团队', '无限次匹配'],
+		benefits: ['资深红娘团队', '无限次匹配', '高端会员库开放'],
+		matchmakerCount: 3,
+		description: '资深红娘全程尊享服务',
+		isHot: false, tag: ''
+	}
+]
+
+const customMatchmakers = ref<any[]>([])
+const matchmakersLoaded = ref(false)
+
+const loadCustomMatchmakers = async () => {
+	if (matchmakersLoaded.value) return
+	try {
+		const res = await getCustomMatchmakers()
+		if (res.success) {
+			customMatchmakers.value = (res.data as any[]).slice(0, 6)
+		}
+	} catch (e) {
+		// 静默降级
+	} finally {
+		matchmakersLoaded.value = true
+	}
+}
+
+const heroTags = ['平台认证', '专属顾问', '全程跟踪']
+
+const exclusiveServices = [
+	{ icon: '隐', title: '无需注册曝光', copy: '资料不公开展示，仅由红娘内部匹配使用。' },
+	{ icon: '知', title: '深度了解会员', copy: '通过沟通了解性格、经历与关系期待。' },
+	{ icon: '开', title: '开放隐藏会员', copy: '接触未在公开列表展示的优质会员。' },
+	{ icon: '荐', title: '红娘精准推荐', copy: '红娘人工筛选后定向推荐匹配对象。' },
+	{ icon: '形', title: '个人形象指导', copy: '约会形象与沟通技巧一对一建议。' },
+	{ icon: '见', title: '安排线下见面', copy: '协助沟通双方时间，安排线下约会。' },
+	{ icon: '馈', title: '反馈约会结果', copy: '约会后收集双方反馈，优化匹配策略。' }
+]
+
+const processSteps = [
+	{ title: '提交申请', copy: '填写关系期待' },
+	{ title: '红娘联系', copy: '24 小时内主动联系' },
+	{ title: '需求分析', copy: '深入沟通明确方向' },
+	{ title: '精准匹配', copy: '筛选推荐合适对象' },
+	{ title: '安排见面', copy: '协调时间促成约会' },
+	{ title: '持续跟进', copy: '回访优化推荐质量' }
+]
+
+	const successCases = [
+		{
+			name: '杭州 · 林女士 & 王先生',
+			matchTime: '2026.03 牵手',
+			copy: '两人都是高校教师，性格内敛但目标明确。从咖啡到徒步到家庭聚餐，三个月后确认订婚。',
+			image: '/static/portraits/profile-woman-main.jpg'
+		},
+		{
+			name: '南京 · 周先生 & 赵女士',
+			matchTime: '2026.05 牵手',
+			copy: '杭州的她与南京的他，经过三个月的双向了解，最终确定了共同生活的城市，完成了一场跨越城市的奔赴。',
+			image: '/static/portraits/profile-man-light.jpg'
+		},
+		{
+			name: '上海 · 陈女士 & 李先生',
+			matchTime: '2026.06 牵手',
+			copy: '双方都不是一见钟情的类型，但在持续沟通和反馈中逐渐发现了彼此的契合点，慢慢走进了对方的生活。',
+			image: '/static/portraits/profile-woman-community.jpg'
+		}
+	]
+
+const plans = ref<PlanItem[]>(fallbackPlans)
+const selectedPlanId = ref<number>(2)
+
+const activePlan = computed<PlanItem>(() => {
+	const found = plans.value.find((p: PlanItem) => p.id == selectedPlanId.value)
+	return found != null ? found : plans.value[0]
+})
+
+onMounted(async () => {
+	try {
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = currentPage.options
+		if (options != null && options.id != null) {
+			selectedPlanId.value = parseInt(options.id)
+		}
+	} catch (e) {}
+
+	try {
+		const response = await getCustomPlans()
+		if (response.success && response.data != null) {
+			const list = response.data as PlanItem[]
+			if (list.length > 0) {
+				plans.value = list.map((p: any): PlanItem => ({
+					id: p.id,
+					name: p.name,
+					price: p.price,
+					originalPrice: p.originalPrice,
+					duration: p.duration,
+					services: p.services,
+					features: p.features,
+					benefits: p.features,
+					matchmakerCount: p.matchmakerCount,
+					description: p.description,
+					isHot: p.isHot,
+					tag: p.tag
+				}))
+				const exists = plans.value.find((p: PlanItem) => p.id == selectedPlanId.value)
+				if (exists == null) selectedPlanId.value = plans.value[0].id
+			}
+		}
+	} catch (e) {
+		uni.showToast({ title: '已展示默认服务方案', icon: 'none' })
+	}
+	loadCustomMatchmakers()
+})
+
+const selectPlan = (plan: PlanItem) => {
+	selectedPlanId.value = plan.id
+}
+
+const showServiceDetail = (item: any) => {
+	uni.showModal({
+		title: item.title,
+		content: item.copy,
+		showCancel: false,
+		confirmText: '知道了'
+	})
+}
+
+const showAllServices = () => {
+	uni.showToast({ title: '更多服务介绍整理中', icon: 'none' })
+}
+
+const showAllMatchmakers = () => {
+	uni.switchTab({
+		url: '/pages/matchmaker/matchmaker'
+	})
+}
+
+const showAllCases = () => {
+	uni.showToast({ title: '更多案例整理中', icon: 'none' })
+}
+
+const handleMatchmakerDetail = (item: any) => {
+	uni.navigateTo({
+		url: '/pages/matchmaker/detail?id=' + item.id
+	})
+}
+
+const handleMatchmakerContact = (item: any) => {
+	uni.navigateTo({
+		url: '/pages/matchmaker/apply?matchmakerId=' + item.id + '&matchmakerName=' + encodeURIComponent(item.name) + '&type=custom'
+	})
+}
+
+const contactMatchmaker = () => {
+	uni.showToast({ title: '专属红娘咨询入口即将开放', icon: 'none' })
+}
+
+const applyPlan = () => {
+	uni.navigateTo({
+		url: '/pages/matchmaker/apply?type=custom&matchmakerName='
+			+ encodeURIComponent(activePlan.value.name)
+			+ '&planId=' + activePlan.value.id
+	})
+}
+</script>
+
+<style scoped>
+.custom-page {
+	min-height: 100vh;
+	background: var(--canvas);
+}
+
+.page-scroller {
+	height: 100vh;
+}
+
+.page-content {
+	padding: 24rpx 32rpx 200rpx;
+	display: flex;
+	flex-direction: column;
+	gap: 32rpx;
+}
+
+/* ============ Hero ============ */
+.hero {
+	position: relative;
+	border-radius: 20rpx;
+	overflow: hidden;
+	background: linear-gradient(135deg, #FBE9EE 0%, #F5D3DD 50%, #EFB9CB 100%);
+}
+
+.hero-bg {
+	position: absolute;
+	top: -60rpx;
+	right: -60rpx;
+	width: 320rpx;
+	height: 320rpx;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.22);
+}
+
+.hero-inner {
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	padding: 36rpx 28rpx;
+	min-height: 320rpx;
+}
+
+.hero-copy {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 16rpx;
+	z-index: 1;
+}
+
+.hero-eyebrow {
+	font-size: 32rpx;
+	font-weight: 800;
+	font-family: var(--serif);
+	color: #8C3A56;
+	letter-spacing: 0.02em;
+}
+
+.hero-title {
+	font-size: 26rpx;
+	font-weight: 700;
+	color: #8C3A56;
+	opacity: 0.85;
+}
+
+.hero-tags {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: auto;
+}
+
+.hero-tag {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8rpx;
+	padding: 10rpx 18rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 255, 255, 0.72);
+}
+
+.hero-tag-dot {
+	width: 12rpx;
+	height: 12rpx;
+	border-radius: 50%;
+	background: #C25E7E;
+}
+
+.hero-tag-text {
+	font-size: 20rpx;
+	font-weight: 700;
+	color: #8C3A56;
+}
+
+.hero-illustration {
+	width: 220rpx;
+	height: 280rpx;
+	border-radius: 110rpx 110rpx 16rpx 16rpx;
+	border: 6rpx solid rgba(255, 255, 255, 0.8);
+	flex-shrink: 0;
+	margin-left: 16rpx;
+}
+
+/* ============ 服务红娘轮播 ============ */
+.matchmaker-scroll {
+	width: 100%;
+	margin: 0 -32rpx;
+	padding: 0 32rpx;
+	box-sizing: border-box;
+}
+
+.matchmaker-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: stretch;
+	gap: 20rpx;
+	padding-right: 32rpx;
+}
+
+/* ============ 通用 Section ============ */
+.section {
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
+}
+
+.section-head {
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+}
+
+.section-head.row {
+	flex-direction: row;
+	align-items: flex-end;
+	justify-content: space-between;
+}
+
+.section-head-text {
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+}
+
+.section-title {
+	font-size: 36rpx;
+	font-family: var(--serif);
+	font-weight: 700;
+	color: var(--ink);
+	line-height: 1.25;
+}
+
+.section-sub {
+	font-size: 22rpx;
+	color: var(--muted);
+}
+
+.section-link {
+	font-size: 22rpx;
+	font-weight: 800;
+	color: var(--accent2);
+	padding-bottom: 2rpx;
+}
+
+/* ============ 七大专属服务宫格 ============ */
+.service-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 16rpx;
+}
+
+.service-card {
+	background: var(--surface);
+	border-radius: 16rpx;
+	box-shadow: var(--shadow-sm);
+	padding: 22rpx 12rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10rpx;
+	min-height: 220rpx;
+}
+
+.service-icon {
+	width: 76rpx;
+	height: 76rpx;
+	border-radius: 50%;
+	background: var(--accent-bg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.service-icon-text {
+	font-size: 28rpx;
+	font-weight: 800;
+	color: var(--accent2);
+}
+
+.service-title {
+	font-size: 22rpx;
+	font-weight: 800;
+	color: var(--ink);
+	text-align: center;
+	line-height: 1.3;
+}
+
+.service-copy {
+	font-size: 18rpx;
+	color: var(--muted);
+	text-align: center;
+	line-height: 1.45;
+}
+
+.more-card {
+	background: var(--paper);
+	border: 1px dashed var(--line);
+	box-shadow: none;
+}
+
+.more-icon {
+	background: var(--warm);
+}
+
+/* ============ 服务流程 ============ */
+.process-scroll,
+.case-scroll,
+.plan-scroll {
+	width: 100%;
+	margin: 0 -32rpx;
+	padding: 0 32rpx;
+	box-sizing: border-box;
+}
+
+.process-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: flex-start;
+	gap: 0;
+	padding-right: 32rpx;
+}
+
+.process-item {
+	width: 160rpx;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10rpx;
+	position: relative;
+}
+
+.process-circle {
+	width: 64rpx;
+	height: 64rpx;
+	border-radius: 50%;
+	background: var(--accent);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 4rpx 12rpx var(--accent-glow);
+}
+
+.process-num {
+	font-size: 26rpx;
+	font-weight: 800;
+	color: var(--paper);
+}
+
+.process-line {
+	position: absolute;
+	top: 32rpx;
+	left: calc(50% + 32rpx);
+	width: calc(100% - 64rpx);
+	height: 2rpx;
+	background: var(--line);
+}
+
+.process-title {
+	font-size: 22rpx;
+	font-weight: 800;
+	color: var(--ink);
+	text-align: center;
+}
+
+.process-copy {
+	font-size: 18rpx;
+	color: var(--muted);
+	text-align: center;
+	line-height: 1.45;
+}
+
+/* ============ 成功案例 ============ */
+.case-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: flex-start;
+	gap: 16rpx;
+	padding-right: 32rpx;
+}
+
+.case-card {
+	width: 260rpx;
+	flex-shrink: 0;
+	background: var(--surface);
+	border-radius: 16rpx;
+	box-shadow: var(--shadow-sm);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.case-image {
+	width: 100%;
+	height: 180rpx;
+}
+
+.case-body {
+	padding: 16rpx 18rpx 20rpx;
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+}
+
+.case-name {
+	font-size: 24rpx;
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.case-meta {
+	font-size: 18rpx;
+	color: var(--accent2);
+	font-weight: 700;
+}
+
+.case-copy {
+	font-size: 19rpx;
+	color: var(--muted);
+	line-height: 1.5;
+}
+
+/* ============ 服务套餐 ============ */
+.plan-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: stretch;
+	gap: 16rpx;
+	padding-right: 32rpx;
+}
+
+.plan-card {
+	position: relative;
+	width: 264rpx;
+	flex-shrink: 0;
+	padding: 28rpx 24rpx;
+	border-radius: 16rpx;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	display: flex;
+	flex-direction: column;
+	gap: 10rpx;
+	box-sizing: border-box;
+}
+
+.plan-card.selected {
+	border-color: var(--accent);
+	border-width: 2rpx;
+	box-shadow: var(--shadow-md);
+}
+
+.plan-card.hot {
+	background: linear-gradient(180deg, var(--accent-bg) 0%, var(--surface) 40%);
+}
+
+.plan-badge {
+	position: absolute;
+	top: 0;
+	right: 0;
+	padding: 6rpx 16rpx;
+	border-radius: 0 16rpx 0 12rpx;
+	background: var(--brown);
+}
+
+.plan-badge text {
+	font-size: 18rpx;
+	font-weight: 800;
+	color: var(--paper);
+}
+
+.plan-name {
+	font-size: 30rpx;
+	font-family: var(--serif);
+	font-weight: 700;
+	color: var(--ink);
+}
+
+.plan-price-row {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 6rpx;
+}
+
+.plan-price-symbol {
+	font-size: 22rpx;
+	font-weight: 800;
+	color: var(--brown);
+}
+
+.plan-price-value {
+	font-size: 48rpx;
+	font-weight: 800;
+	color: var(--brown);
+	line-height: 1;
+}
+
+.plan-price-original {
+	font-size: 20rpx;
+	color: var(--muted);
+	text-decoration: line-through;
+}
+
+.plan-duration {
+	font-size: 20rpx;
+	color: var(--muted);
+}
+
+.plan-divider {
+	height: 1px;
+	background: var(--line);
+	margin: 6rpx 0;
+}
+
+.plan-benefits {
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.plan-benefit {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 10rpx;
+}
+
+.plan-benefit-dot {
+	width: 10rpx;
+	height: 10rpx;
+	border-radius: 50%;
+	background: var(--accent);
+	flex-shrink: 0;
+	margin-top: 8rpx;
+}
+
+.plan-benefit-text {
+	font-size: 20rpx;
+	color: var(--ink2);
+	line-height: 1.5;
+}
+
+/* ============ 底部说明 ============ */
+.page-note {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8rpx;
+	padding: 16rpx 0 8rpx;
+}
+
+.page-note-text {
+	font-size: 20rpx;
+	color: var(--muted);
+}
+
+/* ============ 底部固定 CTA ============ */
+.footer-safe {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	padding: 16rpx 32rpx calc(env(safe-area-inset-bottom) + 16rpx);
+	background: var(--paper);
+	border-top: 1px solid var(--line);
+	z-index: 10;
+}
+
+.footer-actions {
+	display: flex;
+	flex-direction: row;
+	gap: 16rpx;
+}
+
+.contact-btn {
+	width: 200rpx;
+	height: 88rpx;
+	border-radius: 16rpx;
+	border: 1px solid var(--accent);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.contact-btn-text {
+	font-size: 28rpx;
+	font-weight: 800;
+	color: var(--accent2);
+}
+
+.apply-btn {
+	flex: 1;
+	height: 88rpx;
+	border-radius: 16rpx;
+	background: var(--accent);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: var(--shadow-md);
+}
+
+.apply-btn-text {
+	font-size: 30rpx;
+	font-weight: 800;
+	color: var(--paper);
+}
+</style>

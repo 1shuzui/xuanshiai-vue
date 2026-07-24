@@ -1,6 +1,6 @@
 /**
  * 牵线/红娘 Mock 数据
- * 对齐 design-demos/final 服务红娘 / 热心红娘 / AI 红娘
+ * 对齐最终版分页面拆分需求：牵线首页
  */
 
 const PORTRAIT = {
@@ -12,93 +12,180 @@ const PORTRAIT = {
   manAlt: '/static/portraits/profile-man-alt.jpg'
 }
 
+/** 牵线首页 Banner */
+export const mockMatchmakerBanners = [
+  {
+    id: 1,
+    image: PORTRAIT.main,
+    title: '专业牵线，幸福相伴',
+    subtitle: '一对一梳理关系期待，再把你介绍给更合适的人。',
+    statValue: '126',
+    statLabel: '本月促成初次见面',
+    buttonText: '查看服务',
+    type: 'service'
+  },
+  {
+    id: 2,
+    image: PORTRAIT.alt,
+    title: '私人定制，不仓促地靠近',
+    subtitle: '从资料梳理、沟通节奏到候选筛选，都由专属红娘陪你推进。',
+    statValue: '86%',
+    statLabel: '用户愿意继续沟通',
+    buttonText: '了解方案',
+    type: 'custom'
+  },
+  {
+    id: 3,
+    image: PORTRAIT.man,
+    title: 'AI 红娘，先帮你看清自己',
+    subtitle: '只做交集分析、关系提醒和破冰建议，不替你承诺结果。',
+    statValue: '3',
+    statLabel: '步理清匹配线索',
+    buttonText: '体验 AI',
+    type: 'ai'
+  }
+]
+
 /** 服务红娘 */
 export const mockServiceMatchmakers = [
   {
     id: 1,
-    name: '沈知意',
-    avatar: PORTRAIT.community,
-    title: '国家三级婚姻家庭咨询师',
-    experience: '6 年经验',
-    successCount: 18,
+    name: '缘来是你',
+    avatar: PORTRAIT.main,
+    city: '杭州',
+    title: '平台认证服务红娘',
+    introduction: '从事婚恋服务 5 年，擅长精准匹配、深度沟通、脱单规划，已帮助众多会员找到幸福。',
+    description: '用心倾听，真诚牵线，帮你遇见对的人。',
+    serviceCount: 356,
+    successCount: 128,
+    successRate: 0.98,
     rating: 4.9,
-    tags: ['高知青年', '关系澄清', '首次见面'],
-    intro: '国家三级婚姻家庭咨询师 · 6 年经验',
-    price: 0,
-    consultCount: 320,
-    caseRecord: '近 90 天协助 18 对用户完成首次见面'
+    ratingCount: 182,
+    tags: ['恋爱脱单', '高学历优质单身', '婚姻规划', '情感修复'],
+    badge: '平台认证',
+    price: 199,
+    status: 'online',
+    caseRecord: '近 3 个月帮助 128 对用户进入稳定了解阶段。'
   },
   {
     id: 2,
-    name: '程屿',
-    avatar: PORTRAIT.manAlt,
-    title: '职业红娘',
-    experience: '擅长高知青年匹配',
-    successCount: 46,
+    name: '热心相即',
+    avatar: PORTRAIT.community,
+    city: '南京',
+    title: '资深服务红娘',
+    introduction: '偏好理性节奏与长期关系方向，适合工作忙、但目标明确的人群。',
+    description: '擅长拆解资料重点，帮助用户提高申请认识的准确度。',
+    serviceCount: 286,
+    successCount: 88,
+    successRate: 0.58,
     rating: 4.8,
-    tags: ['高知', '长期关系'],
-    intro: '职业红娘 · 擅长高知青年匹配',
-    price: 0,
-    consultCount: 320,
-    caseRecord: '服务过 320 位认真婚恋用户'
+    ratingCount: 164,
+    tags: ['高知青年', '同城见面', '资料优化'],
+    badge: '服务口碑',
+    price: 199,
+    status: 'busy',
+    caseRecord: '服务用户超 280 人，复购咨询比例稳定。'
+  },
+  {
+    id: 3,
+    name: '牵来红娘',
+    avatar: PORTRAIT.alt,
+    city: '上海',
+    title: '专业情感顾问',
+    introduction: '更关注双方沟通方式与关系节奏，适合想要慢慢了解的人。',
+    description: '有线下活动与一对一配对经验，擅长建立安全感。',
+    serviceCount: 268,
+    successCount: 82,
+    successRate: 0.55,
+    rating: 4.8,
+    ratingCount: 151,
+    tags: ['安全感', '沟通方式', '长期规划'],
+    badge: '好评推荐',
+    price: 199,
+    status: 'online',
+    caseRecord: '帮助 82 对用户完成稳定沟通与线下见面。'
+  },
+  {
+    id: 4,
+    name: '知意顾问',
+    avatar: PORTRAIT.manAlt,
+    city: '苏州',
+    title: '婚恋咨询师',
+    introduction: '擅长帮用户拆解择偶标准，减少“聊得热闹但方向不一致”的情况。',
+    description: '更适合资料完整、想高效率筛选的人群。',
+    serviceCount: 239,
+    successCount: 74,
+    successRate: 0.54,
+    rating: 4.7,
+    ratingCount: 129,
+    tags: ['择偶梳理', '高效率', '关系目标'],
+    badge: '认真推荐',
+    price: 169,
+    status: 'online',
+    caseRecord: '近 1 年内累计服务 239 位认真婚恋用户。'
   }
 ]
 
-/** 热心红娘排行 */
-export const mockVolunteerMatchmakers = [
+/** 私人定制专属红娘 */
+export const mockCustomMatchmakers = [
   {
     id: 101,
-    userId: 501,
     name: '晚风阿姨',
     avatar: PORTRAIT.community,
-    age: 48,
     city: '杭州',
-    successCount: 46,
+    title: '私人定制顾问',
+    introduction: '适合希望有人长期跟进资料、沟通反馈和见面安排的用户。',
+    description: '更强调耐心回访和长期陪伴式推进。',
+    serviceCount: 168,
+    successCount: 56,
+    successRate: 0.67,
     rating: 4.9,
-    tags: ['热心', '靠谱'],
-    intro: '认真、克制地帮朋友扩大认识范围',
-    available: true
+    ratingCount: 96,
+    tags: ['耐心细致', '长期陪伴', '节奏跟进'],
+    badge: '专属定制',
+    price: 699,
+    status: 'online'
   },
   {
     id: 102,
-    userId: 502,
     name: '陈老师',
     avatar: PORTRAIT.man,
-    age: 42,
     city: '南京',
-    successCount: 39,
-    rating: 4.7,
-    tags: ['教育圈'],
-    intro: '认真、克制地帮朋友扩大认识范围',
-    available: true
+    title: '资料梳理顾问',
+    introduction: '先帮你把故事线、关系期待和边界讲清楚，再开始筛选候选人。',
+    description: '适合资料表达偏弱、但目标比较清晰的用户。',
+    serviceCount: 152,
+    successCount: 49,
+    successRate: 0.63,
+    rating: 4.8,
+    ratingCount: 81,
+    tags: ['资料表达', '关系边界', '一对一反馈'],
+    badge: '定制顾问',
+    price: 699,
+    status: 'online'
   },
   {
     id: 103,
-    userId: 503,
-    name: '一杯温水',
-    avatar: PORTRAIT.alt,
-    age: 31,
-    city: '杭州',
-    successCount: 31,
-    rating: 4.6,
-    tags: ['同城'],
-    intro: '认真、克制地帮朋友扩大认识范围',
-    available: true
-  },
-  {
-    id: 104,
-    userId: 504,
-    name: '老周同学',
+    name: '幸福筑蜜',
     avatar: PORTRAIT.sea,
-    age: 35,
-    city: '苏州',
-    successCount: 24,
-    rating: 4.5,
-    tags: ['老友介绍'],
-    intro: '认真、克制地帮朋友扩大认识范围',
-    available: false
+    city: '上海',
+    title: '高匹配度陪跑顾问',
+    introduction: '帮助筛选更接近关系目标的候选人，并持续跟进反馈。',
+    description: '更适合对节奏和质量有明确期待的进阶用户。',
+    serviceCount: 133,
+    successCount: 44,
+    successRate: 0.62,
+    rating: 4.7,
+    ratingCount: 68,
+    tags: ['候选筛选', '复盘反馈', '长期规划'],
+    badge: '高配定制',
+    price: 899,
+    status: 'busy'
   }
 ]
+
+/** 向后兼容旧命名 */
+export const mockVolunteerMatchmakers = mockCustomMatchmakers
 
 /** AI 合拍线索推荐（不是直接匹配） */
 export const mockAiRecommendations = [
@@ -110,7 +197,9 @@ export const mockAiRecommendations = [
     avatar: PORTRAIT.main,
     matchScore: 92,
     tags: ['看展', '咖啡', '长期关系'],
-    aiSuggestion: '关系目标接近，可从展览与城市散步破冰。'
+    title: '关系目标接近',
+    introduction: '你们都更重视稳定节奏和认真沟通。',
+    aiSuggestion: '可以从城市散步、看展偏好和周末节奏切入，先聊彼此如何理解长期关系。'
   },
   {
     userId: 5,
@@ -120,37 +209,94 @@ export const mockAiRecommendations = [
     avatar: PORTRAIT.alt,
     matchScore: 90,
     tags: ['心理学', '表达', '成长'],
-    aiSuggestion: '双方都重视情绪沟通，适合先聊边界与节奏。'
+    title: '情绪沟通优势明显',
+    introduction: '双方都愿意解释自己的感受，不太回避冲突。',
+    aiSuggestion: '适合先聊最近一次让你觉得被理解的关系体验，再过渡到亲密关系边界。'
   },
   {
     userId: 2,
     name: '林雨桐',
     age: 28,
     city: '南京',
-    avatar: PORTRAIT.alt,
+    avatar: PORTRAIT.community,
     matchScore: 88,
     tags: ['徒步', '烘焙', '沟通'],
-    aiSuggestion: '生活节奏互补，可从周末计划切入。'
+    title: '生活节奏互补',
+    introduction: '你们都偏爱有安排但不过度紧绷的周末方式。',
+    aiSuggestion: '可以从周末计划、旅行节奏和“独处与陪伴”的平衡感开始聊。'
   }
 ]
 
-/** 透明会员/服务套餐信息结构（非诱导） */
-export const mockCustomPackages = [
+/** 私人定制方案（对齐私人定制-思维导图说明文档） */
+export const mockCustomPlans = [
   {
     id: 1,
-    name: '基础咨询',
-    price: 0,
-    unit: '次',
-    desc: '了解服务流程与匹配思路（演示）'
+    name: '基础版',
+    price: 2999,
+    originalPrice: 3999,
+    duration: '3 个月',
+    services: ['精准匹配 3 次', '见面节奏建议', '资料优化 1 次'],
+    features: ['专属红娘 1 名', '精准匹配 3 次', '资料优化 1 次'],
+    matchmakerCount: 1,
+    description: '适合初次尝试私人定制服务',
+    isHot: false,
+    tag: ''
   },
   {
     id: 2,
-    name: '深度资料梳理',
-    price: 199,
-    unit: '次',
-    desc: '澄清关系期待与资料完整度'
+    name: '高级版',
+    price: 5999,
+    originalPrice: 8999,
+    duration: '6 个月',
+    services: ['精准匹配不限次', '线下约会安排', '一对一沟通指导'],
+    features: ['金牌红娘 1 名', '精准匹配不限次', '每周反馈'],
+    matchmakerCount: 2,
+    description: '平台推荐，匹配更精准',
+    isHot: true,
+    tag: '推荐'
+  },
+  {
+    id: 3,
+    name: '尊享版',
+    price: 9990,
+    originalPrice: 12999,
+    duration: '12 个月',
+    services: ['资深红娘团队', '无限次匹配', '高端会员库开放'],
+    features: ['资深红娘团队', '无限次匹配', 'VIP 专属服务'],
+    matchmakerCount: 3,
+    description: '资深红娘全程尊享服务',
+    isHot: false,
+    tag: ''
   }
 ]
+
+/** 成功案例（客户牵手故事，已完成隐私脱敏） */
+export const mockCustomCases = [
+  {
+    id: 1,
+    name: '杭州 · 林女士 & 王先生',
+    matchTime: '2026.03 牵手',
+    copy: '两人都是高校教师，性格内敛但目标明确。在资料梳理和节奏跟进后，从咖啡到徒步到家庭聚餐，三个月后确认订婚。',
+    image: PORTRAIT.main
+  },
+  {
+    id: 2,
+    name: '南京 · 周先生 & 赵女士',
+    matchTime: '2026.05 牵手',
+    copy: '杭州的她与南京的他，经过三个月的双向了解，最终确定了共同生活的城市，完成了一场跨越城市的奔赴。',
+    image: PORTRAIT.man
+  },
+  {
+    id: 3,
+    name: '上海 · 陈女士 & 李先生',
+    matchTime: '2026.06 牵手',
+    copy: '双方都不是一见钟情的类型，但在持续沟通和反馈中逐渐发现了彼此的契合点，慢慢走进了对方的生活。',
+    image: PORTRAIT.community
+  }
+]
+
+/** 向后兼容旧命名 */
+export const mockCustomPackages = mockCustomPlans
 
 /** AI 红娘预设对话 */
 export const mockAiChatSeed = [
