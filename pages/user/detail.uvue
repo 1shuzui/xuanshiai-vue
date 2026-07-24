@@ -266,6 +266,8 @@
 <script setup lang="uts">
 import { ref } from 'vue'
 import XsaApplySheet from '@/components/XsaApplySheet.uvue'
+import { likeUser } from '@/api'
+import { guardRealName } from '@/utils/realNameGate.uts'
 
 const isLockedView = ref(true)
 const isOwnProfile = ref(false)
@@ -342,8 +344,8 @@ onMounted(() => {
 		isLockedView.value = true
 	}
 
-	// 从路由带入目标用户 id，供申请认识使用
-	if (options.userId != null and options.userId != '') {
+	// 从路由带入目标用户 id，供申请认识 / 喜欢使用
+	if (options.userId != null && options.userId != '') {
 		let parsed = Number(options.userId)
 		if (!isNaN(parsed) && parsed > 0) {
 			user.value.id = parsed
@@ -378,8 +380,29 @@ const onApplySuccess = (_payload: any) => {
 	applyVisible.value = false
 	uni.showToast({ title: '申请已送达，等待对方回应', icon: 'none' })
 }
-const onLike = () => {
-	uni.showToast({ title: '已收藏，仅你自己可见', icon: 'none' })
+// 用户级喜欢：写入 mockLikedUserIds，与帖子点赞/收藏分离
+const onLike = async () => {
+	if (isOwnProfile.value) {
+		uni.showToast({ title: '不能喜欢自己', icon: 'none' })
+		return
+	}
+	const ok = await guardRealName('like')
+	if (!ok) return
+	const id = user.value.id != null ? Number(user.value.id) : 1
+	try {
+		const res = await likeUser(id)
+		if (res.success && res.data != null) {
+			const liked = res.data.liked == true
+			uni.showToast({
+				title: liked ? '已喜欢，仅你自己可见' : '已取消喜欢',
+				icon: 'none'
+			})
+		} else {
+			uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+		}
+	} catch (e) {
+		uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+	}
 }
 </script>
 

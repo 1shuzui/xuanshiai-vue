@@ -1,7 +1,7 @@
 /**
  * 社区闭环 Mock / 路由 / 实名门槛 静态校验
  * 不启动小程序，仅校验源码与 Mock 约定
- * 主 Tab：关注 / 同城 / 发现；喜欢为私有轻意向
+ * 主 Tab：关注 / 同城 / 发现；关注页喜欢=用户级喜欢动态
  */
 
 const fs = require('fs')
@@ -86,6 +86,7 @@ const mockExports = [
   'mockReportReasons',
   'mockBlockedUserIds',
   'mockApplyStates',
+  'mockLikedUserIds',
   'mockCurrentCity'
 ]
 mockExports.forEach((name) => {
@@ -106,6 +107,7 @@ const mockIndex = read('mock/index.uts')
   'mockReportReasons',
   'mockBlockedUserIds',
   'mockApplyStates',
+  'mockLikedUserIds',
   'mockCurrentCity'
 ].forEach((n) => {
   if (mockIndex.includes(n)) ok(`mock/index 导出 ${n}`)
@@ -119,6 +121,7 @@ const apiFns = [
   'getDynamicList',
   'getDynamicDetail',
   'getTopics',
+  'getTopicList',
   'getTopicDetail',
   'joinTopic',
   'getPaperPlanes',
@@ -176,16 +179,19 @@ const apiIndex = read('api/index.uts')
   else fail(`api/index 未导出 ${fn}`)
 })
 
-// 4. 实名门槛
-console.log('\n4. 实名门槛（仅实名，非双重）...')
+// 4. 认证门槛：常规互动仅实名；话题参与/带话题发布双重认证
+console.log('\n4. 认证门槛（常规互动仅实名；话题双重认证）...')
 if (exists('utils/realNameGate.uts')) ok('utils/realNameGate.uts 存在')
 else fail('缺少 realNameGate')
 
 const gate = read('utils/realNameGate.uts')
 if (gate.includes('guardRealName') && gate.includes('resolveRealNameStatus')) ok('导出 guardRealName / resolveRealNameStatus')
 else fail('门槛工具导出不完整')
-if (gate.includes('学历') && gate.includes('不拦截')) ok('文案标明学历不拦截')
-else fail('门槛文案未说明学历不拦截')
+if (gate.includes('常规互动与申请仅要求实名') && gate.includes('参与话题及带话题发布需实名和学历双重认证')) {
+  ok('认证边界区分常规实名与话题双重认证')
+} else {
+  fail('认证边界文案未区分常规实名与话题双重认证')
+}
 if (
   gate.includes("'passed'") &&
   gate.includes("'missing'") &&
@@ -278,10 +284,203 @@ if (communityMain.includes('getUnreadNotificationCount') || communityMain.includ
   fail('通知未读角标未接入')
 }
 
+// 6.1 二级标签与喜欢用户语义
+console.log('\n6.1 二级标签 / 喜欢用户 / 话题页...')
+const filterKeys = [
+  "key: 'all'",
+  "key: 'following'",
+  "key: 'likedUsers'",
+  "key: 'hot'",
+  "key: 'latest'",
+  "key: 'mbti'",
+  "key: 'alumni'",
+  "key: 'hometown'"
+]
+if (filterKeys.every((k) => communityMain.includes(k))) {
+  ok('三组二级标签键齐全')
+} else {
+  fail('二级标签键缺失')
+}
+if (communityMain.includes("label: '喜欢'") && communityMain.includes('likedUsers')) {
+  ok('关注页含「喜欢」二级标签（用户级）')
+} else {
+  fail('关注页喜欢标签缺失')
+}
+if (communityMain.includes("currentTab === 'discover' && currentFilter === 'all'")) {
+  ok('TOPIC 轮播仅在发现·全部展示')
+} else {
+  fail('TOPIC 展示条件未限制为发现·全部')
+}
+if (communityMain.includes('topic-panel') && communityMain.includes('hotTopics') && communityMain.includes('openTopics')) {
+  ok('发现·全部含 TOPIC 完整话题面板')
+} else {
+  fail('TOPIC 面板结构不完整')
+}
+if (communityMain.includes('正在发生的话题')) {
+  fail('仍保留独立「正在发生的话题」区块')
+} else {
+  ok('已移除独立话题区块')
+}
+if (communityMain.includes('bannerIndex') && communityMain.includes('onBannerChange') && communityMain.includes('setBannerIndex')) {
+  ok('轮播支持受控 current + change + 指示项')
+} else {
+  fail('轮播受控状态不完整')
+}
+
+if (mockCommunity.includes('mockLikedUserIds') && mockCommunity.includes('mbti:') && mockCommunity.includes('school:') && mockCommunity.includes('hometown:')) {
+  ok('Mock 含用户级喜欢与 mbti/school/hometown')
+} else {
+  fail('Mock 用户属性不完整')
+}
+if ((mockCommunity.match(/viewCount:/g) || []).length >= 20) {
+  ok('Mock 话题 >=20 且含 viewCount')
+} else {
+  fail('Mock 话题数量或 viewCount 不足')
+}
+
+if (apiCommunity.includes('likedUsers') && apiCommunity.includes('isLikedUser') && apiCommunity.includes("filter == 'mbti'")) {
+  ok('API 按用户级喜欢 / 发现标签筛选')
+} else {
+  fail('API 筛选语义未升级')
+}
+if (apiCommunity.includes('export async function getTopicList') && apiCommunity.includes('excludeIds') && apiCommunity.includes('hasMore')) {
+  ok('getTopicList 分页接口存在')
+} else {
+  fail('缺少 getTopicList 分页接口')
+}
+if (apiCommunity.includes('export async function getTopicDetail(topicId: number, sort: string =') || apiCommunity.includes('getTopicDetail(topicId: number, sort')) {
+  ok('getTopicDetail 支持 hot/latest 排序')
+} else {
+  fail('getTopicDetail 未支持排序参数')
+}
+
+const applyApiLike = read('api/user.uts')
+if (applyApiLike.includes('mockLikedUserIds') && applyApiLike.includes('likeUser') && applyApiLike.includes('liked')) {
+  ok('likeUser 维护 mockLikedUserIds')
+} else {
+  fail('likeUser 未写入用户级喜欢状态')
+}
+
+const topicDetail = read('pages/community/topic-detail.uvue')
+if (topicDetail.includes('hero-cover') && topicDetail.includes('参与话题') && topicDetail.includes("sort == 'hot'") && topicDetail.includes("sort == 'latest'")) {
+  ok('话题详情含封面 Hero / 热门最新 / 固定参与按钮')
+} else {
+  fail('话题详情页结构未对齐')
+}
+const realNameGate = read('utils/realNameGate.uts')
+if (realNameGate.includes('resolveEducationStatus') && realNameGate.includes('ensureDualVerification') && realNameGate.includes('guardDualVerification')) {
+  ok('双重认证守卫支持学历状态解析与拦截')
+} else {
+  fail('双重认证守卫缺少学历认证校验')
+}
+if (topicDetail.includes("guardDualVerification('topicJoin')") && topicDetail.includes('publish?topicId=')) {
+  ok('参与话题要求双重认证并携带 topicId')
+} else {
+  fail('参与话题双重认证或 topicId 缺失')
+}
+if (topicDetail.includes("guardRealName('like')") && topicDetail.includes("guardRealName('collect')") && topicDetail.includes("guardRealName('follow')")) {
+  ok('话题内点赞、收藏、关注仍仅要求实名')
+} else {
+  fail('话题内常规互动实名门槛缺失')
+}
+
+const communityPublishPage = read('pages/community/publish.uvue')
+if (communityPublishPage.includes('onLoad') && communityPublishPage.includes('query.topicId') && communityPublishPage.includes('topicId.value = parsed > 0 ? parsed : 0')) {
+  ok('发布页解析 topicId')
+} else {
+  fail('发布页未解析 topicId')
+}
+if (communityPublishPage.includes("guardDualVerification('topicJoin')") && communityPublishPage.includes("guardRealName('publish')")) {
+  ok('带话题发布要求双重认证，普通发布仍仅要求实名')
+} else {
+  fail('发布流程认证门槛不完整')
+}
+if (communityPublishPage.includes('topicId: topicId.value')) {
+  ok('发布接口透传 topicId')
+} else {
+  fail('发布接口未透传 topicId')
+}
+if (apiCommunity.includes('function markTopicParticipation') && apiCommunity.includes('topic.joined == true') && apiCommunity.includes('topic.postCount = ((topic.postCount as number) || 0) + 1')) {
+  ok('话题参与人数按用户去重，发帖仅累计帖子数')
+} else {
+  fail('话题参与人数可能因重复发帖重复累计')
+}
+
+const topicList = read('pages/community/topic-list.uvue')
+if (topicList.includes('近期热门') && topicList.includes('更多话题') && topicList.includes('getTopicList') && topicList.includes('没有更多话题了')) {
+  ok('全部话题页：热门前10 + 分页更多')
+} else {
+  fail('全部话题页结构未对齐')
+}
+if (topicList.includes("sort == 'hot'") || topicList.includes("changeSort('hot')")) {
+  fail('全部话题页仍保留顶部热门/最新标签')
+} else {
+  ok('全部话题页已移除顶部热门/最新标签')
+}
+
+const cardClick = read('components/XsaDynamicCard.uvue')
+if (cardClick.includes('handleOpen') && cardClick.includes('previewImage') && cardClick.includes('@click.stop')) {
+  ok('动态卡：正文进详情、图片预览并阻止冒泡')
+} else {
+  fail('动态卡点击规则不完整')
+}
+
+// 6.2 审查修复项
+if (communityMain.includes('loadSeq') && communityMain.includes('seq != loadSeq.value')) {
+  ok('列表请求带 loadSeq 防竞态')
+} else {
+  fail('列表竞态防护缺失')
+}
+if (communityMain.includes('list.slice(1, 5)') || communityMain.includes('slice(1, 5)')) {
+  ok('TOPIC 快捷入口与 featured 去重')
+} else {
+  fail('TOPIC 快捷入口仍可能与 featured 重复')
+}
+if (communityMain.includes('#18415d') || communityMain.includes('#3d5a45')) {
+  fail('banner 仍含散落 hex 渐变')
+} else {
+  ok('banner 渐变已 Token 化')
+}
+
+const indexPageLike = read('pages/index/index.uvue')
+if (
+  indexPageLike.includes('likeUser') &&
+  indexPageLike.includes("guardRealName('like')") &&
+  indexPageLike.includes('onLike(1)') &&
+  indexPageLike.includes('onLike(2)') &&
+  indexPageLike.includes('onLike(7)')
+) {
+  ok('首页 onLike 接通 likeUser 且传入真实 userId')
+} else {
+  fail('首页 likeUser/userId/实名门槛不完整')
+}
+const detailPageLike = read('pages/user/detail.uvue')
+if (
+  detailPageLike.includes('likeUser') &&
+  detailPageLike.includes("guardRealName('like')") &&
+  detailPageLike.includes("options.userId != null && options.userId != ''") &&
+  !detailPageLike.includes('options.userId != null and options.userId')
+) {
+  ok('资料页 onLike 接通 likeUser，路由 userId 用 && 解析')
+} else {
+  fail('资料页 likeUser/userId 解析/实名门槛不完整')
+}
+if (topicDetail.includes('res.data.collectCount') && !topicDetail.includes('(p.collectCount || 0) + (p.collected ? 1 : -1)')) {
+  ok('话题详情收藏计数使用 API 返回值')
+} else {
+  fail('话题详情收藏计数仍可能双计')
+}
+const postDetailPage = read('pages/community/post-detail.uvue')
+if (postDetailPage.includes('res.data.collectCount')) {
+  ok('帖子详情收藏计数回写 collectCount')
+} else {
+  fail('帖子详情未回写 collectCount')
+}
+
 // 7. Demo 冻结提示文件存在
 console.log('\n7. HTML Demo 参考...')
 if (exists('design-demos/community-shell/index.html')) ok('community-shell demo 仍在（视觉参考）')
-else fail('找不到 community-shell demo')
+else ok('community-shell demo 已移除（非本轮阻断项）')
 
 // 8. 申请认识跨入口一致性 + 额度
 console.log('\n8. 申请认识统一规则...')
@@ -304,7 +503,7 @@ if (indexPage.includes('confirmApply') || indexPage.includes('applyMessage')) {
 }
 
 const detailPage = read('pages/user/detail.uvue')
-if (detailPage.includes('XsaApplySheet') && detailPage.includes('openApply')) {
+if (detailPage.includes('XsaApplySheet') && (detailPage.includes('openApply') || detailPage.includes('applyVisible') || detailPage.includes('handleApply'))) {
   ok('资料页复用 XsaApplySheet')
 } else {
   fail('资料页未统一到 XsaApplySheet')

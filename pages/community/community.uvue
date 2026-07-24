@@ -1,6 +1,6 @@
 <template>
 	<view class="community-page">
-		<!-- 主 Tab：关注 / 同城 / 发现（喜欢为私有轻意向，不作为主 Tab） -->
+		<!-- 主 Tab：关注 / 同城 / 发现；关注页「喜欢」= 喜欢用户的动态 -->
 		<view class="subtabs">
 			<view class="subtab" :class="{ active: currentTab === 'follow' }" @click="switchTab('follow')">
 				<text>关注</text>
@@ -33,20 +33,44 @@
 		</view>
 
 		<scroll-view class="dynamic-list" scroll-y @scrolltolower="handleLoadMore">
-			<!-- 发现：功能入口 + 话题 -->
-			<view v-if="currentTab === 'discover'" class="discover-head">
+			<!-- 发现·全部：TOPIC / 活动 / 纸飞机 轮播 -->
+			<view v-if="currentTab === 'discover' && currentFilter === 'all'" class="discover-head">
 				<swiper
 					v-if="banners.length > 0"
 					class="banner-swiper"
 					circular
 					autoplay
+					:current="bannerIndex"
 					:interval="4200"
-					indicator-dots
-					indicator-color="rgba(231,236,236,0.35)"
-					indicator-active-color="var(--soft)"
+					@change="onBannerChange"
 				>
 					<swiper-item v-for="b in banners" :key="b.id">
-						<view class="feature" :class="'type-' + b.type" @click="openBanner(b)">
+						<!-- TOPIC 完整话题面板 -->
+						<view v-if="b.type === 'topic'" class="topic-panel" @click.stop>
+							<view class="topic-panel-main" @click="openFeaturedTopic">
+								<image v-if="featuredTopic != null && featuredTopic.cover != null" class="topic-panel-cover" :src="featuredTopic.cover" mode="aspectFill"></image>
+								<view class="topic-panel-mask"></view>
+								<view class="topic-panel-body">
+									<text class="feature-kicker">TOPIC</text>
+									<text class="feature-title">{{ featuredTopic != null ? featuredTopic.title : b.title }}</text>
+									<text class="feature-desc">{{ featuredTopic != null ? featuredTopic.description : b.description }}</text>
+									<text class="topic-panel-stats text-muted" v-if="featuredTopic != null">
+										{{ featuredTopic.viewCount != null ? featuredTopic.viewCount : 0 }} 浏览 · {{ featuredTopic.participantCount }} 参与
+									</text>
+								</view>
+							</view>
+							<view class="topic-quick-row">
+								<view class="topic-quick" v-for="t in hotTopics" :key="t.id" @click="openTopic(t)">
+									<text class="topic-quick-tag">{{ t.tag != null ? t.tag : '#' }}</text>
+									<text class="topic-quick-title">{{ t.title }}</text>
+								</view>
+							</view>
+							<view class="topic-all-entry" @click="openTopics">
+								<text>全部话题</text>
+							</view>
+						</view>
+						<!-- 活动 / 纸飞机 -->
+						<view v-else class="feature" :class="'type-' + b.type" @click="openBanner(b)">
 							<text class="feature-kicker">{{ b.kicker != null ? b.kicker : bannerKicker(b.type) }}</text>
 							<text class="feature-title">{{ b.title }}</text>
 							<text class="feature-desc">{{ b.description }}</text>
@@ -56,26 +80,14 @@
 						</view>
 					</swiper-item>
 				</swiper>
-
-				<view class="feature" v-else-if="activity != null" @click="openActivity">
-					<text class="feature-kicker">{{ activity.kicker != null ? activity.kicker : 'OFFLINE' }}</text>
-					<text class="feature-title">{{ activity.title }}</text>
-					<text class="feature-desc">{{ activity.description }}</text>
-					<view class="feature-btn">
-						<text>查看活动</text>
-					</view>
-				</view>
-
-				<view class="section-head">
-					<text class="section-title">正在发生的话题</text>
-					<text class="section-more text-accent" @click="openTopics">全部话题</text>
-				</view>
-				<view class="topic-row">
-					<view class="topic" v-for="t in topics" :key="t.id" @click="openTopic(t)">
-						<text class="topic-tag">{{ t.tag != null ? t.tag : t.title }}</text>
-						<text class="topic-title">{{ t.title }}</text>
-						<text class="topic-meta text-muted">{{ t.participantCount }} 人正在讨论</text>
-					</view>
+				<view class="banner-dots" v-if="banners.length > 1">
+					<view
+						class="banner-dot"
+						:class="{ active: bannerIndex === i }"
+						v-for="(b, i) in banners"
+						:key="b.id"
+						@click="setBannerIndex(i)"
+					></view>
 				</view>
 			</view>
 
@@ -162,15 +174,12 @@
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
 	// 主 Tab：follow | city | discover
+	// 二级筛选：
+	// follow: all / following / likedUsers
+	// city: all / hot / latest
+	// discover: all / mbti / alumni / hometown
 	const currentTab = ref('discover')
 	const currentFilter = ref('all')
-	const filterOptions = [
-		{ key: 'all', label: '全部' },
-		{ key: 'media', label: '有图' },
-		{ key: 'topic', label: '话题' },
-		{ key: 'hot', label: '热门' },
-		{ key: 'latest', label: '最新' }
-	]
 	const loading = ref(false)
 	const loadError = ref('')
 	const hasMore = ref(true)
@@ -178,8 +187,11 @@
 	const pageSize = 10
 	const dynamicList = ref([])
 	const topics = ref([])
+	const featuredTopic = ref(null)
+	const hotTopics = ref([])
 	const activity = ref(null)
 	const banners = ref([])
+	const bannerIndex = ref(0)
 	const cityName = ref('南京')
 	const unreadCount = ref(0)
 	const applyVisible = ref(false)
@@ -187,6 +199,35 @@
 	const reportVisible = ref(false)
 	const reportTargetId = ref(0)
 	const reportUserId = ref(0)
+	// 防止快速切换 Tab/筛选时旧请求覆盖新列表
+	const loadSeq = ref(0)
+
+	const defaultFilterForTab = (tab: string) => {
+		return 'all'
+	}
+
+	const filterOptions = computed(() => {
+		if (currentTab.value === 'follow') {
+			return [
+				{ key: 'all', label: '全部' },
+				{ key: 'following', label: '关注' },
+				{ key: 'likedUsers', label: '喜欢' }
+			]
+		}
+		if (currentTab.value === 'city') {
+			return [
+				{ key: 'all', label: '全部' },
+				{ key: 'hot', label: '热门' },
+				{ key: 'latest', label: '最新' }
+			]
+		}
+		return [
+			{ key: 'all', label: '全部' },
+			{ key: 'mbti', label: 'MBTI' },
+			{ key: 'alumni', label: '校友' },
+			{ key: 'hometown', label: '同乡' }
+		]
+	})
 
 	onMounted(() => {
 		loadCity()
@@ -199,16 +240,30 @@
 
 	onShow(() => {
 		loadUnread()
+		// 从资料页喜欢用户返回后，关注流需要刷新
+		if (currentTab.value === 'follow') {
+			reload()
+		}
 	})
 
 	const emptyTitle = computed(() => {
-		if (currentTab.value === 'follow') return '还没有关注动态'
+		if (currentTab.value === 'follow') {
+			if (currentFilter.value === 'likedUsers') return '还没有喜欢用户的动态'
+			if (currentFilter.value === 'following') return '还没有关注动态'
+			return '关注与喜欢的动态都在这里'
+		}
 		if (currentTab.value === 'city') return '同城暂无动态'
+		if (currentFilter.value === 'mbti') return '暂无 MBTI 动态'
+		if (currentFilter.value === 'alumni') return '暂无校友动态'
+		if (currentFilter.value === 'hometown') return '暂无同乡动态'
 		return '暂无动态'
 	})
 
 	const emptyDesc = computed(() => {
-		if (currentTab.value === 'follow') return '关注认真嘉宾后，他们的动态会出现在这里'
+		if (currentTab.value === 'follow') {
+			if (currentFilter.value === 'likedUsers') return '在用户资料页点「喜欢」后，TA 的动态会出现在这里'
+			return '关注认真嘉宾后，他们的动态会出现在这里'
+		}
 		if (currentTab.value === 'city') return '切换城市或发布一条同城动态'
 		return '快来发布第一条动态吧'
 	})
@@ -270,13 +325,16 @@
 	}
 
 	const loadDynamics = async (reset: boolean = false) => {
-		if (loading.value) return
+		// 非 reset 的加载更多仍需防重入；reset 必须可打断旧请求
+		if (!reset && loading.value) return
 		if (reset) {
 			page.value = 1
 			hasMore.value = true
 			loadError.value = ''
+			loadSeq.value = loadSeq.value + 1
 		}
 		if (!hasMore.value && !reset) return
+		const seq = loadSeq.value
 		loading.value = true
 		try {
 			const res = await getDynamicList({
@@ -286,6 +344,8 @@
 				pageSize,
 				city: cityName.value
 			})
+			// 过期请求：用户已切换 Tab/筛选，丢弃结果
+			if (seq != loadSeq.value) return
 			if (res.success) {
 				const payload = extractListPayload(res.data)
 				if (reset) {
@@ -304,12 +364,15 @@
 				}
 			}
 		} catch (e) {
+			if (seq != loadSeq.value) return
 			loadError.value = '网络异常，请检查后重试'
 			if (reset || dynamicList.value.length == 0) {
 				uni.showToast({ title: loadError.value, icon: 'none' })
 			}
 		} finally {
-			loading.value = false
+			if (seq == loadSeq.value) {
+				loading.value = false
+			}
 		}
 	}
 
@@ -322,7 +385,11 @@
 		try {
 			const res = await getTopics('hot')
 			if (res.success) {
-				topics.value = (res.data as any[]).slice(0, 4)
+				const list = res.data as any[]
+				topics.value = list
+				featuredTopic.value = list.length > 0 ? list[0] : null
+				// featured 用 list[0]，快捷入口取其后 4 个，避免重复
+				hotTopics.value = list.slice(1, 5)
 			}
 		} catch (e) {
 			// 次要模块，不打断主列表
@@ -368,6 +435,8 @@
 	const switchTab = (tab: string) => {
 		if (currentTab.value === tab) return
 		currentTab.value = tab
+		currentFilter.value = defaultFilterForTab(tab)
+		bannerIndex.value = 0
 		dynamicList.value = []
 		loadDynamics(true)
 	}
@@ -377,6 +446,24 @@
 		currentFilter.value = key
 		dynamicList.value = []
 		loadDynamics(true)
+	}
+
+	const onBannerChange = (e: any) => {
+		if (e != null && e.detail != null && e.detail.current != null) {
+			bannerIndex.value = e.detail.current as number
+		}
+	}
+
+	const setBannerIndex = (i: number) => {
+		bannerIndex.value = i
+	}
+
+	const openFeaturedTopic = () => {
+		if (featuredTopic.value == null) {
+			openTopics()
+			return
+		}
+		openTopic(featuredTopic.value)
 	}
 
 	const bannerKicker = (type: string) => {
@@ -394,7 +481,12 @@
 	const openBanner = (b: any) => {
 		if (b == null) return
 		if (b.type === 'topic') {
-			uni.navigateTo({ url: '/pages/community/topic-list' })
+			const tid = b.targetId != null ? b.targetId : (featuredTopic.value != null ? featuredTopic.value.id : 0)
+			if (tid > 0) {
+				uni.navigateTo({ url: '/pages/community/topic-detail?id=' + tid })
+			} else {
+				uni.navigateTo({ url: '/pages/community/topic-list' })
+			}
 			return
 		}
 		if (b.type === 'plane') {
@@ -699,7 +791,127 @@
 	}
 
 	.banner-swiper {
-		height: 168px;
+		height: 320px;
+	}
+
+	.banner-dots {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		gap: 6px;
+		margin-top: 8px;
+	}
+
+	.banner-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 999px;
+		background: rgba(24, 65, 93, 0.18);
+	}
+
+	.banner-dot.active {
+		width: 16px;
+		background: var(--accent);
+	}
+
+	.topic-panel {
+		height: 100%;
+		border-radius: 12px 28px 12px 12px;
+		background: var(--navy);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.topic-panel-main {
+		position: relative;
+		min-height: 168px;
+		flex: 1;
+	}
+
+	.topic-panel-cover {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100%;
+	}
+
+	.topic-panel-mask {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		background: linear-gradient(180deg, rgba(17, 23, 24, 0.2) 0%, rgba(17, 23, 24, 0.78) 100%);
+	}
+
+	.topic-panel-body {
+		position: relative;
+		z-index: 1;
+		padding: 16px 16px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.topic-panel-stats {
+		font-size: 11px;
+		color: rgba(231, 236, 236, 0.75);
+	}
+
+	.topic-quick-row {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 6px;
+		padding: 0 12px 8px;
+	}
+
+	.topic-quick {
+		width: calc(50% - 3px);
+		box-sizing: border-box;
+		background: rgba(250, 252, 252, 0.1);
+		border: 1px solid rgba(231, 236, 236, 0.16);
+		border-radius: 8px;
+		padding: 8px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.topic-quick-tag {
+		font-size: 10px;
+		font-weight: 800;
+		color: var(--soft);
+	}
+
+	.topic-quick-title {
+		font-size: 12px;
+		line-height: 1.35;
+		color: var(--paper);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.topic-all-entry {
+		margin: 0 12px 12px;
+		height: 34px;
+		border-radius: 8px;
+		background: var(--soft);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.topic-all-entry text {
+		font-size: 12px;
+		font-weight: 800;
+		color: var(--brown);
 	}
 
 	.feature {
@@ -715,11 +927,11 @@
 	}
 
 	.feature.type-topic {
-		background: linear-gradient(135deg, #18415d 0%, #2a5f7a 100%);
+		background: var(--navy);
 	}
 
 	.feature.type-plane {
-		background: linear-gradient(135deg, #3d5a45 0%, #5a7d64 100%);
+		background: var(--sage);
 	}
 
 	.feature.type-activity {

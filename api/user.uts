@@ -10,7 +10,8 @@ import {
   mockUserDetail,
   mockMeProfile,
   mockCommunityQuotas,
-  mockApplyStates
+  mockApplyStates,
+  mockLikedUserIds
 } from '@/mock'
 import { __syncApplyStatus } from './community.uts'
 
@@ -208,12 +209,28 @@ export async function applyToMeet(userId: number, message: string) {
  * 喜欢用户
  */
 export async function likeUser(userId: number) {
+  const ids = mockLikedUserIds as number[]
+  let liked = false
+  let found = -1
+  for (let i = 0; i < ids.length; i++) {
+    if (ids[i] == userId) {
+      found = i
+      break
+    }
+  }
+  if (found >= 0) {
+    ids.splice(found, 1)
+    liked = false
+  } else {
+    ids.push(userId)
+    liked = true
+  }
   return request({
     url: '/user/like',
     cloudFunctionName: 'user',
     action: 'like',
     method: 'POST',
     data: { userId },
-    mockData: { success: true }
+    mockData: { success: true, liked, userId }
   })
 }

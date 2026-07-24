@@ -9,8 +9,12 @@
 - 主目标端：微信小程序；H5 用于快速调试。
 - 已注册 22 个页面，其中 5 个 Tab：首页、社区、牵线、消息、我的。
 - 社区闭环子路由（`pages.json` 已登记）：话题列表/详情、动态详情、活动列表/详情/我的活动、纸飞机、社区通知、发布。
-- 社区主 Tab：**关注 / 同城 / 发现**（喜欢为私有轻意向，不作为主 Tab）；二级筛选：全部/有图/话题/热门/最新。
+- 社区主 Tab：**关注 / 同城 / 发现**；二级筛选随主 Tab 切换：
+  - 关注：`全部 / 关注 / 喜欢`（喜欢 = 用户级喜欢关系，不是帖子点赞）
+  - 同城：`全部 / 热门 / 最新`
+  - 发现：`全部 / MBTI / 校友 / 同乡`（TOPIC 面板仅在「发现·全部」）
 - 已有 `Xsa*` 组件含 `XsaDynamicCard`、`XsaApplySheet`、`XsaReportSheet` 等；实名门槛见 `utils/realNameGate.uts`（`passed|missing|reviewing|rejected`，兼容 pending/failed）。
+- 认证门槛：常规社区互动与申请认识仅要求实名通过；参与话题 / 带话题发布要求双重认证（实名通过 + 学历人工审核通过）。
 - 已有 `api/` 与 `mock/` 分层；社区 API 支持分页 list+hasMore、结构化 publish/comment/paperPlane、通知已读、拉黑过滤、同城城市；当前 `USE_MOCK = true`。
 - 申请认识：`applyToMeet` 与 `mockApplyStates` 幂等（pending/accepted 不重复扣次）；首页与社区统一 `XsaApplySheet`。
 - 用户肖像资源位于 `static/portraits/`。

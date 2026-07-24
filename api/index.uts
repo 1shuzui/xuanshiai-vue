@@ -28,6 +28,7 @@ export {
   getDynamicList,
   getDynamicDetail,
   getTopics,
+  getTopicList,
   getTopicDetail,
   joinTopic,
   getPaperPlanes,

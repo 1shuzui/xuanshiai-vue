@@ -75,7 +75,7 @@
 					</view>
 
 					<!-- 头像在 profile-card 下独立定位，不被 card-body 盖住 -->
-					<view class="avatar-wrap" @tap="goUserDetail">
+					<view class="avatar-wrap" @tap="goUserDetail(1)">
 						<image class="avatar-img" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
 					</view>
 					<view class="card-body">
@@ -230,7 +230,7 @@
 									<text class="sq-meta-text">产品经理 · 北京</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click="onLike">
+							<view class="sq-like-btn" @click.stop="onLike(1)">
 								<text class="sq-heart">♥</text>
 							</view>
 						</view>
@@ -252,7 +252,7 @@
 									<text class="sq-meta-text">UI设计师 · 上海</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click="onLike">
+							<view class="sq-like-btn" @click.stop="onLike(2)">
 								<text class="sq-heart">♥</text>
 							</view>
 						</view>
@@ -307,7 +307,7 @@
 									<text class="sq-meta-text">律师 · 深圳</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click="onLike">
+							<view class="sq-like-btn" @click.stop="onLike(3)">
 								<text class="sq-heart">♥</text>
 							</view>
 						</view>
@@ -329,7 +329,7 @@
 									<text class="sq-meta-text">医生 · 广州</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click="onLike">
+							<view class="sq-like-btn" @click.stop="onLike(7)">
 								<text class="sq-heart">♥</text>
 							</view>
 						</view>
@@ -384,7 +384,7 @@
 									<text class="sq-meta-text">金融分析师 · 上海</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click="onLike">
+							<view class="sq-like-btn" @click.stop="onLike(2)">
 								<text class="sq-heart">♥</text>
 							</view>
 						</view>
@@ -406,7 +406,7 @@
 									<text class="sq-meta-text">建筑师 · 杭州</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click="onLike">
+							<view class="sq-like-btn" @click.stop="onLike(3)">
 								<text class="sq-heart">♥</text>
 							</view>
 						</view>
@@ -562,7 +562,7 @@
 					<text class="chat-icon">💬</text>
 					<text class="chat-text">申请牵线</text>
 				</view>
-				<view class="like-btn" @click="onLike">
+				<view class="like-btn" @click="onLike(recommendUserId)">
 					<text class="heart-icon">♥</text>
 				</view>
 			</view>
@@ -620,6 +620,7 @@
 	import XsaToast from '@/components/XsaToast.uvue'
 	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
 	import { guardRealName } from '@/utils/realNameGate.uts'
+	import { likeUser } from '@/api'
 
 	// ========== 欢迎页 ==========
 	const welcomeVisible = ref(true)
@@ -717,7 +718,7 @@
 	const openApplyModal = async () => {
 		const ok = await guardRealName('apply')
 		if (!ok) return
-		applyUserId.value = 1
+		applyUserId.value = recommendUserId.value
 		applyVisible.value = true
 	}
 
@@ -735,9 +736,30 @@
 	const startChat = () => { matchedVisible.value = false; uni.navigateTo({ url: '/pages/chat/detail?userId=user_001&userName=林悦' }) }
 
 	// ========== 通用操作 ==========
-	const goUserDetail = () => { uni.navigateTo({ url: '/pages/user/detail?userId=1' }) }
+	// 推荐卡默认嘉宾 id（与 mock 动态作者对齐，便于验证关注·喜欢）
+	const recommendUserId = ref(1)
+	const goUserDetail = (userId: number = 1) => {
+		const id = userId > 0 ? userId : 1
+		uni.navigateTo({ url: '/pages/user/detail?userId=' + id })
+	}
 	const shareProfile = () => { showToast('已生成分享入口') }
-	const onLike = () => { showToast('已添加喜欢') }
+	// 用户级喜欢：写入 mockLikedUserIds，供社区「关注·喜欢」使用
+	const onLike = async (userId: number = 0) => {
+		const id = userId > 0 ? userId : recommendUserId.value
+		const ok = await guardRealName('like')
+		if (!ok) return
+		try {
+			const res = await likeUser(id)
+			if (res.success && res.data != null) {
+				const liked = res.data.liked == true
+				showToast(liked ? '已喜欢，仅你自己可见' : '已取消喜欢')
+			} else {
+				showToast('操作失败，请重试')
+			}
+		} catch (e) {
+			showToast('操作失败，请重试')
+		}
+	}
 
 	// ========== 生命周期 ==========
 	onMounted(() => {

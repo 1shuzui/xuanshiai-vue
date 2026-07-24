@@ -1,7 +1,7 @@
 /**
  * 社区相关 Mock 数据
- * 主 Tab：关注 / 同城 / 发现；喜欢为私有轻意向，不作为主 Tab
- * 互动门槛：仅实名；学历仅展示，不拦截
+ * 主 Tab：关注 / 同城 / 发现；关注页「喜欢」= 喜欢用户的动态（用户级）
+ * 互动门槛：常规互动仅实名；参与话题及带话题发布需实名和学历双重认证
  */
 
 const PORTRAIT = {
@@ -20,6 +20,9 @@ export const mockApplyStates: Record<string, string> = {
   '2': 'pending'
 }
 
+/** 用户级喜欢（资料卡/用户详情点过喜欢的用户），与帖子 liked / 收藏 / 关注严格分离 */
+export const mockLikedUserIds: number[] = [7]
+
 /** 动态流（含评论骨架，详情页复用） */
 export const mockDynamicList = [
   {
@@ -33,6 +36,9 @@ export const mockDynamicList = [
       height: '168cm',
       job: '产品设计师',
       education: '硕士',
+      school: '同济大学 · 硕士',
+      mbti: 'ENFJ',
+      hometown: '江苏无锡',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -92,6 +98,9 @@ export const mockDynamicList = [
       height: '165cm',
       job: '插画师',
       education: '本科',
+      school: '浙江大学 · 本科',
+      mbti: 'INFP',
+      hometown: '浙江绍兴',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -141,6 +150,9 @@ export const mockDynamicList = [
       height: '178cm',
       job: '产品经理',
       education: '本科',
+      school: '南京大学 · 本科',
+      mbti: 'INTJ',
+      hometown: '江苏南京',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'missing'
@@ -190,6 +202,9 @@ export const mockDynamicList = [
       height: '168cm',
       job: '产品设计师',
       education: '硕士',
+      school: '同济大学 · 硕士',
+      mbti: 'ENFJ',
+      hometown: '江苏无锡',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -228,6 +243,9 @@ export const mockDynamicList = [
       height: '170cm',
       job: '建筑设计师',
       education: '硕士',
+      school: '东南大学 · 硕士',
+      mbti: 'INFJ',
+      hometown: '江苏苏州',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -266,6 +284,9 @@ export const mockDynamicList = [
       height: '165cm',
       job: '插画师',
       education: '本科',
+      school: '浙江大学 · 本科',
+      mbti: 'INFP',
+      hometown: '浙江绍兴',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -295,44 +316,30 @@ export const mockDynamicList = [
   }
 ]
 
-/** 话题 */
+/** 话题（>=20，含 viewCount/createdAt/heat，供热门榜与分页） */
 export const mockTopics = [
-  {
-    id: 1,
-    tag: '# 认真关系',
-    title: '什么让你决定靠近一个人？',
-    description: '认真关系里的靠近与边界。欢迎分享真实经历，不评价、不围观式起哄。',
-    cover: PORTRAIT.main,
-    participantCount: 328,
-    postCount: 890,
-    isHot: true,
-    joined: false,
-    rules: ['尊重边界', '不索要联系方式', '不攻击他人选择']
-  },
-  {
-    id: 2,
-    tag: '# 城市周末',
-    title: '一个人也会去的地方',
-    description: '城市里的独处与偶遇。记录你愿意认真度过的周末。',
-    cover: PORTRAIT.alt,
-    participantCount: 214,
-    postCount: 560,
-    isHot: true,
-    joined: true,
-    rules: ['分享真实体验', '注明城市', '不约私下见面细节']
-  },
-  {
-    id: 3,
-    tag: '# 第一次见面',
-    title: '公共场所的安全感',
-    description: '安全见面与边界感。把安全感说清楚，也是一种认真。',
-    cover: PORTRAIT.community,
-    participantCount: 156,
-    postCount: 320,
-    isHot: false,
-    joined: false,
-    rules: ['公共场所优先', '不鼓励私下地址', '可分享安全经验']
-  }
+  { id: 1, tag: '# 认真关系', title: '什么让你决定靠近一个人？', description: '认真关系里的靠近与边界。欢迎分享真实经历，不评价、不围观式起哄。', cover: PORTRAIT.main, participantCount: 328, postCount: 890, viewCount: 12680, heat: 9800, createdAt: Date.now() - 40 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['尊重边界', '不索要联系方式', '不攻击他人选择'] },
+  { id: 2, tag: '# 城市周末', title: '一个人也会去的地方', description: '城市里的独处与偶遇。记录你愿意认真度过的周末。', cover: PORTRAIT.alt, participantCount: 214, postCount: 560, viewCount: 8920, heat: 8200, createdAt: Date.now() - 35 * 24 * 60 * 60 * 1000, isHot: true, joined: true, rules: ['分享真实体验', '注明城市', '不约私下见面细节'] },
+  { id: 3, tag: '# 第一次见面', title: '公共场所的安全感', description: '安全见面与边界感。把安全感说清楚，也是一种认真。', cover: PORTRAIT.community, participantCount: 156, postCount: 320, viewCount: 6540, heat: 7100, createdAt: Date.now() - 30 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['公共场所优先', '不鼓励私下地址', '可分享安全经验'] },
+  { id: 4, tag: '# MBTI', title: '性格不同，也能好好沟通吗？', description: '聊聊性格差异下的相处方式，不贴标签、不互相攻击。', cover: PORTRAIT.main, participantCount: 402, postCount: 1012, viewCount: 15200, heat: 9600, createdAt: Date.now() - 28 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['不人身攻击', '允许不同观点', '聚焦相处经验'] },
+  { id: 5, tag: '# 校友局', title: '同校并不等于合适，但容易开始', description: '校友身份只是开场白，认真关系仍要慢慢了解。', cover: PORTRAIT.alt, participantCount: 188, postCount: 430, viewCount: 7210, heat: 6900, createdAt: Date.now() - 26 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['尊重隐私', '不晒学号', '不约私下地址'] },
+  { id: 6, tag: '# 同乡', title: '离开家乡后，你还想保留什么？', description: '同乡只是亲切感，真正靠近仍靠沟通与边界。', cover: PORTRAIT.community, participantCount: 176, postCount: 390, viewCount: 6800, heat: 6500, createdAt: Date.now() - 24 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['真实分享', '不地域攻击', '不索要联系方式'] },
+  { id: 7, tag: '# 生活节奏', title: '两个人如何对齐作息与计划', description: '认真关系也要谈日常：工作、休息与共同计划。', cover: PORTRAIT.man, participantCount: 145, postCount: 288, viewCount: 5400, heat: 6100, createdAt: Date.now() - 22 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['尊重差异', '不评判生活方式'] },
+  { id: 8, tag: '# 情绪表达', title: '生气时你会怎么说出口？', description: '把情绪说清楚，是关系里的基本功。', cover: PORTRAIT.sea, participantCount: 290, postCount: 640, viewCount: 9100, heat: 7800, createdAt: Date.now() - 20 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['不攻击人格', '聚焦自己的感受'] },
+  { id: 9, tag: '# 家庭观', title: '你理想中的家庭氛围是什么？', description: '认真讨论家庭期待，不急于下结论。', cover: PORTRAIT.main, participantCount: 210, postCount: 500, viewCount: 7700, heat: 7200, createdAt: Date.now() - 18 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['尊重原生家庭差异', '不嘲讽他人选择'] },
+  { id: 10, tag: '# 财务观', title: '一起生活前，如何谈钱不尴尬？', description: '财务边界与共同目标，可以温柔而清楚。', cover: PORTRAIT.alt, participantCount: 168, postCount: 360, viewCount: 6900, heat: 6400, createdAt: Date.now() - 16 * 24 * 60 * 60 * 1000, isHot: true, joined: false, rules: ['不晒收入攀比', '尊重隐私'] },
+  { id: 11, tag: '# 兴趣', title: '愿意为对方尝试新爱好吗？', description: '兴趣重合不是必须，但愿意了解很重要。', cover: PORTRAIT.community, participantCount: 132, postCount: 270, viewCount: 4200, heat: 4800, createdAt: Date.now() - 14 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['分享真实体验'] },
+  { id: 12, tag: '# 旅行', title: '第一次一起旅行你会怎么安排？', description: '公共行程、预算与边界，都值得提前说清。', cover: PORTRAIT.sea, participantCount: 149, postCount: 310, viewCount: 5100, heat: 5200, createdAt: Date.now() - 12 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['公共场所优先', '不晒隐私行程'] },
+  { id: 13, tag: '# 宠物', title: '喜欢猫还是狗，会影响相处吗？', description: '生活方式细节里的认真沟通。', cover: PORTRAIT.main, participantCount: 121, postCount: 240, viewCount: 3900, heat: 4500, createdAt: Date.now() - 10 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['尊重养宠选择'] },
+  { id: 14, tag: '# 阅读', title: '最近一本改变你想法的书', description: '用阅读分享价值观与思考方式。', cover: PORTRAIT.alt, participantCount: 98, postCount: 180, viewCount: 2800, heat: 3600, createdAt: Date.now() - 9 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['分享真实感受'] },
+  { id: 15, tag: '# 运动', title: '一起运动是加分项吗？', description: '健康习惯与共同活动的边界。', cover: PORTRAIT.man, participantCount: 160, postCount: 330, viewCount: 4600, heat: 5000, createdAt: Date.now() - 8 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['公共路线优先'] },
+  { id: 16, tag: '# 工作边界', title: '忙季时如何维系关系？', description: '认真关系也要给工作留白。', cover: PORTRAIT.community, participantCount: 205, postCount: 470, viewCount: 7300, heat: 6700, createdAt: Date.now() - 7 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['不评判职业选择'] },
+  { id: 17, tag: '# 沟通方式', title: '你更习惯文字还是当面聊？', description: '沟通偏好不同时，如何找到共同方式。', cover: PORTRAIT.main, participantCount: 187, postCount: 410, viewCount: 6100, heat: 5900, createdAt: Date.now() - 6 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['尊重沟通节奏'] },
+  { id: 18, tag: '# 节日', title: '重要节日你怎么安排？', description: '节日期待说清楚，少一点猜。', cover: PORTRAIT.alt, participantCount: 142, postCount: 290, viewCount: 4800, heat: 4700, createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['尊重家庭安排'] },
+  { id: 19, tag: '# 边界', title: '你最在意的关系边界是什么？', description: '边界不是冷淡，是长期相处的保护。', cover: PORTRAIT.community, participantCount: 266, postCount: 580, viewCount: 8600, heat: 7400, createdAt: Date.now() - 4 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['不强迫对方', '尊重说不'] },
+  { id: 20, tag: '# 未来规划', title: '三年后你希望生活是什么样？', description: '认真讨论方向，不急着承诺结果。', cover: PORTRAIT.sea, participantCount: 230, postCount: 520, viewCount: 8000, heat: 7000, createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['不承诺结果', '聚焦真实期待'] },
+  { id: 21, tag: '# 新话题', title: '本周值得认真聊的一件小事', description: '新开启的讨论区，欢迎分享本周的认真瞬间。', cover: PORTRAIT.main, participantCount: 42, postCount: 66, viewCount: 980, heat: 2100, createdAt: Date.now() - 1 * 24 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['真实分享', '友善交流'] },
+  { id: 22, tag: '# 最新', title: '今天你愿意认真对待的一件事', description: '最新话题，记录今日的认真选择。', cover: PORTRAIT.alt, participantCount: 31, postCount: 48, viewCount: 760, heat: 1800, createdAt: Date.now() - 6 * 60 * 60 * 1000, isHot: false, joined: false, rules: ['真实分享'] }
 ]
 
 /** 纸飞机 */

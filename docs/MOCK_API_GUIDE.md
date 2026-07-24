@@ -50,14 +50,21 @@ Mock 与真实接口至少对齐字段名、类型、分页、状态码、错误
 |---|---|
 | `user.uts` | 推荐、广场、详情、我的资料、喜欢、申请认识 |
 | `message.uts` | 消息列表、聊天记录、发送消息、认识申请 |
-| `community.uts` | 动态列表（tab/filter 分页 `list+hasMore`）、详情、话题加入、纸飞机收发、活动报名与我的活动、Banner、通知已读/未读数、配额、发布/评论、点赞/收藏/关注、举报/拉黑、同城城市 |
+| `community.uts` | 动态列表（tab/filter 分页 `list+hasMore`）、详情、话题列表分页 `getTopicList`、话题详情排序、话题加入、纸飞机收发、活动报名与我的活动、Banner、通知已读/未读数、配额、发布/评论、点赞/收藏/关注、举报/拉黑、同城城市 |
 | `matchmaker.uts` | 服务红娘、志愿红娘、AI 推荐、套餐、预约 |
 
 ### 社区列表约定（Mock）
 
-- `getDynamicList({ tab, filter, page, pageSize })` → `{ list, page, pageSize, hasMore, total, tab, filter }`
-- 主 Tab：`follow | city | discover`；二级筛选：`all | media | topic | hot | latest`
-- 会话态：`mockBlockedUserIds`、`mockApplyStates`、`mockCurrentCity`
+- `getDynamicList({ tab, filter, page, pageSize, city? })` → `{ list, page, pageSize, hasMore, total, tab, filter }`
+- 主 Tab：`follow | city | discover`
+- 二级筛选：
+  - follow：`all | following | likedUsers`（likedUsers = 用户级喜欢，不是帖子点赞）
+  - city：`all | hot | latest`
+  - discover：`all | mbti | alumni | hometown`
+- `getTopicList({ sort, page, pageSize, excludeIds })` → `{ list, page, pageSize, total, hasMore }`
+- `getTopicDetail(topicId, sort)` 支持 `hot | latest`
+- 会话态：`mockBlockedUserIds`、`mockApplyStates`、`mockLikedUserIds`、`mockCurrentCity`
+- `likeUser` 维护 `mockLikedUserIds`；与 `dynamic.liked` / `dynamic.collected` 分离
 - `applyToMeet` 与 `mockApplyStates` 幂等：`pending`/`accepted` 不重复扣免费次数
 
 实际能力以代码导出为准；文档不得先于实现宣称功能完成。

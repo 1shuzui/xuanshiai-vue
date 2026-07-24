@@ -80,7 +80,7 @@
 
 <script setup lang="uts">
 import { publishDynamic } from '@/api'
-		import { guardRealName } from '@/utils/realNameGate.uts'
+		import { guardDualVerification, guardRealName } from '@/utils/realNameGate.uts'
 		// 表单数据
 		let photos = ref<string[]>([])
 		let content = ref('')
@@ -88,6 +88,13 @@ import { publishDynamic } from '@/api'
 		let visibility = ref(0) // 0-所有人 1-仅好友 2-仅自己
 		let mentions = ref<number[]>([])
 		let publishing = ref(false)
+		let topicId = ref(0)
+
+		onLoad((query: any) => {
+			const raw = query != null ? query.topicId : null
+			const parsed = raw != null ? parseInt('' + raw) : 0
+			topicId.value = parsed > 0 ? parsed : 0
+		})
 
 	// 可见范围文本
 	const visibilityText = computed(() => {
@@ -171,7 +178,9 @@ import { publishDynamic } from '@/api'
 // 发布
 		const handlePublish = async () => {
 			if (publishing.value) return
-			const ok = await guardRealName('publish')
+			const ok = topicId.value > 0
+				? await guardDualVerification('topicJoin')
+				: await guardRealName('publish')
 			if (!ok) return
 			if (!canPublish.value) {
 				uni.showToast({
@@ -188,6 +197,7 @@ import { publishDynamic } from '@/api'
 					content: content.value.trim(),
 					media: photos.value,
 					location: location.value,
+					topicId: topicId.value,
 					visibility: visibility.value
 				})
 				const data = res != null ? res.data : null

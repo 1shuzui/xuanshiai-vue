@@ -1,18 +1,32 @@
 <template>
 	<view class="page">
-		<view class="filter-row">
-			<view class="chip" :class="{ active: sort == 'hot' }" @click="changeSort('hot')"><text>热门</text></view>
-			<view class="chip" :class="{ active: sort == 'new' }" @click="changeSort('new')"><text>最新</text></view>
-		</view>
-		<scroll-view class="list" scroll-y>
-			<XsaEmpty v-if="!loading && topics.length == 0" text="暂无话题" description="稍后再来看看" />
-			<view class="topic-card" v-for="t in topics" :key="t.id" @click="openTopic(t.id)">
-				<image class="cover" :src="t.cover" mode="aspectFill"></image>
-				<view class="body">
-					<text class="tag">{{ t.tag }}</text>
-					<text class="title">{{ t.title }}</text>
-					<text class="desc text-muted">{{ t.description }}</text>
-					<text class="meta text-muted">{{ t.participantCount }} 人 · {{ t.postCount }} 帖</text>
+		<scroll-view class="list" scroll-y @scrolltolower="loadMore">
+			<view class="section">
+				<text class="section-title">近期热门</text>
+				<view class="hot-card" v-for="(t, idx) in hotList" :key="'h-' + t.id" @click="openTopic(t.id)">
+					<text class="rank">{{ idx + 1 }}</text>
+					<view class="body">
+						<text class="title">{{ t.title }}</text>
+						<text class="desc text-muted">{{ t.description }}</text>
+					</view>
+				</view>
+			</view>
+
+			<view class="section">
+				<text class="section-title">更多话题</text>
+				<XsaEmpty v-if="!loading && moreList.length == 0" text="暂无更多话题" description="热门话题已经看完了" />
+				<view class="topic-card" v-for="t in moreList" :key="'m-' + t.id" @click="openTopic(t.id)">
+					<image class="cover" :src="t.cover" mode="aspectFill"></image>
+					<view class="body">
+						<text class="tag">{{ t.tag }}</text>
+						<text class="title">{{ t.title }}</text>
+						<text class="desc text-muted">{{ t.description }}</text>
+						<text class="meta text-muted">{{ t.participantCount }} 人 · {{ t.postCount }} 帖</text>
+					</view>
+				</view>
+				<view class="load-more" v-if="moreList.length > 0 || loading">
+					<text class="load-text text-muted" v-if="loading">加载中...</text>
+					<text class="load-text text-muted" v-else-if="!hasMore">没有更多话题了</text>
 				</view>
 			</view>
 			<view class="pad"></view>
@@ -22,21 +36,37 @@
 
 <script setup lang="uts">
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
-	import { getTopics } from '@/api'
+	import { getTopicList } from '@/api'
 
-	const sort = ref('hot')
 	const loading = ref(false)
-	const topics = ref([])
+	const hotList = ref([])
+	const moreList = ref([])
+	const page = ref(1)
+	const pageSize = 10
+	const hasMore = ref(true)
+	const excludeIds = ref([])
 
 	onMounted(() => {
-		load()
+		init()
 	})
 
-	const load = async () => {
+	const init = async () => {
 		loading.value = true
 		try {
-			const res = await getTopics(sort.value)
-			if (res.success) topics.value = res.data as any[]
+			const hotRes = await getTopicList({ sort: 'hot', page: 1, pageSize: 10 })
+			if (hotRes.success && hotRes.data != null) {
+				const list = hotRes.data.list != null ? (hotRes.data.list as any[]) : []
+				hotList.value = list
+				const ids: number[] = []
+				for (let i = 0; i < list.length; i++) {
+					ids.push(list[i].id as number)
+				}
+				excludeIds.value = ids
+			}
+			page.value = 1
+			hasMore.value = true
+			moreList.value = []
+			await loadMoreInternal(true)
 		} catch (e) {
 			console.error(e)
 		} finally {
@@ -44,9 +74,38 @@
 		}
 	}
 
-	const changeSort = async (s: string) => {
-		sort.value = s
-		await load()
+	const loadMoreInternal = async (reset: boolean = false) => {
+		if (!hasMore.value && !reset) return
+		const res = await getTopicList({
+			sort: 'latest',
+			page: page.value,
+			pageSize,
+			excludeIds: excludeIds.value
+		})
+		if (res.success && res.data != null) {
+			const list = res.data.list != null ? (res.data.list as any[]) : []
+			if (reset) {
+				moreList.value = list
+			} else {
+				moreList.value = (moreList.value as any[]).concat(list)
+			}
+			hasMore.value = res.data.hasMore == true
+			if (list.length > 0) {
+				page.value = page.value + 1
+			}
+		}
+	}
+
+	const loadMore = async () => {
+		if (loading.value || !hasMore.value) return
+		loading.value = true
+		try {
+			await loadMoreInternal(false)
+		} catch (e) {
+			console.error(e)
+		} finally {
+			loading.value = false
+		}
 	}
 
 	const openTopic = (id: number) => {
@@ -58,42 +117,45 @@
 	.page {
 		height: 100vh;
 		background: var(--canvas);
-		display: flex;
-		flex-direction: column;
-	}
-	.filter-row {
-		display: flex;
-		flex-direction: row;
-		gap: 8px;
-		padding: 12px 14px;
-		background: var(--surface);
-		border-bottom: 1px solid var(--line);
-	}
-	.chip {
-		height: 30px;
-		padding: 0 12px;
-		border-radius: 999px;
-		border: 1px solid var(--line);
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-	}
-	.chip text {
-		font-size: 12px;
-		color: var(--muted);
-	}
-	.chip.active {
-		background: var(--soft);
-		border-color: var(--accent);
-	}
-	.chip.active text {
-		color: var(--accent);
-		font-weight: 700;
 	}
 	.list {
-		flex: 1;
-		height: 0;
+		height: 100%;
 		padding: 12px 14px;
+		box-sizing: border-box;
+	}
+	.section {
+		margin-bottom: 18px;
+	}
+	.section-title {
+		display: block;
+		font-size: 18px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+		margin-bottom: 10px;
+	}
+	.hot-card {
+		display: flex;
+		flex-direction: row;
+		gap: 10px;
+		padding: 12px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		margin-bottom: 8px;
+		align-items: flex-start;
+	}
+	.rank {
+		width: 22px;
+		height: 22px;
+		border-radius: 6px;
+		background: var(--soft);
+		color: var(--accent2);
+		font-size: 12px;
+		font-weight: 800;
+		text-align: center;
+		line-height: 22px;
+		flex-shrink: 0;
 	}
 	.topic-card {
 		display: flex;
@@ -124,7 +186,7 @@
 		color: var(--accent);
 	}
 	.title {
-		font-size: 16px;
+		font-size: 15px;
 		font-family: var(--serif);
 		font-weight: 700;
 		color: var(--ink);
@@ -138,6 +200,13 @@
 	}
 	.meta {
 		font-size: 11px;
+	}
+	.load-more {
+		text-align: center;
+		padding: 12px 0 8px;
+	}
+	.load-text {
+		font-size: 12px;
 	}
 	.pad {
 		height: 24px;

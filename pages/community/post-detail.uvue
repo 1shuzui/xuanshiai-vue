@@ -201,6 +201,9 @@ const submitComment = async () => {
 		const res = await collectDynamic(id)
 		if (res.success && post.value != null) {
 			post.value.collected = res.data.collected
+			if (res.data.collectCount != null) {
+				post.value.collectCount = res.data.collectCount
+			}
 		}
 	}
 
