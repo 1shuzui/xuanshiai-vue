@@ -7,7 +7,7 @@
 					<text class="sc-title">认识申请</text>
 					<text class="sc-desc text-muted">{{ applicationHint }}</text>
 				</view>
-				<view class="shortcut" @click="openHint('纸飞机 · 3 次免费机会')">
+				<view class="shortcut" @click="openPaperPlane">
 					<text class="sc-title">纸飞机</text>
 					<text class="sc-desc text-muted">匿名认真表达</text>
 				</view>
@@ -177,6 +177,12 @@
 
 	const openApplications = () => {
 		appVisible.value = true
+	}
+
+	const openPaperPlane = () => {
+		uni.navigateTo({
+			url: '/pages/community/paper-plane'
+		})
 	}
 
 	const openHint = (msg: string) => {

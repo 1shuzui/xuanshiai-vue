@@ -343,7 +343,7 @@ onMounted(() => {
 	}
 
 	// 从路由带入目标用户 id，供申请认识使用
-	if (options.userId != null and options.userId != '') {
+	if (options.userId != null && options.userId != '') {
 		let parsed = Number(options.userId)
 		if (!isNaN(parsed) && parsed > 0) {
 			user.value.id = parsed
