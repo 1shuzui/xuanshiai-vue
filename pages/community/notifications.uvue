@@ -1,14 +1,41 @@
 <template>
 	<view class="page">
+		<view class="tabs">
+			<view
+				class="tab"
+				:class="{ active: currentTab === 'comment' }"
+				@click="switchTab('comment')"
+			>
+				<text class="tab-text">评论</text>
+			</view>
+			<view
+				class="tab"
+				:class="{ active: currentTab === 'like' }"
+				@click="switchTab('like')"
+			>
+				<text class="tab-text">点赞</text>
+			</view>
+			<view
+				class="tab"
+				:class="{ active: currentTab === 'notice' }"
+				@click="switchTab('notice')"
+			>
+				<text class="tab-text">通知</text>
+			</view>
+		</view>
 		<view class="toolbar" v-if="list.length > 0">
 			<text class="mark-all text-accent" @click="markAll">全部已读</text>
 		</view>
 		<scroll-view class="list" scroll-y>
-			<XsaEmpty v-if="!loading && list.length == 0" text="暂无社区通知" description="点赞、评论与活动进展会在这里出现" />
+			<XsaEmpty
+				v-if="!loading && filteredList.length == 0"
+				:text="emptyText"
+				:description="emptyDesc"
+			/>
 			<view
 				class="item"
 				:class="{ unread: !n.read }"
-				v-for="n in list"
+				v-for="n in filteredList"
 				:key="n.id"
 				@click="open(n)"
 			>
@@ -32,8 +59,44 @@
 		markAllNotificationsRead
 	} from '@/api'
 
-	const list = ref([])
+	const list = ref([] as any[])
 	const loading = ref(false)
+	const currentTab = ref('comment')
+
+	const switchTab = (tab: string) => {
+		currentTab.value = tab
+	}
+
+	const filteredList = computed(() => {
+		const all = list.value as any[]
+		const out: any[] = []
+		for (let i = 0; i < all.length; i++) {
+			const n = all[i]
+			const t = n.type != null ? ('' + n.type) : ''
+			if (currentTab.value == 'comment' && t == 'comment') out.push(n)
+			else if (currentTab.value == 'like' && t == 'like') out.push(n)
+			else if (
+				currentTab.value == 'notice' &&
+				t != 'comment' &&
+				t != 'like'
+			) {
+				out.push(n)
+			}
+		}
+		return out
+	})
+
+	const emptyText = computed(() => {
+		if (currentTab.value == 'comment') return '暂无评论'
+		if (currentTab.value == 'like') return '暂无点赞'
+		return '暂无通知'
+	})
+
+	const emptyDesc = computed(() => {
+		if (currentTab.value == 'comment') return '收到的评论会出现在这里'
+		if (currentTab.value == 'like') return '收到的点赞会出现在这里'
+		return '申请认识与活动进展会出现在这里'
+	})
 
 	onMounted(() => {
 		load()
@@ -89,6 +152,33 @@
 		background: var(--canvas);
 		display: flex;
 		flex-direction: column;
+	}
+	.tabs {
+		display: flex;
+		flex-direction: row;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+	}
+	.tab {
+		flex: 1;
+		height: 44px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		border-bottom: 2px solid transparent;
+	}
+	.tab.active {
+		border-bottom-color: var(--accent);
+	}
+	.tab-text {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--muted);
+	}
+	.tab.active .tab-text {
+		color: var(--accent);
+		font-weight: 700;
 	}
 	.toolbar {
 		height: 40px;

@@ -1,6 +1,6 @@
 ﻿# 当前工程状态与已知差异
 
-> 更新日期：2026-07-23
+> 更新日期：2026-07-24
 > 用途：防止文档把占位实现、Mock 或历史配置描述成已完成生产能力。
 
 ## 1. 当前可确认的工程事实
@@ -14,15 +14,16 @@
   - 同城：`全部 / 热门 / 最新`
   - 发现：`全部 / MBTI / 校友 / 同乡`（TOPIC 面板仅在「发现·全部」）
 - 已有 `Xsa*` 组件含 `XsaDynamicCard`、`XsaApplySheet`、`XsaReportSheet` 等；实名门槛见 `utils/realNameGate.uts`（`passed|missing|reviewing|rejected`，兼容 pending/failed）。
-- 认证门槛：常规社区互动与申请认识仅要求实名通过；参与话题 / 带话题发布要求双重认证（实名通过 + 学历人工审核通过）。
+- 认证门槛：常规社区互动、申请认识、参与话题 / 带话题发布均仅要求实名通过；双重认证仅作展示加分。
 - 已有 `api/` 与 `mock/` 分层；社区 API 支持分页 list+hasMore、结构化 publish/comment/paperPlane、通知已读、拉黑过滤、同城城市；当前 `USE_MOCK = true`。
 - 申请认识：`applyToMeet` 与 `mockApplyStates` 幂等（pending/accepted 不重复扣次）；首页与社区统一 `XsaApplySheet`。
+- 2026-07-24：社区动态卡字段密度、发布页话题/声明/视频/表情、通知三栏已按设计实现（Mock + 页面渐进增强）；真机视频上传与 COS 仍属二期。
 - 用户肖像资源位于 `static/portraits/`。
 - HTML 参考 `design-demos/community-shell/` 已冻结，不再作为实现主线。
 
 ## 2. 运行与构建状态
 
-- 2026-07-23 结构验证：`node tests/test-mock-system.js` 与 `node tests/test-community-flow.js` 均 exit 0；`git diff --check` 无错误（仅有 CRLF 提示）。工作区根目录 graphify 见 `../graphify-out/`（本项目目录内无独立 `graphify-out/`）。
+- 2026-07-24 结构验证：`node tests/test-mock-system.js` 与 `node tests/test-community-flow.js` 均 exit 0；`git diff --check` 无错误（仅有 CRLF 提示）。工作区根目录 graphify 见 `../graphify-out/`（本项目目录内无独立 `graphify-out/`）。
 - **HBuilderX 端侧编译（本会话已执行，2026-07-23 17:57 产物）：** 以 HBuilderX CLI `launch mp-weixin --compile true` 重新生成 `unpackage/dist/dev/mp-weixin`；社区子页与 `api/community.js` 同步刷新；微信开发者工具可导入该目录。H5 冒烟预览端口为本机 `http://localhost:8080`（`:5173` 不是本工程 UI）。
 - **社区列表曾报“网络异常”：** 根因不是真实网络失败，而是 UTS 编译对象属性简写时丢掉局部变量（`normalizeListQuery` 返回 `{ tab }` 被编成裸 `tab` → ReferenceError → 页面 catch 文案）。源码已改为 `resolveTabValue` + 显式 `tab: tabName` 等属性名；产物中可见 `tab: tabName_1`。同类对象简写在 `.uts` 中应避免。
 - npm CLI 当前未通过：默认会读取不存在的 `src/manifest.json`；手动指定项目根目录后，又会在解析 `App.uvue` 时失败。`npm run build:mp-weixin` / `dev:mp-weixin` 不能作为端侧验收结论。

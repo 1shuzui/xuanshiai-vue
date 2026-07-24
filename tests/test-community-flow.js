@@ -102,19 +102,50 @@ if (mockCommunity.includes("type: 'topic'") && mockCommunity.includes("type: 'ac
 
 const mockIndex = read('mock/index.uts')
 ;[
-  'mockCommunityNotifications',
-  'mockCommunityQuotas',
-  'mockReportReasons',
-  'mockBlockedUserIds',
-  'mockApplyStates',
-  'mockLikedUserIds',
-  'mockCurrentCity'
-].forEach((n) => {
-  if (mockIndex.includes(n)) ok(`mock/index 导出 ${n}`)
-  else fail(`mock/index 未导出 ${n}`)
-})
-
-// 3. API
+	  'mockCommunityNotifications',
+	  'mockCommunityQuotas',
+	  'mockReportReasons',
+	  'mockBlockedUserIds',
+	  'mockApplyStates',
+	  'mockLikedUserIds',
+	  'mockCurrentCity'
+	].forEach((n) => {
+	  if (mockIndex.includes(n)) ok(`mock/index 导出 ${n}`)
+	  else fail(`mock/index 未导出 ${n}`)
+	})
+	
+	// 2.1 动态卡 / 通知分栏样本字段
+	console.log('\n2.1 动态卡字段 / 通知 type 样本...')
+	if (
+	  mockCommunity.includes('gender:') &&
+	  mockCommunity.includes('birthYear:') &&
+	  mockCommunity.includes('ipLocation:') &&
+	  mockCommunity.includes('income:')
+	) {
+	  ok('mock 动态用户含 gender/birthYear/ipLocation/income')
+	} else {
+	  fail('mock 动态用户缺少性别/出生年/IP/年薪字段')
+	}
+	if (
+	  mockCommunity.includes('relationTags') &&
+	  mockCommunity.includes('topicTitle')
+	) {
+	  ok('mock 动态含 relationTags / topicTitle')
+	} else {
+	  fail('mock 动态缺少 relationTags 或 topicTitle')
+	}
+	if (
+	  mockCommunity.includes("type: 'like'") &&
+	  mockCommunity.includes("type: 'comment'") &&
+	  mockCommunity.includes("type: 'apply'") &&
+	  mockCommunity.includes("type: 'activity'")
+	) {
+	  ok('通知 type 含 like/comment/apply/activity')
+	} else {
+	  fail('通知 type 样本不齐')
+	}
+	
+	// 3. API
 console.log('\n3. 社区 API...')
 const apiCommunity = read('api/community.uts')
 const apiFns = [
@@ -165,6 +196,42 @@ if (apiCommunity.includes('normalizeListQuery') || apiCommunity.includes("tab: '
   fail('列表 tab 结构异常')
 }
 
+console.log('\n3.1 publishDynamic 契约...')
+if (
+  apiCommunity.includes('videos') &&
+  apiCommunity.includes('mediaType') &&
+  apiCommunity.includes('topicTitle')
+) {
+  ok('publishDynamic 处理 videos/mediaType/topicTitle')
+} else {
+  fail('publishDynamic 未透传 videos/mediaType/topicTitle')
+}
+if (
+  apiCommunity.includes('正文或图片') ||
+  apiCommunity.includes('文字或图片、视频') ||
+  apiCommunity.includes('图片或视频')
+) {
+  ok('空内容拦截文案覆盖视频')
+} else {
+  fail('空内容文案未覆盖视频')
+}
+if (
+  apiCommunity.includes('INVALID_MEDIA') &&
+  apiCommunity.includes('图片与视频不能同时')
+) {
+  ok('publishDynamic 拒绝图视频同时提交')
+} else {
+  fail('publishDynamic 缺少图视频互斥校验')
+}
+if (
+  apiCommunity.includes('mediaType: mediaType') &&
+  apiCommunity.includes('topicTitle: topicTitle')
+) {
+  ok('publishDynamic request data 含 mediaType/topicTitle')
+} else {
+  fail('publishDynamic request data 未写入 mediaType/topicTitle')
+}
+
 const apiIndex = read('api/index.uts')
 ;[
   'commentDynamic',
@@ -179,18 +246,21 @@ const apiIndex = read('api/index.uts')
   else fail(`api/index 未导出 ${fn}`)
 })
 
-// 4. 认证门槛：常规互动仅实名；话题参与/带话题发布双重认证
-console.log('\n4. 认证门槛（常规互动仅实名；话题双重认证）...')
+// 4. 认证门槛：常规互动、话题参与/带话题发布均仅实名
+console.log('\n4. 认证门槛（常规互动与话题均仅实名）...')
 if (exists('utils/realNameGate.uts')) ok('utils/realNameGate.uts 存在')
 else fail('缺少 realNameGate')
 
 const gate = read('utils/realNameGate.uts')
 if (gate.includes('guardRealName') && gate.includes('resolveRealNameStatus')) ok('导出 guardRealName / resolveRealNameStatus')
 else fail('门槛工具导出不完整')
-if (gate.includes('常规互动与申请仅要求实名') && gate.includes('参与话题及带话题发布需实名和学历双重认证')) {
-  ok('认证边界区分常规实名与话题双重认证')
+if (
+  gate.includes('常规社区互动、申请认识、参与话题及带话题发布均仅要求实名通过') &&
+  gate.includes('双重认证（实名 + 学历过审）仅作展示加分，不作为话题门槛')
+) {
+  ok('认证边界：话题与常规互动统一为仅实名')
 } else {
-  fail('认证边界文案未区分常规实名与话题双重认证')
+  fail('认证边界文案未同步为话题仅实名')
 }
 if (
   gate.includes("'passed'") &&
@@ -239,10 +309,60 @@ if (exists('components/XsaApplySheet.uvue')) ok('XsaApplySheet 存在')
 else fail('缺少 XsaApplySheet')
 
 const card = read('components/XsaDynamicCard.uvue')
-if (card.includes('申请认识') && card.includes('handleApply')) ok('动态卡含申请认识')
-else fail('动态卡缺少申请认识')
-if (card.includes('不感兴趣')) fail('动态卡仍含不感兴趣')
-else ok('动态卡无「不感兴趣」')
+	if (card.includes('申请认识') && card.includes('handleApply')) ok('动态卡含申请认识')
+	else fail('动态卡缺少申请认识')
+	if (card.includes('不感兴趣')) fail('动态卡仍含不感兴趣')
+	else ok('动态卡无「不感兴趣」')
+
+	console.log('\n5.1 动态卡字段展示...')
+	const cardSrc = read('components/XsaDynamicCard.uvue')
+	if (
+	  cardSrc.includes('birthYear') &&
+	  cardSrc.includes('ipLocation') &&
+	  (cardSrc.includes('gender') || cardSrc.includes('genderIcon'))
+	) {
+	  ok('动态卡含出生年/IP/性别逻辑')
+	} else {
+	  fail('动态卡缺少出生年/IP/性别')
+	}
+	if (cardSrc.includes('topicTitle') && cardSrc.includes('cityTag')) {
+	  ok('动态卡含 topicTitle / cityTag')
+	} else {
+	  fail('动态卡缺少 topicTitle 或 cityTag')
+	}
+if (cardSrc.includes('relationTags') || cardSrc.includes('relation-tag')) {
+		  ok('动态卡含关系小标')
+		} else {
+		  fail('动态卡缺少关系小标')
+		}
+		if (
+		  cardSrc.includes('hasVideo') &&
+		  (cardSrc.includes('video-block') || cardSrc.includes('<video'))
+		) {
+		  ok('动态卡支持视频可见性')
+		} else {
+		  fail('动态卡缺少视频展示分支')
+		}
+		if (
+		  cardSrc.includes('relationSet.indexOf') ||
+		  cardSrc.includes('relationList.value')
+		) {
+		  ok('动态卡 tagList 与关系标去重')
+		} else {
+		  fail('动态卡未对关系标与 tags 去重')
+		}
+
+		const communityNorm = read('pages/community/community.uvue')
+	if (
+	  communityNorm.includes('topicTitle') &&
+	  communityNorm.includes('cityTag') &&
+	  communityNorm.includes('relationTags')
+	) {
+	  ok('community normalizeDynamic 透传新字段')
+	} else {
+	  fail('community normalizeDynamic 未透传新字段')
+	}
+
 if (card.includes('age') && card.includes('height') && card.includes('education')) {
   ok('动态卡支持完整资料标签字段')
 } else {
@@ -367,16 +487,21 @@ if (topicDetail.includes('hero-cover') && topicDetail.includes('参与话题') &
 } else {
   fail('话题详情页结构未对齐')
 }
+if (topicDetail.includes('topicError') && topicDetail.includes('action-text="重试"') && topicDetail.includes('topic != null && !topicError')) {
+  ok('话题详情包含错误重试态并仅在成功加载后显示参与按钮')
+} else {
+  fail('话题详情缺少错误重试态或参与按钮未受状态保护')
+}
 const realNameGate = read('utils/realNameGate.uts')
 if (realNameGate.includes('resolveEducationStatus') && realNameGate.includes('ensureDualVerification') && realNameGate.includes('guardDualVerification')) {
-  ok('双重认证守卫支持学历状态解析与拦截')
+  ok('双重认证守卫仍保留（展示/预留）')
 } else {
-  fail('双重认证守卫缺少学历认证校验')
+  fail('双重认证守卫工具缺失')
 }
-if (topicDetail.includes("guardDualVerification('topicJoin')") && topicDetail.includes('publish?topicId=')) {
-  ok('参与话题要求双重认证并携带 topicId')
+if (topicDetail.includes("guardRealName('topicJoin')") && topicDetail.includes('publish?topicId=') && !topicDetail.includes('guardDualVerification')) {
+  ok('参与话题仅要求实名并携带 topicId')
 } else {
-  fail('参与话题双重认证或 topicId 缺失')
+  fail('参与话题实名门槛或 topicId 缺失')
 }
 if (topicDetail.includes("guardRealName('like')") && topicDetail.includes("guardRealName('collect')") && topicDetail.includes("guardRealName('follow')")) {
   ok('话题内点赞、收藏、关注仍仅要求实名')
@@ -390,8 +515,11 @@ if (communityPublishPage.includes('onLoad') && communityPublishPage.includes('qu
 } else {
   fail('发布页未解析 topicId')
 }
-if (communityPublishPage.includes("guardDualVerification('topicJoin')") && communityPublishPage.includes("guardRealName('publish')")) {
-  ok('带话题发布要求双重认证，普通发布仍仅要求实名')
+if (
+  communityPublishPage.includes("guardRealName(topicId.value > 0 ? 'topicJoin' : 'publish')") &&
+  !communityPublishPage.includes('guardDualVerification')
+) {
+  ok('带话题发布与普通发布均仅要求实名')
 } else {
   fail('发布流程认证门槛不完整')
 }
@@ -418,6 +546,25 @@ if (topicList.includes("sort == 'hot'") || topicList.includes("changeSort('hot')
   ok('全部话题页已移除顶部热门/最新标签')
 }
 
+if (topicList.includes('loadError') && topicList.includes('action-text="重试"')) {
+	  ok('全部话题页包含网络错误重试态')
+	} else {
+	  fail('全部话题页缺少网络错误重试态')
+	}
+	// 分页失败不得 loadError=true，否则已成功首屏被整页 Empty 盖住
+	const loadMoreBlock = topicList.includes('const loadMore = async')
+	  ? topicList.slice(topicList.indexOf('const loadMore = async'))
+	  : ''
+	const loadMoreSetsLoadError =
+	  loadMoreBlock.includes("loadError.value = true") ||
+	  loadMoreBlock.includes('loadError.value=true')
+	if (loadMoreBlock !== '' && !loadMoreSetsLoadError) {
+	  ok('全部话题页分页失败不触发整页 loadError')
+	} else if (loadMoreBlock === '') {
+	  fail('全部话题页缺少 loadMore')
+	} else {
+	  fail('全部话题页 loadMore 仍会 loadError=true 盖住首屏')
+	}
 const cardClick = read('components/XsaDynamicCard.uvue')
 if (cardClick.includes('handleOpen') && cardClick.includes('previewImage') && cardClick.includes('@click.stop')) {
   ok('动态卡：正文进详情、图片预览并阻止冒泡')
@@ -477,13 +624,100 @@ if (postDetailPage.includes('res.data.collectCount')) {
   fail('帖子详情未回写 collectCount')
 }
 
-// 7. Demo 冻结提示文件存在
-console.log('\n7. HTML Demo 参考...')
-if (exists('design-demos/community-shell/index.html')) ok('community-shell demo 仍在（视觉参考）')
-else ok('community-shell demo 已移除（非本轮阻断项）')
+// 7. 发布页完整能力
+console.log('\n7. 发布页完整能力...')
+const publishSrc = read('pages/community/publish.uvue')
+if (
+  publishSrc.includes('添加话题') ||
+  publishSrc.includes('topic-sheet') ||
+  publishSrc.includes('showTopicSheet')
+) {
+  ok('发布页含话题选择')
+} else {
+  fail('发布页缺少话题选择')
+}
+if (
+  publishSrc.includes('内容声明') ||
+  publishSrc.includes('declaration')
+) {
+  ok('发布页含内容声明')
+} else {
+  fail('发布页缺少内容声明')
+}
+if (
+  publishSrc.includes('chooseVideo') ||
+  publishSrc.includes('添加视频') ||
+  publishSrc.includes('videos')
+) {
+  ok('发布页含视频能力')
+} else {
+  fail('发布页缺少视频')
+}
+if (
+  publishSrc.includes('emoji') ||
+  publishSrc.includes('表情') ||
+  publishSrc.includes('insertEmoji')
+) {
+  ok('发布页含表情')
+} else {
+  fail('发布页缺少表情')
+}
+if (
+	  publishSrc.includes("guardRealName(topicId") ||
+	  publishSrc.includes("topicId.value > 0 ? 'topicJoin'")
+	) {
+	  ok('带话题发布走 topicJoin 门槛')
+	} else {
+	  fail('发布门槛未区分 topicJoin')
+	}
+	if (
+	  publishSrc.includes('getTopicDetail') &&
+	  (publishSrc.includes('话题标题加载失败') || publishSrc.includes('话题 #'))
+	) {
+	  ok('入口 topicId 标题失败有占位/提示')
+	} else {
+	  fail('入口 topicId 标题失败仍可能静默')
+	}
 
-// 8. 申请认识跨入口一致性 + 额度
-console.log('\n8. 申请认识统一规则...')
+// 8. 通知分栏
+	console.log('\n8. 通知分栏...')
+	const notifySrc = read('pages/community/notifications.uvue')
+	if (
+	  notifySrc.includes('评论') &&
+	  notifySrc.includes('点赞') &&
+	  (notifySrc.includes("currentTab") || notifySrc.includes('notifyTab'))
+	) {
+	  ok('通知页含评论/点赞分栏')
+	} else {
+	  fail('通知页缺少分栏 Tab')
+	}
+	if (
+	  notifySrc.includes("type == 'comment'") ||
+	  notifySrc.includes("type === 'comment'") ||
+	  notifySrc.includes("n.type == 'comment'") ||
+	  notifySrc.includes("'comment'")
+	) {
+	  ok('通知页按 type 过滤')
+	} else {
+	  fail('通知页缺少 type 过滤')
+	}
+	if (
+	  notifySrc.includes('暂无评论') &&
+	  notifySrc.includes('暂无点赞') &&
+	  notifySrc.includes('暂无通知')
+	) {
+	  ok('通知分栏独立空态')
+	} else {
+	  fail('通知分栏空态不完整')
+	}
+
+	// 8.1 Demo 冻结提示文件存在
+	console.log('\n8.1 HTML Demo 参考...')
+	if (exists('design-demos/community-shell/index.html')) ok('community-shell demo 仍在（视觉参考）')
+	else ok('community-shell demo 已移除（非本轮阻断项）')
+
+// 9. 申请认识跨入口一致性 + 额度
+console.log('\n9. 申请认识统一规则...')
 const indexPage = read('pages/index/index.uvue')
 if (indexPage.includes('guardRealName') && indexPage.includes("guardRealName('apply')")) {
   ok('首页申请认识接入 guardRealName')
@@ -533,8 +767,8 @@ if (planeApi.includes('scope') && planeApi.includes('sendPaperPlane')) {
   fail('sendPaperPlane 结构未升级')
 }
 
-// 9. 发布 / 评论 / 通知闭环
-console.log('\n9. 发布评论通知闭环...')
+// 10. 发布 / 评论 / 通知闭环
+console.log('\n10. 发布评论通知闭环...')
 const publishPage = read('pages/community/publish.uvue')
 if (publishPage.includes('publishDynamic') && !publishPage.includes('setTimeout(() => {\n\t\t\t\tuni.hideLoading()')) {
   ok('发布页调用 publishDynamic')

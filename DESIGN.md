@@ -18,6 +18,15 @@ colors:
   sage: "#338D6B"
   sage-soft: "#C2E0CF"
   text-invert: "#FCFCFC"
+  overlays:
+    surface: "rgba(250, 252, 252, 0.96)"
+    image: "linear-gradient(180deg, rgba(17, 23, 24, 0.20) 0%, rgba(17, 23, 24, 0.78) 100%)"
+    imageHero: "linear-gradient(180deg, rgba(17, 23, 24, 0.25) 0%, rgba(17, 23, 24, 0.82) 100%)"
+    imageText: "rgba(231, 236, 236, 0.75)"
+    imageTextMuted: "rgba(231, 236, 236, 0.72)"
+    imageTextStrong: "rgba(231, 236, 236, 0.88)"
+    imageSurface: "rgba(250, 252, 252, 0.10)"
+    imageLine: "rgba(231, 236, 236, 0.16)"
 typography:
   display:
     fontFamily: "ui-serif, Songti SC, STSong, Noto Serif SC, serif"
@@ -142,6 +151,10 @@ components:
 ### 对比度与状态
 
 正文和关键操作必须保持可读对比度；占位文本、禁用态、错误说明也要有足够辨识度。焦点态使用青瓷绿描边：`outline: 3px solid rgba(56, 152, 141, 0.45)`，并保留 `outline-offset: 2px`。错误状态沿用现有组件行为，但新代码不应继续散落硬编码颜色；需要统一错误 Token 时先走设计评审。
+
+## 图片与浮层 Token
+
+图片 Hero、渐变浮层、半透明底栏与阴影统一使用 uni.scss 的 --surface-overlay、--image-*、--shadow-overlay 等语义 Token，页面不得散落新的 rgba 值。
 
 ## Typography
 

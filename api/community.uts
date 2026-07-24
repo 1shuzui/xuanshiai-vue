@@ -710,6 +710,7 @@ export async function publishDynamic(
 ) {
   let content = ''
   let photos: string[] = []
+  let videos: string[] = []
   let location = ''
   let topicId = 0
   let visibility = 0
@@ -719,6 +720,8 @@ export async function publishDynamic(
     content = contentOrPayload.content != null ? ('' + contentOrPayload.content).trim() : ''
     const media = contentOrPayload.media != null ? contentOrPayload.media : contentOrPayload.photos
     photos = media != null ? (media as string[]) : []
+    const rawVideos = contentOrPayload.videos
+    videos = rawVideos != null ? (rawVideos as string[]) : []
     location = contentOrPayload.location != null ? ('' + contentOrPayload.location) : ''
     topicId = contentOrPayload.topicId != null ? (contentOrPayload.topicId as number) : 0
     visibility = contentOrPayload.visibility != null ? (contentOrPayload.visibility as number) : 0
@@ -731,20 +734,75 @@ export async function publishDynamic(
     visibility = visibilityArg
   }
 
-  if (content.length == 0 && (photos == null || photos.length == 0)) {
+  const hasPhotos = photos != null && photos.length > 0
+  const hasVideos = videos != null && videos.length > 0
+  if (content.length == 0 && !hasPhotos && !hasVideos) {
     return request({
       url: '/community/dynamic/publish',
       cloudFunctionName: 'community',
       action: 'publishDynamic',
       method: 'POST',
-      data: { content, photos, location, topicId, visibility, declaration },
+      data: {
+        content: content,
+        photos: photos,
+        videos: videos,
+        location: location,
+        topicId: topicId,
+        visibility: visibility,
+        declaration: declaration
+      },
       mockData: {
         success: false,
         code: 'EMPTY_CONTENT',
-        message: '请添加文字或图片后再发布'
+        message: '请添加正文或图片、视频后再发布'
       }
     })
   }
+
+  // 图片与视频互斥：API 层强制，防止绕过页面 UI
+  if (hasPhotos && hasVideos) {
+    return request({
+      url: '/community/dynamic/publish',
+      cloudFunctionName: 'community',
+      action: 'publishDynamic',
+      method: 'POST',
+      data: {
+        content: content,
+        photos: photos,
+        videos: videos,
+        location: location,
+        topicId: topicId,
+        visibility: visibility,
+        declaration: declaration
+      },
+      mockData: {
+        success: false,
+        code: 'INVALID_MEDIA',
+        message: '图片与视频不能同时发布，请只保留一种媒体'
+      }
+    })
+  }
+
+  // 视频最多 1 条
+  if (hasVideos && videos.length > 1) {
+    videos = [videos[0]]
+  }
+  // 图片最多 9 张
+  if (hasPhotos && photos.length > 9) {
+    photos = photos.slice(0, 9)
+  }
+
+  let topicTitle = ''
+  let topic: any = null
+  if (topicId > 0) {
+    topic = findTopic(topicId)
+    if (topic != null && topic.title != null) {
+      topicTitle = '' + topic.title
+    }
+  }
+  const mediaType = hasVideos ? 'video' : (hasPhotos ? 'image' : 'none')
+  const finalPhotos: string[] = hasVideos ? [] : (photos != null ? photos : [])
+  const finalVideos: string[] = hasVideos ? videos : []
 
   const dynamicId = Date.now()
   const cityName = location != '' ? ('' + location).split('·')[0].trim() : mockCurrentCity.name
@@ -755,6 +813,10 @@ export async function publishDynamic(
       avatar: '/static/portraits/profile-man-light.jpg',
       name: '顾言澄',
       age: 29,
+      gender: '男',
+      birthYear: 1997,
+      ipLocation: '江苏',
+      income: '',
       city: mockCurrentCity.name,
       height: '178cm',
       job: '产品经理',
@@ -763,15 +825,19 @@ export async function publishDynamic(
       realNameStatus: 'passed',
       educationStatus: 'missing'
     },
-    content,
-    photos: photos != null ? photos : [],
-    media: photos != null ? photos : [],
+    content: content,
+    photos: finalPhotos,
+    media: finalPhotos,
+    videos: finalVideos,
+    mediaType: mediaType,
     location: location,
     cityTag: cityName == mockCurrentCity.name,
     city: cityName,
     topicId: topicId > 0 ? topicId : null,
+    topicTitle: topicTitle,
+    relationTags: [],
     tags: declaration != '' ? [declaration] : [],
-    declaration,
+    declaration: declaration,
     time: Date.now(),
     timeText: '刚刚',
     likeCount: 0,
@@ -784,23 +850,30 @@ export async function publishDynamic(
     tabs: ['discover', cityName == mockCurrentCity.name ? 'city' : 'discover'],
     tab: 'discover',
     comments: [],
-    visibility
+    visibility: visibility
   }
   ;(mockDynamicList as any[]).unshift(item)
-  if (topicId > 0) {
-    const topic = findTopic(topicId)
-    if (topic != null) {
-      topic.postCount = ((topic.postCount as number) || 0) + 1
-      markTopicParticipation(topic)
-    }
+  if (topicId > 0 && topic != null) {
+    topic.postCount = ((topic.postCount as number) || 0) + 1
+    markTopicParticipation(topic)
   }
   return request({
     url: '/community/dynamic/publish',
     cloudFunctionName: 'community',
     action: 'publishDynamic',
     method: 'POST',
-    data: { content, photos, location, topicId, visibility, declaration },
-    mockData: { success: true, dynamicId, dynamic: item }
+    data: {
+      content: content,
+      photos: finalPhotos,
+      videos: finalVideos,
+      mediaType: mediaType,
+      topicTitle: topicTitle,
+      location: location,
+      topicId: topicId,
+      visibility: visibility,
+      declaration: declaration
+    },
+    mockData: { success: true, dynamicId: dynamicId, dynamic: item }
   })
 }
 

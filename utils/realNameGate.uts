@@ -1,11 +1,12 @@
 /**
- * 社区 / 申请认识 · 实名门槛
- * 产品覆盖：常规互动与申请仅要求实名；参与话题及带话题发布需实名和学历双重认证
- * 浏览、举报、拉黑不要求实名
- *
- * 状态枚举（定版）：passed | missing | reviewing | rejected
- * 兼容旧值：pending→reviewing，failed→rejected
- */
+	 * 社区 / 申请认识 · 实名门槛
+	 * 产品覆盖：常规社区互动、申请认识、参与话题及带话题发布均仅要求实名通过
+	 * 双重认证（实名 + 学历过审）仅作展示加分，不作为话题门槛
+	 * 浏览、举报、拉黑不要求实名
+	 *
+	 * 状态枚举（定版）：passed | missing | reviewing | rejected
+	 * 兼容旧值：pending→reviewing，failed→rejected
+	 */
 
 import { getMeProfile } from '@/api/user.uts'
 
@@ -140,7 +141,7 @@ export function resolveEducationStatus(profile: any): EducationStatus {
 
 /**
  * 拉取当前用户并校验实名和学历认证是否均已通过。
- * 用于参与话题及带话题发布；常规互动仍只使用 ensureRealName。
+ * 仅用于双重认证展示 / 预留场景；话题参与与带话题发布已改回 ensureRealName。
  */
 export async function ensureDualVerification(action: GateAction | string = 'topicJoin') {
   const realNameResult = await ensureRealName(action)

@@ -45,30 +45,37 @@
 					@change="onBannerChange"
 				>
 					<swiper-item v-for="b in banners" :key="b.id">
-						<!-- TOPIC 完整话题面板 -->
-						<view v-if="b.type === 'topic'" class="topic-panel" @click.stop>
-							<view class="topic-panel-main" @click="openFeaturedTopic">
-								<image v-if="featuredTopic != null && featuredTopic.cover != null" class="topic-panel-cover" :src="featuredTopic.cover" mode="aspectFill"></image>
-								<view class="topic-panel-mask"></view>
-								<view class="topic-panel-body">
-									<text class="feature-kicker">TOPIC</text>
-									<text class="feature-title">{{ featuredTopic != null ? featuredTopic.title : b.title }}</text>
-									<text class="feature-desc">{{ featuredTopic != null ? featuredTopic.description : b.description }}</text>
-									<text class="topic-panel-stats text-muted" v-if="featuredTopic != null">
-										{{ featuredTopic.viewCount != null ? featuredTopic.viewCount : 0 }} 浏览 · {{ featuredTopic.participantCount }} 参与
-									</text>
+<!-- 话题面板：借浅绿主卡 + 主推 + 2×2 排版，保留宣誓爱文案 -->
+								<view v-if="b.type === 'topic'" class="topic-panel" @click.stop>
+									<view class="topic-panel-head">
+										<text class="topic-head-title">热门话题</text>
+										<view class="topic-head-more" @click="openTopics">
+											<text>全部</text>
+											<text class="topic-head-arrow">›</text>
+										</view>
+									</view>
+									<view class="topic-feature" @click="openFeaturedTopic">
+										<image
+											v-if="featuredTopic != null && featuredTopic.cover != null"
+											class="topic-feature-cover"
+											:src="featuredTopic.cover"
+											mode="aspectFill"
+										></image>
+										<view class="topic-feature-body">
+											<text class="topic-feature-title">{{ featuredTopic != null ? featuredTopic.title : b.title }}</text>
+											<text class="topic-feature-desc">{{ featuredTopic != null ? featuredTopic.description : b.description }}</text>
+											<text class="topic-feature-meta" v-if="featuredTopic != null">
+												{{ formatTopicViews(featuredTopic.viewCount) }} 浏览 · {{ featuredTopic.participantCount }} 人参与
+											</text>
+										</view>
+									</view>
+									<view class="topic-grid">
+										<view class="topic-grid-item" v-for="t in hotTopics.slice(0, 4)" :key="t.id" @click="openTopic(t)">
+											<text class="topic-grid-tag">{{ t.tag != null ? t.tag : '话题' }}</text>
+											<text class="topic-grid-title">{{ t.title }}</text>
+										</view>
+									</view>
 								</view>
-							</view>
-							<view class="topic-quick-row">
-								<view class="topic-quick" v-for="t in hotTopics" :key="t.id" @click="openTopic(t)">
-									<text class="topic-quick-tag">{{ t.tag != null ? t.tag : '#' }}</text>
-									<text class="topic-quick-title">{{ t.title }}</text>
-								</view>
-							</view>
-							<view class="topic-all-entry" @click="openTopics">
-								<text>全部话题</text>
-							</view>
-						</view>
 						<!-- 活动 / 纸飞机 -->
 						<view v-else class="feature" :class="'type-' + b.type" @click="openBanner(b)">
 							<text class="feature-kicker">{{ b.kicker != null ? b.kicker : bannerKicker(b.type) }}</text>
@@ -283,28 +290,33 @@
 		return '昨天'
 	}
 
-	const normalizeDynamic = (item: any) => {
-		const photos = item.photos != null ? item.photos : item.media
-		return {
-			id: item.id,
-			user: item.user,
-			content: item.content,
-			photos,
-			location: item.location,
-			time: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
-			timeText: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
-			likeCount: item.likeCount,
-			commentCount: item.commentCount,
-			collectCount: item.collectCount,
-			liked: item.liked,
-			collected: item.collected,
-			followed: item.followed,
-			applyStatus: item.applyStatus,
-			topicId: item.topicId,
-			tags: item.tags,
-			declaration: item.declaration
+const normalizeDynamic = (item: any) => {
+			const photos = item.photos != null ? item.photos : item.media
+			return {
+				id: item.id,
+				user: item.user,
+				content: item.content,
+				photos,
+				location: item.location,
+				time: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
+				timeText: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
+				likeCount: item.likeCount,
+				commentCount: item.commentCount,
+				collectCount: item.collectCount,
+				liked: item.liked,
+				collected: item.collected,
+				followed: item.followed,
+				applyStatus: item.applyStatus,
+				topicId: item.topicId,
+				tags: item.tags,
+				declaration: item.declaration,
+				cityTag: item.cityTag === true,
+				relationTags: item.relationTags != null ? item.relationTags : [],
+				topicTitle: item.topicTitle != null ? item.topicTitle : '',
+				videos: item.videos != null ? item.videos : [],
+				mediaType: item.mediaType != null ? item.mediaType : ''
+			}
 		}
-	}
 
 	const extractListPayload = (data: any) => {
 		// 新结构 { list, hasMore, total }；兼容旧数组
@@ -472,13 +484,26 @@
 		return 'OFFLINE'
 	}
 
-	const bannerCta = (type: string) => {
-		if (type === 'topic') return '进入话题'
-		if (type === 'plane') return '去漂流'
-		return '查看活动'
-	}
+const bannerCta = (type: string) => {
+			if (type === 'topic') return '进入话题'
+			if (type === 'plane') return '去漂流'
+			return '查看活动'
+		}
 
-	const openBanner = (b: any) => {
+		const formatTopicViews = (n: any) => {
+			const v = n != null ? Number(n) : 0
+			if (v >= 100000000) {
+				const y = Math.round((v / 100000000) * 10) / 10
+				return '' + y + '亿'
+			}
+			if (v >= 10000) {
+				const w = Math.round((v / 10000) * 10) / 10
+				return '' + w + '万'
+			}
+			return '' + v
+		}
+
+		const openBanner = (b: any) => {
 		if (b == null) return
 		if (b.type === 'topic') {
 			const tid = b.targetId != null ? b.targetId : (featuredTopic.value != null ? featuredTopic.value.id : 0)
@@ -672,7 +697,7 @@
 		align-items: flex-end;
 		gap: 18px;
 		padding: 0 14px;
-		background: rgba(250, 252, 252, 0.96);
+		background: var(--surface-overlay);
 		border-bottom: 1px solid var(--line);
 	}
 
@@ -790,186 +815,236 @@
 		gap: 12px;
 	}
 
-	.banner-swiper {
-		height: 320px;
-	}
+.banner-swiper {
+				height: 208px;
+			}
 
-	.banner-dots {
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		gap: 6px;
-		margin-top: 8px;
-	}
+			.banner-dots {
+				display: flex;
+				flex-direction: row;
+				justify-content: center;
+				gap: 6px;
+				margin-top: 8px;
+			}
 
-	.banner-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 999px;
-		background: rgba(24, 65, 93, 0.18);
-	}
+			.banner-dot {
+				width: 6px;
+				height: 6px;
+				border-radius: 999px;
+				background: var(--navy-overlay);
+			}
 
-	.banner-dot.active {
-		width: 16px;
-		background: var(--accent);
-	}
+			.banner-dot.active {
+				width: 16px;
+				background: var(--accent);
+			}
 
-	.topic-panel {
-		height: 100%;
-		border-radius: 12px 28px 12px 12px;
-		background: var(--navy);
-		overflow: hidden;
-		display: flex;
-		flex-direction: column;
-	}
+			/* 话题主卡：浅绿底 + 主推白卡 + 2×2 排版 */
+			.topic-panel {
+				height: 100%;
+				border-radius: 14px;
+				background: var(--accent-bg);
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+				box-sizing: border-box;
+				padding: 10px 12px;
+			}
 
-	.topic-panel-main {
-		position: relative;
-		min-height: 168px;
-		flex: 1;
-	}
+			.topic-panel-head {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 8px;
+				flex-shrink: 0;
+			}
 
-	.topic-panel-cover {
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: 0;
-		bottom: 0;
-		width: 100%;
-		height: 100%;
-	}
+			.topic-head-title {
+				font-size: 14px;
+				font-weight: 800;
+				color: var(--ink);
+			}
 
-	.topic-panel-mask {
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: 0;
-		bottom: 0;
-		background: linear-gradient(180deg, rgba(17, 23, 24, 0.2) 0%, rgba(17, 23, 24, 0.78) 100%);
-	}
+			.topic-head-more {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				gap: 2px;
+				flex-shrink: 0;
+			}
 
-	.topic-panel-body {
-		position: relative;
-		z-index: 1;
-		padding: 16px 16px 10px;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
+			.topic-head-more text {
+				font-size: 12px;
+				color: var(--muted);
+			}
 
-	.topic-panel-stats {
-		font-size: 11px;
-		color: rgba(231, 236, 236, 0.75);
-	}
+			.topic-head-arrow {
+				font-size: 14px;
+				color: var(--muted);
+				line-height: 1;
+			}
 
-	.topic-quick-row {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		gap: 6px;
-		padding: 0 12px 8px;
-	}
+			.topic-feature {
+				display: flex;
+				flex-direction: row;
+				gap: 10px;
+				padding: 10px;
+				background: var(--surface);
+				border-radius: 12px;
+				box-shadow: var(--shadow-sm);
+				flex-shrink: 0;
+			}
 
-	.topic-quick {
-		width: calc(50% - 3px);
-		box-sizing: border-box;
-		background: rgba(250, 252, 252, 0.1);
-		border: 1px solid rgba(231, 236, 236, 0.16);
-		border-radius: 8px;
-		padding: 8px;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
+			.topic-feature-cover {
+				width: 64px;
+				height: 64px;
+				border-radius: 10px;
+				flex-shrink: 0;
+				background: var(--warm);
+			}
 
-	.topic-quick-tag {
-		font-size: 10px;
-		font-weight: 800;
-		color: var(--soft);
-	}
+			.topic-feature-body {
+				flex: 1;
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+				gap: 3px;
+				justify-content: center;
+			}
 
-	.topic-quick-title {
-		font-size: 12px;
-		line-height: 1.35;
-		color: var(--paper);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
+			.topic-feature-title {
+				font-size: 14px;
+				font-weight: 800;
+				color: var(--ink);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
 
-	.topic-all-entry {
-		margin: 0 12px 12px;
-		height: 34px;
-		border-radius: 8px;
-		background: var(--soft);
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: center;
-	}
+			.topic-feature-desc {
+				font-size: 11px;
+				line-height: 1.35;
+				color: var(--muted);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				display: -webkit-box;
+				-webkit-box-orient: vertical;
+				-webkit-line-clamp: 2;
+				lines: 2;
+			}
 
-	.topic-all-entry text {
-		font-size: 12px;
-		font-weight: 800;
-		color: var(--brown);
-	}
+			.topic-feature-meta {
+				font-size: 11px;
+				color: var(--muted);
+				margin-top: 1px;
+			}
 
-	.feature {
-		min-height: 148px;
-		height: 100%;
-		background: var(--navy);
-		border-radius: 12px 28px 12px 12px;
-		padding: 18px;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		box-sizing: border-box;
-	}
+			.topic-grid {
+				display: flex;
+				flex-direction: row;
+				flex-wrap: wrap;
+				gap: 6px 8px;
+				margin-top: 8px;
+				flex: 1;
+				min-height: 0;
+				align-content: flex-start;
+			}
 
-	.feature.type-topic {
-		background: var(--navy);
-	}
+			.topic-grid-item {
+				width: calc(50% - 4px);
+				box-sizing: border-box;
+				display: flex;
+				flex-direction: column;
+				gap: 2px;
+				min-width: 0;
+				padding: 6px 8px;
+				border-radius: 8px;
+				background: var(--surface);
+			}
 
-	.feature.type-plane {
-		background: var(--sage);
-	}
+			.topic-grid-tag {
+				font-size: 10px;
+				font-weight: 700;
+				color: var(--sage);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
 
-	.feature.type-activity {
-		background: var(--navy);
-	}
+.topic-grid-title {
+					font-size: 12px;
+					font-weight: 600;
+					color: var(--ink);
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
 
-	.feature-kicker {
-		color: var(--soft);
-		font-size: 11px;
-		font-weight: 800;
-		letter-spacing: 0.08em;
-	}
+			.feature {
+			min-height: 0;
+			height: 100%;
+			background: var(--navy);
+			border-radius: 12px 24px 12px 12px;
+			padding: 12px 14px;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			gap: 4px;
+			box-sizing: border-box;
+		}
 
-	.feature-title {
-		font-size: 22px;
-		font-family: var(--serif);
-		font-weight: 700;
-		color: var(--paper);
-	}
+		.feature.type-topic {
+			background: var(--navy);
+		}
 
-	.feature-desc {
-		font-size: 12px;
-		line-height: 1.55;
-		color: rgba(231, 236, 236, 0.78);
-		max-width: 250px;
-	}
+		.feature.type-plane {
+			background: var(--sage);
+		}
 
-	.feature-btn {
-		margin-top: 8px;
-		align-self: flex-start;
-		height: 38px;
-		padding: 0 13px;
-		background: var(--soft);
-		border-radius: 7px;
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-	}
+		.feature.type-activity {
+			background: var(--navy);
+		}
+
+		.feature-kicker {
+			color: var(--soft);
+			font-size: 10px;
+			font-weight: 800;
+			letter-spacing: 0.08em;
+		}
+
+		.feature-title {
+			font-size: 18px;
+			font-family: var(--serif);
+			font-weight: 700;
+			color: var(--paper);
+			line-height: 1.25;
+		}
+
+		.feature-desc {
+			font-size: 11px;
+			line-height: 1.4;
+			color: var(--image-text-soft);
+			max-width: 250px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			display: -webkit-box;
+			-webkit-box-orient: vertical;
+			-webkit-line-clamp: 2;
+			lines: 2;
+		}
+
+.feature-btn {
+				margin-top: 2px;
+				align-self: flex-start;
+				height: 28px;
+				padding: 0 11px;
+				background: var(--soft);
+				border-radius: 6px;
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+		}
 
 	.feature-btn text {
 		font-size: 11px;
@@ -1092,7 +1167,7 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 8px 20px rgba(17, 23, 24, 0.16);
+		box-shadow: var(--shadow-overlay);
 		z-index: 20;
 	}
 

@@ -1,24 +1,40 @@
 <template>
 	<view class="publish-page">
 		<scroll-view class="scroll-content" scroll-y>
-			<!-- 图片上传区域 -->
+			<!-- 媒体区：图片 / 视频互斥 -->
 			<view class="photo-section">
-				<view class="photo-grid">
+				<view class="photo-grid" v-if="videos.length == 0">
 					<view class="photo-item" v-for="(photo, index) in photos" :key="index">
 						<image class="photo" :src="photo" mode="aspectFill"></image>
 						<view class="delete-btn" @click="deletePhoto(index)">
 							<text class="icon">✕</text>
 						</view>
 					</view>
-					<view class="photo-item add-btn" @click="addPhoto" v-if="photos.length < 9">
+					<view class="photo-item add-btn" @click="addPhoto" v-if="canAddPhoto">
 						<text class="icon">+</text>
 						<text class="text">添加图片</text>
 					</view>
 				</view>
-				<text class="photo-tip text-muted">最多上传9张图片</text>
+
+				<view class="video-block" v-if="videos.length > 0">
+					<view class="video-preview">
+						<video class="video-player" :src="videos[0]" controls></video>
+						<view class="delete-btn" @click="deleteVideo">
+							<text class="icon">✕</text>
+						</view>
+					</view>
+				</view>
+
+				<view class="media-actions" v-if="videos.length == 0">
+					<view class="media-action-btn" @click="addVideo" v-if="canAddVideo || photos.length > 0">
+						<text class="media-action-text">添加视频</text>
+					</view>
+				</view>
+
+				<text class="photo-tip text-muted">图片最多 9 张，或视频 1 条（互斥）</text>
 			</view>
 
-			<!-- 内容输入 -->
+			<!-- 内容输入 + 表情 -->
 			<view class="content-section">
 				<textarea
 					class="textarea"
@@ -28,10 +44,13 @@
 					maxlength="500"
 					auto-height
 				></textarea>
-				<text class="char-count">{{ content.length }}/500</text>
+				<view class="content-footer">
+					<text class="emoji-btn" @click="toggleEmoji">表情</text>
+					<text class="char-count">{{ content.length }}/500</text>
+				</view>
 			</view>
 
-			<!-- 位置选择 -->
+			<!-- 位置 -->
 			<view class="option-item" @click="chooseLocation">
 				<view class="option-left">
 					<text class="option-icon">📍</text>
@@ -39,6 +58,31 @@
 				</view>
 				<view class="option-right">
 					<text class="option-value text-muted" v-if="location">{{ location }}</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 话题 -->
+			<view class="option-item" @click="openTopicSheet">
+				<view class="option-left">
+					<text class="option-icon">#</text>
+					<text class="option-label">添加话题</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted" v-if="topicTitle !== ''">{{ topicTitle }}</text>
+					<text class="option-value text-muted" v-else>选择话题</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 内容声明 -->
+			<view class="option-item" @click="selectDeclaration">
+				<view class="option-left">
+					<text class="option-icon">ⓘ</text>
+					<text class="option-label">内容声明</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted">{{ declarationText }}</text>
 					<text class="arrow">›</text>
 				</view>
 			</view>
@@ -75,150 +119,393 @@
 			<button class="cancel-btn" @click="handleCancel">取消</button>
 			<button class="publish-btn" @click="handlePublish" :disabled="!canPublish">发布</button>
 		</view>
+
+		<!-- 表情浮层 -->
+		<view class="emoji-mask" v-if="showEmojiPanel" @click="showEmojiPanel = false">
+			<view class="emoji-panel" @click.stop="">
+				<view class="emoji-grid">
+					<text
+						class="emoji-item"
+						v-for="(emoji, eidx) in EMOJI_LIST"
+						:key="eidx"
+						@click="insertEmoji(emoji)"
+					>{{ emoji }}</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 话题半屏 -->
+		<view class="sheet-mask" v-if="showTopicSheet" @click="closeTopicSheet">
+			<view class="topic-sheet" @click.stop="">
+				<view class="sheet-handle"></view>
+				<text class="sheet-title">选择话题</text>
+				<input class="sheet-search" :value="topicKeyword" @input="onTopicSearch" placeholder="搜索话题" />
+				<view v-if="topicLoading" class="sheet-status">
+					<text class="text-muted">加载中...</text>
+				</view>
+				<view v-else-if="topicError !== ''" class="sheet-status">
+					<text class="text-muted">{{ topicError }}</text>
+					<text class="text-accent" @click="loadTopicOptions">重试</text>
+				</view>
+				<scroll-view scroll-y class="sheet-list" v-else>
+					<view class="topic-row" v-if="topicId > 0" @click="clearTopic">
+						<text class="text-muted">清除已选话题</text>
+					</view>
+					<view
+						class="topic-row"
+						v-for="t in filteredTopics"
+						:key="t.id"
+						@click="pickTopic(t)"
+					>
+						<text class="topic-row-tag">{{ t.tag }}</text>
+						<text class="topic-row-title">{{ t.title }}</text>
+					</view>
+				</scroll-view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-import { publishDynamic } from '@/api'
-		import { guardDualVerification, guardRealName } from '@/utils/realNameGate.uts'
-		// 表单数据
-		let photos = ref<string[]>([])
-		let content = ref('')
-		let location = ref('')
-		let visibility = ref(0) // 0-所有人 1-仅好友 2-仅自己
-		let mentions = ref<number[]>([])
-		let publishing = ref(false)
-		let topicId = ref(0)
+import { publishDynamic, getTopics, getTopicDetail } from '@/api'
+import { guardRealName } from '@/utils/realNameGate.uts'
 
-		onLoad((query: any) => {
-			const raw = query != null ? query.topicId : null
-			const parsed = raw != null ? parseInt('' + raw) : 0
-			topicId.value = parsed > 0 ? parsed : 0
-		})
+const photos = ref<string[]>([])
+const videos = ref<string[]>([])
+const content = ref('')
+const location = ref('')
+const visibility = ref(0)
+const mentions = ref<number[]>([])
+const publishing = ref(false)
+const topicId = ref(0)
+const topicTitle = ref('')
+const declaration = ref('')
+const showEmojiPanel = ref(false)
+const showTopicSheet = ref(false)
+const topicLoading = ref(false)
+const topicError = ref('')
+const topicKeyword = ref('')
+const topicOptions = ref([] as any[])
 
-	// 可见范围文本
-	const visibilityText = computed(() => {
-		const texts = ['所有人可见', '仅好友可见', '仅自己可见']
-		return texts[visibility.value]
-	})
+const DECLARATION_OPTIONS = [
+	'内容无需声明',
+	'内容包含虚构演绎',
+	'内容包含广告推广',
+	'内容可能引起不适'
+]
 
-	// 是否可以发布
-	const canPublish = computed(() => {
-		return photos.value.length > 0 || content.value.trim().length > 0
-	})
+const EMOJI_LIST = [
+	'😊', '😂', '🥰', '😍', '🤗', '👍', '🙏', '✨',
+	'🌅', '☕', '📚', '🎵', '🏃', '🌿', '💡', '🎯',
+	'❤️', '🤍', '🌟', '🌸', '🍜', '🎨', '📷', '🌙'
+]
 
-	// 添加图片
-	const addPhoto = () => {
-		const remaining = 9 - photos.value.length
-		uni.chooseImage({
-			count: remaining,
-			sizeType: ['compressed'],
-			sourceType: ['album', 'camera'],
-			success: (res) => {
-				photos.value.push(...res.tempFilePaths)
-				// TODO: 上传图片到服务器
-			}
-		})
-	}
-
-	// 删除图片
-	const deletePhoto = (index: number) => {
-		photos.value.splice(index, 1)
-	}
-
-	// 输入内容
-	const onContentInput = (e: InputEvent) => {
-		content.value = e.detail.value
-	}
-
-	// 选择位置
-	const chooseLocation = () => {
-		uni.chooseLocation({
-			success: (res) => {
-				location.value = res.name || res.address
-			}
-		})
-	}
-
-	// 选择可见范围
-	const selectVisibility = () => {
-		uni.showActionSheet({
-			itemList: ['所有人可见', '仅好友可见', '仅自己可见'],
-			success: (res) => {
-				visibility.value = res.tapIndex
-			}
-		})
-	}
-
-	// 选择提醒谁看
-	const selectMention = () => {
-		uni.showToast({
-			title: '功能开发中',
-			icon: 'none'
-		})
-	}
-
-	// 取消
-	const handleCancel = () => {
-		if (photos.value.length > 0 || content.value.trim().length > 0) {
-			uni.showModal({
-				title: '提示',
-				content: '确定放弃编辑吗？',
-				success: (res) => {
-					if (res.confirm) {
-						uni.navigateBack()
+onLoad(async (query: any) => {
+		const raw = query != null ? query.topicId : null
+		const parsed = raw != null ? parseInt('' + raw) : 0
+		topicId.value = parsed > 0 ? parsed : 0
+		if (topicId.value > 0) {
+			// 优先详情接口；失败再 hot 列表；仍失败则占位，不空吞
+			let resolved = false
+			try {
+				const detailRes = await getTopicDetail(topicId.value)
+				if (detailRes.success && detailRes.data != null && detailRes.data.topic != null) {
+					const t = detailRes.data.topic as any
+					if (t.title != null && ('' + t.title) !== '') {
+						topicTitle.value = '' + t.title
+						resolved = true
 					}
 				}
-			})
-		} else {
-			uni.navigateBack()
-		}
-	}
-
-// 发布
-		const handlePublish = async () => {
-			if (publishing.value) return
-			const ok = topicId.value > 0
-				? await guardDualVerification('topicJoin')
-				: await guardRealName('publish')
-			if (!ok) return
-			if (!canPublish.value) {
-				uni.showToast({
-					title: '请添加内容或图片',
-					icon: 'none'
-				})
-				return
-			}
-
-			publishing.value = true
-			uni.showLoading({ title: '发布中...' })
-			try {
-				const res = await publishDynamic({
-					content: content.value.trim(),
-					media: photos.value,
-					location: location.value,
-					topicId: topicId.value,
-					visibility: visibility.value
-				})
-				const data = res != null ? res.data : null
-				const bizOk = res != null && res.success && (data == null || data.success != false)
-				uni.hideLoading()
-				if (bizOk) {
-					uni.showToast({ title: '发布成功', icon: 'success' })
-					setTimeout(() => {
-						uni.navigateBack()
-					}, 800)
-				} else {
-					const msg = data != null && data.message != null ? data.message : '发布失败，请重试'
-					uni.showToast({ title: msg, icon: 'none' })
-				}
 			} catch (e) {
-				uni.hideLoading()
-				uni.showToast({ title: '网络异常，请重试', icon: 'none' })
-			} finally {
-				publishing.value = false
+				console.error(e)
+			}
+			if (!resolved) {
+				try {
+					const res = await getTopics('hot')
+					if (res.success && res.data != null) {
+						const list = res.data as any[]
+						for (let i = 0; i < list.length; i++) {
+							if (list[i].id == topicId.value) {
+								topicTitle.value = list[i].title != null ? ('' + list[i].title) : ''
+								resolved = topicTitle.value !== ''
+								break
+							}
+						}
+					}
+				} catch (e) {
+					console.error(e)
+				}
+			}
+			if (!resolved) {
+				topicTitle.value = '话题 #' + topicId.value
+				uni.showToast({ title: '话题标题加载失败，可重新选择', icon: 'none' })
 			}
 		}
+	})
+
+const canPublish = computed(() => {
+	return (
+		content.value.trim().length > 0 ||
+		photos.value.length > 0 ||
+		videos.value.length > 0
+	)
+})
+
+const canAddPhoto = computed(() => {
+	return videos.value.length == 0 && photos.value.length < 9
+})
+
+const canAddVideo = computed(() => {
+	return photos.value.length == 0 && videos.value.length < 1
+})
+
+const visibilityText = computed(() => {
+	const texts = ['公开', '仅好友可见', '仅自己可见']
+	return texts[visibility.value]
+})
+
+const declarationText = computed(() => {
+	if (declaration.value === '') return '内容无需声明'
+	return declaration.value
+})
+
+const filteredTopics = computed(() => {
+	const kw = topicKeyword.value.trim()
+	const list = topicOptions.value as any[]
+	if (kw === '') return list
+	const out: any[] = []
+	for (let i = 0; i < list.length; i++) {
+		const t = list[i]
+		const title = t.title != null ? ('' + t.title) : ''
+		const tag = t.tag != null ? ('' + t.tag) : ''
+		if (title.indexOf(kw) >= 0 || tag.indexOf(kw) >= 0) out.push(t)
+	}
+	return out
+})
+
+const addPhoto = () => {
+	if (!canAddPhoto.value) {
+		if (videos.value.length > 0) {
+			uni.showToast({ title: '已选择视频，无法再添加图片', icon: 'none' })
+		}
+		return
+	}
+	const remaining = 9 - photos.value.length
+	uni.chooseImage({
+		count: remaining,
+		sizeType: ['compressed'],
+		sourceType: ['album', 'camera'],
+		success: (res) => {
+			const paths = res.tempFilePaths as string[]
+			for (let i = 0; i < paths.length; i++) {
+				photos.value.push(paths[i])
+			}
+		}
+	})
+}
+
+const addVideo = () => {
+	if (photos.value.length > 0) {
+		uni.showModal({
+			title: '提示',
+			content: '添加视频将清除已选图片，是否继续？',
+			success: (res) => {
+				if (res.confirm) {
+					photos.value = []
+					pickVideo()
+				}
+			}
+		})
+		return
+	}
+	if (videos.value.length >= 1) {
+		uni.showToast({ title: '最多添加 1 个视频', icon: 'none' })
+		return
+	}
+	pickVideo()
+}
+
+const pickVideo = () => {
+	uni.chooseVideo({
+		sourceType: ['album', 'camera'],
+		compressed: true,
+		success: (res) => {
+			const path = res.tempFilePath != null ? ('' + res.tempFilePath) : ''
+			if (path !== '') {
+				videos.value = [path]
+			}
+		}
+	})
+}
+
+const deletePhoto = (index: number) => {
+	photos.value.splice(index, 1)
+}
+
+const deleteVideo = () => {
+	videos.value = []
+}
+
+const onContentInput = (e: any) => {
+	content.value = e.detail.value
+}
+
+const insertEmoji = (emoji: string) => {
+	const next = content.value + emoji
+	content.value = next.length > 500 ? next.substring(0, 500) : next
+}
+
+const toggleEmoji = () => {
+	showEmojiPanel.value = !showEmojiPanel.value
+}
+
+const selectDeclaration = () => {
+	uni.showActionSheet({
+		itemList: DECLARATION_OPTIONS,
+		success: (res) => {
+			const idx = res.tapIndex
+			if (idx == 0) {
+				declaration.value = ''
+			} else if (idx > 0 && idx < DECLARATION_OPTIONS.length) {
+				declaration.value = DECLARATION_OPTIONS[idx]
+			}
+		}
+	})
+}
+
+const chooseLocation = () => {
+	uni.chooseLocation({
+		success: (res) => {
+			location.value = res.name || res.address
+		}
+	})
+}
+
+const selectVisibility = () => {
+	uni.showActionSheet({
+		itemList: ['公开', '仅好友可见', '仅自己可见'],
+		success: (res) => {
+			visibility.value = res.tapIndex
+		}
+	})
+}
+
+const selectMention = () => {
+	uni.showToast({
+		title: '功能开发中',
+		icon: 'none'
+	})
+}
+
+const openTopicSheet = async () => {
+	showTopicSheet.value = true
+	topicError.value = ''
+	if (topicOptions.value.length == 0) {
+		await loadTopicOptions()
+	}
+}
+
+const loadTopicOptions = async () => {
+	topicLoading.value = true
+	topicError.value = ''
+	try {
+		const res = await getTopics('hot')
+		if (res.success && res.data != null) {
+			topicOptions.value = res.data as any[]
+		} else {
+			topicError.value = '话题加载失败'
+		}
+	} catch (e) {
+		topicError.value = '网络异常'
+	} finally {
+		topicLoading.value = false
+	}
+}
+
+const onTopicSearch = (e: any) => {
+	topicKeyword.value = e.detail.value
+}
+
+const pickTopic = (t: any) => {
+	topicId.value = t.id as number
+	topicTitle.value = t.title != null ? ('' + t.title) : ''
+	showTopicSheet.value = false
+	topicKeyword.value = ''
+}
+
+const clearTopic = () => {
+	topicId.value = 0
+	topicTitle.value = ''
+}
+
+const closeTopicSheet = () => {
+	showTopicSheet.value = false
+	topicKeyword.value = ''
+}
+
+const handleCancel = () => {
+	if (
+		photos.value.length > 0 ||
+		videos.value.length > 0 ||
+		content.value.trim().length > 0 ||
+		topicId.value > 0
+	) {
+		uni.showModal({
+			title: '提示',
+			content: '确定放弃编辑吗？',
+			success: (res) => {
+				if (res.confirm) {
+					uni.navigateBack()
+				}
+			}
+		})
+	} else {
+		uni.navigateBack()
+	}
+}
+
+const handlePublish = async () => {
+	if (publishing.value) return
+	const ok = await guardRealName(topicId.value > 0 ? 'topicJoin' : 'publish')
+	if (!ok) return
+	if (!canPublish.value) {
+		uni.showToast({
+			title: '请添加正文或图片、视频',
+			icon: 'none'
+		})
+		return
+	}
+	publishing.value = true
+	uni.showLoading({ title: '发布中...' })
+	try {
+		const res = await publishDynamic({
+			content: content.value.trim(),
+			media: photos.value,
+			videos: videos.value,
+			location: location.value,
+			topicId: topicId.value,
+			visibility: visibility.value,
+			declaration: declaration.value
+		})
+		const data = res != null ? res.data : null
+		const bizOk = res != null && res.success && (data == null || data.success != false)
+		uni.hideLoading()
+		if (bizOk) {
+			uni.showToast({ title: '发布成功', icon: 'success' })
+			setTimeout(() => {
+				uni.navigateBack()
+			}, 800)
+		} else {
+			const msg = data != null && data.message != null ? data.message : '发布失败，请重试'
+			uni.showToast({ title: msg, icon: 'none' })
+		}
+	} catch (e) {
+		uni.hideLoading()
+		uni.showToast({ title: '网络异常，请重试', icon: 'none' })
+	} finally {
+		publishing.value = false
+	}
+}
 </script>
 
 <style scoped>
@@ -257,6 +544,24 @@ import { publishDynamic } from '@/api'
 	height: 100%;
 }
 
+.video-block {
+	margin-bottom: 8px;
+}
+
+.video-preview {
+	position: relative;
+	width: 100%;
+	height: 200px;
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--surface);
+}
+
+.video-player {
+	width: 100%;
+	height: 100%;
+}
+
 .delete-btn {
 	position: absolute;
 	top: 4px;
@@ -266,7 +571,7 @@ import { publishDynamic } from '@/api'
 	background: rgba(0, 0, 0, 0.6);
 	border-radius: 50%;
 	display: flex;
-		flex-direction: row;
+	flex-direction: row;
 	align-items: center;
 	justify-content: center;
 }
@@ -296,6 +601,24 @@ import { publishDynamic } from '@/api'
 	color: var(--muted);
 }
 
+.media-actions {
+	display: flex;
+	flex-direction: row;
+	margin-bottom: 8px;
+}
+
+.media-action-btn {
+	padding: 8px 12px;
+	background: var(--surface);
+	border: 1px dashed var(--line);
+	border-radius: 8px;
+}
+
+.media-action-text {
+	font-size: 13px;
+	color: var(--muted);
+}
+
 .photo-tip {
 	font-size: 12px;
 }
@@ -315,17 +638,28 @@ import { publishDynamic } from '@/api'
 	line-height: 1.6;
 }
 
+.content-footer {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 8px;
+}
+
+.emoji-btn {
+	font-size: 13px;
+	color: var(--accent);
+	padding: 4px 8px;
+}
+
 .char-count {
-	display: block;
-	text-align: right;
 	font-size: 12px;
 	color: var(--muted);
-	margin-top: 8px;
 }
 
 .option-item {
 	display: flex;
-		flex-direction: row;
+	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
 	height: 52px;
@@ -337,7 +671,7 @@ import { publishDynamic } from '@/api'
 
 .option-left {
 	display: flex;
-		flex-direction: row;
+	flex-direction: row;
 	align-items: center;
 	gap: 12px;
 }
@@ -353,13 +687,17 @@ import { publishDynamic } from '@/api'
 
 .option-right {
 	display: flex;
-		flex-direction: row;
+	flex-direction: row;
 	align-items: center;
 	gap: 8px;
 }
 
 .option-value {
 	font-size: 14px;
+	max-width: 160px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .arrow {
@@ -369,7 +707,7 @@ import { publishDynamic } from '@/api'
 
 .footer {
 	display: flex;
-		flex-direction: row;
+	flex-direction: row;
 	gap: 12px;
 	padding: 12px 16px;
 	background: var(--surface);
@@ -399,5 +737,129 @@ import { publishDynamic } from '@/api'
 
 .publish-btn[disabled] {
 	opacity: 0.5;
+}
+
+/* 表情浮层 */
+.emoji-mask {
+	position: fixed;
+	z-index: 10040;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+}
+
+.emoji-panel {
+	background: var(--surface);
+	border-radius: 16px 16px 0 0;
+	padding: 16px;
+	padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.emoji-grid {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+.emoji-item {
+	width: 12.5%;
+	text-align: center;
+	font-size: 24px;
+	padding: 8px 0;
+}
+
+/* 话题半屏 */
+.sheet-mask {
+	position: fixed;
+	z-index: 10050;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+}
+
+.topic-sheet {
+	position: relative;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	max-height: 70vh;
+	background: var(--surface);
+	border-radius: 16px 16px 0 0;
+	padding: 8px 16px 16px;
+	padding-bottom: calc(16px + env(safe-area-inset-bottom));
+	display: flex;
+	flex-direction: column;
+}
+
+.sheet-handle {
+	width: 38px;
+	height: 4px;
+	background: var(--line);
+	border-radius: 2px;
+	margin: 4px auto 12px;
+}
+
+.sheet-title {
+	font-size: 17px;
+	font-weight: 600;
+	color: var(--ink);
+	margin-bottom: 12px;
+}
+
+.sheet-search {
+	height: 40px;
+	padding: 0 12px;
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	font-size: 14px;
+	color: var(--ink);
+	margin-bottom: 12px;
+}
+
+.sheet-status {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 24px 0;
+}
+
+.sheet-list {
+	max-height: 50vh;
+	flex: 1;
+}
+
+.topic-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 0;
+	border-bottom: 1px solid var(--line);
+}
+
+.topic-row-tag {
+	font-size: 12px;
+	color: var(--accent);
+	background: var(--paper);
+	padding: 2px 8px;
+	border-radius: 999px;
+}
+
+.topic-row-title {
+	font-size: 14px;
+	color: var(--ink);
+	flex: 1;
+}
+
+.text-accent {
+	color: var(--accent);
+	font-size: 14px;
 }
 </style>

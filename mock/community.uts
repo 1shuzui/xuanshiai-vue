@@ -1,7 +1,7 @@
 /**
  * 社区相关 Mock 数据
  * 主 Tab：关注 / 同城 / 发现；关注页「喜欢」= 喜欢用户的动态（用户级）
- * 互动门槛：常规互动仅实名；参与话题及带话题发布需实名和学历双重认证
+ * 互动门槛：常规互动、参与话题及带话题发布均仅实名；双重认证仅作展示加分
  */
 
 const PORTRAIT = {
@@ -39,6 +39,10 @@ export const mockDynamicList = [
       school: '同济大学 · 硕士',
       mbti: 'ENFJ',
       hometown: '江苏无锡',
+      gender: '女',
+      birthYear: 1998,
+      ipLocation: '江苏',
+      income: '20-30万',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -50,6 +54,8 @@ export const mockDynamicList = [
     cityTag: true,
     city: '南京',
     topicId: 1,
+    topicTitle: '什么让你决定靠近一个人？',
+    relationTags: ['同乡'],
     tags: ['认真关系', '晚霞'],
     declaration: '',
     time: Date.now() - 10 * 60 * 1000,
@@ -101,6 +107,10 @@ export const mockDynamicList = [
       school: '浙江大学 · 本科',
       mbti: 'INFP',
       hometown: '浙江绍兴',
+      gender: '女',
+      birthYear: 2000,
+      ipLocation: '浙江',
+      income: '15-20万',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -112,6 +122,8 @@ export const mockDynamicList = [
     cityTag: false,
     city: '杭州',
     topicId: 2,
+    topicTitle: '一个人也会去的地方',
+    relationTags: ['校友'],
     tags: ['城市周末', '速写'],
     declaration: '',
     time: Date.now() - 30 * 60 * 1000,
@@ -153,6 +165,10 @@ export const mockDynamicList = [
       school: '南京大学 · 本科',
       mbti: 'INTJ',
       hometown: '江苏南京',
+      gender: '男',
+      birthYear: 1997,
+      ipLocation: '江苏',
+      income: '30-50万',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'missing'
@@ -164,6 +180,8 @@ export const mockDynamicList = [
     cityTag: true,
     city: '南京',
     topicId: 2,
+    topicTitle: '一个人也会去的地方',
+    relationTags: [],
     tags: ['同城', '跑步'],
     declaration: '',
     time: Date.now() - 12 * 60 * 1000,
@@ -205,6 +223,8 @@ export const mockDynamicList = [
       school: '同济大学 · 硕士',
       mbti: 'ENFJ',
       hometown: '江苏无锡',
+      gender: '女',
+      birthYear: 1998,
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -216,6 +236,8 @@ export const mockDynamicList = [
     cityTag: true,
     city: '南京',
     topicId: 1,
+    topicTitle: '什么让你决定靠近一个人？',
+    relationTags: ['同乡'],
     tags: ['认真关系', '烘焙'],
     declaration: '',
     time: Date.now() - 24 * 60 * 60 * 1000,
@@ -246,6 +268,7 @@ export const mockDynamicList = [
       school: '东南大学 · 硕士',
       mbti: 'INFJ',
       hometown: '江苏苏州',
+      gender: '女',
       verified: true,
       realNameStatus: 'passed',
       educationStatus: 'passed'
@@ -257,6 +280,8 @@ export const mockDynamicList = [
     cityTag: false,
     city: '苏州',
     topicId: 3,
+    topicTitle: '公共场所的安全感',
+    relationTags: ['校友'],
     tags: ['第一次见面', '边界'],
     declaration: '',
     time: Date.now() - 3 * 60 * 60 * 1000,
@@ -298,6 +323,7 @@ export const mockDynamicList = [
     cityTag: false,
     city: '杭州',
     topicId: 2,
+    topicTitle: '一个人也会去的地方',
     tags: ['城市周末'],
     declaration: '',
     time: Date.now() - 5 * 60 * 60 * 1000,
@@ -540,6 +566,26 @@ export const mockCommunityNotifications = [
     timeText: '2 天前',
     read: true,
     targetType: 'activity',
+    targetId: 2
+  },
+  {
+    id: 5,
+    type: 'like',
+    title: '林雨桐 赞了你的动态',
+    content: '「最近的一张速写…」',
+    timeText: '1 小时前',
+    read: true,
+    targetType: 'post',
+    targetId: 2
+  },
+  {
+    id: 6,
+    type: 'comment',
+    title: '林雨桐 评论了你',
+    content: '线条很温柔，像在西湖边写生。',
+    timeText: '昨天',
+    read: true,
+    targetType: 'post',
     targetId: 2
   }
 ]

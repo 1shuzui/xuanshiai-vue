@@ -5,3 +5,6 @@ unpackage/
 .playwright-mcp/
 .zcode/
 graphify-out/
+# Agent / local tooling (do not publish)
+.serena/
+docs/superpowers/
