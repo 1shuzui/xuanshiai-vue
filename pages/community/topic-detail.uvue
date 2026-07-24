@@ -1,0 +1,267 @@
+<template>
+	<view class="page">
+		<scroll-view class="scroll" scroll-y>
+			<view class="hero" v-if="topic != null">
+				<text class="tag">{{ topic.tag }}</text>
+				<text class="title">{{ topic.title }}</text>
+				<text class="desc">{{ topic.description }}</text>
+				<text class="meta text-muted">{{ topic.participantCount }} 人参与 · {{ topic.postCount }} 帖</text>
+				<view class="rules" v-if="topic.rules != null">
+					<text class="rule" v-for="(r, i) in topic.rules" :key="i">· {{ r }}</text>
+				</view>
+				<button class="join-btn" @click="handleJoin">
+					{{ topic.joined ? '已加入 · 去发言' : '加入话题' }}
+				</button>
+			</view>
+
+			<view class="section-title"><text>话题动态</text></view>
+			<XsaEmpty v-if="!loading && posts.length == 0" text="还没有帖子" description="成为第一个认真发言的人" :show-action="true" action-text="发布" @action="goPublish" />
+			<XsaDynamicCard
+				v-for="item in posts"
+				:key="item.id"
+				:dynamic="normalize(item)"
+				@user-click="goUser"
+				@like="onLike"
+				@comment="goPost"
+				@collect="onCollect"
+				@follow="onFollow"
+				@apply="onApply"
+				@more="onMore"
+				@open="goPost"
+			/>
+			<view class="pad"></view>
+		</scroll-view>
+
+		<XsaApplySheet :visible="applyVisible" :user-id="applyUserId" @close="applyVisible = false" @success="onApplyOk" />
+		<XsaReportSheet
+			:visible="reportVisible"
+			target-type="post"
+			:target-id="reportTargetId"
+			:user-id="reportUserId"
+			@close="reportVisible = false"
+			@blocked="onBlocked"
+		/>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaDynamicCard from '@/components/XsaDynamicCard.uvue'
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
+	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
+	import {
+		getTopicDetail,
+		joinTopic,
+		likeDynamic,
+		collectDynamic,
+		followUserFromCommunity
+	} from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	const topicId = ref(0)
+	const topic = ref(null)
+	const posts = ref([])
+	const loading = ref(false)
+	const applyVisible = ref(false)
+	const applyUserId = ref(0)
+	const reportVisible = ref(false)
+	const reportTargetId = ref(0)
+	const reportUserId = ref(0)
+
+	onLoad((q: any) => {
+		topicId.value = q != null && q.id != null ? parseInt('' + q.id) : 0
+		load()
+	})
+
+	const normalize = (item: any) => {
+		return {
+			id: item.id,
+			user: item.user,
+			content: item.content,
+			photos: item.photos,
+			location: item.location,
+			time: item.timeText != null ? item.timeText : '',
+			timeText: item.timeText,
+			likeCount: item.likeCount,
+			commentCount: item.commentCount,
+			collectCount: item.collectCount,
+			liked: item.liked,
+			collected: item.collected,
+			followed: item.followed,
+			applyStatus: item.applyStatus,
+			topicId: item.topicId,
+			tags: item.tags
+		}
+	}
+
+	const load = async () => {
+		if (topicId.value <= 0) return
+		loading.value = true
+		try {
+			const res = await getTopicDetail(topicId.value)
+			if (res.success && res.data != null) {
+				topic.value = res.data.topic
+				posts.value = res.data.posts != null ? res.data.posts : []
+			}
+		} catch (e) {
+			console.error(e)
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const handleJoin = async () => {
+		if (topic.value == null) return
+		if (topic.value.joined) {
+			goPublish()
+			return
+		}
+		const ok = await guardRealName('topicJoin')
+		if (!ok) return
+		const res = await joinTopic(topicId.value)
+		if (res.success) {
+			topic.value.joined = true
+			topic.value.participantCount += 1
+			uni.showToast({ title: '已加入话题', icon: 'success' })
+		}
+	}
+
+	const goPublish = async () => {
+		const ok = await guardRealName('publish')
+		if (!ok) return
+		uni.navigateTo({ url: `/pages/community/publish?topicId=${topicId.value}` })
+	}
+
+	const goUser = (id: number) => {
+		uni.navigateTo({ url: `/pages/user/detail?userId=${id}` })
+	}
+
+	const goPost = (id: number) => {
+		uni.navigateTo({ url: `/pages/community/post-detail?id=${id}` })
+	}
+
+	const onLike = async (id: number) => {
+		const ok = await guardRealName('like')
+		if (!ok) return
+		const res = await likeDynamic(id)
+		if (res.success) {
+			const p = posts.value.find((d: any) => d.id == id)
+			if (p != null) {
+				p.liked = res.data.liked
+				p.likeCount = res.data.likeCount
+			}
+		}
+	}
+
+	const onCollect = async (id: number) => {
+		const ok = await guardRealName('collect')
+		if (!ok) return
+		const res = await collectDynamic(id)
+		if (res.success) {
+			const p = posts.value.find((d: any) => d.id == id)
+			if (p != null) {
+				p.collected = res.data.collected
+				p.collectCount = (p.collectCount || 0) + (p.collected ? 1 : -1)
+			}
+		}
+	}
+
+	const onFollow = async (userId: number) => {
+		const ok = await guardRealName('follow')
+		if (!ok) return
+		const res = await followUserFromCommunity(userId)
+		if (res.success) {
+			posts.value.forEach((p: any) => {
+				if (p.user != null && p.user.id == userId) p.followed = true
+			})
+			uni.showToast({ title: '已关注', icon: 'none' })
+		}
+	}
+
+	const onApply = (userId: number, _dynamicId: number) => {
+		applyUserId.value = userId
+		applyVisible.value = true
+	}
+
+	const onApplyOk = () => {
+		// 列表态保持
+	}
+
+	const onMore = (dynamicId: number, userId: number) => {
+		reportTargetId.value = dynamicId
+		reportUserId.value = userId
+		reportVisible.value = true
+	}
+
+	const onBlocked = (userId: number) => {
+		posts.value = posts.value.filter((p: any) => p.user == null || p.user.id != userId)
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100vh;
+		background: var(--canvas);
+	}
+	.scroll {
+		height: 100%;
+	}
+	.hero {
+		margin: 12px 14px;
+		padding: 16px;
+		background: var(--navy);
+		border-radius: 14px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.tag {
+		color: var(--soft);
+		font-size: 11px;
+		font-weight: 800;
+	}
+	.title {
+		font-size: 22px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--paper);
+	}
+	.desc {
+		font-size: 12px;
+		line-height: 1.55;
+		color: rgba(231, 236, 236, 0.82);
+	}
+	.meta {
+		font-size: 11px;
+		color: rgba(231, 236, 236, 0.65);
+	}
+	.rules {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		margin-top: 4px;
+	}
+	.rule {
+		font-size: 11px;
+		color: rgba(231, 236, 236, 0.7);
+	}
+	.join-btn {
+		margin-top: 8px;
+		height: 40px;
+		background: var(--soft);
+		color: var(--brown);
+		border-radius: 8px;
+		font-size: 13px;
+		font-weight: 800;
+		border: none;
+	}
+	.section-title {
+		padding: 8px 16px 4px;
+		font-size: 16px;
+		font-family: var(--serif);
+		font-weight: 700;
+	}
+	.pad {
+		height: 32px;
+	}
+</style>

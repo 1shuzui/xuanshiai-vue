@@ -1,0 +1,143 @@
+/**
+ * 社区 / 申请认识 · 实名门槛
+ * 产品覆盖：互动与申请仅要求实名通过；学历只展示不拦截
+ * 浏览、举报、拉黑不要求实名
+ *
+ * 状态枚举（定版）：passed | missing | reviewing | rejected
+ * 兼容旧值：pending→reviewing，failed→rejected
+ */
+
+import { getMeProfile } from '@/api/user.uts'
+
+export type RealNameStatus = 'passed' | 'missing' | 'reviewing' | 'rejected'
+
+export type GateAction =
+  | 'publish'
+  | 'like'
+  | 'follow'
+  | 'comment'
+  | 'collect'
+  | 'topicJoin'
+  | 'activitySignup'
+  | 'paperPlane'
+  | 'apply'
+
+const ACTION_LABELS: Record<string, string> = {
+  publish: '发布动态',
+  like: '点赞',
+  follow: '关注',
+  comment: '评论',
+  collect: '收藏',
+  topicJoin: '加入话题',
+  activitySignup: '报名活动',
+  paperPlane: '使用纸飞机',
+  apply: '申请认识'
+}
+
+/** 归一化历史状态值 */
+function normalizeStatus(raw: any): RealNameStatus {
+  if (raw == null) return 'missing'
+  const s = '' + raw
+  if (s == 'passed' || s == 'true' || s == '1') return 'passed'
+  if (s == 'reviewing' || s == 'pending') return 'reviewing'
+  if (s == 'rejected' || s == 'failed') return 'rejected'
+  if (s == 'missing' || s == 'false' || s == '0') return 'missing'
+  return 'missing'
+}
+
+/** 从当前用户资料解析实名状态（兼容 boolean / 文案列表 / 旧枚举） */
+export function resolveRealNameStatus(profile: any): RealNameStatus {
+  if (profile == null) return 'missing'
+  if (profile.realNameStatus != null) {
+    return normalizeStatus(profile.realNameStatus)
+  }
+  const certs = profile.certifications
+  if (certs != null && typeof certs === 'object' && !Array.isArray(certs)) {
+    if (certs.realName === true || certs.realName === 'passed') return 'passed'
+    if (certs.realName === 'pending' || certs.realName === 'reviewing') return 'reviewing'
+    if (certs.realName === 'failed' || certs.realName === 'rejected') return 'rejected'
+    return 'missing'
+  }
+  if (Array.isArray(certs)) {
+    for (let i = 0; i < certs.length; i++) {
+      const item = certs[i]
+      if (item == '实名' || item == 'realName' || (item != null && item.name == '实名' && item.passed == true)) {
+        return 'passed'
+      }
+    }
+  }
+  if (profile.certList != null && Array.isArray(profile.certList)) {
+    if (profile.certList.indexOf('实名') >= 0) return 'passed'
+  }
+  return 'missing'
+}
+
+export function isRealNamePassed(profile: any): boolean {
+  return resolveRealNameStatus(profile) == 'passed'
+}
+
+export function actionLabel(action: GateAction | string): string {
+  const label = ACTION_LABELS[action]
+  return label != null ? label : '该操作'
+}
+
+/**
+ * 拉取当前用户并校验是否已实名
+ * @returns { ok, profile, status, message }
+ */
+export async function ensureRealName(action: GateAction | string = 'publish') {
+  try {
+    const res = await getMeProfile()
+    const profile = res != null && res.success ? res.data : null
+    const status = resolveRealNameStatus(profile)
+    if (status == 'passed') {
+      return {
+        ok: true,
+        profile,
+        status,
+        message: ''
+      }
+    }
+    const label = actionLabel(action)
+    let message = `完成实名认证后即可${label}`
+    if (status == 'reviewing') {
+      message = `实名认证审核中，通过后即可${label}`
+    } else if (status == 'rejected') {
+      message = `实名认证未通过，请重新认证后再${label}`
+    }
+    return {
+      ok: false,
+      profile,
+      status,
+      message
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      profile: null,
+      status: 'missing' as RealNameStatus,
+      message: '暂时无法确认认证状态，请稍后重试'
+    }
+  }
+}
+
+/**
+ * 未通过时弹窗引导去认证页；已通过返回 true
+ */
+export async function guardRealName(action: GateAction | string = 'publish'): Promise<boolean> {
+  const result = await ensureRealName(action)
+  if (result.ok) return true
+
+  uni.showModal({
+    title: '需要实名认证',
+    content: result.message + '。学历认证可稍后完善，不会拦截本次操作。',
+    confirmText: '去实名',
+    cancelText: '稍后再说',
+    success: (res) => {
+      if (res.confirm) {
+        uni.navigateTo({ url: '/pages/profile/certification' })
+      }
+    }
+  })
+  return false
+}

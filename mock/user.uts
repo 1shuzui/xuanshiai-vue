@@ -497,7 +497,16 @@ export const mockMeProfile = {
   visitors: 8,
   viewed: 12,
   favorites: 5,
-  certifications: ['实名', '头像', '单身'],
+  /** 社区 / 申请认识仅校验 realNameStatus；学历只展示 */
+  realNameStatus: 'passed',
+  educationStatus: 'missing',
+  certifications: {
+    realName: true,
+    education: false,
+    avatar: true,
+    single: true
+  },
+  certList: ['实名', '头像', '单身'],
   certDone: 3,
   certTotal: 5,
   introduction: '29 岁 · 南京 · 产品经理',
