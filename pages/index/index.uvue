@@ -252,7 +252,7 @@
 									<text class="sq-meta-text">UI设计师 · 上海</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click="onLike">
+							<view class="sq-like-btn" @click.stop="onLike(2)">
 								<text class="sq-heart">♥</text>
 							</view>
 						</view>
