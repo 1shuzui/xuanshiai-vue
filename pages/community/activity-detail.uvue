@@ -21,7 +21,10 @@
 				</view>
 				<view class="organizer" v-if="activity.organizer != null">
 					<image class="o-avatar" :src="activity.organizer.avatar" mode="aspectFill"></image>
-					<text class="o-name">{{ activity.organizer.name }}</text>
+					<view class="o-meta">
+						<text class="o-name">{{ activity.organizer.name }}</text>
+						<text class="o-desc" v-if="activity.organizer.description != null && activity.organizer.description != ''">{{ activity.organizer.description }}</text>
+					</view>
 				</view>
 			</view>
 			<view class="pad"></view>
@@ -189,9 +192,20 @@
 		height: 36px;
 		border-radius: 50%;
 	}
+	.o-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		flex: 1;
+	}
 	.o-name {
 		font-size: 13px;
 		font-weight: 600;
+	}
+	.o-desc {
+		font-size: 12px;
+		color: var(--muted);
+		line-height: 1.4;
 	}
 	.footer {
 		padding: 12px 16px;

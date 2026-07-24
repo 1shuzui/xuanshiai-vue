@@ -429,7 +429,8 @@ export const mockActivities = [
     tags: ['同城', '散步', '认真社交'],
     organizer: {
       name: '宣誓爱活动组',
-      avatar: PORTRAIT.man
+      avatar: PORTRAIT.man,
+      description: '负责活动审核、现场引导与安全提醒'
     },
     price: 49,
     status: 'recruiting',
@@ -454,7 +455,8 @@ export const mockActivities = [
     tags: ['艺术', '看展'],
     organizer: {
       name: '文化小组',
-      avatar: PORTRAIT.alt
+      avatar: PORTRAIT.alt,
+      description: '负责展览路线与现场秩序'
     },
     price: 39,
     status: 'recruiting',
@@ -479,7 +481,8 @@ export const mockActivities = [
     tags: ['同城', '运动'],
     organizer: {
       name: '宣誓爱活动组',
-      avatar: PORTRAIT.man
+      avatar: PORTRAIT.man,
+      description: '负责活动审核、现场引导与安全提醒'
     },
     price: 0,
     status: 'ended',
