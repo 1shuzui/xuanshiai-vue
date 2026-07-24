@@ -21,31 +21,6 @@
 					</view>
 				</view>
 
-				<!-- ============ 服务红娘轮播 ============ -->
-				<view class="section" v-if="customMatchmakers.length > 0">
-					<view class="section-head row">
-						<view class="section-head-text">
-							<text class="section-title">专属服务红娘</text>
-							<text class="section-sub">一对一为你匹配推进</text>
-						</view>
-						<text class="section-link" @click="showAllMatchmakers">查看全部 ›</text>
-					</view>
-
-					<scroll-view scroll-x :enable-flex="true" class="matchmaker-scroll" :show-scrollbar="false">
-						<view class="matchmaker-list">
-							<MatchmakerCard
-								v-for="item in customMatchmakers"
-								:key="item.id"
-								:data="item"
-								actionText="联系她"
-								unitText="/次"
-								@detail="handleMatchmakerDetail"
-								@contact="handleMatchmakerContact"
-							/>
-						</view>
-					</scroll-view>
-				</view>
-
 				<!-- ============ 为什么选择 / 七大专属服务 ============ -->
 				<view class="section">
 					<view class="section-head">
@@ -107,15 +82,15 @@
 					<view class="section-head row">
 						<view class="section-head-text">
 							<text class="section-title">成功案例</text>
-							<text class="section-sub">真实故事，已完成隐私脱敏</text>
+							<text class="section-sub">真实用户评价，已完成隐私脱敏</text>
 						</view>
 						<text class="section-link" @click="showAllCases">查看更多 ›</text>
 					</view>
 
-					<scroll-view scroll-x :enable-flex="true" class="case-scroll" :show-scrollbar="false">
+					<scroll-view scroll-x enhanced :enable-flex="true" class="case-scroll" :show-scrollbar="false" @scroll="handleCaseScroll">
 						<view class="case-list">
 							<view
-								v-for="item in successCases"
+								v-for="(item, caseIdx) in successCases"
 								:key="item.name"
 								class="case-card"
 							>
@@ -123,11 +98,56 @@
 								<view class="case-body">
 									<text class="case-name">{{ item.name }}</text>
 									<text class="case-meta">{{ item.matchTime }}</text>
-									<text class="case-copy">{{ item.copy }}</text>
+									<view class="case-feedback-row">
+										<text class="case-quote-mark">"</text>
+										<text class="case-feedback">{{ item.feedback }}</text>
+									</view>
 								</view>
 							</view>
 						</view>
 					</scroll-view>
+
+					<!-- 滑动指示点 -->
+					<view class="case-dots">
+						<view
+							v-for="(dot, dotIdx) in successCases"
+							:key="'dot-' + dotIdx"
+							class="case-dot"
+							:class="{ active: currentCaseIndex === dotIdx }"
+						></view>
+					</view>
+				</view>
+
+				<!-- ============ 查看更多案例弹窗 ============ -->
+				<view v-if="showAllCasesModal" class="cases-overlay" @click="closeAllCases">
+					<view class="cases-modal" @click.stop>
+						<view class="cases-modal-head">
+							<text class="cases-modal-title">全部成功案例</text>
+							<text class="cases-modal-sub">真实用户评价，已完成隐私脱敏</text>
+							<view class="cases-modal-close" @click="closeAllCases">
+								<text>×</text>
+							</view>
+						</view>
+						<scroll-view scroll-y class="cases-modal-scroll" :show-scrollbar="false">
+							<view class="cases-modal-list">
+								<view
+									v-for="item in allDisplayCases"
+									:key="item.name"
+									class="cases-modal-card"
+								>
+									<image class="cases-modal-image" :src="item.image" mode="aspectFill"></image>
+									<view class="cases-modal-body">
+										<text class="cases-modal-name">{{ item.name }}</text>
+										<text class="cases-modal-meta">{{ item.matchTime }}</text>
+										<view class="cases-modal-feedback">
+											<text class="case-quote-mark">"</text>
+											<text class="cases-modal-feedback-text">{{ item.feedback }}</text>
+										</view>
+									</view>
+								</view>
+							</view>
+						</scroll-view>
+					</view>
 				</view>
 
 				<!-- ============ 服务套餐 ============ -->
@@ -190,8 +210,7 @@
 </template>
 
 <script setup lang="uts">
-import { getCustomPlans, getCustomMatchmakers } from '@/api'
-import MatchmakerCard from '@/components/MatchmakerCard.uvue'
+import { getCustomPlans } from '@/api'
 
 interface PlanItem {
 	id: number
@@ -238,23 +257,6 @@ const fallbackPlans: PlanItem[] = [
 	}
 ]
 
-const customMatchmakers = ref<any[]>([])
-const matchmakersLoaded = ref(false)
-
-const loadCustomMatchmakers = async () => {
-	if (matchmakersLoaded.value) return
-	try {
-		const res = await getCustomMatchmakers()
-		if (res.success) {
-			customMatchmakers.value = (res.data as any[]).slice(0, 6)
-		}
-	} catch (e) {
-		// 静默降级
-	} finally {
-		matchmakersLoaded.value = true
-	}
-}
-
 const heroTags = ['平台认证', '专属顾问', '全程跟踪']
 
 const exclusiveServices = [
@@ -281,18 +283,55 @@ const processSteps = [
 			name: '杭州 · 林女士 & 王先生',
 			matchTime: '2026.03 牵手',
 			copy: '两人都是高校教师，性格内敛但目标明确。从咖啡到徒步到家庭聚餐，三个月后确认订婚。',
+			feedback: '红娘很耐心，推荐的非常精准。我们两个都是比较慢热的人，但红娘帮我们找到了共同节奏。',
 			image: '/static/portraits/profile-woman-main.jpg'
 		},
 		{
 			name: '南京 · 周先生 & 赵女士',
 			matchTime: '2026.05 牵手',
 			copy: '杭州的她与南京的他，经过三个月的双向了解，最终确定了共同生活的城市，完成了一场跨越城市的奔赴。',
+			feedback: '感谢红娘帮我们看清了方向。异地很难，但她帮我们一步一步把不确定变成了确定。',
 			image: '/static/portraits/profile-man-light.jpg'
 		},
 		{
 			name: '上海 · 陈女士 & 李先生',
 			matchTime: '2026.06 牵手',
 			copy: '双方都不是一见钟情的类型，但在持续沟通和反馈中逐渐发现了彼此的契合点，慢慢走进了对方的生活。',
+			feedback: '不着急反而更稳。红娘一直跟我们说，好的关系是日复一日的确定感，我们终于体会到了。',
+			image: '/static/portraits/profile-woman-community.jpg'
+		}
+	]
+
+	// 更多案例（用于"查看更多"弹窗）
+	const moreCases = [
+		{
+			name: '深圳 · 张先生 & 刘女士',
+			matchTime: '2026.04 牵手',
+			feedback: '我们都是第一次用婚恋服务，一开始很犹豫。红娘给了很多安心感，匹配的第三位就遇到了对的人。',
+			image: '/static/portraits/profile-man-light.jpg'
+		},
+		{
+			name: '成都 · 杨女士 & 孙先生',
+			matchTime: '2026.02 牵手',
+			feedback: '红娘很懂我们这代人的婚恋观，不催不赶，帮我们自然地走到了一起。现在每天都觉得很踏实。',
+			image: '/static/portraits/profile-woman-main.jpg'
+		},
+		{
+			name: '北京 · 赵先生 & 吴女士',
+			matchTime: '2025.12 牵手',
+			feedback: '两个互联网人，平时太忙了。红娘帮我们做了很多筛选和节奏安排，让我们能专注在了解彼此上。',
+			image: '/static/portraits/profile-woman-community.jpg'
+		},
+		{
+			name: '广州 · 陈先生 & 黄女士',
+			matchTime: '2025.11 牵手',
+			feedback: '见面前两次都觉得不太合适，红娘建议再试一次，第三次见面完全改观了。感谢她的坚持。',
+			image: '/static/portraits/profile-man-light.jpg'
+		},
+		{
+			name: '武汉 · 周女士 & 郑先生',
+			matchTime: '2025.10 牵手',
+			feedback: '红娘特别细心，记得每个人的喜好和小细节。她推荐的人选，一次比一次贴近我的期待。',
 			image: '/static/portraits/profile-woman-community.jpg'
 		}
 	]
@@ -341,12 +380,41 @@ onMounted(async () => {
 	} catch (e) {
 		uni.showToast({ title: '已展示默认服务方案', icon: 'none' })
 	}
-	loadCustomMatchmakers()
 })
 
 const selectPlan = (plan: PlanItem) => {
 	selectedPlanId.value = plan.id
 }
+
+// ===== 案例滑动追踪 =====
+const currentCaseIndex = ref(0)
+let caseScrollTimer: any = null
+
+const handleCaseScroll = (e: any) => {
+	if (caseScrollTimer != null) return
+	caseScrollTimer = setTimeout(() => {
+		caseScrollTimer = null
+		const scrollLeft = e.detail?.scrollLeft ?? 0
+		try {
+			const info = uni.getSystemInfoSync()
+			const screenWidth = info.screenWidth ?? 375
+			const cardStep = (276 / 750) * screenWidth
+			if (cardStep > 0) {
+				const rawIdx = Math.round(scrollLeft / cardStep)
+				const clamped = Math.max(0, Math.min(rawIdx, successCases.length - 1))
+				currentCaseIndex.value = clamped
+			}
+		} catch (_) {
+			// 降级：不更新指示点
+		}
+	}, 120)
+}
+
+// ===== 查看更多案例 =====
+const showAllCasesModal = ref(false)
+const allDisplayCases = computed(() => {
+	return successCases.concat(moreCases)
+})
 
 const showServiceDetail = (item: any) => {
 	uni.showModal({
@@ -361,27 +429,13 @@ const showAllServices = () => {
 	uni.showToast({ title: '更多服务介绍整理中', icon: 'none' })
 }
 
-const showAllMatchmakers = () => {
-	uni.switchTab({
-		url: '/pages/matchmaker/matchmaker'
-	})
-}
-
 const showAllCases = () => {
-	uni.showToast({ title: '更多案例整理中', icon: 'none' })
-}
+		showAllCasesModal.value = true
+	}
 
-const handleMatchmakerDetail = (item: any) => {
-	uni.navigateTo({
-		url: '/pages/matchmaker/detail?id=' + item.id
-	})
-}
-
-const handleMatchmakerContact = (item: any) => {
-	uni.navigateTo({
-		url: '/pages/matchmaker/apply?matchmakerId=' + item.id + '&matchmakerName=' + encodeURIComponent(item.name) + '&type=custom'
-	})
-}
+	const closeAllCases = () => {
+		showAllCasesModal.value = false
+	}
 
 const contactMatchmaker = () => {
 	uni.showToast({ title: '专属红娘咨询入口即将开放', icon: 'none' })
@@ -410,7 +464,7 @@ const applyPlan = () => {
 	padding: 24rpx 32rpx 200rpx;
 	display: flex;
 	flex-direction: column;
-	gap: 32rpx;
+	gap: 24rpx;
 }
 
 /* ============ Hero ============ */
@@ -436,15 +490,15 @@ const applyPlan = () => {
 	display: flex;
 	flex-direction: row;
 	align-items: stretch;
-	padding: 36rpx 28rpx;
-	min-height: 320rpx;
+	padding: 28rpx 24rpx;
+	min-height: 288rpx;
 }
 
 .hero-copy {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-	gap: 16rpx;
+	gap: 12rpx;
 	z-index: 1;
 }
 
@@ -467,7 +521,7 @@ const applyPlan = () => {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 12rpx;
+	gap: 10rpx;
 	margin-top: auto;
 }
 
@@ -476,7 +530,7 @@ const applyPlan = () => {
 	flex-direction: row;
 	align-items: center;
 	gap: 8rpx;
-	padding: 10rpx 18rpx;
+	padding: 8rpx 16rpx;
 	border-radius: 999rpx;
 	background: rgba(255, 255, 255, 0.72);
 }
@@ -495,42 +549,25 @@ const applyPlan = () => {
 }
 
 .hero-illustration {
-	width: 220rpx;
-	height: 280rpx;
+	width: 204rpx;
+	height: 252rpx;
 	border-radius: 110rpx 110rpx 16rpx 16rpx;
 	border: 6rpx solid rgba(255, 255, 255, 0.8);
 	flex-shrink: 0;
-	margin-left: 16rpx;
-}
-
-/* ============ 服务红娘轮播 ============ */
-.matchmaker-scroll {
-	width: 100%;
-	margin: 0 -32rpx;
-	padding: 0 32rpx;
-	box-sizing: border-box;
-}
-
-.matchmaker-list {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: nowrap;
-	align-items: stretch;
-	gap: 20rpx;
-	padding-right: 32rpx;
+	margin-left: 12rpx;
 }
 
 /* ============ 通用 Section ============ */
 .section {
 	display: flex;
 	flex-direction: column;
-	gap: 20rpx;
+	gap: 16rpx;
 }
 
 .section-head {
 	display: flex;
 	flex-direction: column;
-	gap: 6rpx;
+	gap: 4rpx;
 }
 
 .section-head.row {
@@ -569,19 +606,19 @@ const applyPlan = () => {
 .service-grid {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
-	gap: 16rpx;
+	gap: 12rpx;
 }
 
 .service-card {
 	background: var(--surface);
 	border-radius: 16rpx;
 	box-shadow: var(--shadow-sm);
-	padding: 22rpx 12rpx;
+	padding: 18rpx 10rpx;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 10rpx;
-	min-height: 220rpx;
+	gap: 8rpx;
+	min-height: 196rpx;
 }
 
 .service-icon {
@@ -929,5 +966,181 @@ const applyPlan = () => {
 	font-size: 30rpx;
 	font-weight: 800;
 	color: var(--paper);
+}
+
+/* ============ 查看更多案例弹窗 ============ */
+.cases-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 80;
+	background: rgba(17, 23, 24, 0.52);
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+}
+
+.cases-modal {
+	width: 100%;
+	max-height: 80vh;
+	border-radius: 34rpx 34rpx 0 0;
+	background: var(--surface);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.cases-modal-head {
+	position: relative;
+	padding: 32rpx 32rpx 20rpx;
+	border-bottom: 1px solid var(--line);
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+}
+
+.cases-modal-title {
+	font-size: 34rpx;
+	font-family: var(--serif);
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.cases-modal-sub {
+	font-size: 20rpx;
+	color: var(--muted);
+}
+
+.cases-modal-close {
+	position: absolute;
+	right: 24rpx;
+	top: 28rpx;
+	width: 54rpx;
+	height: 54rpx;
+	border-radius: 50%;
+	background: var(--warm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cases-modal-close text {
+	font-size: 34rpx;
+	line-height: 1;
+	color: var(--muted);
+}
+
+.cases-modal-scroll {
+	flex: 1;
+	max-height: 60vh;
+	padding: 20rpx 32rpx calc(env(safe-area-inset-bottom) + 32rpx);
+}
+
+.cases-modal-list {
+	display: flex;
+	flex-direction: column;
+	gap: 18rpx;
+}
+
+.cases-modal-card {
+	display: flex;
+	flex-direction: row;
+	gap: 18rpx;
+	padding: 18rpx;
+	border-radius: 16rpx;
+	background: var(--paper);
+	box-shadow: var(--shadow-sm);
+}
+
+.cases-modal-image {
+	width: 140rpx;
+	height: 140rpx;
+	border-radius: 12rpx;
+	flex-shrink: 0;
+}
+
+.cases-modal-body {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+}
+
+.cases-modal-name {
+	font-size: 25rpx;
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.cases-modal-meta {
+	font-size: 19rpx;
+	color: var(--accent2);
+	font-weight: 700;
+}
+
+.cases-modal-feedback {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 4rpx;
+	margin-top: 4rpx;
+}
+
+.cases-modal-feedback-text {
+	font-size: 20rpx;
+	color: var(--ink2);
+	line-height: 1.55;
+	flex: 1;
+	min-width: 0;
+}
+
+/* ============ 案例卡片用户评价 ============ */
+.case-feedback-row {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 2rpx;
+}
+
+.case-quote-mark {
+	font-size: 28rpx;
+	font-family: var(--serif);
+	font-weight: 800;
+	color: var(--accent);
+	line-height: 1;
+	margin-top: 2rpx;
+	flex-shrink: 0;
+}
+
+.case-feedback {
+	font-size: 19rpx;
+	color: var(--ink2);
+	line-height: 1.5;
+	flex: 1;
+	min-width: 0;
+}
+
+/* ============ 案例滑动指示点 ============ */
+.case-dots {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 12rpx;
+	padding-top: 8rpx;
+}
+
+.case-dot {
+	width: 12rpx;
+	height: 12rpx;
+	border-radius: 50%;
+	background: var(--line);
+	transition: all 0.22s ease;
+}
+
+.case-dot.active {
+	width: 28rpx;
+	border-radius: 6rpx;
+	background: var(--accent);
 }
 </style>

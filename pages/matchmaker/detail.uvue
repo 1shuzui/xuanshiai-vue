@@ -22,11 +22,11 @@
 
 							<!-- 评分 -->
 							<view class="rating-row">
-								<view class="stars">
-									<text v-for="i in 5" :key="i" class="star" :class="{ filled: i <= starRating }">★</text>
+								<text class="stars-text">{{ starText }}</text>
+								<view class="rating-meta">
+									<text class="rating-score">{{ matchmaker.rating || '4.9' }}</text>
+									<text class="rating-count">({{ matchmaker.ratingCount || 0 }}评价)</text>
 								</view>
-								<text class="rating-score">{{ matchmaker.rating || '4.9' }}</text>
-								<text class="rating-count">({{ matchmaker.ratingCount || 0 }}评价)</text>
 							</view>
 
 							<!-- 服务价格 -->
@@ -83,9 +83,9 @@
 					<text class="section-link" @click="showMoreCases">查看更多 ›</text>
 				</view>
 
-				<scroll-view scroll-x enhanced :enable-flex="true" class="case-scroll" :show-scrollbar="false">
+				<scroll-view scroll-x enhanced :enable-flex="true" class="case-scroll" :show-scrollbar="false" @scroll="handleCaseScroll">
 					<view class="case-list">
-						<view v-for="item in displayCases" :key="item._id || item.title" class="case-card" @click="viewCaseDetail(item)">
+						<view v-for="(item, caseIdx) in displayCases" :key="item._id || item.title" class="case-card" @click="viewCaseDetail(item)">
 							<image class="case-image" :src="item.image || item.images[0]" mode="aspectFill"></image>
 							<view class="case-body">
 								<text class="case-title">{{ item.title }}</text>
@@ -99,33 +99,14 @@
 					</view>
 				</scroll-view>
 
-				<!-- ===== 服务入口 ===== -->
-				<view class="service-block">
-					<view class="section-title-row">
-						<text class="dot-mark">·</text>
-						<text class="section-title">服务入口</text>
-					</view>
-
-					<view class="service-entry-list">
-						<view class="service-entry rose" @click="openAppointment">
-							<view class="entry-icon"><text>📅</text></view>
-							<text class="entry-title">预约咨询</text>
-							<text class="entry-desc">选择时间，红娘回访</text>
-							<view class="entry-action"><text>立即预约 ›</text></view>
-						</view>
-						<view class="service-entry gold" @click="goCustomService">
-							<view class="entry-icon"><text>冠</text></view>
-							<text class="entry-title">私人定制</text>
-							<text class="entry-desc">专属服务 全程跟进</text>
-							<view class="entry-action"><text>了解方案 ›</text></view>
-						</view>
-						<view class="service-entry violet" @click="goBecomeMatchmaker">
-							<view class="entry-icon"><text>缘</text></view>
-							<text class="entry-title">我要做红娘</text>
-							<text class="entry-desc">加入红娘团队</text>
-							<view class="entry-action"><text>立即申请 ›</text></view>
-						</view>
-					</view>
+				<!-- 滑动指示点 -->
+				<view class="case-dots">
+					<view
+						v-for="(dot, dotIdx) in displayCases"
+						:key="'dot-' + dotIdx"
+						class="case-dot"
+						:class="{ active: currentCaseIndex === dotIdx }"
+					></view>
 				</view>
 
 				<!-- ===== 服务提醒 ===== -->
@@ -190,38 +171,6 @@
 			</view>
 		</view>
 
-		<!-- ===== 预约咨询弹窗 ===== -->
-		<view v-if="appointmentVisible" class="appointment-overlay" @click="closeAppointment">
-			<view class="appointment-card" @click.stop>
-				<view class="appointment-close" @click="closeAppointment">
-					<text>×</text>
-				</view>
-				<text class="appointment-title">预约咨询</text>
-				<text class="appointment-subtitle">填写信息，红娘将在约定时间联系你</text>
-
-				<view class="apt-field">
-					<text class="apt-label">你的姓名</text>
-					<input class="apt-input" :value="aptName" placeholder="请填写姓名" @input="onAptNameInput" />
-				</view>
-				<view class="apt-field">
-					<text class="apt-label">手机号码</text>
-					<input class="apt-input" type="number" maxlength="11" :value="aptPhone" placeholder="红娘将拨打此号码" @input="onAptPhoneInput" />
-				</view>
-				<view class="apt-field">
-					<text class="apt-label">期望咨询时间</text>
-					<input class="apt-input" :value="aptTime" placeholder="例如：工作日晚上或周末下午" @input="onAptTimeInput" />
-				</view>
-				<view class="apt-field">
-					<text class="apt-label">需求描述</text>
-					<textarea class="apt-textarea" :value="aptRequirement" maxlength="200" placeholder="简单描述你的需求，帮助红娘提前了解" @input="onAptRequirementInput" />
-				</view>
-
-				<view class="apt-submit" :class="{ disabled: !aptCanSubmit || aptSubmitting }" @click="submitAppointment">
-					<text>{{ aptSubmitting ? '提交中…' : '确认预约' }}</text>
-				</view>
-			</view>
-		</view>
-
 		<XsaToast :visible="toastVisible" :message="toastMessage" @hide="toastVisible = false" />
 	</view>
 </template>
@@ -259,16 +208,8 @@ const fallbackMatchmaker = {
 const matchmaker = ref<any>(fallbackMatchmaker)
 const introExpanded = ref(false)
 const wechatPanelVisible = ref(false)
-const appointmentVisible = ref(false)
 const toastVisible = ref(false)
 const toastMessage = ref('')
-
-// 预约表单
-const aptName = ref('')
-const aptPhone = ref('')
-const aptTime = ref('')
-const aptRequirement = ref('')
-const aptSubmitting = ref(false)
 
 const displayCases = ref<any[]>([
 	{
@@ -341,6 +282,11 @@ const starRating = computed(() => {
 	return Math.round(rating)
 })
 
+const starText = computed(() => {
+	const filledCount = Math.max(0, Math.min(5, starRating.value))
+	return '★'.repeat(filledCount) + '☆'.repeat(5 - filledCount)
+})
+
 const praiseRateText = computed(() => {
 	const rating = parseFloat(String(matchmaker.value.rating || '4.9'))
 	return Math.round(rating / 5 * 100) + '%'
@@ -356,10 +302,6 @@ const wechatIdText = computed(() => {
 	const wechat = matchmaker.value.wechat
 	if (wechat != null && String(wechat).length > 0) return String(wechat)
 	return fallbackMatchmaker.wechat
-})
-
-const aptCanSubmit = computed(() => {
-	return aptName.value.trim().length > 0 && /^1\d{10}$/.test(aptPhone.value)
 })
 
 // ===== 初始化 =====
@@ -404,6 +346,32 @@ onMounted(async () => {
 // ===== 介绍展开/收起 =====
 const toggleIntro = () => { introExpanded.value = !introExpanded.value }
 
+
+// ===== 案例滑动追踪 =====
+const currentCaseIndex = ref(0)
+let caseScrollTimer: any = null
+const caseCardStepRpx = 294
+
+const handleCaseScroll = (e: any) => {
+	if (caseScrollTimer != null) return
+	caseScrollTimer = setTimeout(() => {
+		caseScrollTimer = null
+		const scrollLeft = e.detail?.scrollLeft ?? 0
+		// 卡片宽度 276rpx + 间距 18rpx = 294rpx
+		try {
+			const info = uni.getSystemInfoSync()
+			const screenWidth = info.screenWidth ?? 375
+			const cardStep = (caseCardStepRpx / 750) * screenWidth
+			if (cardStep > 0) {
+				const rawIdx = Math.round(scrollLeft / cardStep)
+				const clamped = Math.max(0, Math.min(rawIdx, displayCases.value.length - 1))
+				currentCaseIndex.value = clamped
+			}
+		} catch (_) {
+			// 降级：不更新指示点
+		}
+	}, 120)
+}
 // ===== 成功案例 =====
 const viewCaseDetail = (item: any) => {
 	const id = item._id || item.title || ''
@@ -455,48 +423,6 @@ const saveQrCode = () => {
 	} else {
 		uni.showToast({ title: '二维码图片暂未上传', icon: 'none' })
 	}
-}
-
-// ===== 预约 =====
-const openAppointment = () => { appointmentVisible.value = true }
-const closeAppointment = () => { appointmentVisible.value = false }
-
-const onAptNameInput = (e: any) => { aptName.value = e.detail.value }
-const onAptPhoneInput = (e: any) => { aptPhone.value = e.detail.value }
-const onAptTimeInput = (e: any) => { aptTime.value = e.detail.value }
-const onAptRequirementInput = (e: any) => { aptRequirement.value = e.detail.value }
-
-const submitAppointment = async () => {
-	if (aptSubmitting.value) return
-	if (aptName.value.trim().length === 0) { showToast('请填写姓名'); return }
-	if (!/^1\d{10}$/.test(aptPhone.value)) { showToast('请填写正确的手机号'); return }
-
-	aptSubmitting.value = true
-	// 模拟提交
-	setTimeout(() => {
-		aptSubmitting.value = false
-		appointmentVisible.value = false
-		uni.showModal({
-			title: '预约成功',
-			content: '红娘将在约定时间联系你，请保持手机畅通。',
-			showCancel: false,
-			confirmText: '知道了'
-		})
-		// 重置表单
-		aptName.value = ''
-		aptPhone.value = ''
-		aptTime.value = ''
-		aptRequirement.value = ''
-	}, 800)
-}
-
-// ===== 服务入口 =====
-const goCustomService = () => {
-	uni.navigateTo({ url: '/pages/matchmaker/custom' })
-}
-
-const goBecomeMatchmaker = () => {
-	uni.navigateTo({ url: '/pages/matchmaker/become-matchmaker' })
 }
 
 const showToast = (msg: string) => {
@@ -626,16 +552,25 @@ const showToast = (msg: string) => {
 	flex-direction: row;
 	align-items: center;
 	gap: 8rpx;
+	flex-wrap: nowrap;
 }
 
-.stars { display: flex; gap: 2rpx; }
-
-.star {
+.stars-text {
+	flex-shrink: 0;
 	font-size: 26rpx;
-	color: #DDD;
+	line-height: 1;
+	letter-spacing: 2rpx;
+	color: var(--gold);
 }
 
-.star.filled { color: var(--gold); }
+.rating-meta {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 6rpx;
+	flex-wrap: nowrap;
+	min-width: 0;
+}
 
 .rating-score {
 	font-size: 26rpx;
@@ -813,12 +748,13 @@ const showToast = (msg: string) => {
 	flex-direction: row;
 	flex-wrap: nowrap;
 	gap: 18rpx;
-	padding-right: 28rpx;
+	padding-right: 84rpx;
 }
 
 .case-card {
-	width: 210rpx;
+	width: 276rpx;
 	flex-shrink: 0;
+	min-height: 356rpx;
 	border-radius: 16rpx;
 	background: var(--surface);
 	overflow: hidden;
@@ -829,32 +765,34 @@ const showToast = (msg: string) => {
 
 .case-image {
 	width: 100%;
-	height: 140rpx;
+	height: 184rpx;
 	background: var(--rose-soft);
 }
 
 .case-body {
-	padding: 12rpx 14rpx 16rpx;
+	flex: 1;
+	padding: 16rpx 18rpx 18rpx;
 	display: flex;
 	flex-direction: column;
-	gap: 6rpx;
+	gap: 8rpx;
 }
 
 .case-title {
-	font-size: 23rpx;
+	font-size: 25rpx;
 	line-height: 1.25;
 	font-weight: 900;
 	color: var(--ink);
 }
 
 .case-meta {
-	font-size: 18rpx;
+	font-size: 20rpx;
 	line-height: 1.35;
 	color: var(--muted);
 }
 
 .case-copy {
-	font-size: 18rpx;
+	flex: 1;
+	font-size: 20rpx;
 	line-height: 1.4;
 	color: var(--ink2);
 }
@@ -873,57 +811,6 @@ const showToast = (msg: string) => {
 	font-size: 17rpx;
 	color: var(--rose-dark);
 	font-weight: 700;
-}
-
-/* ===== 服务入口 ===== */
-.service-block {
-	display: flex;
-	flex-direction: column;
-	gap: 18rpx;
-}
-
-.service-entry-list {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 14rpx;
-}
-
-.service-entry {
-	min-width: 0;
-	min-height: 196rpx;
-	padding: 20rpx 14rpx 16rpx;
-	border-radius: 20rpx;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	gap: 9rpx;
-	box-shadow: 0 9rpx 28rpx rgba(17, 23, 24, 0.08);
-}
-
-.service-entry.rose { background: linear-gradient(180deg, var(--rose-soft), #FFB7CB); color: var(--rose-dark); }
-.service-entry.gold { background: linear-gradient(180deg, var(--gold-soft), #FFD37A); color: #B76000; }
-.service-entry.violet { background: linear-gradient(180deg, var(--violet-soft), #C7A5FF); color: #6937C9; }
-
-.entry-icon {
-	width: 54rpx; height: 54rpx;
-	border-radius: 50%;
-	background: rgba(255, 255, 255, 0.56);
-	display: flex; align-items: center; justify-content: center;
-	font-size: 25rpx; font-weight: 900;
-}
-
-.entry-title { font-size: 25rpx; line-height: 1.25; font-weight: 900; }
-.entry-desc { min-height: 54rpx; font-size: 19rpx; line-height: 1.42; opacity: 0.84; }
-
-.entry-action {
-	margin-top: auto;
-	min-height: 42rpx;
-	padding: 0 16rpx;
-	border-radius: 999rpx;
-	background: rgba(255, 255, 255, 0.78);
-	display: flex; align-items: center; justify-content: center;
-	font-size: 20rpx; font-weight: 900;
 }
 
 /* ===== 服务提醒 ===== */
@@ -1059,74 +946,28 @@ const showToast = (msg: string) => {
 .copy-button { background: var(--rose); color: var(--surface); }
 .save-qr-button { background: var(--rose-soft); color: var(--rose-dark); }
 
-/* ===== 预约弹窗 ===== */
-.appointment-overlay {
-	position: fixed; inset: 0; z-index: 60;
-	background: rgba(17, 23, 24, 0.48);
-	display: flex; align-items: flex-end; justify-content: center;
+
+/* ============ 案例滑动指示点 ============ */
+.case-dots {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 12rpx;
+	padding-top: 8rpx;
 }
 
-.appointment-card {
-	position: relative;
-	width: 100%;
-	max-height: 85vh;
-	padding: 40rpx 32rpx calc(env(safe-area-inset-bottom) + 32rpx);
-	border-radius: 34rpx 34rpx 0 0;
-	background: var(--surface);
-	display: flex; flex-direction: column;
-	gap: 20rpx;
-	overflow-y: auto;
-}
-
-.appointment-close {
-	position: absolute; right: 20rpx; top: 20rpx;
-	width: 54rpx; height: 54rpx;
+.case-dot {
+	width: 12rpx;
+	height: 12rpx;
 	border-radius: 50%;
-	background: var(--rose-faint);
-	color: var(--muted);
-	display: flex; align-items: center; justify-content: center;
+	background: var(--line);
+	transition: all 0.22s ease;
 }
 
-.appointment-close text { font-size: 34rpx; }
-
-.appointment-title { font-size: 36rpx; font-family: var(--serif); font-weight: 900; color: var(--ink); }
-.appointment-subtitle { font-size: 23rpx; line-height: 1.55; color: var(--muted); }
-
-.apt-field { display: flex; flex-direction: column; gap: 10rpx; }
-.apt-label { font-size: 24rpx; font-weight: 700; color: var(--ink2); }
-
-.apt-input {
-	height: 78rpx;
-	padding: 0 20rpx;
-	border: 1px solid var(--rose-line);
-	border-radius: 14rpx;
-	background: var(--rose-faint);
-	font-size: 25rpx;
-	color: var(--ink);
-}
-
-.apt-textarea {
-	width: 100%;
-	min-height: 130rpx;
-	padding: 18rpx 20rpx;
-	box-sizing: border-box;
-	border: 1px solid var(--rose-line);
-	border-radius: 14rpx;
-	background: var(--rose-faint);
-	font-size: 24rpx;
-	line-height: 1.6;
-	color: var(--ink);
-}
-
-.apt-submit {
-	height: 86rpx;
-	border-radius: 20rpx;
+.case-dot.active {
+	width: 28rpx;
+	border-radius: 6rpx;
 	background: var(--rose);
-	color: var(--surface);
-	display: flex; align-items: center; justify-content: center;
-	font-size: 28rpx; font-weight: 800;
-	margin-top: 8rpx;
 }
-
-.apt-submit.disabled { opacity: 0.56; }
 </style>

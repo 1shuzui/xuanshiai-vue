@@ -2,13 +2,6 @@
 	<view class="matchmaker-card" @click="handleDetail">
 		<view class="card-media">
 			<image class="card-avatar" :src="data.avatar" mode="aspectFill"></image>
-			<view class="card-badge" v-if="data.badge">
-				<text>{{ data.badge }}</text>
-			</view>
-			<view class="card-status" :class="statusClass">
-				<view class="status-dot"></view>
-				<text>{{ statusText }}</text>
-			</view>
 		</view>
 
 		<view class="card-body">
@@ -18,7 +11,6 @@
 					<text>★ {{ rateText }}</text>
 				</view>
 			</view>
-			<text class="card-title">{{ data.title }}</text>
 			<text class="card-copy">{{ cardCopy }}</text>
 
 			<view class="card-meta">
@@ -33,9 +25,9 @@
 			</view>
 
 			<view class="card-tags" v-if="data.tags != null && data.tags.length > 0">
-				<XsaTag v-for="(tag, index) in data.tags.slice(0, 2)" :key="index" variant="default" size="small">
-					{{ tag }}
-				</XsaTag>
+				<view v-for="(tag, index) in data.tags.slice(0, 2)" :key="index" class="card-tag">
+					<text>{{ tag }}</text>
+				</view>
 			</view>
 
 			<view class="card-footer">
@@ -53,8 +45,6 @@
 </template>
 
 <script setup lang="uts">
-import XsaTag from '@/components/XsaTag.uvue'
-
 interface Props {
 	data: any;
 	actionText?: string;
@@ -70,18 +60,6 @@ const emit = defineEmits<{
 	detail: [item: any];
 	contact: [item: any];
 }>();
-
-const statusText = computed(() => {
-	if (props.data == null || props.data.status == null) return '可咨询';
-	if (props.data.status === 'busy') return '咨询中';
-	if (props.data.status === 'offline') return '稍后联系';
-	return '可咨询';
-});
-
-const statusClass = computed(() => {
-	if (props.data == null || props.data.status == null) return 'online';
-	return props.data.status;
-});
 
 const rateText = computed(() => {
 	if (props.data == null || props.data.rating == null) return '4.8';
@@ -131,57 +109,11 @@ const handleContact = () => {
 		height: 100%;
 	}
 
-	.card-badge {
-		position: absolute;
-		top: 16rpx;
-		left: 16rpx;
-		height: 42rpx;
-		padding: 0 14rpx;
-		border-radius: 999rpx;
-		background: rgba(44, 128, 124, 0.92);
-		color: var(--paper);
-		display: flex;
-		align-items: center;
-		font-size: 18rpx;
-		font-weight: 800;
-	}
-
-	.card-status {
-		position: absolute;
-		top: 16rpx;
-		right: 16rpx;
-		height: 42rpx;
-		padding: 0 12rpx;
-		border-radius: 999rpx;
-		background: rgba(250, 252, 252, 0.92);
-		color: var(--ink2);
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		gap: 8rpx;
-		font-size: 18rpx;
-	}
-
-	.status-dot {
-		width: 12rpx;
-		height: 12rpx;
-		border-radius: 50%;
-		background: var(--sage);
-	}
-
-	.card-status.busy .status-dot {
-		background: var(--brown);
-	}
-
-	.card-status.offline .status-dot {
-		background: var(--muted);
-	}
-
 	.card-body {
 		padding: 22rpx 22rpx 24rpx;
 		display: flex;
 		flex-direction: column;
-		gap: 12rpx;
+		gap: 10rpx;
 	}
 
 	.card-name-row {
@@ -211,13 +143,6 @@ const handleContact = () => {
 		font-size: 18rpx;
 		font-weight: 800;
 		flex-shrink: 0;
-	}
-
-	.card-title {
-		font-size: 22rpx;
-		line-height: 1.45;
-		color: var(--accent2);
-		font-weight: 700;
 	}
 
 	.card-copy {
@@ -258,6 +183,26 @@ const handleContact = () => {
 		flex-direction: row;
 		gap: 8rpx;
 		flex-wrap: wrap;
+	}
+
+	.card-tag {
+		min-height: 40rpx;
+		padding: 0 10rpx;
+		border-radius: 10rpx;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		max-width: 100%;
+	}
+
+	.card-tag text {
+		font-size: 17rpx;
+		line-height: 1.25;
+		font-weight: 700;
+		color: var(--ink2);
+		white-space: nowrap;
 	}
 
 	.card-footer {
