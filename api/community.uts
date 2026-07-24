@@ -22,6 +22,85 @@ import {
   mockMeProfile
 } from '@/mock'
 
+const PAPER_PLANE_STORAGE_KEY = 'xsa_paper_plane_state_v1'
+let paperPlaneStateLoaded = false
+let paperPlaneStateDateKey = ''
+
+function currentDateKey(): string {
+  const now = new Date()
+  const month = now.getMonth() + 1
+  const day = now.getDate()
+  const monthText = month < 10 ? '0' + month : '' + month
+  const dayText = day < 10 ? '0' + day : '' + day
+  return now.getFullYear() + '-' + monthText + '-' + dayText
+}
+
+function savePaperPlaneState() {
+  const quotas = mockCommunityQuotas as any
+  uni.setStorageSync(PAPER_PLANE_STORAGE_KEY, {
+    dateKey: currentDateKey(),
+    planes: mockPaperPlanes,
+    paperPlaneDaily: quotas.paperPlaneDaily
+  })
+}
+
+function restorePaperPlaneState() {
+  const today = currentDateKey()
+  if (paperPlaneStateLoaded) {
+    if (paperPlaneStateDateKey != today) {
+      const quotas = mockCommunityQuotas as any
+      quotas.paperPlaneDaily.used = 0
+      quotas.paperPlaneDaily.remain = quotas.paperPlaneDaily.total
+      paperPlaneStateDateKey = today
+      savePaperPlaneState()
+    }
+    return
+  }
+  paperPlaneStateLoaded = true
+  paperPlaneStateDateKey = today
+
+  try {
+    const saved = uni.getStorageSync(PAPER_PLANE_STORAGE_KEY) as any
+    if (saved == null || typeof saved !== 'object') return
+
+    if (saved.planes != null && Array.isArray(saved.planes)) {
+      const target = mockPaperPlanes as any[]
+      target.splice(0, target.length)
+      ;(saved.planes as any[]).forEach((item: any) => target.push(item))
+    }
+
+    const quotas = mockCommunityQuotas as any
+    if (saved.dateKey == today && saved.paperPlaneDaily != null) {
+      const daily = saved.paperPlaneDaily as any
+      quotas.paperPlaneDaily.remain = daily.remain != null
+        ? Math.max(0, Math.min(quotas.paperPlaneDaily.total, daily.remain))
+        : quotas.paperPlaneDaily.total
+      quotas.paperPlaneDaily.used = quotas.paperPlaneDaily.total - quotas.paperPlaneDaily.remain
+    } else {
+      quotas.paperPlaneDaily.used = 0
+      quotas.paperPlaneDaily.remain = quotas.paperPlaneDaily.total
+      savePaperPlaneState()
+    }
+  } catch (e) {
+    console.error('恢复纸飞机本地状态失败', e)
+  }
+}
+
+function paperPlaneTimeText(rawTime: any): string {
+  const time = rawTime != null ? Number(rawTime) : 0
+  if (time <= 0) return ''
+  const diff = Math.max(0, Date.now() - time)
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+  if (diff < minute) return '刚刚'
+  if (diff < hour) return Math.floor(diff / minute) + ' 分钟前'
+  if (diff < day) return Math.floor(diff / hour) + ' 小时前'
+  if (diff < 7 * day) return Math.floor(diff / day) + ' 天前'
+  const date = new Date(time)
+  return (date.getMonth() + 1) + ' 月 ' + date.getDate() + ' 日'
+}
+
 function cloneList(list: any[]): any[] {
   const out: any[] = []
   for (let i = 0; i < list.length; i++) {
@@ -428,9 +507,16 @@ export async function joinTopic(topicId: number) {
 }
 
 export async function getPaperPlanes() {
+  restorePaperPlaneState()
   const list = (mockPaperPlanes as any[]).filter((p: any) => {
     if (p.userId == null) return true
     return !isBlocked(p.userId as number)
+  })
+  list.forEach((p: any) => {
+    p.timeText = paperPlaneTimeText(p.time)
+    if (p.userId == mockMeProfile.id && (p.gender == null || p.gender == '我')) {
+      p.gender = mockMeProfile.gender == 1 ? '男' : '女'
+    }
   })
   return request({
     url: '/community/paper-planes',
@@ -447,6 +533,7 @@ export async function getPaperPlanes() {
  * 兼容：sendPaperPlane(content, anonymous)
  */
 export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolean = true) {
+  restorePaperPlaneState()
   let content = ''
   let anonymous = true
   let scope = 'city'
@@ -474,6 +561,21 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
     })
   }
 
+  if (content.length > 120) {
+    return request({
+      url: '/community/paper-planes/send',
+      cloudFunctionName: 'community',
+      action: 'sendPaperPlane',
+      method: 'POST',
+      data: { content, anonymous, scope },
+      mockData: {
+        success: false,
+        code: 'CONTENT_TOO_LONG',
+        message: '纸飞机内容不能超过 120 字'
+      }
+    })
+  }
+
   const quotas = mockCommunityQuotas as any
   if (quotas.paperPlaneDaily.remain <= 0) {
     return request({
@@ -497,16 +599,17 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
     content,
     anonymous,
     scope,
-    gender: '我',
-    age: 29,
-    city: mockCurrentCity.name,
-    userId: 9001,
+    gender: mockMeProfile.gender == 1 ? '男' : '女',
+    age: mockMeProfile.age,
+    city: mockMeProfile.city != null ? mockMeProfile.city : mockCurrentCity.name,
+    userId: mockMeProfile.id,
     time: Date.now(),
     timeText: '刚刚',
     replyCount: 0,
     replied: false
   }
   ;(mockPaperPlanes as any[]).unshift(plane)
+  savePaperPlaneState()
   return request({
     url: '/community/paper-planes/send',
     cloudFunctionName: 'community',
@@ -518,12 +621,68 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
 }
 
 export async function replyPaperPlane(planeId: number, content: string) {
+  restorePaperPlaneState()
+  const replyContent = content.trim()
+  if (replyContent.length == 0) {
+    return request({
+      url: '/community/paper-planes/reply',
+      cloudFunctionName: 'community',
+      action: 'replyPaperPlane',
+      method: 'POST',
+      data: { planeId, content: replyContent },
+      mockData: {
+        success: false,
+        code: 'EMPTY_CONTENT',
+        message: '请填写回复内容'
+      }
+    })
+  }
+  if (replyContent.length > 120) {
+    return request({
+      url: '/community/paper-planes/reply',
+      cloudFunctionName: 'community',
+      action: 'replyPaperPlane',
+      method: 'POST',
+      data: { planeId, content: replyContent },
+      mockData: {
+        success: false,
+        code: 'CONTENT_TOO_LONG',
+        message: '回复内容不能超过 120 字'
+      }
+    })
+  }
+
   const list = mockPaperPlanes as any[]
   for (let i = 0; i < list.length; i++) {
     if (list[i].id == planeId) {
+      if (list[i].replied == true) {
+        return request({
+          url: '/community/paper-planes/reply',
+          cloudFunctionName: 'community',
+          action: 'replyPaperPlane',
+          method: 'POST',
+          data: { planeId, content: replyContent },
+          mockData: {
+            success: false,
+            code: 'ALREADY_REPLIED',
+            message: '这架纸飞机已经回复过了'
+          }
+        })
+      }
       list[i].replied = true
       list[i].replyCount = (list[i].replyCount as number) + 1
-      break
+      savePaperPlaneState()
+      return request({
+        url: '/community/paper-planes/reply',
+        cloudFunctionName: 'community',
+        action: 'replyPaperPlane',
+        method: 'POST',
+        data: { planeId, content: replyContent },
+        mockData: {
+          success: true,
+          replyCount: list[i].replyCount
+        }
+      })
     }
   }
   return request({
@@ -531,8 +690,12 @@ export async function replyPaperPlane(planeId: number, content: string) {
     cloudFunctionName: 'community',
     action: 'replyPaperPlane',
     method: 'POST',
-    data: { planeId, content },
-    mockData: { success: true }
+    data: { planeId, content: replyContent },
+    mockData: {
+      success: false,
+      code: 'NOT_FOUND',
+      message: '这架纸飞机已不存在'
+    }
   })
 }
 
@@ -687,6 +850,7 @@ export async function markAllNotificationsRead() {
 }
 
 export async function getCommunityQuotas() {
+  restorePaperPlaneState()
   return request({
     url: '/community/quotas',
     cloudFunctionName: 'community',

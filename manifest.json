@@ -41,7 +41,7 @@
             "base" : "./"
         },
         "devServer" : {
-            "port" : 8080,
+            "port" : 5173,
             "https" : false
         },
         "title" : "宣誓爱",
