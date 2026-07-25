@@ -331,8 +331,6 @@ const handlePhotoClick = (index: number) => {
 	}
 
 const handleLike = () => {
-	liked.value = !liked.value
-	likeCount.value += liked.value ? 1 : -1
 	emit('like', props.dynamic.id)
 }
 
@@ -341,14 +339,11 @@ const handleComment = () => {
 }
 
 const handleCollect = () => {
-	collected.value = !collected.value
-	collectCount.value += collected.value ? 1 : -1
 	emit('collect', props.dynamic.id)
 }
 
 const handleFollow = () => {
 	if (followed.value) return
-	followed.value = true
 	emit('follow', props.dynamic.user.id)
 }
 

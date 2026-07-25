@@ -167,7 +167,7 @@
 </template>
 
 <script setup lang="uts">
-import { publishDynamic, getTopics, getTopicDetail } from '@/api'
+import { publishDynamic, getTopics, getTopicDetail, createCommunityCreateKey, discardCommunityCreateKey } from '@/api'
 import { guardRealName } from '@/utils/realNameGate.uts'
 
 const photos = ref<string[]>([])
@@ -177,6 +177,8 @@ const location = ref('')
 const visibility = ref(0)
 const mentions = ref<number[]>([])
 const publishing = ref(false)
+const pendingPublishKey = ref('')
+const pendingPublishFingerprint = ref('')
 const topicId = ref(0)
 const topicTitle = ref('')
 const declaration = ref('')
@@ -300,6 +302,7 @@ const addPhoto = () => {
 			for (let i = 0; i < paths.length; i++) {
 				photos.value.push(paths[i])
 			}
+			invalidatePendingPublishKey()
 		}
 	})
 }
@@ -312,6 +315,7 @@ const addVideo = () => {
 			success: (res) => {
 				if (res.confirm) {
 					photos.value = []
+					invalidatePendingPublishKey()
 					pickVideo()
 				}
 			}
@@ -333,6 +337,7 @@ const pickVideo = () => {
 			const path = res.tempFilePath != null ? ('' + res.tempFilePath) : ''
 			if (path !== '') {
 				videos.value = [path]
+				invalidatePendingPublishKey()
 			}
 		}
 	})
@@ -340,19 +345,23 @@ const pickVideo = () => {
 
 const deletePhoto = (index: number) => {
 	photos.value.splice(index, 1)
+	invalidatePendingPublishKey()
 }
 
 const deleteVideo = () => {
 	videos.value = []
+	invalidatePendingPublishKey()
 }
 
 const onContentInput = (e: any) => {
 	content.value = e.detail.value
+	invalidatePendingPublishKey()
 }
 
 const insertEmoji = (emoji: string) => {
 	const next = content.value + emoji
 	content.value = next.length > 500 ? next.substring(0, 500) : next
+	invalidatePendingPublishKey()
 }
 
 const toggleEmoji = () => {
@@ -369,6 +378,7 @@ const selectDeclaration = () => {
 			} else if (idx > 0 && idx < DECLARATION_OPTIONS.length) {
 				declaration.value = DECLARATION_OPTIONS[idx]
 			}
+			invalidatePendingPublishKey()
 		}
 	})
 }
@@ -377,6 +387,7 @@ const chooseLocation = () => {
 	uni.chooseLocation({
 		success: (res) => {
 			location.value = res.name || res.address
+			invalidatePendingPublishKey()
 		}
 	})
 }
@@ -386,6 +397,7 @@ const selectVisibility = () => {
 		itemList: ['公开', '仅好友可见', '仅自己可见'],
 		success: (res) => {
 			visibility.value = res.tapIndex
+			invalidatePendingPublishKey()
 		}
 	})
 }
@@ -431,11 +443,13 @@ const pickTopic = (t: any) => {
 	topicTitle.value = t.title != null ? ('' + t.title) : ''
 	showTopicSheet.value = false
 	topicKeyword.value = ''
+	invalidatePendingPublishKey()
 }
 
 const clearTopic = () => {
 	topicId.value = 0
 	topicTitle.value = ''
+	invalidatePendingPublishKey()
 }
 
 const closeTopicSheet = () => {
@@ -455,14 +469,38 @@ const handleCancel = () => {
 			content: '确定放弃编辑吗？',
 			success: (res) => {
 				if (res.confirm) {
+					discardPendingPublishKey()
 					uni.navigateBack()
 				}
 			}
 		})
 	} else {
+		discardPendingPublishKey()
 		uni.navigateBack()
 	}
 }
+
+const discardPendingPublishKey = () => {
+	if (pendingPublishKey.value != '') {
+		discardCommunityCreateKey(pendingPublishKey.value)
+	}
+	pendingPublishKey.value = ''
+	pendingPublishFingerprint.value = ''
+}
+
+const publishFingerprint = () => {
+	return content.value.trim() + '|' + photos.value.join('|') + '|' + videos.value.join('|') + '|' + location.value + '|' + topicId.value + '|' + visibility.value + '|' + declaration.value
+}
+
+const invalidatePendingPublishKey = () => {
+	if (pendingPublishFingerprint.value != '' && pendingPublishFingerprint.value != publishFingerprint()) {
+		discardPendingPublishKey()
+	}
+}
+
+onUnload(() => {
+	discardPendingPublishKey()
+})
 
 const handlePublish = async () => {
 	if (publishing.value) return
@@ -476,6 +514,12 @@ const handlePublish = async () => {
 		return
 	}
 	publishing.value = true
+	const fingerprint = publishFingerprint()
+	if (pendingPublishKey.value == '' || pendingPublishFingerprint.value != fingerprint) {
+		discardPendingPublishKey()
+		pendingPublishKey.value = createCommunityCreateKey('post')
+		pendingPublishFingerprint.value = fingerprint
+	}
 	uni.showLoading({ title: '发布中...' })
 	try {
 		const res = await publishDynamic({
@@ -485,18 +529,28 @@ const handlePublish = async () => {
 			location: location.value,
 			topicId: topicId.value,
 			visibility: visibility.value,
-			declaration: declaration.value
+			declaration: declaration.value,
+			idempotencyKey: pendingPublishKey.value
 		})
 		const data = res != null ? res.data : null
 		const bizOk = res != null && res.success && (data == null || data.success != false)
 		uni.hideLoading()
 		if (bizOk) {
+			discardPendingPublishKey()
 			uni.showToast({ title: '发布成功', icon: 'success' })
 			setTimeout(() => {
 				uni.navigateBack()
 			}, 800)
 		} else {
-			const msg = data != null && data.message != null ? data.message : '发布失败，请重试'
+			if (data != null && data.idempotencyRejected === true) {
+				discardPendingPublishKey()
+			}
+			const msg =
+				data != null && data.message != null
+					? data.message
+					: res != null && res.message != null
+						? res.message
+						: '发布失败，请重试'
 			uni.showToast({ title: msg, icon: 'none' })
 		}
 	} catch (e) {

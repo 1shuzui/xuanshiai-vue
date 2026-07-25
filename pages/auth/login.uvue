@@ -43,6 +43,8 @@
 </template>
 
 <script setup lang="uts">
+	import { USE_MOCK, API_BASE_URL, API_PREFIX, setAuthTokens } from '@/api/config.uts'
+
 	const authLoading = ref(false)
 
 	const goHome = () => {
@@ -59,6 +61,58 @@
 		}, 700)
 	}
 
+	/** 关 Mock 联调：仅调试入口使用 mock 短信登录，写入 Bearer token */
+	const loginWithMockSms = (phone: string): Promise<boolean> => {
+		return new Promise((resolve) => {
+			const base = API_BASE_URL + API_PREFIX
+			uni.request({
+				url: base + '/auth/sms/send',
+				method: 'POST',
+				header: { 'Content-Type': 'application/json' },
+				data: { phone: phone, purpose: 'login' },
+				success: (_sendRes: any) => {
+					uni.request({
+						url: base + '/auth/phone/login',
+						method: 'POST',
+						header: { 'Content-Type': 'application/json' },
+						data: {
+							phone: phone,
+							purpose: 'login',
+							code: '123456',
+							platform: 'mp-weixin',
+							device_id: 'hx-debug'
+						},
+						success: (loginRes: any) => {
+							const status = loginRes.statusCode != null ? (loginRes.statusCode as number) : 0
+							const body = loginRes.data
+							if (status >= 200 && status < 300 && body != null && body.access_token != null) {
+								const access = '' + body.access_token
+								const refresh = body.refresh_token != null ? ('' + body.refresh_token) : ''
+								setAuthTokens(access, refresh)
+								uni.setStorageSync('xsa_login_agreed', true)
+								if (body.user_id != null) {
+									uni.setStorageSync('xsa_user_id', body.user_id)
+								}
+								resolve(true)
+							} else {
+								console.error('phone login failed', status, body)
+								resolve(false)
+							}
+						},
+						fail: (err: any) => {
+							console.error('phone login network fail', err)
+							resolve(false)
+						}
+					})
+				},
+				fail: (err: any) => {
+					console.error('sms send network fail', err)
+					resolve(false)
+				}
+			})
+		})
+	}
+
 	const handlePhoneNumber = (e: any) => {
 		const detail = e.detail
 		const authCode = detail != null && detail.code != null ? String(detail.code) : ''
@@ -73,7 +127,7 @@
 			return
 		}
 		authLoading.value = true
-		// Mock 阶段只验证授权结果，真实环境需把 code 交给服务端换取手机号。
+		// Mock 阶段只验证授权结果；真微信 code 换手机号未接，正式路径不走联调账号
 		setTimeout(() => {
 			authLoading.value = false
 			finishLogin()
@@ -88,7 +142,22 @@
 		}, 500)
 	}
 
-	const handleDebugLogin = () => {
+	const handleDebugLogin = async () => {
+		// 仅调试入口：关 Mock 时用 mock 短信换 token；Mock 开启时直接进首页
+		if (!USE_MOCK) {
+			authLoading.value = true
+			const ok = await loginWithMockSms('13800001001')
+			authLoading.value = false
+			if (!ok) {
+				uni.showToast({ title: '联调登录失败，请确认后端', icon: 'none' })
+				return
+			}
+			uni.showToast({ title: '已写入联调 token', icon: 'success' })
+			setTimeout(() => {
+				goHome()
+			}, 400)
+			return
+		}
 		goHome()
 	}
 

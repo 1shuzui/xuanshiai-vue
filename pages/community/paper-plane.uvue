@@ -23,7 +23,7 @@
 			<button class="fab" @click="openComposer">放飞纸飞机</button>
 		</view>
 
-		<XsaSheet :visible="composerVisible" title="放飞纸飞机" @close="composerVisible = false">
+		<XsaSheet :visible="composerVisible" title="放飞纸飞机" @close="closeComposer">
 			<view class="composer">
 				<textarea
 					class="ta"
@@ -42,7 +42,7 @@
 <script setup lang="uts">
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
 	import XsaSheet from '@/components/XsaSheet.uvue'
-	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas } from '@/api'
+	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas, createCommunityCreateKey, discardCommunityCreateKey } from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
 	const planes = ref([])
@@ -52,6 +52,10 @@
 	const composerVisible = ref(false)
 	const draft = ref('')
 	const sending = ref(false)
+	const pendingSendKey = ref('')
+	const pendingSendFingerprint = ref('')
+	const pendingReplyKey = ref('')
+	const pendingReplyFingerprint = ref('')
 
 	onMounted(() => {
 		load()
@@ -85,13 +89,45 @@
 	const openComposer = async () => {
 		const ok = await guardRealName('paperPlane')
 		if (!ok) return
+		discardPendingSendKey()
 		draft.value = ''
 		composerVisible.value = true
 	}
 
+	const sendFingerprint = (text: string) => text + '|city|true'
+	const replyFingerprint = (planeId: number, text: string) => planeId + '|' + text + '|true'
+	const discardPendingSendKey = () => {
+		if (pendingSendKey.value != '') discardCommunityCreateKey(pendingSendKey.value)
+		pendingSendKey.value = ''
+		pendingSendFingerprint.value = ''
+	}
+	const discardPendingReplyKey = () => {
+		if (pendingReplyKey.value != '') discardCommunityCreateKey(pendingReplyKey.value)
+		pendingReplyKey.value = ''
+		pendingReplyFingerprint.value = ''
+	}
+	const shouldDiscardCreateKey = (res: any): boolean => {
+		if (res == null) return false
+		if (res.success == false) return res.code != null && res.code != -1
+		return res.data != null && res.data.success == false
+	}
+	const closeComposer = () => {
+		discardPendingSendKey()
+		draft.value = ''
+		composerVisible.value = false
+	}
+
 	const onDraft = (e: any) => {
 		draft.value = e.detail.value
+		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+			discardPendingSendKey()
+		}
 	}
+
+	onUnload(() => {
+		discardPendingSendKey()
+		discardPendingReplyKey()
+	})
 
 const send = async () => {
 			const text = draft.value.trim()
@@ -100,12 +136,19 @@ const send = async () => {
 				uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
 				return
 			}
+			const fingerprint = sendFingerprint(text)
+			if (pendingSendKey.value == '' || pendingSendFingerprint.value != fingerprint) {
+				discardPendingSendKey()
+				pendingSendKey.value = createCommunityCreateKey('paper-plane')
+				pendingSendFingerprint.value = fingerprint
+			}
 			sending.value = true
 			try {
 				const res = await sendPaperPlane({
 					content: text,
 					scope: 'city',
-					anonymous: true
+					anonymous: true,
+					idempotencyKey: pendingSendKey.value
 				})
 				const data = res != null ? res.data : null
 				const bizOk = res != null && res.success && data != null && data.success != false
@@ -118,9 +161,10 @@ const send = async () => {
 					} else {
 						remain.value = Math.max(0, remain.value - 1)
 					}
-					composerVisible.value = false
+					closeComposer()
 					uni.showToast({ title: '已放飞', icon: 'success' })
 				} else {
+					if (shouldDiscardCreateKey(res)) discardPendingSendKey()
 					const msg = data != null && data.message != null ? data.message : '放飞失败'
 					uni.showToast({ title: msg, icon: 'none' })
 					if (data != null && data.remain != null) {
@@ -146,18 +190,41 @@ const send = async () => {
 			editable: true,
 			placeholderText: '写一句认真的回复',
 			success: async (r) => {
-				if (!r.confirm) return
-				const content = r.content != null ? ('' + r.content).trim() : '你好，看到你的纸飞机了。'
-				if (content.length == 0) return
-				const res = await replyPaperPlane(p.id, content)
-				if (res.success) {
-					p.replied = true
-					p.replyCount += 1
-					uni.showToast({ title: '已回复', icon: 'success' })
+				if (!r.confirm) {
+					discardPendingReplyKey()
+					return
 				}
-			}
-		})
-	}
+				const content = r.content != null ? ('' + r.content).trim() : '你好，看到你的纸飞机了。'
+				if (content.length == 0) {
+					discardPendingReplyKey()
+					return
+				}
+				const fingerprint = replyFingerprint(p.id, content)
+				if (pendingReplyKey.value == '' || pendingReplyFingerprint.value != fingerprint) {
+					discardPendingReplyKey()
+					pendingReplyKey.value = createCommunityCreateKey('paper-plane-reply')
+					pendingReplyFingerprint.value = fingerprint
+				}
+				const res = await replyPaperPlane(p.id, content, pendingReplyKey.value)
+					const replyOk = res != null && res.success && (res.data == null || res.data.success != false)
+					if (replyOk) {
+						discardPendingReplyKey()
+						p.replied = true
+						p.replyCount += 1
+						uni.showToast({ title: '已回复', icon: 'success' })
+					} else {
+						if (shouldDiscardCreateKey(res)) discardPendingReplyKey()
+						const msg =
+							res.data != null && res.data.message != null
+								? res.data.message
+								: res.message != null
+									? res.message
+									: '回复失败，请重试'
+						uni.showToast({ title: msg, icon: 'none' })
+					}
+				}
+			})
+		}
 </script>
 
 <style scoped>
