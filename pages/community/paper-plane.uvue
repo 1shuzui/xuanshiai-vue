@@ -296,10 +296,9 @@
 			if (replyOk) {
 				discardPendingReplyKey()
 				p.replied = true
+				p.replyCount += 1
 				if (data != null && data.replyCount != null) {
 					p.replyCount = data.replyCount
-				} else {
-					p.replyCount = (p.replyCount as number) + 1
 				}
 				replyVisible.value = false
 				replyTarget = null
