@@ -1,27 +1,45 @@
 <template>
 	<view class="page">
 		<view class="quota-bar">
-			<text class="q-label">今日纸飞机</text>
-			<text class="q-value">剩余 {{ remain }} / {{ total }}</text>
+			<text class="q-label">今日纸飞机 · 剩余 {{ remain }} / {{ total }}</text>
 		</view>
 		<scroll-view class="list" scroll-y>
 			<view class="intro">
-				<text class="intro-title">纸飞机</text>
+				<text class="intro-title">认真表达，温柔回应</text>
 				<text class="intro-desc text-muted">匿名投放一句认真表达。完成实名后可放飞与回复；不承诺匹配结果。</text>
 			</view>
-			<XsaEmpty v-if="!loading && planes.length == 0" text="暂时没有纸飞机" description="成为第一个放飞的人" />
+			<view class="footer">
+				<button class="fab" :disabled="remain <= 0" @click="openComposer">
+					{{ remain > 0 ? '放飞纸飞机' : '今日次数已用完' }}
+				</button>
+			</view>
+			<view class="loading-state" v-if="loading">
+				<text class="text-muted">正在接收纸飞机...</text>
+			</view>
+			<XsaEmpty
+				v-else-if="loadError"
+				type="noNetwork"
+				text="纸飞机加载失败"
+				description="请检查网络后重试"
+				:showAction="true"
+				actionText="重新加载"
+				@action="load"
+			/>
+			<XsaEmpty v-else-if="planes.length == 0" text="暂时没有纸飞机" description="成为第一个放飞的人" />
 			<view class="plane" v-for="p in planes" :key="p.id">
 				<text class="content">{{ p.content }}</text>
 				<view class="meta">
-					<text class="text-muted">{{ p.anonymous ? '匿名' : '' }} · {{ p.city }} · {{ p.age }}岁 · {{ p.timeText }}</text>
-					<text class="reply text-accent" @click="reply(p)">{{ p.replied ? '已回复' : '回复' }} · {{ p.replyCount }}</text>
+					<text class="meta-text text-muted">{{ p.anonymous ? '匿名' : '' }} · {{ p.gender }} · {{ p.city }} · {{ p.age }}岁 · {{ p.timeText }}</text>
+					<view class="plane-actions">
+						<button class="reply-btn" :class="{ replied: p.replied }" :disabled="p.replied" @click="reply(p)">
+							{{ p.replied ? '已回复' : '回复' }} · {{ p.replyCount }}
+						</button>
+						<button class="report-btn" @click="openReport(p)">举报</button>
+					</view>
 				</view>
 			</view>
 			<view class="pad"></view>
 		</scroll-view>
-		<view class="footer">
-			<button class="fab" @click="openComposer">放飞纸飞机</button>
-		</view>
 
 		<XsaSheet :visible="composerVisible" title="放飞纸飞机" @close="composerVisible = false">
 			<view class="composer">
@@ -36,12 +54,38 @@
 				<button class="send" :disabled="sending || draft.trim().length == 0" @click="send">放飞</button>
 			</view>
 		</XsaSheet>
+
+		<XsaSheet :visible="replyVisible" title="回复纸飞机" @close="replyVisible = false">
+			<view class="composer">
+				<textarea
+					class="ta"
+					:value="replyDraft"
+					@input="onReplyDraft"
+					placeholder="写一句认真的回复（120 字内）"
+					maxlength="120"
+				></textarea>
+				<text class="count">{{ replyDraft.length }}/120</text>
+				<button class="send" :disabled="replying || replyDraft.trim().length == 0" @click="submitReply">
+					{{ replying ? '发送中...' : '发送回复' }}
+				</button>
+			</view>
+		</XsaSheet>
+
+		<XsaReportSheet
+			:visible="reportVisible"
+			target-type="paperPlane"
+			:target-id="reportTargetId"
+			:user-id="reportUserId"
+			@close="reportVisible = false"
+			@blocked="onBlocked"
+		/>
 	</view>
 </template>
 
 <script setup lang="uts">
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
 	import XsaSheet from '@/components/XsaSheet.uvue'
+	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
 	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas } from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
@@ -52,6 +96,14 @@
 	const composerVisible = ref(false)
 	const draft = ref('')
 	const sending = ref(false)
+	const loadError = ref(false)
+	const replyVisible = ref(false)
+	const replyDraft = ref('')
+	const replying = ref(false)
+	let replyTarget: any = null
+	const reportVisible = ref(false)
+	const reportTargetId = ref(0)
+	const reportUserId = ref(0)
 
 	onMounted(() => {
 		load()
@@ -60,11 +112,13 @@
 
 	const load = async () => {
 		loading.value = true
+		loadError.value = false
 		try {
 			const res = await getPaperPlanes()
 			if (res.success) planes.value = res.data as any[]
 		} catch (e) {
 			console.error(e)
+			loadError.value = true
 		} finally {
 			loading.value = false
 		}
@@ -83,6 +137,10 @@
 	}
 
 	const openComposer = async () => {
+		if (remain.value <= 0) {
+			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+			return
+		}
 		const ok = await guardRealName('paperPlane')
 		if (!ok) return
 		draft.value = ''
@@ -93,7 +151,11 @@
 		draft.value = e.detail.value
 	}
 
-const send = async () => {
+	const onReplyDraft = (e: any) => {
+		replyDraft.value = e.detail.value
+	}
+
+	const send = async () => {
 			const text = draft.value.trim()
 			if (text.length == 0 || sending.value) return
 			if (remain.value <= 0) {
@@ -141,50 +203,85 @@ const send = async () => {
 		}
 		const ok = await guardRealName('paperPlane')
 		if (!ok) return
-		uni.showModal({
-			title: '回复纸飞机',
-			editable: true,
-			placeholderText: '写一句认真的回复',
-			success: async (r) => {
-				if (!r.confirm) return
-				const content = r.content != null ? ('' + r.content).trim() : '你好，看到你的纸飞机了。'
-				if (content.length == 0) return
-				const res = await replyPaperPlane(p.id, content)
-				if (res.success) {
-					p.replied = true
-					p.replyCount += 1
-					uni.showToast({ title: '已回复', icon: 'success' })
-				}
+		replyTarget = p
+		replyDraft.value = ''
+		replyVisible.value = true
+	}
+
+	const submitReply = async () => {
+		const content = replyDraft.value.trim()
+		if (replying.value || content.length == 0 || replyTarget == null) return
+		replying.value = true
+		try {
+			const res = await replyPaperPlane(replyTarget.id, content)
+			const data = res != null ? res.data : null
+			const bizOk = res != null && res.success && data != null && data.success != false
+			if (bizOk) {
+				replyTarget.replied = true
+				if (data.replyCount != null) replyTarget.replyCount = data.replyCount
+				replyVisible.value = false
+				replyTarget = null
+				uni.showToast({ title: '已回复', icon: 'success' })
+			} else {
+				const message = data != null && data.message != null ? data.message : '回复失败'
+				uni.showToast({ title: message, icon: 'none' })
 			}
-		})
+		} catch (e) {
+			uni.showToast({ title: '回复失败，请稍后重试', icon: 'none' })
+		} finally {
+			replying.value = false
+		}
+	}
+
+	const openReport = (p: any) => {
+		reportTargetId.value = p.id
+		reportUserId.value = p.userId != null ? p.userId : 0
+		reportVisible.value = true
+	}
+
+	const onBlocked = (userId: number) => {
+		planes.value = (planes.value as any[]).filter((p: any) => p.userId != userId)
 	}
 </script>
 
 <style scoped>
 	.page {
-		height: 100vh;
+		height: 100%;
+		min-height: 0;
+		width: 100vw;
+		max-width: 100vw;
+		flex-basis: 100vw;
+		flex-shrink: 0;
+		position: relative;
+		overflow: hidden;
 		background: var(--canvas);
 		display: flex;
 		flex-direction: column;
 	}
+	/* #ifdef H5 */
+	.page {
+		height: calc(100vh - 44px);
+	}
+	/* #endif */
 	.quota-bar {
+		position: relative;
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		padding: 10px 16px;
-		background: var(--soft);
+		background: var(--accent-bg);
 		border-bottom: 1px solid var(--line);
 	}
-	.q-label,
-	.q-value {
+	.q-label {
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--accent);
+		color: var(--accent2);
 	}
 	.list {
 		flex: 1;
 		height: 0;
-		padding: 12px 14px;
+		width: 100%;
+		padding: 12px 14px 82px;
 	}
 	.intro {
 		margin-bottom: 12px;
@@ -193,7 +290,7 @@ const send = async () => {
 		gap: 6px;
 	}
 	.intro-title {
-		font-size: 22px;
+		font-size: 20px;
 		font-family: var(--serif);
 		font-weight: 700;
 	}
@@ -205,7 +302,7 @@ const send = async () => {
 		padding: 14px;
 		background: var(--surface);
 		border: 1px solid var(--line);
-		border-radius: 12px;
+		border-radius: 8px;
 		margin-bottom: 10px;
 		display: flex;
 		flex-direction: column;
@@ -217,33 +314,77 @@ const send = async () => {
 		color: var(--ink);
 	}
 	.meta {
+		width: 100%;
 		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
+		flex-direction: column;
+		align-items: flex-start;
 		gap: 8px;
 	}
-	.meta text {
+	.meta-text {
 		font-size: 11px;
+		flex: 1;
+		min-width: 0;
 	}
-	.reply {
+	.reply-btn {
+		min-width: 76px;
+		height: 34px;
+		padding: 0 10px;
+		border: 1px solid var(--accent);
+		border-radius: 8px;
+		background: var(--surface);
+		color: var(--accent2);
+		font-size: 12px;
 		font-weight: 700;
 		flex-shrink: 0;
 	}
-	.footer {
-		padding: 12px 16px;
-		padding-bottom: calc(12px + env(safe-area-inset-bottom));
+	.plane-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+	.report-btn {
+		height: 34px;
+		padding: 0 12px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
 		background: var(--surface);
-		border-top: 1px solid var(--line);
+		color: var(--muted);
+		font-size: 12px;
+	}
+	.reply-btn::after,
+	.report-btn::after,
+	.fab::after,
+	.send::after {
+		border: none;
+	}
+	.reply-btn.replied {
+		border-color: var(--line);
+		color: var(--muted);
+		background: var(--bg-subtle);
+	}
+	.loading-state {
+		padding: 48px 16px;
+		text-align: center;
+		font-size: 13px;
+	}
+	.footer {
+		width: 100%;
+		padding: 0 0 12px;
 	}
 	.fab {
+		width: 320px;
+		max-width: 100%;
 		height: 46px;
 		background: var(--sage);
 		color: var(--paper);
-		border-radius: 999px;
+		border-radius: 8px;
 		font-size: 15px;
 		font-weight: 700;
 		border: none;
+	}
+	.fab[disabled] {
+		background: var(--bg-subtle);
+		color: var(--muted);
 	}
 	.composer {
 		display: flex;
@@ -266,7 +407,7 @@ const send = async () => {
 		height: 44px;
 		background: var(--accent);
 		color: var(--text-invert);
-		border-radius: 999px;
+		border-radius: 8px;
 		font-weight: 700;
 		border: none;
 	}
@@ -276,4 +417,5 @@ const send = async () => {
 	.pad {
 		height: 24px;
 	}
+
 </style>

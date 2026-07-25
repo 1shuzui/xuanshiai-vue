@@ -32,6 +32,7 @@ export {
   mockReportReasons,
   mockBlockedUserIds,
   mockApplyStates,
+  mockLikedUserIds,
   mockCurrentCity
 } from './community.uts'
 

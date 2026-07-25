@@ -37,6 +37,18 @@ page,
 	--bg-subtle: #DCE3E2;
 	--accent-bg: #C3DEDA;
 	--accent-glow: rgba(56, 152, 141, 0.15);
+	/* 图片与浮层语义 Token，页面不得重复书写 rgba */
+	--surface-overlay: rgba(250, 252, 252, 0.96);
+	--navy-overlay: rgba(24, 65, 93, 0.18);
+	--image-overlay: linear-gradient(180deg, rgba(17, 23, 24, 0.20) 0%, rgba(17, 23, 24, 0.78) 100%);
+	--image-overlay-hero: linear-gradient(180deg, rgba(17, 23, 24, 0.25) 0%, rgba(17, 23, 24, 0.82) 100%);
+	--image-text: rgba(231, 236, 236, 0.75);
+	--image-text-muted: rgba(231, 236, 236, 0.72);
+	--image-text-strong: rgba(231, 236, 236, 0.88);
+	--image-text-soft: rgba(231, 236, 236, 0.78);
+	--image-surface: rgba(250, 252, 252, 0.10);
+	--image-line: rgba(231, 236, 236, 0.16);
+	--shadow-overlay: 0 8px 20px rgba(17, 23, 24, 0.16);
 	--text-invert: #FCFCFC;
 
 	/* 阴影（软阴影，非纯黑） */

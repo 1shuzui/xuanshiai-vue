@@ -1,6 +1,7 @@
 /**
  * 社区相关 API
- * 主 Tab：follow / city / discover；二级 filter；分页 list+hasMore+total
+ * 主 Tab：follow / city / discover；二级 filter：
+ * follow=all|following|likedUsers；city=all|hot|latest；discover=all|mbti|alumni|hometown
  * 互动门槛由页面侧 guardRealName 控制（仅实名）
  */
 
@@ -16,8 +17,89 @@ import {
   mockReportReasons,
   mockBlockedUserIds,
   mockApplyStates,
-  mockCurrentCity
+  mockLikedUserIds,
+  mockCurrentCity,
+  mockMeProfile
 } from '@/mock'
+
+const PAPER_PLANE_STORAGE_KEY = 'xsa_paper_plane_state_v1'
+let paperPlaneStateLoaded = false
+let paperPlaneStateDateKey = ''
+
+function currentDateKey(): string {
+  const now = new Date()
+  const month = now.getMonth() + 1
+  const day = now.getDate()
+  const monthText = month < 10 ? '0' + month : '' + month
+  const dayText = day < 10 ? '0' + day : '' + day
+  return now.getFullYear() + '-' + monthText + '-' + dayText
+}
+
+function savePaperPlaneState() {
+  const quotas = mockCommunityQuotas as any
+  uni.setStorageSync(PAPER_PLANE_STORAGE_KEY, {
+    dateKey: currentDateKey(),
+    planes: mockPaperPlanes,
+    paperPlaneDaily: quotas.paperPlaneDaily
+  })
+}
+
+function restorePaperPlaneState() {
+  const today = currentDateKey()
+  if (paperPlaneStateLoaded) {
+    if (paperPlaneStateDateKey != today) {
+      const quotas = mockCommunityQuotas as any
+      quotas.paperPlaneDaily.used = 0
+      quotas.paperPlaneDaily.remain = quotas.paperPlaneDaily.total
+      paperPlaneStateDateKey = today
+      savePaperPlaneState()
+    }
+    return
+  }
+  paperPlaneStateLoaded = true
+  paperPlaneStateDateKey = today
+
+  try {
+    const saved = uni.getStorageSync(PAPER_PLANE_STORAGE_KEY) as any
+    if (saved == null || typeof saved !== 'object') return
+
+    if (saved.planes != null && Array.isArray(saved.planes)) {
+      const target = mockPaperPlanes as any[]
+      target.splice(0, target.length)
+      ;(saved.planes as any[]).forEach((item: any) => target.push(item))
+    }
+
+    const quotas = mockCommunityQuotas as any
+    if (saved.dateKey == today && saved.paperPlaneDaily != null) {
+      const daily = saved.paperPlaneDaily as any
+      quotas.paperPlaneDaily.remain = daily.remain != null
+        ? Math.max(0, Math.min(quotas.paperPlaneDaily.total, daily.remain))
+        : quotas.paperPlaneDaily.total
+      quotas.paperPlaneDaily.used = quotas.paperPlaneDaily.total - quotas.paperPlaneDaily.remain
+    } else {
+      quotas.paperPlaneDaily.used = 0
+      quotas.paperPlaneDaily.remain = quotas.paperPlaneDaily.total
+      savePaperPlaneState()
+    }
+  } catch (e) {
+    console.error('恢复纸飞机本地状态失败', e)
+  }
+}
+
+function paperPlaneTimeText(rawTime: any): string {
+  const time = rawTime != null ? Number(rawTime) : 0
+  if (time <= 0) return ''
+  const diff = Math.max(0, Date.now() - time)
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+  if (diff < minute) return '刚刚'
+  if (diff < hour) return Math.floor(diff / minute) + ' 分钟前'
+  if (diff < day) return Math.floor(diff / hour) + ' 小时前'
+  if (diff < 7 * day) return Math.floor(diff / day) + ' 天前'
+  const date = new Date(time)
+  return (date.getMonth() + 1) + ' 月 ' + date.getDate() + ' 日'
+}
 
 function cloneList(list: any[]): any[] {
   const out: any[] = []
@@ -42,6 +124,12 @@ function findTopic(topicId: number): any {
   }
   return null
 }
+function markTopicParticipation(topic: any): void {
+  if (topic == null || topic.joined == true) return
+  topic.joined = true
+  topic.participantCount = ((topic.participantCount as number) || 0) + 1
+}
+
 
 function findActivity(activityId: number): any {
   const all = mockActivities as any[]
@@ -78,6 +166,55 @@ function syncApplyOnDynamics(userId: number, status: string) {
 function notBlockedDynamic(d: any): boolean {
   if (d == null || d.user == null) return true
   return !isBlocked(d.user.id as number)
+}
+
+
+function isLikedUser(userId: number): boolean {
+  const ids = mockLikedUserIds as number[]
+  for (let i = 0; i < ids.length; i++) {
+    if (ids[i] == userId) return true
+  }
+  return false
+}
+
+function schoolKey(raw: any): string {
+  if (raw == null) return ''
+  let s = '' + raw
+  const cut = s.indexOf(' · ')
+  if (cut >= 0) s = s.substring(0, cut)
+  return s.trim()
+}
+
+function hometownKey(raw: any): string {
+  if (raw == null) return ''
+  return ('' + raw).trim()
+}
+
+function meProfile(): any {
+  return mockMeProfile as any
+}
+
+function sortTopicsByHeat(list: any[]): any[] {
+  return list.slice().sort((a: any, b: any) => {
+    const ha = a.heat != null ? (a.heat as number) : ((a.participantCount as number) || 0) * 10 + ((a.postCount as number) || 0)
+    const hb = b.heat != null ? (b.heat as number) : ((b.participantCount as number) || 0) * 10 + ((b.postCount as number) || 0)
+    return hb - ha
+  })
+}
+
+function sortTopicsByCreated(list: any[]): any[] {
+  return list.slice().sort((a: any, b: any) => {
+    return ((b.createdAt as number) || 0) - ((a.createdAt as number) || 0)
+  })
+}
+
+function excludeTopicIds(list: any[], excludeIds: any): any[] {
+  if (excludeIds == null || !Array.isArray(excludeIds) || excludeIds.length == 0) return list
+  const ban: any = {}
+  for (let i = 0; i < excludeIds.length; i++) {
+    ban['' + excludeIds[i]] = true
+  }
+  return list.filter((t: any) => ban['' + t.id] != true)
 }
 
 function resolveTabValue(raw: any): string {
@@ -128,11 +265,37 @@ function filterDynamics(tab: string, filter: string, city: string): any[] {
     }
   }
 
+  const me = meProfile()
+  const meSchool = schoolKey(me != null ? me.school : '')
+  const meHometown = hometownKey(me != null ? me.hometown : '')
+
   let filtered: any[] = all
   if (tab == 'follow') {
-    filtered = all.filter((d: any) => {
-      return d.followed == true || (d.tabs != null && d.tabs.indexOf('follow') >= 0)
-    })
+    // 关注页：all = 已关注 ∪ 喜欢用户；following = 仅关注；likedUsers = 仅喜欢用户
+    if (filter == 'following') {
+      filtered = all.filter((d: any) => {
+        return d.followed == true || (d.tabs != null && d.tabs.indexOf('follow') >= 0)
+      })
+    } else if (filter == 'likedUsers') {
+      filtered = all.filter((d: any) => {
+        return d.user != null && isLikedUser(d.user.id as number)
+      })
+    } else {
+      // all
+      const map: any = {}
+      const out: any[] = []
+      for (let i = 0; i < all.length; i++) {
+        const d = all[i]
+        const followed = d.followed == true || (d.tabs != null && d.tabs.indexOf('follow') >= 0)
+        const likedU = d.user != null && isLikedUser(d.user.id as number)
+        if (!followed && !likedU) continue
+        const key = '' + d.id
+        if (map[key] == true) continue
+        map[key] = true
+        out.push(d)
+      }
+      filtered = out
+    }
   } else if (tab == 'city') {
     filtered = all.filter((d: any) => {
       const sameCity =
@@ -143,9 +306,17 @@ function filterDynamics(tab: string, filter: string, city: string): any[] {
         (d.tabs != null && d.tabs.indexOf('city') >= 0)
       return sameCity
     })
-  } else if (tab == 'liked') {
-    filtered = all.filter((d: any) => d.liked == true || (d.tabs != null && d.tabs.indexOf('liked') >= 0))
+    if (filter == 'hot') {
+      filtered = filtered.slice().sort((a: any, b: any) => {
+        return ((b.likeCount as number) || 0) - ((a.likeCount as number) || 0)
+      })
+    } else if (filter == 'latest') {
+      filtered = filtered.slice().sort((a: any, b: any) => {
+        return ((b.time as number) || 0) - ((a.time as number) || 0)
+      })
+    }
   } else {
+    // discover
     filtered = all.filter((d: any) => {
       return (
         d.tab == 'discover' ||
@@ -154,23 +325,23 @@ function filterDynamics(tab: string, filter: string, city: string): any[] {
       )
     })
     if (filtered.length == 0) filtered = all
-  }
 
-  if (filter == 'media') {
-    filtered = filtered.filter((d: any) => {
-      const photos = d.photos != null ? d.photos : d.media
-      return photos != null && (photos as any[]).length > 0
-    })
-  } else if (filter == 'topic') {
-    filtered = filtered.filter((d: any) => d.topicId != null && d.topicId > 0)
-  } else if (filter == 'hot') {
-    filtered = filtered.slice().sort((a: any, b: any) => {
-      return ((b.likeCount as number) || 0) - ((a.likeCount as number) || 0)
-    })
-  } else if (filter == 'latest') {
-    filtered = filtered.slice().sort((a: any, b: any) => {
-      return ((b.time as number) || 0) - ((a.time as number) || 0)
-    })
+    if (filter == 'mbti') {
+      filtered = filtered.filter((d: any) => d.user != null && d.user.mbti != null && ('' + d.user.mbti) != '')
+    } else if (filter == 'alumni') {
+      filtered = filtered.filter((d: any) => {
+        if (d.user == null) return false
+        const s = schoolKey(d.user.school)
+        return s != '' && meSchool != '' && s == meSchool
+      })
+    } else if (filter == 'hometown') {
+      filtered = filtered.filter((d: any) => {
+        if (d.user == null) return false
+        const h = hometownKey(d.user.hometown)
+        if (h == '' || meHometown == '') return false
+        return h == meHometown || h.indexOf(meHometown) >= 0 || meHometown.indexOf(h) >= 0
+      })
+    }
   }
 
   return filtered
@@ -237,8 +408,10 @@ export async function getDynamicDetail(dynamicId: number) {
 
 export async function getTopics(sort: string = 'hot') {
   let list = cloneList(mockTopics as any[])
-  if (sort == 'new') {
-    list = list.reverse()
+  if (sort == 'new' || sort == 'latest') {
+    list = sortTopicsByCreated(list)
+  } else {
+    list = sortTopicsByHeat(list)
   }
   return request({
     url: '/community/topics',
@@ -250,20 +423,70 @@ export async function getTopics(sort: string = 'hot') {
   })
 }
 
-export async function getTopicDetail(topicId: number) {
+/**
+ * 分页话题列表
+ * getTopicList({ sort, page, pageSize, excludeIds })
+ * 返回 { list, page, pageSize, total, hasMore }
+ */
+export async function getTopicList(query: any = null) {
+  const sort = query != null && query.sort != null ? ('' + query.sort) : 'hot'
+  const page = query != null && query.page != null && (query.page as number) > 0 ? (query.page as number) : 1
+  const pageSize = query != null && query.pageSize != null && (query.pageSize as number) > 0 ? (query.pageSize as number) : 10
+  const excludeIds = query != null ? query.excludeIds : null
+
+  let list = cloneList(mockTopics as any[])
+  if (sort == 'new' || sort == 'latest') {
+    list = sortTopicsByCreated(list)
+  } else {
+    list = sortTopicsByHeat(list)
+  }
+  list = excludeTopicIds(list, excludeIds)
+  const total = list.length
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+  const slice = list.slice(start, end)
+  const hasMore = end < total
+
+  return request({
+    url: '/community/topics/list',
+    cloudFunctionName: 'community',
+    action: 'getTopicList',
+    method: 'GET',
+    data: { sort, page, pageSize, excludeIds },
+    mockData: {
+      list: slice,
+      page,
+      pageSize,
+      total,
+      hasMore
+    }
+  })
+}
+
+export async function getTopicDetail(topicId: number, sort: string = 'hot') {
   const topic = findTopic(topicId)
-  const posts = (mockDynamicList as any[]).filter((d: any) => {
+  let posts = (mockDynamicList as any[]).filter((d: any) => {
     return d.topicId == topicId && notBlockedDynamic(d)
   })
+  if (sort == 'latest' || sort == 'new') {
+    posts = posts.slice().sort((a: any, b: any) => {
+      return ((b.time as number) || 0) - ((a.time as number) || 0)
+    })
+  } else {
+    posts = posts.slice().sort((a: any, b: any) => {
+      return ((b.likeCount as number) || 0) - ((a.likeCount as number) || 0)
+    })
+  }
   return request({
     url: '/community/topic/detail',
     cloudFunctionName: 'community',
     action: 'getTopicDetail',
     method: 'GET',
-    data: { topicId },
+    data: { topicId, sort },
     mockData: {
       topic,
-      posts: cloneList(posts)
+      posts: cloneList(posts),
+      sort
     }
   })
 }
@@ -271,8 +494,7 @@ export async function getTopicDetail(topicId: number) {
 export async function joinTopic(topicId: number) {
   const topic = findTopic(topicId)
   if (topic != null) {
-    topic.joined = true
-    topic.participantCount = (topic.participantCount as number) + 1
+    markTopicParticipation(topic)
   }
   return request({
     url: '/community/topic/join',
@@ -285,9 +507,16 @@ export async function joinTopic(topicId: number) {
 }
 
 export async function getPaperPlanes() {
+  restorePaperPlaneState()
   const list = (mockPaperPlanes as any[]).filter((p: any) => {
     if (p.userId == null) return true
     return !isBlocked(p.userId as number)
+  })
+  list.forEach((p: any) => {
+    p.timeText = paperPlaneTimeText(p.time)
+    if (p.userId == mockMeProfile.id && (p.gender == null || p.gender == '我')) {
+      p.gender = mockMeProfile.gender == 1 ? '男' : '女'
+    }
   })
   return request({
     url: '/community/paper-planes',
@@ -304,6 +533,7 @@ export async function getPaperPlanes() {
  * 兼容：sendPaperPlane(content, anonymous)
  */
 export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolean = true) {
+  restorePaperPlaneState()
   let content = ''
   let anonymous = true
   let scope = 'city'
@@ -331,6 +561,21 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
     })
   }
 
+  if (content.length > 120) {
+    return request({
+      url: '/community/paper-planes/send',
+      cloudFunctionName: 'community',
+      action: 'sendPaperPlane',
+      method: 'POST',
+      data: { content, anonymous, scope },
+      mockData: {
+        success: false,
+        code: 'CONTENT_TOO_LONG',
+        message: '纸飞机内容不能超过 120 字'
+      }
+    })
+  }
+
   const quotas = mockCommunityQuotas as any
   if (quotas.paperPlaneDaily.remain <= 0) {
     return request({
@@ -354,16 +599,17 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
     content,
     anonymous,
     scope,
-    gender: '我',
-    age: 29,
-    city: mockCurrentCity.name,
-    userId: 9001,
+    gender: mockMeProfile.gender == 1 ? '男' : '女',
+    age: mockMeProfile.age,
+    city: mockMeProfile.city != null ? mockMeProfile.city : mockCurrentCity.name,
+    userId: mockMeProfile.id,
     time: Date.now(),
     timeText: '刚刚',
     replyCount: 0,
     replied: false
   }
   ;(mockPaperPlanes as any[]).unshift(plane)
+  savePaperPlaneState()
   return request({
     url: '/community/paper-planes/send',
     cloudFunctionName: 'community',
@@ -375,12 +621,68 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
 }
 
 export async function replyPaperPlane(planeId: number, content: string) {
+  restorePaperPlaneState()
+  const replyContent = content.trim()
+  if (replyContent.length == 0) {
+    return request({
+      url: '/community/paper-planes/reply',
+      cloudFunctionName: 'community',
+      action: 'replyPaperPlane',
+      method: 'POST',
+      data: { planeId, content: replyContent },
+      mockData: {
+        success: false,
+        code: 'EMPTY_CONTENT',
+        message: '请填写回复内容'
+      }
+    })
+  }
+  if (replyContent.length > 120) {
+    return request({
+      url: '/community/paper-planes/reply',
+      cloudFunctionName: 'community',
+      action: 'replyPaperPlane',
+      method: 'POST',
+      data: { planeId, content: replyContent },
+      mockData: {
+        success: false,
+        code: 'CONTENT_TOO_LONG',
+        message: '回复内容不能超过 120 字'
+      }
+    })
+  }
+
   const list = mockPaperPlanes as any[]
   for (let i = 0; i < list.length; i++) {
     if (list[i].id == planeId) {
+      if (list[i].replied == true) {
+        return request({
+          url: '/community/paper-planes/reply',
+          cloudFunctionName: 'community',
+          action: 'replyPaperPlane',
+          method: 'POST',
+          data: { planeId, content: replyContent },
+          mockData: {
+            success: false,
+            code: 'ALREADY_REPLIED',
+            message: '这架纸飞机已经回复过了'
+          }
+        })
+      }
       list[i].replied = true
       list[i].replyCount = (list[i].replyCount as number) + 1
-      break
+      savePaperPlaneState()
+      return request({
+        url: '/community/paper-planes/reply',
+        cloudFunctionName: 'community',
+        action: 'replyPaperPlane',
+        method: 'POST',
+        data: { planeId, content: replyContent },
+        mockData: {
+          success: true,
+          replyCount: list[i].replyCount
+        }
+      })
     }
   }
   return request({
@@ -388,8 +690,12 @@ export async function replyPaperPlane(planeId: number, content: string) {
     cloudFunctionName: 'community',
     action: 'replyPaperPlane',
     method: 'POST',
-    data: { planeId, content },
-    mockData: { success: true }
+    data: { planeId, content: replyContent },
+    mockData: {
+      success: false,
+      code: 'NOT_FOUND',
+      message: '这架纸飞机已不存在'
+    }
   })
 }
 
@@ -544,6 +850,7 @@ export async function markAllNotificationsRead() {
 }
 
 export async function getCommunityQuotas() {
+  restorePaperPlaneState()
   return request({
     url: '/community/quotas',
     cloudFunctionName: 'community',
@@ -567,6 +874,7 @@ export async function publishDynamic(
 ) {
   let content = ''
   let photos: string[] = []
+  let videos: string[] = []
   let location = ''
   let topicId = 0
   let visibility = 0
@@ -576,6 +884,8 @@ export async function publishDynamic(
     content = contentOrPayload.content != null ? ('' + contentOrPayload.content).trim() : ''
     const media = contentOrPayload.media != null ? contentOrPayload.media : contentOrPayload.photos
     photos = media != null ? (media as string[]) : []
+    const rawVideos = contentOrPayload.videos
+    videos = rawVideos != null ? (rawVideos as string[]) : []
     location = contentOrPayload.location != null ? ('' + contentOrPayload.location) : ''
     topicId = contentOrPayload.topicId != null ? (contentOrPayload.topicId as number) : 0
     visibility = contentOrPayload.visibility != null ? (contentOrPayload.visibility as number) : 0
@@ -588,20 +898,75 @@ export async function publishDynamic(
     visibility = visibilityArg
   }
 
-  if (content.length == 0 && (photos == null || photos.length == 0)) {
+  const hasPhotos = photos != null && photos.length > 0
+  const hasVideos = videos != null && videos.length > 0
+  if (content.length == 0 && !hasPhotos && !hasVideos) {
     return request({
       url: '/community/dynamic/publish',
       cloudFunctionName: 'community',
       action: 'publishDynamic',
       method: 'POST',
-      data: { content, photos, location, topicId, visibility, declaration },
+      data: {
+        content: content,
+        photos: photos,
+        videos: videos,
+        location: location,
+        topicId: topicId,
+        visibility: visibility,
+        declaration: declaration
+      },
       mockData: {
         success: false,
         code: 'EMPTY_CONTENT',
-        message: '请添加文字或图片后再发布'
+        message: '请添加正文或图片、视频后再发布'
       }
     })
   }
+
+  // 图片与视频互斥：API 层强制，防止绕过页面 UI
+  if (hasPhotos && hasVideos) {
+    return request({
+      url: '/community/dynamic/publish',
+      cloudFunctionName: 'community',
+      action: 'publishDynamic',
+      method: 'POST',
+      data: {
+        content: content,
+        photos: photos,
+        videos: videos,
+        location: location,
+        topicId: topicId,
+        visibility: visibility,
+        declaration: declaration
+      },
+      mockData: {
+        success: false,
+        code: 'INVALID_MEDIA',
+        message: '图片与视频不能同时发布，请只保留一种媒体'
+      }
+    })
+  }
+
+  // 视频最多 1 条
+  if (hasVideos && videos.length > 1) {
+    videos = [videos[0]]
+  }
+  // 图片最多 9 张
+  if (hasPhotos && photos.length > 9) {
+    photos = photos.slice(0, 9)
+  }
+
+  let topicTitle = ''
+  let topic: any = null
+  if (topicId > 0) {
+    topic = findTopic(topicId)
+    if (topic != null && topic.title != null) {
+      topicTitle = '' + topic.title
+    }
+  }
+  const mediaType = hasVideos ? 'video' : (hasPhotos ? 'image' : 'none')
+  const finalPhotos: string[] = hasVideos ? [] : (photos != null ? photos : [])
+  const finalVideos: string[] = hasVideos ? videos : []
 
   const dynamicId = Date.now()
   const cityName = location != '' ? ('' + location).split('·')[0].trim() : mockCurrentCity.name
@@ -612,6 +977,10 @@ export async function publishDynamic(
       avatar: '/static/portraits/profile-man-light.jpg',
       name: '顾言澄',
       age: 29,
+      gender: '男',
+      birthYear: 1997,
+      ipLocation: '江苏',
+      income: '',
       city: mockCurrentCity.name,
       height: '178cm',
       job: '产品经理',
@@ -620,15 +989,19 @@ export async function publishDynamic(
       realNameStatus: 'passed',
       educationStatus: 'missing'
     },
-    content,
-    photos: photos != null ? photos : [],
-    media: photos != null ? photos : [],
+    content: content,
+    photos: finalPhotos,
+    media: finalPhotos,
+    videos: finalVideos,
+    mediaType: mediaType,
     location: location,
     cityTag: cityName == mockCurrentCity.name,
     city: cityName,
     topicId: topicId > 0 ? topicId : null,
+    topicTitle: topicTitle,
+    relationTags: [],
     tags: declaration != '' ? [declaration] : [],
-    declaration,
+    declaration: declaration,
     time: Date.now(),
     timeText: '刚刚',
     likeCount: 0,
@@ -641,23 +1014,30 @@ export async function publishDynamic(
     tabs: ['discover', cityName == mockCurrentCity.name ? 'city' : 'discover'],
     tab: 'discover',
     comments: [],
-    visibility
+    visibility: visibility
   }
   ;(mockDynamicList as any[]).unshift(item)
-  if (topicId > 0) {
-    const topic = findTopic(topicId)
-    if (topic != null) {
-      topic.postCount = (topic.postCount as number) + 1
-      topic.participantCount = (topic.participantCount as number) + 1
-    }
+  if (topicId > 0 && topic != null) {
+    topic.postCount = ((topic.postCount as number) || 0) + 1
+    markTopicParticipation(topic)
   }
   return request({
     url: '/community/dynamic/publish',
     cloudFunctionName: 'community',
     action: 'publishDynamic',
     method: 'POST',
-    data: { content, photos, location, topicId, visibility, declaration },
-    mockData: { success: true, dynamicId, dynamic: item }
+    data: {
+      content: content,
+      photos: finalPhotos,
+      videos: finalVideos,
+      mediaType: mediaType,
+      topicTitle: topicTitle,
+      location: location,
+      topicId: topicId,
+      visibility: visibility,
+      declaration: declaration
+    },
+    mockData: { success: true, dynamicId: dynamicId, dynamic: item }
   })
 }
 

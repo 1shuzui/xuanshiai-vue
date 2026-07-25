@@ -2,20 +2,24 @@
 	<view class="page">
 		<scroll-view class="scroll" scroll-y>
 			<view class="hero" v-if="topic != null">
-				<text class="tag">{{ topic.tag }}</text>
-				<text class="title">{{ topic.title }}</text>
-				<text class="desc">{{ topic.description }}</text>
-				<text class="meta text-muted">{{ topic.participantCount }} 人参与 · {{ topic.postCount }} 帖</text>
-				<view class="rules" v-if="topic.rules != null">
-					<text class="rule" v-for="(r, i) in topic.rules" :key="i">· {{ r }}</text>
+				<view class="hero-card">
+					<image v-if="topic.cover != null" class="hero-cover" :src="topic.cover" mode="aspectFill"></image>
+					<view class="hero-body">
+						<text class="hero-tag" v-if="topic.tag != null">{{ topic.tag }}</text>
+						<text class="title">{{ topic.title }}</text>
+						<text class="desc">{{ topic.description }}</text>
+						<text class="meta">{{ formatViews(topic.viewCount) }} 浏览 · {{ topic.participantCount }} 人参与</text>
+					</view>
 				</view>
-				<button class="join-btn" @click="handleJoin">
-					{{ topic.joined ? '已加入 · 去发言' : '加入话题' }}
-				</button>
 			</view>
 
-			<view class="section-title"><text>话题动态</text></view>
-			<XsaEmpty v-if="!loading && posts.length == 0" text="还没有帖子" description="成为第一个认真发言的人" :show-action="true" action-text="发布" @action="goPublish" />
+			<XsaEmpty v-if="!loading && topicError" text="话题暂时无法打开" description="请稍后重试" :show-action="true" action-text="重试" @action="load" />
+			<view v-if="!topicError" class="sort-row">
+				<view class="chip" :class="{ active: sort == 'hot' }" @click="changeSort('hot')"><text>热门</text></view>
+				<view class="chip" :class="{ active: sort == 'latest' }" @click="changeSort('latest')"><text>最新</text></view>
+			</view>
+
+			<XsaEmpty v-if="!loading && !topicError && posts.length == 0" text="还没有帖子" description="成为第一个认真发言的人" :show-action="true" action-text="参与话题" @action="goPublish" />
 			<XsaDynamicCard
 				v-for="item in posts"
 				:key="item.id"
@@ -31,6 +35,10 @@
 			/>
 			<view class="pad"></view>
 		</scroll-view>
+
+		<view v-if="topic != null && !topicError" class="join-bar">
+			<button class="join-btn" @click="goPublish">+ 参与话题</button>
+		</view>
 
 		<XsaApplySheet :visible="applyVisible" :user-id="applyUserId" @close="applyVisible = false" @success="onApplyOk" />
 		<XsaReportSheet
@@ -51,7 +59,6 @@
 	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
 	import {
 		getTopicDetail,
-		joinTopic,
 		likeDynamic,
 		collectDynamic,
 		followUserFromCommunity
@@ -62,72 +69,95 @@
 	const topic = ref(null)
 	const posts = ref([])
 	const loading = ref(false)
+	const topicError = ref(false)
+	const sort = ref('hot')
 	const applyVisible = ref(false)
 	const applyUserId = ref(0)
 	const reportVisible = ref(false)
 	const reportTargetId = ref(0)
 	const reportUserId = ref(0)
 
+	const formatViews = (n: any) => {
+		const v = n != null ? Number(n) : 0
+		if (v >= 100000000) {
+			const y = Math.round((v / 100000000) * 10) / 10
+			return '' + y + '亿'
+		}
+		if (v >= 10000) {
+			const w = Math.round((v / 10000) * 10) / 10
+			return '' + w + '万'
+		}
+		return '' + v
+	}
+
 	onLoad((q: any) => {
 		topicId.value = q != null && q.id != null ? parseInt('' + q.id) : 0
 		load()
 	})
 
-	const normalize = (item: any) => {
-		return {
-			id: item.id,
-			user: item.user,
-			content: item.content,
-			photos: item.photos,
-			location: item.location,
-			time: item.timeText != null ? item.timeText : '',
-			timeText: item.timeText,
-			likeCount: item.likeCount,
-			commentCount: item.commentCount,
-			collectCount: item.collectCount,
-			liked: item.liked,
-			collected: item.collected,
-			followed: item.followed,
-			applyStatus: item.applyStatus,
-			topicId: item.topicId,
-			tags: item.tags
+const normalize = (item: any) => {
+			return {
+				id: item.id,
+				user: item.user,
+				content: item.content,
+				photos: item.photos,
+				location: item.location,
+				time: item.timeText != null ? item.timeText : '',
+				timeText: item.timeText,
+				likeCount: item.likeCount,
+				commentCount: item.commentCount,
+				collectCount: item.collectCount,
+				liked: item.liked,
+				collected: item.collected,
+				followed: item.followed,
+				applyStatus: item.applyStatus,
+				topicId: item.topicId,
+				tags: item.tags,
+				declaration: item.declaration,
+				cityTag: item.cityTag === true,
+				relationTags: item.relationTags != null ? item.relationTags : [],
+				topicTitle: item.topicTitle != null ? item.topicTitle : '',
+				videos: item.videos != null ? item.videos : [],
+				mediaType: item.mediaType != null ? item.mediaType : ''
+			}
 		}
-	}
 
 	const load = async () => {
-		if (topicId.value <= 0) return
+		if (topicId.value <= 0) {
+			topicError.value = true
+			return
+		}
 		loading.value = true
+		topicError.value = false
 		try {
-			const res = await getTopicDetail(topicId.value)
-			if (res.success && res.data != null) {
+			const res = await getTopicDetail(topicId.value, sort.value)
+			if (res.success && res.data != null && res.data.topic != null) {
 				topic.value = res.data.topic
 				posts.value = res.data.posts != null ? res.data.posts : []
+			} else {
+				topic.value = null
+				posts.value = []
+				topicError.value = true
 			}
 		} catch (e) {
 			console.error(e)
+			topic.value = null
+			posts.value = []
+			topicError.value = true
 		} finally {
 			loading.value = false
 		}
 	}
 
-	const handleJoin = async () => {
-		if (topic.value == null) return
-		if (topic.value.joined) {
-			goPublish()
-			return
-		}
-		const ok = await guardRealName('topicJoin')
-		if (!ok) return
-		const res = await joinTopic(topicId.value)
-		if (res.success) {
-			topic.value.joined = true
-			topic.value.participantCount += 1
-			uni.showToast({ title: '已加入话题', icon: 'success' })
-		}
+	const changeSort = async (s: string) => {
+		if (sort.value === s) return
+		sort.value = s
+		await load()
 	}
 
 	const goPublish = async () => {
-		const ok = await guardRealName('publish')
+		if (topicId.value <= 0 || topic.value == null || topicError.value) return
+		const ok = await guardRealName('topicJoin')
 		if (!ok) return
 		uni.navigateTo({ url: `/pages/community/publish?topicId=${topicId.value}` })
 	}
@@ -161,7 +191,9 @@
 			const p = posts.value.find((d: any) => d.id == id)
 			if (p != null) {
 				p.collected = res.data.collected
-				p.collectCount = (p.collectCount || 0) + (p.collected ? 1 : -1)
+				if (res.data.collectCount != null) {
+					p.collectCount = res.data.collectCount
+				}
 			}
 		}
 	}
@@ -183,9 +215,7 @@
 		applyVisible.value = true
 	}
 
-	const onApplyOk = () => {
-		// 列表态保持
-	}
+	const onApplyOk = () => {}
 
 	const onMore = (dynamicId: number, userId: number) => {
 		reportTargetId.value = dynamicId
@@ -202,66 +232,117 @@
 	.page {
 		height: 100vh;
 		background: var(--canvas);
-	}
-	.scroll {
-		height: 100%;
-	}
-	.hero {
-		margin: 12px 14px;
-		padding: 16px;
-		background: var(--navy);
-		border-radius: 14px;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
 	}
-	.tag {
-		color: var(--soft);
+	.scroll {
+		flex: 1;
+		height: 0;
+	}
+	.hero {
+		margin: 12px 14px 0;
+		padding: 0;
+		box-sizing: border-box;
+	}
+	.hero-card {
+		display: flex;
+		flex-direction: row;
+		gap: 12px;
+		padding: 14px;
+		background: var(--accent-bg);
+		border-radius: 14px;
+	}
+	.hero-cover {
+		width: 84px;
+		height: 84px;
+		border-radius: 12px;
+		flex-shrink: 0;
+		background: var(--warm);
+	}
+	.hero-body {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		justify-content: center;
+	}
+	.hero-tag {
 		font-size: 11px;
-		font-weight: 800;
+		font-weight: 700;
+		color: var(--sage);
 	}
 	.title {
-		font-size: 22px;
-		font-family: var(--serif);
-		font-weight: 700;
-		color: var(--paper);
+		font-size: 16px;
+		font-weight: 800;
+		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.desc {
 		font-size: 12px;
-		line-height: 1.55;
-		color: rgba(231, 236, 236, 0.82);
+		line-height: 1.4;
+		color: var(--muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		lines: 2;
 	}
 	.meta {
 		font-size: 11px;
-		color: rgba(231, 236, 236, 0.65);
+		color: var(--muted);
 	}
-	.rules {
+	.sort-row {
 		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		margin-top: 4px;
+		flex-direction: row;
+		gap: 8px;
+		padding: 12px 14px 6px;
 	}
-	.rule {
-		font-size: 11px;
-		color: rgba(231, 236, 236, 0.7);
+	.chip {
+		height: 30px;
+		padding: 0 12px;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
 	}
-	.join-btn {
-		margin-top: 8px;
-		height: 40px;
+	.chip text {
+		font-size: 12px;
+		color: var(--muted);
+	}
+	.chip.active {
 		background: var(--soft);
-		color: var(--brown);
-		border-radius: 8px;
-		font-size: 13px;
-		font-weight: 800;
-		border: none;
+		border-color: var(--accent);
 	}
-	.section-title {
-		padding: 8px 16px 4px;
-		font-size: 16px;
-		font-family: var(--serif);
+	.chip.active text {
+		color: var(--accent);
 		font-weight: 700;
 	}
 	.pad {
-		height: 32px;
+		height: calc(72px + env(safe-area-inset-bottom));
+	}
+	.join-bar {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+		background: var(--surface-overlay);
+		border-top: 1px solid var(--line);
+		z-index: 30;
+	}
+	.join-btn {
+		height: 44px;
+		background: var(--sage);
+		color: var(--paper);
+		border-radius: 10px;
+		font-size: 14px;
+		font-weight: 800;
+		border: none;
 	}
 </style>

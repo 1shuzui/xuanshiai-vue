@@ -1,15 +1,17 @@
 /**
- * 社区 / 申请认识 · 实名门槛
- * 产品覆盖：互动与申请仅要求实名通过；学历只展示不拦截
- * 浏览、举报、拉黑不要求实名
- *
- * 状态枚举（定版）：passed | missing | reviewing | rejected
- * 兼容旧值：pending→reviewing，failed→rejected
- */
+	 * 社区 / 申请认识 · 实名门槛
+	 * 产品覆盖：常规社区互动、申请认识、参与话题及带话题发布均仅要求实名通过
+	 * 双重认证（实名 + 学历过审）仅作展示加分，不作为话题门槛
+	 * 浏览、举报、拉黑不要求实名
+	 *
+	 * 状态枚举（定版）：passed | missing | reviewing | rejected
+	 * 兼容旧值：pending→reviewing，failed→rejected
+	 */
 
 import { getMeProfile } from '@/api/user.uts'
 
 export type RealNameStatus = 'passed' | 'missing' | 'reviewing' | 'rejected'
+export type EducationStatus = 'passed' | 'missing' | 'reviewing' | 'rejected'
 
 export type GateAction =
   | 'publish'
@@ -121,6 +123,83 @@ export async function ensureRealName(action: GateAction | string = 'publish') {
   }
 }
 
+/** 从当前用户资料解析学历认证状态（兼容 boolean / 文案列表 / 旧枚举） */
+export function resolveEducationStatus(profile: any): EducationStatus {
+  if (profile == null) return 'missing'
+  if (profile.educationStatus != null) {
+    return normalizeStatus(profile.educationStatus) as EducationStatus
+  }
+  const certs = profile.certifications
+  if (certs != null && typeof certs === 'object' && !Array.isArray(certs)) {
+    if (certs.education != null) return normalizeStatus(certs.education) as EducationStatus
+  }
+  if (profile.certList != null && Array.isArray(profile.certList)) {
+    if (profile.certList.indexOf('学历') >= 0) return 'passed'
+  }
+  return 'missing'
+}
+
+/**
+ * 拉取当前用户并校验实名和学历认证是否均已通过。
+ * 仅用于双重认证展示 / 预留场景；话题参与与带话题发布已改回 ensureRealName。
+ */
+export async function ensureDualVerification(action: GateAction | string = 'topicJoin') {
+  const realNameResult = await ensureRealName(action)
+  if (!realNameResult.ok) return realNameResult
+
+  try {
+    const status = resolveEducationStatus(realNameResult.profile)
+    if (status == 'passed') {
+      return {
+        ok: true,
+        profile: realNameResult.profile,
+        status,
+        message: ''
+      }
+    }
+
+    const label = actionLabel(action)
+    let message = `完成实名认证和学历认证后即可${label}`
+    if (status == 'reviewing') {
+      message = `学历认证审核中，通过后即可${label}`
+    } else if (status == 'rejected') {
+      message = `学历认证未通过，请重新认证后再${label}`
+    }
+    return {
+      ok: false,
+      profile: realNameResult.profile,
+      status,
+      message
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      profile: null,
+      status: 'missing' as EducationStatus,
+      message: '暂时无法确认认证状态，请稍后重试'
+    }
+  }
+}
+
+/** 未通过双重认证时弹窗引导去认证页；已通过返回 true */
+export async function guardDualVerification(action: GateAction | string = 'topicJoin'): Promise<boolean> {
+  const result = await ensureDualVerification(action)
+  if (result.ok) return true
+
+  uni.showModal({
+    title: '需要完成双重认证',
+    content: result.message,
+    confirmText: '去认证',
+    cancelText: '稍后再说',
+    success: (res) => {
+      if (res.confirm) {
+        uni.navigateTo({ url: '/pages/profile/certification' })
+      }
+    }
+  })
+  return false
+}
+
 /**
  * 未通过时弹窗引导去认证页；已通过返回 true
  */
@@ -130,7 +209,7 @@ export async function guardRealName(action: GateAction | string = 'publish'): Pr
 
   uni.showModal({
     title: '需要实名认证',
-    content: result.message + '。学历认证可稍后完善，不会拦截本次操作。',
+    content: result.message,
     confirmText: '去实名',
     cancelText: '稍后再说',
     success: (res) => {

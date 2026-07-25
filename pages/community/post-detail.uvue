@@ -114,7 +114,12 @@ const normalize = (item: any) => {
 				applyStatus: item.applyStatus,
 				topicId: item.topicId,
 				tags: item.tags,
-				declaration: item.declaration
+				declaration: item.declaration,
+				cityTag: item.cityTag === true,
+				relationTags: item.relationTags != null ? item.relationTags : [],
+				topicTitle: item.topicTitle != null ? item.topicTitle : '',
+				videos: item.videos != null ? item.videos : [],
+				mediaType: item.mediaType != null ? item.mediaType : ''
 			}
 		}
 
@@ -201,6 +206,9 @@ const submitComment = async () => {
 		const res = await collectDynamic(id)
 		if (res.success && post.value != null) {
 			post.value.collected = res.data.collected
+			if (res.data.collectCount != null) {
+				post.value.collectCount = res.data.collectCount
+			}
 		}
 	}
 

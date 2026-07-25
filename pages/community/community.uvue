@@ -1,6 +1,6 @@
 <template>
 	<view class="community-page">
-		<!-- 主 Tab：关注 / 同城 / 发现（喜欢为私有轻意向，不作为主 Tab） -->
+		<!-- 主 Tab：关注 / 同城 / 发现；关注页「喜欢」= 喜欢用户的动态 -->
 		<view class="subtabs">
 			<view class="subtab" :class="{ active: currentTab === 'follow' }" @click="switchTab('follow')">
 				<text>关注</text>
@@ -33,20 +33,51 @@
 		</view>
 
 		<scroll-view class="dynamic-list" scroll-y @scrolltolower="handleLoadMore">
-			<!-- 发现：功能入口 + 话题 -->
-			<view v-if="currentTab === 'discover'" class="discover-head">
+			<!-- 发现·全部：TOPIC / 活动 / 纸飞机 轮播 -->
+			<view v-if="currentTab === 'discover' && currentFilter === 'all'" class="discover-head">
 				<swiper
 					v-if="banners.length > 0"
 					class="banner-swiper"
 					circular
 					autoplay
+					:current="bannerIndex"
 					:interval="4200"
-					indicator-dots
-					indicator-color="rgba(231,236,236,0.35)"
-					indicator-active-color="var(--soft)"
+					@change="onBannerChange"
 				>
 					<swiper-item v-for="b in banners" :key="b.id">
-						<view class="feature" :class="'type-' + b.type" @click="openBanner(b)">
+<!-- 话题面板：借浅绿主卡 + 主推 + 2×2 排版，保留宣誓爱文案 -->
+								<view v-if="b.type === 'topic'" class="topic-panel" @click.stop>
+									<view class="topic-panel-head">
+										<text class="topic-head-title">热门话题</text>
+										<view class="topic-head-more" @click="openTopics">
+											<text>全部</text>
+											<text class="topic-head-arrow">›</text>
+										</view>
+									</view>
+									<view class="topic-feature" @click="openFeaturedTopic">
+										<image
+											v-if="featuredTopic != null && featuredTopic.cover != null"
+											class="topic-feature-cover"
+											:src="featuredTopic.cover"
+											mode="aspectFill"
+										></image>
+										<view class="topic-feature-body">
+											<text class="topic-feature-title">{{ featuredTopic != null ? featuredTopic.title : b.title }}</text>
+											<text class="topic-feature-desc">{{ featuredTopic != null ? featuredTopic.description : b.description }}</text>
+											<text class="topic-feature-meta" v-if="featuredTopic != null">
+												{{ formatTopicViews(featuredTopic.viewCount) }} 浏览 · {{ featuredTopic.participantCount }} 人参与
+											</text>
+										</view>
+									</view>
+									<view class="topic-grid">
+										<view class="topic-grid-item" v-for="t in hotTopics.slice(0, 4)" :key="t.id" @click="openTopic(t)">
+											<text class="topic-grid-tag">{{ t.tag != null ? t.tag : '话题' }}</text>
+											<text class="topic-grid-title">{{ t.title }}</text>
+										</view>
+									</view>
+								</view>
+						<!-- 活动 / 纸飞机 -->
+						<view v-else class="feature" :class="'type-' + b.type" @click="openBanner(b)">
 							<text class="feature-kicker">{{ b.kicker != null ? b.kicker : bannerKicker(b.type) }}</text>
 							<text class="feature-title">{{ b.title }}</text>
 							<text class="feature-desc">{{ b.description }}</text>
@@ -56,26 +87,14 @@
 						</view>
 					</swiper-item>
 				</swiper>
-
-				<view class="feature" v-else-if="activity != null" @click="openActivity">
-					<text class="feature-kicker">{{ activity.kicker != null ? activity.kicker : 'OFFLINE' }}</text>
-					<text class="feature-title">{{ activity.title }}</text>
-					<text class="feature-desc">{{ activity.description }}</text>
-					<view class="feature-btn">
-						<text>查看活动</text>
-					</view>
-				</view>
-
-				<view class="section-head">
-					<text class="section-title">正在发生的话题</text>
-					<text class="section-more text-accent" @click="openTopics">全部话题</text>
-				</view>
-				<view class="topic-row">
-					<view class="topic" v-for="t in topics" :key="t.id" @click="openTopic(t)">
-						<text class="topic-tag">{{ t.tag != null ? t.tag : t.title }}</text>
-						<text class="topic-title">{{ t.title }}</text>
-						<text class="topic-meta text-muted">{{ t.participantCount }} 人正在讨论</text>
-					</view>
+				<view class="banner-dots" v-if="banners.length > 1">
+					<view
+						class="banner-dot"
+						:class="{ active: bannerIndex === i }"
+						v-for="(b, i) in banners"
+						:key="b.id"
+						@click="setBannerIndex(i)"
+					></view>
 				</view>
 			</view>
 
@@ -162,15 +181,12 @@
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
 	// 主 Tab：follow | city | discover
+	// 二级筛选：
+	// follow: all / following / likedUsers
+	// city: all / hot / latest
+	// discover: all / mbti / alumni / hometown
 	const currentTab = ref('discover')
 	const currentFilter = ref('all')
-	const filterOptions = [
-		{ key: 'all', label: '全部' },
-		{ key: 'media', label: '有图' },
-		{ key: 'topic', label: '话题' },
-		{ key: 'hot', label: '热门' },
-		{ key: 'latest', label: '最新' }
-	]
 	const loading = ref(false)
 	const loadError = ref('')
 	const hasMore = ref(true)
@@ -178,8 +194,11 @@
 	const pageSize = 10
 	const dynamicList = ref([])
 	const topics = ref([])
+	const featuredTopic = ref(null)
+	const hotTopics = ref([])
 	const activity = ref(null)
 	const banners = ref([])
+	const bannerIndex = ref(0)
 	const cityName = ref('南京')
 	const unreadCount = ref(0)
 	const applyVisible = ref(false)
@@ -187,6 +206,35 @@
 	const reportVisible = ref(false)
 	const reportTargetId = ref(0)
 	const reportUserId = ref(0)
+	// 防止快速切换 Tab/筛选时旧请求覆盖新列表
+	const loadSeq = ref(0)
+
+	const defaultFilterForTab = (tab: string) => {
+		return 'all'
+	}
+
+	const filterOptions = computed(() => {
+		if (currentTab.value === 'follow') {
+			return [
+				{ key: 'all', label: '全部' },
+				{ key: 'following', label: '关注' },
+				{ key: 'likedUsers', label: '喜欢' }
+			]
+		}
+		if (currentTab.value === 'city') {
+			return [
+				{ key: 'all', label: '全部' },
+				{ key: 'hot', label: '热门' },
+				{ key: 'latest', label: '最新' }
+			]
+		}
+		return [
+			{ key: 'all', label: '全部' },
+			{ key: 'mbti', label: 'MBTI' },
+			{ key: 'alumni', label: '校友' },
+			{ key: 'hometown', label: '同乡' }
+		]
+	})
 
 	onMounted(() => {
 		loadCity()
@@ -199,16 +247,30 @@
 
 	onShow(() => {
 		loadUnread()
+		// 从资料页喜欢用户返回后，关注流需要刷新
+		if (currentTab.value === 'follow') {
+			reload()
+		}
 	})
 
 	const emptyTitle = computed(() => {
-		if (currentTab.value === 'follow') return '还没有关注动态'
+		if (currentTab.value === 'follow') {
+			if (currentFilter.value === 'likedUsers') return '还没有喜欢用户的动态'
+			if (currentFilter.value === 'following') return '还没有关注动态'
+			return '关注与喜欢的动态都在这里'
+		}
 		if (currentTab.value === 'city') return '同城暂无动态'
+		if (currentFilter.value === 'mbti') return '暂无 MBTI 动态'
+		if (currentFilter.value === 'alumni') return '暂无校友动态'
+		if (currentFilter.value === 'hometown') return '暂无同乡动态'
 		return '暂无动态'
 	})
 
 	const emptyDesc = computed(() => {
-		if (currentTab.value === 'follow') return '关注认真嘉宾后，他们的动态会出现在这里'
+		if (currentTab.value === 'follow') {
+			if (currentFilter.value === 'likedUsers') return '在用户资料页点「喜欢」后，TA 的动态会出现在这里'
+			return '关注认真嘉宾后，他们的动态会出现在这里'
+		}
 		if (currentTab.value === 'city') return '切换城市或发布一条同城动态'
 		return '快来发布第一条动态吧'
 	})
@@ -228,28 +290,33 @@
 		return '昨天'
 	}
 
-	const normalizeDynamic = (item: any) => {
-		const photos = item.photos != null ? item.photos : item.media
-		return {
-			id: item.id,
-			user: item.user,
-			content: item.content,
-			photos,
-			location: item.location,
-			time: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
-			timeText: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
-			likeCount: item.likeCount,
-			commentCount: item.commentCount,
-			collectCount: item.collectCount,
-			liked: item.liked,
-			collected: item.collected,
-			followed: item.followed,
-			applyStatus: item.applyStatus,
-			topicId: item.topicId,
-			tags: item.tags,
-			declaration: item.declaration
+const normalizeDynamic = (item: any) => {
+			const photos = item.photos != null ? item.photos : item.media
+			return {
+				id: item.id,
+				user: item.user,
+				content: item.content,
+				photos,
+				location: item.location,
+				time: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
+				timeText: item.timeText != null ? item.timeText : formatTime(item.time != null ? item.time : item.createdAt),
+				likeCount: item.likeCount,
+				commentCount: item.commentCount,
+				collectCount: item.collectCount,
+				liked: item.liked,
+				collected: item.collected,
+				followed: item.followed,
+				applyStatus: item.applyStatus,
+				topicId: item.topicId,
+				tags: item.tags,
+				declaration: item.declaration,
+				cityTag: item.cityTag === true,
+				relationTags: item.relationTags != null ? item.relationTags : [],
+				topicTitle: item.topicTitle != null ? item.topicTitle : '',
+				videos: item.videos != null ? item.videos : [],
+				mediaType: item.mediaType != null ? item.mediaType : ''
+			}
 		}
-	}
 
 	const extractListPayload = (data: any) => {
 		// 新结构 { list, hasMore, total }；兼容旧数组
@@ -270,13 +337,16 @@
 	}
 
 	const loadDynamics = async (reset: boolean = false) => {
-		if (loading.value) return
+		// 非 reset 的加载更多仍需防重入；reset 必须可打断旧请求
+		if (!reset && loading.value) return
 		if (reset) {
 			page.value = 1
 			hasMore.value = true
 			loadError.value = ''
+			loadSeq.value = loadSeq.value + 1
 		}
 		if (!hasMore.value && !reset) return
+		const seq = loadSeq.value
 		loading.value = true
 		try {
 			const res = await getDynamicList({
@@ -286,6 +356,8 @@
 				pageSize,
 				city: cityName.value
 			})
+			// 过期请求：用户已切换 Tab/筛选，丢弃结果
+			if (seq != loadSeq.value) return
 			if (res.success) {
 				const payload = extractListPayload(res.data)
 				if (reset) {
@@ -304,12 +376,15 @@
 				}
 			}
 		} catch (e) {
+			if (seq != loadSeq.value) return
 			loadError.value = '网络异常，请检查后重试'
 			if (reset || dynamicList.value.length == 0) {
 				uni.showToast({ title: loadError.value, icon: 'none' })
 			}
 		} finally {
-			loading.value = false
+			if (seq == loadSeq.value) {
+				loading.value = false
+			}
 		}
 	}
 
@@ -322,7 +397,11 @@
 		try {
 			const res = await getTopics('hot')
 			if (res.success) {
-				topics.value = (res.data as any[]).slice(0, 4)
+				const list = res.data as any[]
+				topics.value = list
+				featuredTopic.value = list.length > 0 ? list[0] : null
+				// featured 用 list[0]，快捷入口取其后 4 个，避免重复
+				hotTopics.value = list.slice(1, 5)
 			}
 		} catch (e) {
 			// 次要模块，不打断主列表
@@ -368,6 +447,8 @@
 	const switchTab = (tab: string) => {
 		if (currentTab.value === tab) return
 		currentTab.value = tab
+		currentFilter.value = defaultFilterForTab(tab)
+		bannerIndex.value = 0
 		dynamicList.value = []
 		loadDynamics(true)
 	}
@@ -379,22 +460,58 @@
 		loadDynamics(true)
 	}
 
+	const onBannerChange = (e: any) => {
+		if (e != null && e.detail != null && e.detail.current != null) {
+			bannerIndex.value = e.detail.current as number
+		}
+	}
+
+	const setBannerIndex = (i: number) => {
+		bannerIndex.value = i
+	}
+
+	const openFeaturedTopic = () => {
+		if (featuredTopic.value == null) {
+			openTopics()
+			return
+		}
+		openTopic(featuredTopic.value)
+	}
+
 	const bannerKicker = (type: string) => {
 		if (type === 'topic') return 'TOPIC'
 		if (type === 'plane') return 'PAPER PLANE'
 		return 'OFFLINE'
 	}
 
-	const bannerCta = (type: string) => {
-		if (type === 'topic') return '进入话题'
-		if (type === 'plane') return '去漂流'
-		return '查看活动'
-	}
+const bannerCta = (type: string) => {
+			if (type === 'topic') return '进入话题'
+			if (type === 'plane') return '去漂流'
+			return '查看活动'
+		}
 
-	const openBanner = (b: any) => {
+		const formatTopicViews = (n: any) => {
+			const v = n != null ? Number(n) : 0
+			if (v >= 100000000) {
+				const y = Math.round((v / 100000000) * 10) / 10
+				return '' + y + '亿'
+			}
+			if (v >= 10000) {
+				const w = Math.round((v / 10000) * 10) / 10
+				return '' + w + '万'
+			}
+			return '' + v
+		}
+
+		const openBanner = (b: any) => {
 		if (b == null) return
 		if (b.type === 'topic') {
-			uni.navigateTo({ url: '/pages/community/topic-list' })
+			const tid = b.targetId != null ? b.targetId : (featuredTopic.value != null ? featuredTopic.value.id : 0)
+			if (tid > 0) {
+				uni.navigateTo({ url: '/pages/community/topic-detail?id=' + tid })
+			} else {
+				uni.navigateTo({ url: '/pages/community/topic-list' })
+			}
 			return
 		}
 		if (b.type === 'plane') {
@@ -580,7 +697,7 @@
 		align-items: flex-end;
 		gap: 18px;
 		padding: 0 14px;
-		background: rgba(250, 252, 252, 0.96);
+		background: var(--surface-overlay);
 		border-bottom: 1px solid var(--line);
 	}
 
@@ -698,66 +815,236 @@
 		gap: 12px;
 	}
 
-	.banner-swiper {
-		height: 168px;
-	}
+.banner-swiper {
+				height: 208px;
+			}
 
-	.feature {
-		min-height: 148px;
-		height: 100%;
-		background: var(--navy);
-		border-radius: 12px 28px 12px 12px;
-		padding: 18px;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		box-sizing: border-box;
-	}
+			.banner-dots {
+				display: flex;
+				flex-direction: row;
+				justify-content: center;
+				gap: 6px;
+				margin-top: 8px;
+			}
 
-	.feature.type-topic {
-		background: linear-gradient(135deg, #18415d 0%, #2a5f7a 100%);
-	}
+			.banner-dot {
+				width: 6px;
+				height: 6px;
+				border-radius: 999px;
+				background: var(--navy-overlay);
+			}
 
-	.feature.type-plane {
-		background: linear-gradient(135deg, #3d5a45 0%, #5a7d64 100%);
-	}
+			.banner-dot.active {
+				width: 16px;
+				background: var(--accent);
+			}
 
-	.feature.type-activity {
-		background: var(--navy);
-	}
+			/* 话题主卡：浅绿底 + 主推白卡 + 2×2 排版 */
+			.topic-panel {
+				height: 100%;
+				border-radius: 14px;
+				background: var(--accent-bg);
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+				box-sizing: border-box;
+				padding: 10px 12px;
+			}
 
-	.feature-kicker {
-		color: var(--soft);
-		font-size: 11px;
-		font-weight: 800;
-		letter-spacing: 0.08em;
-	}
+			.topic-panel-head {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 8px;
+				flex-shrink: 0;
+			}
 
-	.feature-title {
-		font-size: 22px;
-		font-family: var(--serif);
-		font-weight: 700;
-		color: var(--paper);
-	}
+			.topic-head-title {
+				font-size: 14px;
+				font-weight: 800;
+				color: var(--ink);
+			}
 
-	.feature-desc {
-		font-size: 12px;
-		line-height: 1.55;
-		color: rgba(231, 236, 236, 0.78);
-		max-width: 250px;
-	}
+			.topic-head-more {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				gap: 2px;
+				flex-shrink: 0;
+			}
 
-	.feature-btn {
-		margin-top: 8px;
-		align-self: flex-start;
-		height: 38px;
-		padding: 0 13px;
-		background: var(--soft);
-		border-radius: 7px;
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-	}
+			.topic-head-more text {
+				font-size: 12px;
+				color: var(--muted);
+			}
+
+			.topic-head-arrow {
+				font-size: 14px;
+				color: var(--muted);
+				line-height: 1;
+			}
+
+			.topic-feature {
+				display: flex;
+				flex-direction: row;
+				gap: 10px;
+				padding: 10px;
+				background: var(--surface);
+				border-radius: 12px;
+				box-shadow: var(--shadow-sm);
+				flex-shrink: 0;
+			}
+
+			.topic-feature-cover {
+				width: 64px;
+				height: 64px;
+				border-radius: 10px;
+				flex-shrink: 0;
+				background: var(--warm);
+			}
+
+			.topic-feature-body {
+				flex: 1;
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+				gap: 3px;
+				justify-content: center;
+			}
+
+			.topic-feature-title {
+				font-size: 14px;
+				font-weight: 800;
+				color: var(--ink);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.topic-feature-desc {
+				font-size: 11px;
+				line-height: 1.35;
+				color: var(--muted);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				display: -webkit-box;
+				-webkit-box-orient: vertical;
+				-webkit-line-clamp: 2;
+				lines: 2;
+			}
+
+			.topic-feature-meta {
+				font-size: 11px;
+				color: var(--muted);
+				margin-top: 1px;
+			}
+
+			.topic-grid {
+				display: flex;
+				flex-direction: row;
+				flex-wrap: wrap;
+				gap: 6px 8px;
+				margin-top: 8px;
+				flex: 1;
+				min-height: 0;
+				align-content: flex-start;
+			}
+
+			.topic-grid-item {
+				width: calc(50% - 4px);
+				box-sizing: border-box;
+				display: flex;
+				flex-direction: column;
+				gap: 2px;
+				min-width: 0;
+				padding: 6px 8px;
+				border-radius: 8px;
+				background: var(--surface);
+			}
+
+			.topic-grid-tag {
+				font-size: 10px;
+				font-weight: 700;
+				color: var(--sage);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+.topic-grid-title {
+					font-size: 12px;
+					font-weight: 600;
+					color: var(--ink);
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
+
+			.feature {
+			min-height: 0;
+			height: 100%;
+			background: var(--navy);
+			border-radius: 12px 24px 12px 12px;
+			padding: 12px 14px;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			gap: 4px;
+			box-sizing: border-box;
+		}
+
+		.feature.type-topic {
+			background: var(--navy);
+		}
+
+		.feature.type-plane {
+			background: var(--sage);
+		}
+
+		.feature.type-activity {
+			background: var(--navy);
+		}
+
+		.feature-kicker {
+			color: var(--soft);
+			font-size: 10px;
+			font-weight: 800;
+			letter-spacing: 0.08em;
+		}
+
+		.feature-title {
+			font-size: 18px;
+			font-family: var(--serif);
+			font-weight: 700;
+			color: var(--paper);
+			line-height: 1.25;
+		}
+
+		.feature-desc {
+			font-size: 11px;
+			line-height: 1.4;
+			color: var(--image-text-soft);
+			max-width: 250px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			display: -webkit-box;
+			-webkit-box-orient: vertical;
+			-webkit-line-clamp: 2;
+			lines: 2;
+		}
+
+.feature-btn {
+				margin-top: 2px;
+				align-self: flex-start;
+				height: 28px;
+				padding: 0 11px;
+				background: var(--soft);
+				border-radius: 6px;
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+		}
 
 	.feature-btn text {
 		font-size: 11px;
@@ -880,7 +1167,7 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 8px 20px rgba(17, 23, 24, 0.16);
+		box-shadow: var(--shadow-overlay);
 		z-index: 20;
 	}
 

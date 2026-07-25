@@ -3,15 +3,24 @@
 		<!-- 用户信息栏 -->
 		<view class="card-header" @click.stop="handleUserClick">
 			<image class="avatar" :src="dynamic.user.avatar" mode="aspectFill"></image>
-			<view class="user-info">
-				<view class="name-row">
-					<text class="name">{{ dynamic.user.name }}</text>
-					<text class="time text-muted">{{ timeText }}</text>
+<view class="user-info">
+					<view class="name-row">
+						<view class="name-left">
+							<text class="name">{{ dynamic.user.name }}</text>
+							<text class="gender-icon text-muted" v-if="genderIcon !== ''">{{ genderIcon }}</text>
+						</view>
+						<text class="time text-muted">{{ timeText }}</text>
+					</view>
+					<view class="meta-row" v-if="metaLine !== ''">
+						<text class="meta-text text-muted">{{ metaLine }}</text>
+					</view>
+					<view class="relation-row" v-if="relationList.length > 0">
+						<text class="relation-tag" v-for="(rt, ri) in relationList" :key="ri">{{ rt }}</text>
+					</view>
+					<view class="tag-row" v-if="tagList.length > 0">
+						<text class="mini-tag" v-for="(tag, i) in tagList" :key="i">{{ tag }}</text>
+					</view>
 				</view>
-				<view class="tag-row" v-if="tagList.length > 0">
-					<text class="mini-tag" v-for="(tag, i) in tagList" :key="i">{{ tag }}</text>
-				</view>
-			</view>
 			<button
 				v-if="showFollow"
 				class="follow-btn"
@@ -29,22 +38,39 @@
 		<view class="card-body">
 			<text class="content-text" v-if="dynamic.content">{{ dynamic.content }}</text>
 
-			<view class="photo-grid" :class="gridClass" v-if="dynamic.photos && dynamic.photos.length > 0">
-				<image
-					class="photo-item"
-					:class="gridClass"
-					v-for="(photo, index) in dynamic.photos"
-					:key="index"
-					:src="photo"
-					mode="aspectFill"
-					@click.stop="handlePhotoClick(index)"
-				></image>
-			</view>
+<view class="photo-grid" :class="gridClass" v-if="dynamic.photos && dynamic.photos.length > 0">
+					<image
+						class="photo-item"
+						:class="gridClass"
+						v-for="(photo, index) in dynamic.photos"
+						:key="index"
+						:src="photo"
+						mode="aspectFill"
+						@click.stop="handlePhotoClick(index)"
+					></image>
+				</view>
 
-			<view class="topic-chip" v-if="dynamic.topicId != null && dynamic.topicId > 0" @click.stop="handleTopic">
-				<text class="topic-hash">#</text>
-				<text class="topic-label">相关话题</text>
-			</view>
+				<!-- 视频：一期封面/占位，避免纯视频动态在 feed 像空帖 -->
+				<view class="video-block" v-else-if="hasVideo" @click.stop="handleVideoClick">
+					<video
+						v-if="videoSrc !== ''"
+						class="video-player"
+						:src="videoSrc"
+						:controls="true"
+						:show-center-play-btn="true"
+						object-fit="cover"
+						@click.stop
+					></video>
+					<view v-else class="video-placeholder">
+						<text class="video-play-icon">▶</text>
+						<text class="video-hint text-muted">视频动态</text>
+					</view>
+				</view>
+
+				<view class="topic-chip" v-if="dynamic.topicId != null && dynamic.topicId > 0" @click.stop="handleTopic">
+					<text class="topic-hash">#</text>
+					<text class="topic-label">{{ topicLabel }}</text>
+				</view>
 
 			<view class="location" v-if="dynamic.location">
 				<text class="icon">📍</text>
@@ -84,38 +110,47 @@
  */
 
 interface DynamicUser {
-		id: number
-		avatar: string
-		name: string
-		age?: number
-		city?: string
-		height?: string
-		job?: string
-		education?: string
-		verified?: boolean
-		realNameStatus?: string
-		educationStatus?: string
-	}
-
-	interface Dynamic {
-		id: number
-		user: DynamicUser
-		content?: string
-		photos?: string[]
-		location?: string
-		time?: string
-		timeText?: string
-		likeCount?: number
-		commentCount?: number
-		collectCount?: number
-		liked?: boolean
-		collected?: boolean
-		followed?: boolean
-		applyStatus?: string
-		topicId?: number
-		tags?: string[]
-		declaration?: string
-	}
+			id: number
+			avatar: string
+			name: string
+			age?: number
+			city?: string
+			height?: string
+			job?: string
+			education?: string
+			verified?: boolean
+			realNameStatus?: string
+			educationStatus?: string
+			gender?: string
+			birthYear?: number
+			ipLocation?: string
+			income?: string
+		}
+	
+		interface Dynamic {
+			id: number
+			user: DynamicUser
+			content?: string
+			photos?: string[]
+			location?: string
+			time?: string
+			timeText?: string
+			likeCount?: number
+			commentCount?: number
+			collectCount?: number
+			liked?: boolean
+			collected?: boolean
+			followed?: boolean
+			applyStatus?: string
+			topicId?: number
+			tags?: string[]
+			declaration?: string
+			cityTag?: boolean
+			relationTags?: string[]
+			topicTitle?: string
+			videos?: string[]
+			mediaType?: string
+		}
 
 interface Props {
 	dynamic: Dynamic
@@ -170,12 +205,76 @@ const commentCount = computed((): number => {
 	return props.dynamic.commentCount != null ? props.dynamic.commentCount : 0
 })
 
-const tagList = computed((): string[] => {
-		const out: string[] = []
+const genderIcon = computed((): string => {
+		const g = props.dynamic.user != null ? props.dynamic.user.gender : null
+		if (g == null || g === '') return ''
+		const s = ('' + g).toLowerCase()
+		if (s == '男' || s == 'male' || s == 'm') return '♂'
+		if (s == '女' || s == 'female' || s == 'f') return '♀'
+		return ''
+	})
+
+	const metaLine = computed((): string => {
+		const parts: string[] = []
 		const u = props.dynamic.user
 		if (u != null) {
-			if (u.age != null) out.push(u.age + '岁')
-			if (u.city != null && u.city !== '') out.push(u.city as string)
+			let year: number = 0
+			if (u.birthYear != null && (u.birthYear as number) > 1900) {
+				year = u.birthYear as number
+			} else if (u.age != null && (u.age as number) > 0) {
+				year = new Date().getFullYear() - (u.age as number)
+			}
+			if (year > 0) parts.push(year + '年')
+			if (u.ipLocation != null && ('' + u.ipLocation) !== '') {
+				parts.push('' + u.ipLocation)
+			}
+			if (u.income != null && ('' + u.income) !== '') {
+				parts.push('' + u.income)
+			}
+		}
+		return parts.join(' · ')
+	})
+
+	const relationList = computed((): string[] => {
+		const out: string[] = []
+		if (props.dynamic.cityTag === true) out.push('同城')
+		if (props.dynamic.relationTags != null) {
+			const tags = props.dynamic.relationTags as string[]
+			for (let i = 0; i < tags.length; i++) {
+				const t = tags[i]
+				if (t != null && t !== '' && out.indexOf(t) < 0) out.push(t)
+			}
+		}
+		return out
+	})
+
+	const topicLabel = computed((): string => {
+		if (props.dynamic.topicTitle != null && ('' + props.dynamic.topicTitle) !== '') {
+			return '' + props.dynamic.topicTitle
+		}
+		return '相关话题'
+	})
+
+	const hasVideo = computed((): boolean => {
+		if (props.dynamic.mediaType == 'video') return true
+		if (props.dynamic.videos != null && (props.dynamic.videos as string[]).length > 0) return true
+		return false
+	})
+
+	const videoSrc = computed((): string => {
+		if (props.dynamic.videos == null) return ''
+		const list = props.dynamic.videos as string[]
+		if (list.length == 0) return ''
+		const first = list[0]
+		return first != null ? ('' + first) : ''
+	})
+
+	const tagList = computed((): string[] => {
+		const out: string[] = []
+		const relationSet = relationList.value
+		const u = props.dynamic.user
+		if (u != null) {
+			// age/city 已由 meta/relation 承担，避免重复
 			if (u.job != null && u.job !== '') out.push(u.job as string)
 			if (u.height != null && u.height !== '') out.push(u.height as string)
 			if (u.education != null && u.education !== '') out.push(u.education as string)
@@ -188,7 +287,10 @@ const tagList = computed((): string[] => {
 			const tags = props.dynamic.tags as string[]
 			for (let i = 0; i < tags.length; i++) {
 				const t = tags[i]
-				if (t != null && t !== '' && out.indexOf(t) < 0) out.push(t)
+				if (t == null || t === '') continue
+				// 关系标（同城/校友等）已在 relation 行展示，tags 中再出现则跳过
+				if (relationSet.indexOf(t) >= 0) continue
+				if (out.indexOf(t) < 0) out.push(t)
 			}
 		}
 		// 控制展示密度，避免小屏溢出
@@ -216,12 +318,17 @@ const handleUserClick = () => {
 }
 
 const handlePhotoClick = (index: number) => {
-	emit('photoClick', index)
-	uni.previewImage({
-		current: index,
-		urls: props.dynamic.photos != null ? props.dynamic.photos : []
-	})
-}
+		emit('photoClick', index)
+		uni.previewImage({
+			current: index,
+			urls: props.dynamic.photos != null ? props.dynamic.photos : []
+		})
+	}
+
+	const handleVideoClick = () => {
+		// 进入详情播放；卡片内 video 自带 controls 时本回调较少触发
+		emit('open', props.dynamic.id)
+	}
 
 const handleLike = () => {
 	liked.value = !liked.value
@@ -303,28 +410,67 @@ const handleOpen = () => {
 }
 
 .name-row {
-	display: flex;
-	flex-direction: row;
-	align-items: baseline;
-	gap: 8px;
-}
+		display: flex;
+		flex-direction: row;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 8px;
+	}
 
-.name {
-	font-size: 15px;
-	font-weight: 600;
-	color: var(--ink);
-}
+	.name-left {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		min-width: 0;
+	}
 
-.time {
-	font-size: 12px;
-}
+	.name {
+		font-size: 15px;
+		font-weight: 600;
+		color: var(--ink);
+	}
 
-.tag-row {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	gap: 4px;
-}
+	.gender-icon {
+		font-size: 12px;
+		margin-left: 4px;
+	}
+
+	.time {
+		font-size: 12px;
+		flex-shrink: 0;
+	}
+
+	.meta-row {
+		margin-top: 2px;
+	}
+
+	.meta-text {
+		font-size: 11px;
+		line-height: 1.4;
+	}
+
+	.relation-row {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-top: 4px;
+	}
+
+	.relation-tag {
+		font-size: 10px;
+		color: var(--accent);
+		background: var(--soft);
+		padding: 2px 8px;
+		border-radius: 999px;
+	}
+
+	.tag-row {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
 
 .mini-tag {
 	font-size: 10px;
@@ -410,11 +556,52 @@ const handleOpen = () => {
 }
 
 .photo-item.grid {
-	width: calc(33.33% - 3px);
-	height: 110px;
-}
+		width: calc(33.33% - 3px);
+		height: 110px;
+	}
 
-.topic-chip {
+	.video-block {
+		margin-bottom: 8px;
+		border-radius: 8px;
+		overflow: hidden;
+		background: var(--soft);
+		max-width: 280px;
+	}
+
+	.video-player {
+		width: 100%;
+		height: 200px;
+		display: block;
+		background: var(--ink);
+	}
+
+	.video-placeholder {
+		width: 100%;
+		height: 160px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+	}
+
+	.video-play-icon {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: var(--surface);
+		color: var(--accent);
+		font-size: 16px;
+		line-height: 44px;
+		text-align: center;
+		border: 1px solid var(--line);
+	}
+
+	.video-hint {
+		font-size: 12px;
+	}
+
+	.topic-chip {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
