@@ -1,0 +1,231 @@
+<template>
+	<view class="page">
+		<scroll-view class="scroll" scroll-y v-if="activity != null">
+			<image class="cover" :src="activity.cover" mode="aspectFill"></image>
+			<view class="body">
+				<text class="kicker">{{ activity.kicker }}</text>
+				<text class="title">{{ activity.title }}</text>
+				<text class="desc">{{ activity.description }}</text>
+				<view class="info">
+					<text class="row">时间：{{ activity.date }} {{ activity.time }}</text>
+					<text class="row">地点：{{ activity.location }}</text>
+					<text class="row">名额：{{ activity.participantCount }}/{{ activity.maxParticipants }}</text>
+					<text class="row">费用：{{ activity.price > 0 ? ('¥' + activity.price) : '免费' }}</text>
+				</view>
+				<view class="tags">
+					<text class="tag" v-for="(t, i) in activity.tags" :key="i">{{ t }}</text>
+				</view>
+				<view class="safety" v-if="activity.safetyNotes != null">
+					<text class="s-title">安全说明</text>
+					<text class="s-item" v-for="(n, i) in activity.safetyNotes" :key="i">· {{ n }}</text>
+				</view>
+				<view class="organizer" v-if="activity.organizer != null">
+					<image class="o-avatar" :src="activity.organizer.avatar" mode="aspectFill"></image>
+					<view class="o-meta">
+						<text class="o-name">{{ activity.organizer.name }}</text>
+						<text class="o-desc" v-if="activity.organizer.description != null && activity.organizer.description != ''">{{ activity.organizer.description }}</text>
+					</view>
+				</view>
+			</view>
+			<view class="pad"></view>
+		</scroll-view>
+		<view class="footer" v-if="activity != null">
+			<button class="btn" :disabled="btnDisabled" @click="handleSignup">{{ btnLabel }}</button>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { getActivityDetail, signupActivity } from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	const id = ref(0)
+	const activity = ref(null)
+	const submitting = ref(false)
+
+	onLoad((q: any) => {
+		id.value = q != null && q.id != null ? parseInt('' + q.id) : 0
+		load()
+	})
+
+	const load = async () => {
+		if (id.value <= 0) return
+		try {
+			const res = await getActivityDetail(id.value)
+			if (res.success) activity.value = res.data
+		} catch (e) {
+			console.error(e)
+		}
+	}
+
+	const btnLabel = computed(() => {
+		if (activity.value == null) return '报名'
+		if (activity.value.status == 'ended') return '活动已结束'
+		if (activity.value.myStatus == 'pending') return '审核中'
+		if (activity.value.myStatus == 'joined') return '已报名'
+		return '实名后报名'
+	})
+
+	const btnDisabled = computed(() => {
+		if (activity.value == null || submitting.value) return true
+		if (activity.value.status == 'ended') return true
+		if (activity.value.myStatus == 'pending' || activity.value.myStatus == 'joined') return true
+		return false
+	})
+
+	const handleSignup = async () => {
+		if (btnDisabled.value) return
+		const ok = await guardRealName('activitySignup')
+		if (!ok) return
+		submitting.value = true
+		try {
+			const res = await signupActivity(id.value)
+			if (res.success) {
+				if (activity.value != null) {
+					activity.value.myStatus = res.data.myStatus
+					activity.value.participantCount += 1
+				}
+				uni.showToast({
+					title: res.data.message != null ? res.data.message : '报名已提交',
+					icon: 'none'
+				})
+			}
+		} catch (e) {
+			uni.showToast({ title: '报名失败', icon: 'none' })
+		} finally {
+			submitting.value = false
+		}
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100vh;
+		background: var(--canvas);
+		display: flex;
+		flex-direction: column;
+	}
+	.scroll {
+		flex: 1;
+		height: 0;
+	}
+	.cover {
+		width: 100%;
+		height: 200px;
+	}
+	.body {
+		padding: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.kicker {
+		font-size: 11px;
+		font-weight: 800;
+		color: var(--accent);
+	}
+	.title {
+		font-size: 24px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+	.desc {
+		font-size: 14px;
+		line-height: 1.6;
+		color: var(--ink);
+	}
+	.info {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 12px;
+		background: var(--surface);
+		border-radius: 10px;
+		border: 1px solid var(--line);
+	}
+	.row {
+		font-size: 13px;
+		color: var(--ink);
+	}
+	.tags {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.tag {
+		font-size: 11px;
+		font-weight: 700;
+		padding: 4px 8px;
+		background: var(--soft);
+		color: var(--accent);
+		border-radius: 999px;
+	}
+	.safety {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 12px;
+		background: var(--soft);
+		border-radius: 10px;
+	}
+	.s-title {
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--ink);
+		margin-bottom: 2px;
+	}
+	.s-item {
+		font-size: 12px;
+		color: var(--muted);
+		line-height: 1.5;
+	}
+	.organizer {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
+	}
+	.o-avatar {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+	}
+	.o-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		flex: 1;
+	}
+	.o-name {
+		font-size: 13px;
+		font-weight: 600;
+	}
+	.o-desc {
+		font-size: 12px;
+		color: var(--muted);
+		line-height: 1.4;
+	}
+	.footer {
+		padding: 12px 16px;
+		padding-bottom: calc(12px + env(safe-area-inset-bottom));
+		background: var(--surface);
+		border-top: 1px solid var(--line);
+	}
+	.btn {
+		height: 46px;
+		background: var(--sage);
+		color: var(--paper);
+		border-radius: 999px;
+		font-size: 15px;
+		font-weight: 700;
+		border: none;
+	}
+	.btn[disabled] {
+		opacity: 0.55;
+	}
+	.pad {
+		height: 24px;
+	}
+</style>

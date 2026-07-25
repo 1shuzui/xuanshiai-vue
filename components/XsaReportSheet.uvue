@@ -1,0 +1,224 @@
+<template>
+	<XsaSheet :visible="visible" title="举报与屏蔽" @close="handleClose">
+		<view class="report-sheet">
+			<text class="lead">举报与屏蔽不要求认证。我们会尽快处理，不会向对方暴露你的身份。</text>
+
+			<text class="section-title">举报原因</text>
+			<view class="reason-list">
+				<view
+					class="reason-item"
+					:class="{ active: reasonId == item.id }"
+					v-for="item in reasons"
+					:key="item.id"
+					@click="reasonId = item.id"
+				>
+					<text>{{ item.label }}</text>
+				</view>
+			</view>
+
+			<textarea
+				class="detail-input"
+				:value="detail"
+				@input="onDetailInput"
+				placeholder="补充说明（可选）"
+				maxlength="200"
+			></textarea>
+
+			<view class="actions">
+				<button class="btn secondary" @click="handleBlock">屏蔽该用户</button>
+				<button class="btn primary" :disabled="submitting || reasonId == ''" @click="handleReport">
+					{{ submitting ? '提交中…' : '提交举报' }}
+				</button>
+			</view>
+		</view>
+	</XsaSheet>
+</template>
+
+<script setup lang="uts">
+	import XsaSheet from '@/components/XsaSheet.uvue'
+	import { getReportReasons, reportContent, blockUser } from '@/api'
+
+	interface Props {
+		visible: boolean
+		targetType: string
+		targetId: number
+		userId: number
+	}
+
+	const props = withDefaults(defineProps<Props>(), {
+		visible: false,
+		targetType: 'post',
+		targetId: 0,
+		userId: 0
+	})
+
+	const emit = defineEmits<{
+		close: []
+		reported: []
+		blocked: [userId: number]
+	}>()
+
+	const reasons = ref([
+		{ id: 'harass', label: '骚扰或不适内容' },
+		{ id: 'fake', label: '虚假资料或冒充' },
+		{ id: 'ad', label: '广告或引流' },
+		{ id: 'other', label: '其他安全问题' }
+	])
+	const reasonId = ref('')
+	const detail = ref('')
+	const submitting = ref(false)
+
+	watch(
+		() => props.visible,
+		async (v: boolean) => {
+			if (v) {
+				reasonId.value = ''
+				detail.value = ''
+				try {
+					const res = await getReportReasons()
+					if (res.success && res.data != null) {
+						reasons.value = res.data as any[]
+					}
+				} catch (e) {
+					console.error(e)
+				}
+			}
+		}
+	)
+
+	const onDetailInput = (e: any) => {
+		detail.value = e.detail.value
+	}
+
+	const handleClose = () => {
+		emit('close')
+	}
+
+	const handleReport = async () => {
+		if (submitting.value || reasonId.value == '') return
+		submitting.value = true
+		try {
+			const res = await reportContent(props.targetType, props.targetId, reasonId.value, detail.value)
+			if (res.success) {
+				uni.showToast({ title: '举报已提交', icon: 'success' })
+				emit('reported')
+				emit('close')
+			} else {
+				uni.showToast({ title: '提交失败', icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '网络异常', icon: 'none' })
+		} finally {
+			submitting.value = false
+		}
+	}
+
+	const handleBlock = async () => {
+		if (props.userId <= 0) {
+			uni.showToast({ title: '无法屏蔽', icon: 'none' })
+			return
+		}
+		uni.showModal({
+			title: '确认屏蔽',
+			content: '屏蔽后将不再看到该用户内容，可在设置中管理。',
+			confirmText: '屏蔽',
+			success: async (res) => {
+				if (!res.confirm) return
+				try {
+					const r = await blockUser(props.userId)
+					if (r.success) {
+						uni.showToast({ title: '已屏蔽', icon: 'success' })
+						emit('blocked', props.userId)
+						emit('close')
+					}
+				} catch (e) {
+					uni.showToast({ title: '操作失败', icon: 'none' })
+				}
+			}
+		})
+	}
+</script>
+
+<style scoped>
+	.report-sheet {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.lead {
+		font-size: 12px;
+		line-height: 1.6;
+		color: var(--muted);
+	}
+
+	.section-title {
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.reason-list {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.reason-item {
+		padding: 12px 14px;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		background: var(--surface);
+		font-size: 14px;
+		color: var(--ink);
+	}
+
+	.reason-item.active {
+		border-color: var(--accent);
+		background: var(--soft);
+		color: var(--accent);
+		font-weight: 700;
+	}
+
+	.detail-input {
+		width: 100%;
+		min-height: 72px;
+		padding: 12px;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		background: var(--surface);
+		font-size: 13px;
+		color: var(--ink);
+	}
+
+	.actions {
+		display: flex;
+		flex-direction: row;
+		gap: 10px;
+		margin-top: 4px;
+	}
+
+	.btn {
+		flex: 1;
+		height: 44px;
+		border-radius: 999px;
+		font-size: 14px;
+		font-weight: 600;
+		border: none;
+	}
+
+	.btn.secondary {
+		background: var(--paper);
+		color: var(--ink);
+		border: 1px solid var(--line);
+	}
+
+	.btn.primary {
+		background: var(--accent);
+		color: var(--text-invert);
+	}
+
+	.btn[disabled] {
+		opacity: 0.5;
+	}
+</style>

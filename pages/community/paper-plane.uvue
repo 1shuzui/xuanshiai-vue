@@ -1,0 +1,421 @@
+<template>
+	<view class="page">
+		<view class="quota-bar">
+			<text class="q-label">今日纸飞机 · 剩余 {{ remain }} / {{ total }}</text>
+		</view>
+		<scroll-view class="list" scroll-y>
+			<view class="intro">
+				<text class="intro-title">认真表达，温柔回应</text>
+				<text class="intro-desc text-muted">匿名投放一句认真表达。完成实名后可放飞与回复；不承诺匹配结果。</text>
+			</view>
+			<view class="footer">
+				<button class="fab" :disabled="remain <= 0" @click="openComposer">
+					{{ remain > 0 ? '放飞纸飞机' : '今日次数已用完' }}
+				</button>
+			</view>
+			<view class="loading-state" v-if="loading">
+				<text class="text-muted">正在接收纸飞机...</text>
+			</view>
+			<XsaEmpty
+				v-else-if="loadError"
+				type="noNetwork"
+				text="纸飞机加载失败"
+				description="请检查网络后重试"
+				:showAction="true"
+				actionText="重新加载"
+				@action="load"
+			/>
+			<XsaEmpty v-else-if="planes.length == 0" text="暂时没有纸飞机" description="成为第一个放飞的人" />
+			<view class="plane" v-for="p in planes" :key="p.id">
+				<text class="content">{{ p.content }}</text>
+				<view class="meta">
+					<text class="meta-text text-muted">{{ p.anonymous ? '匿名' : '' }} · {{ p.gender }} · {{ p.city }} · {{ p.age }}岁 · {{ p.timeText }}</text>
+					<view class="plane-actions">
+						<button class="reply-btn" :class="{ replied: p.replied }" :disabled="p.replied" @click="reply(p)">
+							{{ p.replied ? '已回复' : '回复' }} · {{ p.replyCount }}
+						</button>
+						<button class="report-btn" @click="openReport(p)">举报</button>
+					</view>
+				</view>
+			</view>
+			<view class="pad"></view>
+		</scroll-view>
+
+		<XsaSheet :visible="composerVisible" title="放飞纸飞机" @close="composerVisible = false">
+			<view class="composer">
+				<textarea
+					class="ta"
+					:value="draft"
+					@input="onDraft"
+					placeholder="写下一句认真的话（120 字内）"
+					maxlength="120"
+				></textarea>
+				<text class="count">{{ draft.length }}/120</text>
+				<button class="send" :disabled="sending || draft.trim().length == 0" @click="send">放飞</button>
+			</view>
+		</XsaSheet>
+
+		<XsaSheet :visible="replyVisible" title="回复纸飞机" @close="replyVisible = false">
+			<view class="composer">
+				<textarea
+					class="ta"
+					:value="replyDraft"
+					@input="onReplyDraft"
+					placeholder="写一句认真的回复（120 字内）"
+					maxlength="120"
+				></textarea>
+				<text class="count">{{ replyDraft.length }}/120</text>
+				<button class="send" :disabled="replying || replyDraft.trim().length == 0" @click="submitReply">
+					{{ replying ? '发送中...' : '发送回复' }}
+				</button>
+			</view>
+		</XsaSheet>
+
+		<XsaReportSheet
+			:visible="reportVisible"
+			target-type="paperPlane"
+			:target-id="reportTargetId"
+			:user-id="reportUserId"
+			@close="reportVisible = false"
+			@blocked="onBlocked"
+		/>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaSheet from '@/components/XsaSheet.uvue'
+	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
+	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas } from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	const planes = ref([])
+	const loading = ref(false)
+	const remain = ref(3)
+	const total = ref(3)
+	const composerVisible = ref(false)
+	const draft = ref('')
+	const sending = ref(false)
+	const loadError = ref(false)
+	const replyVisible = ref(false)
+	const replyDraft = ref('')
+	const replying = ref(false)
+	let replyTarget: any = null
+	const reportVisible = ref(false)
+	const reportTargetId = ref(0)
+	const reportUserId = ref(0)
+
+	onMounted(() => {
+		load()
+		loadQuota()
+	})
+
+	const load = async () => {
+		loading.value = true
+		loadError.value = false
+		try {
+			const res = await getPaperPlanes()
+			if (res.success) planes.value = res.data as any[]
+		} catch (e) {
+			console.error(e)
+			loadError.value = true
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const loadQuota = async () => {
+		try {
+			const res = await getCommunityQuotas()
+			if (res.success && res.data != null && res.data.paperPlaneDaily != null) {
+				remain.value = res.data.paperPlaneDaily.remain
+				total.value = res.data.paperPlaneDaily.total
+			}
+		} catch (e) {
+			console.error(e)
+		}
+	}
+
+	const openComposer = async () => {
+		if (remain.value <= 0) {
+			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+			return
+		}
+		const ok = await guardRealName('paperPlane')
+		if (!ok) return
+		draft.value = ''
+		composerVisible.value = true
+	}
+
+	const onDraft = (e: any) => {
+		draft.value = e.detail.value
+	}
+
+	const onReplyDraft = (e: any) => {
+		replyDraft.value = e.detail.value
+	}
+
+	const send = async () => {
+			const text = draft.value.trim()
+			if (text.length == 0 || sending.value) return
+			if (remain.value <= 0) {
+				uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+				return
+			}
+			sending.value = true
+			try {
+				const res = await sendPaperPlane({
+					content: text,
+					scope: 'city',
+					anonymous: true
+				})
+				const data = res != null ? res.data : null
+				const bizOk = res != null && res.success && data != null && data.success != false
+				if (bizOk) {
+					if (data.plane != null) {
+						planes.value.unshift(data.plane)
+					}
+					if (data.quotas != null) {
+						remain.value = data.quotas.remain
+					} else {
+						remain.value = Math.max(0, remain.value - 1)
+					}
+					composerVisible.value = false
+					uni.showToast({ title: '已放飞', icon: 'success' })
+				} else {
+					const msg = data != null && data.message != null ? data.message : '放飞失败'
+					uni.showToast({ title: msg, icon: 'none' })
+					if (data != null && data.remain != null) {
+						remain.value = data.remain
+					}
+				}
+			} catch (e) {
+				uni.showToast({ title: '网络异常', icon: 'none' })
+			} finally {
+				sending.value = false
+			}
+		}
+
+	const reply = async (p: any) => {
+		if (p.replied) {
+			uni.showToast({ title: '已回复过', icon: 'none' })
+			return
+		}
+		const ok = await guardRealName('paperPlane')
+		if (!ok) return
+		replyTarget = p
+		replyDraft.value = ''
+		replyVisible.value = true
+	}
+
+	const submitReply = async () => {
+		const content = replyDraft.value.trim()
+		if (replying.value || content.length == 0 || replyTarget == null) return
+		replying.value = true
+		try {
+			const res = await replyPaperPlane(replyTarget.id, content)
+			const data = res != null ? res.data : null
+			const bizOk = res != null && res.success && data != null && data.success != false
+			if (bizOk) {
+				replyTarget.replied = true
+				if (data.replyCount != null) replyTarget.replyCount = data.replyCount
+				replyVisible.value = false
+				replyTarget = null
+				uni.showToast({ title: '已回复', icon: 'success' })
+			} else {
+				const message = data != null && data.message != null ? data.message : '回复失败'
+				uni.showToast({ title: message, icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '回复失败，请稍后重试', icon: 'none' })
+		} finally {
+			replying.value = false
+		}
+	}
+
+	const openReport = (p: any) => {
+		reportTargetId.value = p.id
+		reportUserId.value = p.userId != null ? p.userId : 0
+		reportVisible.value = true
+	}
+
+	const onBlocked = (userId: number) => {
+		planes.value = (planes.value as any[]).filter((p: any) => p.userId != userId)
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100%;
+		min-height: 0;
+		width: 100vw;
+		max-width: 100vw;
+		flex-basis: 100vw;
+		flex-shrink: 0;
+		position: relative;
+		overflow: hidden;
+		background: var(--canvas);
+		display: flex;
+		flex-direction: column;
+	}
+	/* #ifdef H5 */
+	.page {
+		height: calc(100vh - 44px);
+	}
+	/* #endif */
+	.quota-bar {
+		position: relative;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		padding: 10px 16px;
+		background: var(--accent-bg);
+		border-bottom: 1px solid var(--line);
+	}
+	.q-label {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--accent2);
+	}
+	.list {
+		flex: 1;
+		height: 0;
+		width: 100%;
+		padding: 12px 14px 82px;
+	}
+	.intro {
+		margin-bottom: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.intro-title {
+		font-size: 20px;
+		font-family: var(--serif);
+		font-weight: 700;
+	}
+	.intro-desc {
+		font-size: 12px;
+		line-height: 1.55;
+	}
+	.plane {
+		padding: 14px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		margin-bottom: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.content {
+		font-size: 15px;
+		line-height: 1.55;
+		color: var(--ink);
+	}
+	.meta {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+	}
+	.meta-text {
+		font-size: 11px;
+		flex: 1;
+		min-width: 0;
+	}
+	.reply-btn {
+		min-width: 76px;
+		height: 34px;
+		padding: 0 10px;
+		border: 1px solid var(--accent);
+		border-radius: 8px;
+		background: var(--surface);
+		color: var(--accent2);
+		font-size: 12px;
+		font-weight: 700;
+		flex-shrink: 0;
+	}
+	.plane-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+	.report-btn {
+		height: 34px;
+		padding: 0 12px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		color: var(--muted);
+		font-size: 12px;
+	}
+	.reply-btn::after,
+	.report-btn::after,
+	.fab::after,
+	.send::after {
+		border: none;
+	}
+	.reply-btn.replied {
+		border-color: var(--line);
+		color: var(--muted);
+		background: var(--bg-subtle);
+	}
+	.loading-state {
+		padding: 48px 16px;
+		text-align: center;
+		font-size: 13px;
+	}
+	.footer {
+		width: 100%;
+		padding: 0 0 12px;
+	}
+	.fab {
+		width: 320px;
+		max-width: 100%;
+		height: 46px;
+		background: var(--sage);
+		color: var(--paper);
+		border-radius: 8px;
+		font-size: 15px;
+		font-weight: 700;
+		border: none;
+	}
+	.fab[disabled] {
+		background: var(--bg-subtle);
+		color: var(--muted);
+	}
+	.composer {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.ta {
+		min-height: 100px;
+		padding: 12px;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		font-size: 14px;
+	}
+	.count {
+		align-self: flex-end;
+		font-size: 11px;
+		color: var(--muted);
+	}
+	.send {
+		height: 44px;
+		background: var(--accent);
+		color: var(--text-invert);
+		border-radius: 8px;
+		font-weight: 700;
+		border: none;
+	}
+	.send[disabled] {
+		opacity: 0.5;
+	}
+	.pad {
+		height: 24px;
+	}
+
+</style>

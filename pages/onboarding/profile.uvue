@@ -1,0 +1,437 @@
+<template>
+	<view class="onboarding-page">
+		<view class="topbar">
+			<text class="back-button" @click="handleBack"></text>
+		</view>
+
+		<view v-if="step === 0" class="identity-page">
+			<view class="hero-copy">
+				<text class="hero-title">欢迎加入<text class="hero-emphasis">宣誓爱</text></text>
+				<text class="hero-subtitle">请选择您要注册的身份</text>
+			</view>
+			<view class="role-list">
+				<view
+					v-for="role in roles"
+					:key="role.key"
+					class="role-card"
+					:class="role.tone"
+					@click="chooseRole(role.key)"
+				>
+					<view class="role-icon" :class="role.iconTone"><text>{{ role.icon }}</text></view>
+					<view class="role-copy">
+						<text class="role-title">{{ role.title }}</text>
+						<text class="role-subtitle">{{ role.subtitle }}</text>
+					</view>
+					<text class="role-arrow">›</text>
+				</view>
+			</view>
+		</view>
+
+		<view v-else class="step-page">
+			<view class="step-head">
+				<text class="step-label">完善资料 {{ step }} / {{ totalSteps }}</text>
+				<view class="progress-track">
+					<view class="progress-fill" :style="{ width: progressWidth + '%' }"></view>
+				</view>
+			</view>
+			<view class="question-head">
+				<text class="question-title">{{ currentTitle }}</text>
+				<text class="question-hint">这些信息只用于为你推荐更合适的人</text>
+			</view>
+
+			<view v-if="currentType === 'grid'" class="option-grid">
+				<view
+					v-for="option in currentOptions"
+					:key="option"
+					class="option-chip"
+					:class="{ selected: selectedValue === option }"
+					@click="selectOption(option)"
+				>
+					<text>{{ option }}</text>
+				</view>
+			</view>
+			<view v-else class="option-list">
+				<view
+					v-for="option in currentOptions"
+					:key="option"
+					class="option-row"
+					:class="{ selected: selectedValue === option }"
+					@click="selectOption(option)"
+				>
+					<text>{{ option }}</text>
+				</view>
+			</view>
+
+			<view class="step-footer">
+				<button class="previous-button" :disabled="step === 1" @click="previousStep">上一步</button>
+				<button class="next-button" @click="nextStep">{{ step === totalSteps ? '完成' : '下一步' }}</button>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	const step = ref(0)
+	const mode = ref('')
+	const selections = ref([] as string[])
+
+	const roles = [
+		{ key: 'self', title: '自己找对象', subtitle: '我单身，我自己找对象', icon: '♡', tone: 'role-peach', iconTone: 'icon-peach' },
+		{ key: 'parent', title: '我是父母', subtitle: '替子女登记信息找对象', icon: '♧', tone: 'role-blue', iconTone: 'icon-blue' },
+		{ key: 'buddy', title: '找搭子', subtitle: '认识一群兴趣相投的人', icon: '♧', tone: 'role-lilac', iconTone: 'icon-lilac' },
+		{ key: 'matchmaker', title: '当红娘', subtitle: '当红娘，我推荐单身', icon: '♧', tone: 'role-pink', iconTone: 'icon-pink' }
+	]
+
+	const questions = [
+		{ title: '您的出生日期', type: 'list', options: ['1990年01月01日', '1992年05月20日', '1995年08月18日', '1998年05月15日', '2000年10月01日'] },
+		{ title: '您的老家是哪里', type: 'list', options: ['江苏省 南京市 市辖区', '浙江省 杭州市 西湖区', '上海市 上海市 浦东新区', '安徽省 合肥市 蜀山区'] },
+		{ title: '您的工作地区', type: 'list', options: ['江苏省 南京市 市辖区', '浙江省 杭州市 西湖区', '上海市 上海市 浦东新区', '广东省 深圳市 南山区'] },
+		{ title: '您的身高是多少', type: 'list', options: ['165cm', '168cm', '172cm', '175cm', '178cm'] },
+		{ title: '您的体重是多少', type: 'list', options: ['50kg', '55kg', '60kg', '65kg', '70kg'] },
+		{ title: '您的最高学历', type: 'list', options: ['高中', '大专', '本科', '硕士', '博士'] },
+		{ title: '您从事何种工作', type: 'grid', options: ['不限', '私企员工', '央企/国企', '外企', '事业单位', '公务员', '教师', '医生', '护士', '互联网行业', '自由职业', '军人', '工人', '服务业', '金融', '律师', '求职中', '在校学生'] },
+		{ title: '您的婚姻状况', type: 'list', options: ['未婚', '离异未育', '离异不带孩', '离异带女孩'] },
+		{ title: '您的收入状况', type: 'list', options: ['不限', '3千元以下', '3-5千元', '5-8千元', '8千-1.5万元', '1.5万元以上'] }
+	]
+
+	const totalSteps = questions.length
+	const currentTitle = computed(() => step.value > 0 ? questions[step.value - 1].title : '')
+	const currentType = computed(() => step.value > 0 ? questions[step.value - 1].type : 'list')
+	const currentOptions = computed((): string[] => step.value > 0 ? questions[step.value - 1].options : [])
+	const selectedValue = computed(() => step.value > 0 && selections.value[step.value - 1] != null ? selections.value[step.value - 1] : '')
+	const progressWidth = computed(() => Math.round(step.value / totalSteps * 100))
+
+	const chooseRole = (key: string) => {
+		if (key === 'parent' || key === 'matchmaker') {
+			uni.showToast({ title: '该身份流程暂未开放', icon: 'none' })
+			return
+		}
+		mode.value = key
+		selections.value = []
+		step.value = 1
+	}
+
+	const selectOption = (option: string) => {
+		if (selections.value.length < totalSteps) {
+			while (selections.value.length < step.value) selections.value.push('')
+			selections.value[step.value - 1] = option
+		}
+	}
+
+	const previousStep = () => {
+		if (step.value > 1) step.value = step.value - 1
+	}
+
+	const nextStep = () => {
+		if (selectedValue.value.length === 0) {
+			uni.showToast({ title: '请选择一项后继续', icon: 'none' })
+			return
+		}
+		if (step.value < totalSteps) {
+			step.value = step.value + 1
+			return
+		}
+		uni.setStorageSync('xsa_onboarding_completed', true)
+		uni.setStorageSync('xsa_onboarding_mode', mode.value)
+		uni.showToast({ title: '资料已保存', icon: 'success' })
+		setTimeout(() => {
+			uni.switchTab({ url: '/pages/index/index' })
+		}, 500)
+	}
+
+	const handleBack = () => {
+		if (step.value > 0) {
+			step.value = step.value - 1
+		} else {
+			uni.navigateBack()
+		}
+	}
+</script>
+
+<style scoped>
+	.onboarding-page {
+		min-height: 100vh;
+		background: linear-gradient(180deg, #FAF5FF 0px, #F7FBFF 250px, #FFFFFF 520px);
+		color: var(--ink);
+	}
+
+	.topbar {
+		height: 100px;
+		padding: 44px 16px 0;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: #FFFFFFCC;
+		border-bottom: 1px solid #ECECEC;
+	}
+
+	.back-button,
+	.topbar-space,
+	.topbar-actions {
+		width: 44px;
+		height: 44px;
+	}
+
+	.topbar-actions {
+		width: 78px;
+		border: 1px solid #E1E1E1;
+		border-radius: 22px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		font-size: 15px;
+		color: var(--ink);
+	}
+
+	.back-button {
+		font-size: 34px;
+		line-height: 40px;
+		color: var(--ink);
+	}
+
+	.topbar-title {
+		font-size: 18px;
+		font-family: var(--serif);
+		font-weight: 700;
+	}
+
+	.identity-page,
+	.step-page {
+		min-height: calc(100vh - 100px);
+		padding: 48px 36px 24px;
+		box-sizing: border-box;
+	}
+
+	.hero-copy {
+		margin-bottom: 48px;
+		text-align: center;
+	}
+
+	.hero-title,
+	.question-title {
+		display: block;
+		font-size: 27px;
+		font-family: var(--serif);
+		font-weight: 700;
+		line-height: 1.35;
+	}
+
+	.hero-emphasis {
+		padding: 0 3px;
+		background: linear-gradient(transparent 58%, #E8D9F4 58%);
+	}
+
+	.hero-subtitle,
+	.question-hint {
+		display: block;
+		margin-top: 16px;
+		font-size: 16px;
+		color: #A0A8A5;
+	}
+
+	.role-list {
+		display: flex;
+		flex-direction: column;
+		gap: 22px;
+	}
+
+	.role-card {
+		position: relative;
+		height: 110px;
+		padding: 16px 18px;
+		border-radius: 18px;
+		box-sizing: border-box;
+		transition: transform .18s ease-out;
+	}
+
+	.role-card:active,
+	.option-chip:active,
+	.option-row:active {
+		transform: scale(0.98);
+	}
+
+	.role-peach { background: #FFF6EC; }
+	.role-blue { background: #ECFAFC; }
+	.role-lilac { background: #F1F0FF; }
+	.role-pink { background: #FCF0FA; }
+
+	.role-icon {
+		position: absolute;
+		left: 18px;
+		top: 19px;
+		width: 72px;
+		height: 72px;
+		border-radius: 50%;
+		background: var(--surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 36px;
+		color: var(--ink);
+		flex-shrink: 0;
+	}
+
+	.icon-peach { background: #FFDAB8; }
+	.icon-blue { background: #C8F0F4; }
+	.icon-lilac { background: #D5D1FF; }
+	.icon-pink { background: #E7B9EF; }
+
+	.role-copy {
+		position: absolute;
+		left: 108px;
+		top: 50%;
+		width: calc(100% - 154px);
+		transform: translateY(-50%);
+	}
+
+	.role-copy text {
+		display: block;
+	}
+
+	.role-title {
+		margin-bottom: 4px;
+	}
+
+	.role-title {
+		display: block;
+		overflow: hidden;
+		font-size: 20px;
+		font-weight: 800;
+		color: #171A19;
+		white-space: nowrap;
+	}
+
+	.role-subtitle {
+		display: block;
+		overflow: hidden;
+		font-size: 14px;
+		color: #A0A8A5;
+		white-space: nowrap;
+	}
+
+	.role-arrow {
+		position: absolute;
+		right: 18px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 22px;
+		font-size: 30px;
+		font-weight: 300;
+		color: #171A19;
+	}
+
+	.step-head {
+		margin-bottom: 38px;
+	}
+
+	.step-label {
+		display: block;
+		margin-bottom: 10px;
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.progress-track {
+		height: 5px;
+		border-radius: 3px;
+		background: var(--warm);
+		overflow: hidden;
+	}
+
+	.progress-fill {
+		height: 100%;
+		border-radius: 3px;
+		background: var(--accent);
+	}
+
+	.question-head {
+		margin-bottom: 34px;
+		text-align: center;
+	}
+
+	.option-list {
+		border-top: 1px solid var(--line);
+	}
+
+	.option-row {
+		height: 62px;
+		border-bottom: 1px solid var(--line);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 18px;
+		color: var(--muted);
+	}
+
+	.option-row.selected {
+		color: var(--ink);
+		font-weight: 800;
+		background: var(--warm);
+	}
+
+	.option-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 8px;
+	}
+
+	.option-chip {
+		min-height: 44px;
+		padding: 0 6px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		font-size: 12px;
+		color: var(--ink2);
+	}
+
+	.option-chip.selected {
+		border-color: var(--accent);
+		background: var(--accent-bg);
+		color: var(--accent2);
+		font-weight: 800;
+	}
+
+	.step-footer {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 12px 24px calc(12px + env(safe-area-inset-bottom));
+		background: var(--surface);
+		border-top: 1px solid var(--line);
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+	}
+
+	.previous-button,
+	.next-button {
+		height: 48px;
+		border-radius: 999px;
+		font-size: 16px;
+		font-weight: 800;
+		line-height: 48px;
+	}
+
+	.previous-button {
+		border: 1px solid var(--line);
+		background: var(--paper);
+		color: var(--muted);
+	}
+
+	.next-button {
+		background: var(--accent);
+		color: var(--text-invert);
+	}
+
+	.previous-button[disabled] {
+		opacity: 0.5;
+	}
+</style>
