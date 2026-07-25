@@ -76,6 +76,20 @@
 		--accent-glow: rgba(56, 152, 141, 0.15);
 		--text-invert: #FCFCFC;
 
+		/* 纸飞机工作台 */
+		--plane-purple: #7450C8;
+		--plane-purple-deep: #4D2E96;
+		--plane-pink: #E86C9A;
+		--plane-lilac: #EEE8FF;
+		--plane-yellow: #F4B942;
+		--plane-blue: #54A8D8;
+		--plane-sky: #EEF7FF;
+		--plane-sky-deep: #DCEBFF;
+		--plane-cloud: #FCFDFF;
+		--plane-surface: rgba(255, 255, 255, 0.88);
+		--plane-lavender-surface: rgba(241, 234, 255, 0.92);
+		--plane-pink-surface: rgba(255, 232, 243, 0.92);
+
 		/* 阴影 */
 		--shadow-sm: 0 2px 12px rgba(17, 23, 24, 0.04);
 		--shadow-md: 0 4px 16px rgba(17, 23, 24, 0.08);

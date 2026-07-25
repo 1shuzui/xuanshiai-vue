@@ -11,7 +11,9 @@ export {
   getUserDetail,
   getMeProfile,
   applyToMeet,
-  likeUser
+  likeUser,
+  getChatFeatureUnlocks,
+  unlockChatFeature
 } from './user.uts'
 
 // 消息相关
@@ -34,6 +36,10 @@ export {
   getPaperPlanes,
   sendPaperPlane,
   replyPaperPlane,
+  getPaperPlaneConversations,
+  getSentPaperPlanes,
+  getPaperPlaneUnreadCount,
+  markPaperPlaneConversationRead,
   getActivities,
   getActivityDetail,
   signupActivity,

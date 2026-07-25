@@ -411,6 +411,37 @@ export const mockPaperPlanes = [
     timeText: '2 小时前',
     replyCount: 8,
     replied: true
+  },
+  {
+    id: 901,
+    content: '这周想找一个能一起散步、聊聊生活里小事的人。',
+    anonymous: true,
+    scope: 'city',
+    gender: '男',
+    age: 29,
+    city: '南京',
+    userId: 9001,
+    time: Date.now() - 2 * 24 * 60 * 60 * 1000,
+    timeText: '2 天前',
+    replyCount: 1,
+    replied: true,
+    type: 'text'
+  }
+]
+
+/** 纸飞机消息列表。unreadCount 为对方回复后尚未查看的数量。 */
+export const mockPaperPlaneConversations = [
+  {
+    id: 1,
+    planeId: 901,
+    userId: 8,
+    name: '沈知意',
+    avatar: '/static/portraits/profile-woman-alt.jpg',
+    planeType: '文字纸飞机',
+    lastMessage: '我也喜欢散步，周末要不要一起去河边走走？',
+    time: Date.now() - 12 * 60 * 1000,
+    timeText: '12 分钟前',
+    unreadCount: 9
   }
 ]
 

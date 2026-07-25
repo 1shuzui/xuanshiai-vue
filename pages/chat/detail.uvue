@@ -21,6 +21,7 @@
 						:src="msg.avatar"
 						mode="aspectFill"
 						v-if="!msg.isMine"
+						@click="openPeerProfile"
 					></image>
 
 					<!-- 消息气泡 -->
@@ -55,12 +56,13 @@
 			</view>
 		</scroll-view>
 
-		<!-- 输入栏 -->
-		<view class="input-bar">
+		<!-- 输入栏与展开功能区：展开后输入栏上移，功能区显示在其下方。 -->
+		<view class="input-bar" :class="{ expanded: showMore }">
 			<view class="input-wrapper">
-				<button class="tool-btn" @click="showMoreMenu">
-					<text class="icon">+</text>
+				<button class="tool-btn" @click="sendVoice" v-if="!inputText">
+					<text class="icon">🎤</text>
 				</button>
+				<button class="send-btn" @click="sendMessage" v-else>发送</button>
 				<input
 					class="input"
 					type="text"
@@ -70,16 +72,12 @@
 					confirm-type="send"
 					@confirm="sendMessage"
 				/>
-				<button class="tool-btn" @click="sendVoice" v-if="!inputText">
-					<text class="icon">🎤</text>
+				<button class="tool-btn more-toggle" @click="toggleMoreMenu">
+					<text class="icon">{{ showMore ? '×' : '+' }}</text>
 				</button>
-				<button class="send-btn" @click="sendMessage" v-else>发送</button>
 			</view>
-		</view>
 
-		<!-- 更多功能菜单 -->
-		<view class="more-menu" v-if="showMore" @click="closeMoreMenu">
-			<view class="menu-content" @click.stop>
+			<view class="more-actions" v-if="showMore">
 				<view class="menu-grid">
 					<view class="menu-item" @click="chooseImage">
 						<view class="menu-icon">📷</view>
@@ -87,25 +85,35 @@
 					</view>
 					<view class="menu-item" @click="takePhoto">
 						<view class="menu-icon">📸</view>
-						<text class="menu-text">拍照</text>
+						<text class="menu-text">拍摄</text>
 					</view>
 					<view class="menu-item" @click="sendGift">
 						<view class="menu-icon">🎁</view>
 						<text class="menu-text">礼物</text>
 					</view>
-					<view class="menu-item" @click="viewProfile">
-						<view class="menu-icon">👤</view>
-						<text class="menu-text">资料</text>
+					<view class="menu-item" @click="openChatReport">
+						<view class="menu-icon">⚑</view>
+						<text class="menu-text">举报</text>
 					</view>
 				</view>
 			</view>
 		</view>
+
+		<XsaReportSheet
+			:visible="reportVisible"
+			target-type="chatUser"
+			:target-id="userId"
+			:user-id="userId"
+			@close="reportVisible = false"
+			@reported="reportVisible = false"
+		/>
 	</view>
 </template>
 
 <script setup lang="uts">
 	// 导入 API
-	import { getChatMessages, sendMessage as sendMessageApi } from '@/api';
+	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
+	import { getChatMessages, sendMessage as sendMessageApi, getChatFeatureUnlocks, unlockChatFeature } from '@/api';
 
 	// 消息列表（改为空数组）
 		let messages = ref([])
@@ -116,9 +124,12 @@
 		let loading = ref(false)
 		let userId = ref(0)
 		let peerAvatar = ref('/static/portraits/profile-woman-main.jpg')
+		let reportVisible = ref(false)
+		let chatFeatureUnlocks = ref({ album: false, camera: false, profile: false } as any)
 
 	// 页面加载时获取数据
 	onMounted(() => {
+		loadChatFeatureUnlocks()
 		// 获取 URL 参数中的 userId
 		const pages = getCurrentPages()
 		const currentPage = pages[pages.length - 1]
@@ -128,6 +139,17 @@
 			loadChatMessages()
 		}
 	})
+
+	const loadChatFeatureUnlocks = async () => {
+		try {
+			const res = await getChatFeatureUnlocks()
+			if (res != null && res.success && res.data != null) {
+				chatFeatureUnlocks.value = res.data as any
+			}
+		} catch (error) {
+			console.error('获取聊天功能解锁状态失败', error)
+		}
+	}
 
 		// 加载聊天记录
 		const loadChatMessages = async () => {
@@ -239,9 +261,9 @@
 		})
 	}
 
-	// 显示更多菜单
-	const showMoreMenu = () => {
-		showMore.value = true
+	// 展开/收起输入栏下方的功能区
+	const toggleMoreMenu = () => {
+		showMore.value = !showMore.value
 	}
 
 	// 关闭更多菜单
@@ -249,12 +271,11 @@
 		showMore.value = false
 	}
 
-	// 选择图片
-	const chooseImage = () => {
+	const openImagePicker = (sourceType: string) => {
 		uni.chooseImage({
 			count: 1,
 			sizeType: ['compressed'],
-			sourceType: ['album'],
+			sourceType: [sourceType],
 			success: (res) => {
 				const newMsg = {
 					id: messages.value.length + 1,
@@ -268,32 +289,47 @@
 				messages.value.push(newMsg)
 				scrollToBottom()
 				closeMoreMenu()
-				// TODO: 上传图片并发送
 			}
 		})
 	}
 
-	// 拍照
-	const takePhoto = () => {
-		uni.chooseImage({
-			count: 1,
-			sizeType: ['compressed'],
-			sourceType: ['camera'],
-			success: (res) => {
-				const newMsg = {
-					id: messages.value.length + 1,
-					type: 'image',
-					content: res.tempFilePaths[0],
-					time: getCurrentTime(),
-					showTime: false,
-					isMine: true,
-					avatar: '/static/portraits/profile-man-light.jpg'
+	const ensureChatFeatureUnlocked = (feature: string, label: string, action: () => void) => {
+		if (chatFeatureUnlocks.value[feature] == true) {
+			action()
+			return
+		}
+		uni.showModal({
+			title: '解锁' + label,
+			content: '使用' + label + '需要消耗80积分，确认解锁吗？',
+			confirmText: '80积分解锁',
+			success: async (modalRes: any) => {
+				if (modalRes == null || modalRes.confirm != true) return
+				try {
+					const res = await unlockChatFeature(feature)
+					const data = res != null ? res.data : null
+					if (res != null && res.success && data != null && data.success == true) {
+						chatFeatureUnlocks.value[feature] = true
+						uni.showToast({ title: '已消耗80积分解锁', icon: 'success' })
+						action()
+						return
+					}
+					const message = data != null && data.message != null ? data.message : '解锁失败，请稍后再试'
+					uni.showToast({ title: message, icon: 'none' })
+				} catch (error) {
+					uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' })
 				}
-				messages.value.push(newMsg)
-				scrollToBottom()
-				closeMoreMenu()
 			}
 		})
+	}
+
+	// 选择图片：首次使用需消耗 80 积分解锁。
+	const chooseImage = () => {
+		ensureChatFeatureUnlocked('album', '相册', () => openImagePicker('album'))
+	}
+
+	// 拍摄：首次使用需消耗 80 积分解锁。
+	const takePhoto = () => {
+		ensureChatFeatureUnlocked('camera', '拍摄', () => openImagePicker('camera'))
 	}
 
 	// 发送语音
@@ -313,13 +349,22 @@
 		closeMoreMenu()
 	}
 
-	// 查看资料
-	const viewProfile = () => {
-		// TODO: 获取对方用户ID
-		uni.navigateTo({
-			url: '/pages/user/detail?userId=1'
+	// 点击对方头像：首次查看主页需消耗 80 积分解锁。
+	const openPeerProfile = () => {
+		if (userId.value <= 0) {
+			uni.showToast({ title: '暂时无法获取对方资料', icon: 'none' })
+			return
+		}
+		ensureChatFeatureUnlocked('profile', '查看对方主页', () => {
+			uni.navigateTo({
+				url: '/pages/user/detail?userId=' + userId.value
+			})
 		})
+	}
+
+	const openChatReport = () => {
 		closeMoreMenu()
+		reportVisible.value = true
 	}
 
 	// 滚动到底部
@@ -377,7 +422,7 @@
 }
 
 .message-wrapper.mine {
-	flex-direction: row-reverse;
+	justify-content: flex-end;
 }
 
 .avatar {
@@ -385,6 +430,7 @@
 	height: 40px;
 	border-radius: 50%;
 	flex-shrink: 0;
+	cursor: pointer;
 }
 
 .message-bubble {
@@ -437,6 +483,13 @@
 	border-top: 1px solid var(--line);
 	padding: 8px 16px;
 	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.input-bar.expanded {
+	padding-top: 12px;
 }
 
 .input-wrapper {
@@ -463,6 +516,16 @@
 	color: var(--ink2);
 }
 
+.more-toggle {
+	background: var(--accent);
+}
+
+.more-toggle .icon {
+	color: var(--text-invert);
+	font-size: 24px;
+	line-height: 1;
+}
+
 .input {
 	flex: 1;
 	height: 36px;
@@ -483,30 +546,15 @@
 	flex-shrink: 0;
 }
 
-.more-menu {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: rgba(0, 0, 0, 0.5);
-	display: flex;
-	flex-direction: column;
-	justify-content: flex-end;
-	z-index: 999;
-}
-
-.menu-content {
-	background: var(--surface);
-	border-radius: 16px 16px 0 0;
-	padding: 24px;
-	padding-bottom: calc(24px + env(safe-area-inset-bottom));
+.more-actions {
+	width: 100%;
+	padding: 4px 0 2px;
 }
 
 .menu-grid {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
-	gap: 20px;
+	gap: 10px;
 }
 
 .menu-item {
@@ -514,6 +562,7 @@
 	flex-direction: column;
 	align-items: center;
 	gap: 8px;
+	padding: 4px 0;
 }
 
 .menu-icon {

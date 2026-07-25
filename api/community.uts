@@ -10,6 +10,7 @@ import {
   mockDynamicList,
   mockTopics,
   mockPaperPlanes,
+  mockPaperPlaneConversations,
   mockActivities,
   mockCommunityBanners,
   mockCommunityNotifications,
@@ -40,6 +41,7 @@ function savePaperPlaneState() {
   uni.setStorageSync(PAPER_PLANE_STORAGE_KEY, {
     dateKey: currentDateKey(),
     planes: mockPaperPlanes,
+    conversations: mockPaperPlaneConversations,
     paperPlaneDaily: quotas.paperPlaneDaily
   })
 }
@@ -67,6 +69,12 @@ function restorePaperPlaneState() {
       const target = mockPaperPlanes as any[]
       target.splice(0, target.length)
       ;(saved.planes as any[]).forEach((item: any) => target.push(item))
+    }
+
+    if (saved.conversations != null && Array.isArray(saved.conversations)) {
+      const target = mockPaperPlaneConversations as any[]
+      target.splice(0, target.length)
+      ;(saved.conversations as any[]).forEach((item: any) => target.push(item))
     }
 
     const quotas = mockCommunityQuotas as any
@@ -527,6 +535,122 @@ export async function getPaperPlanes() {
   })
 }
 
+function getPaperPlanePeerName(plane: any): string {
+  if (plane != null && plane.name != null && ('' + plane.name).length > 0) {
+    return '' + plane.name
+  }
+  if (plane != null && plane.gender == '男') return '一位认真生活的男生'
+  return '一位认真生活的女生'
+}
+
+function upsertPaperPlaneConversation(plane: any, content: string) {
+  const list = mockPaperPlaneConversations as any[]
+  let conversation: any = null
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].planeId == plane.id) {
+      conversation = list[i]
+      break
+    }
+  }
+
+  if (conversation == null) {
+    conversation = {
+      id: Date.now(),
+      planeId: plane.id,
+      userId: plane.userId != null ? plane.userId : 0,
+      name: getPaperPlanePeerName(plane),
+      avatar: '/static/portraits/profile-woman-alt.jpg',
+      planeType: plane.type == 'voice' ? '语音纸飞机' : '文字纸飞机',
+      lastMessage: '',
+      time: Date.now(),
+      timeText: '刚刚',
+      unreadCount: 0
+    }
+    list.unshift(conversation)
+  }
+
+  conversation.lastMessage = '我：' + content
+  conversation.time = Date.now()
+  conversation.timeText = '刚刚'
+  conversation.unreadCount = 0
+}
+
+/** 获取由纸飞机回复形成的聊天列表。 */
+export async function getPaperPlaneConversations() {
+  restorePaperPlaneState()
+  const list = cloneList(mockPaperPlaneConversations as any[])
+  list.forEach((item: any) => {
+    item.timeText = paperPlaneTimeText(item.time)
+    item.unreadCount = item.unreadCount != null ? Math.max(0, item.unreadCount as number) : 0
+  })
+  list.sort((a: any, b: any) => Number(b.time) - Number(a.time))
+  return request({
+    url: '/community/paper-planes/conversations',
+    cloudFunctionName: 'community',
+    action: 'getPaperPlaneConversations',
+    method: 'GET',
+    mockData: list
+  })
+}
+
+/** 获取当前用户最近五天扔出的纸飞机。 */
+export async function getSentPaperPlanes() {
+  restorePaperPlaneState()
+  const cutoff = Date.now() - 5 * 24 * 60 * 60 * 1000
+  const list = (mockPaperPlanes as any[]).filter((plane: any) => {
+    return plane.userId == mockMeProfile.id && Number(plane.time) >= cutoff
+  })
+  list.forEach((plane: any) => {
+    plane.timeText = paperPlaneTimeText(plane.time)
+  })
+  list.sort((a: any, b: any) => Number(b.time) - Number(a.time))
+  return request({
+    url: '/community/paper-planes/sent',
+    cloudFunctionName: 'community',
+    action: 'getSentPaperPlanes',
+    method: 'GET',
+    mockData: cloneList(list)
+  })
+}
+
+/** 获取纸飞机聊天列表的未读消息总数。 */
+export async function getPaperPlaneUnreadCount() {
+  restorePaperPlaneState()
+  const list = mockPaperPlaneConversations as any[]
+  let count = 0
+  for (let i = 0; i < list.length; i++) {
+    count += list[i].unreadCount != null ? Math.max(0, list[i].unreadCount as number) : 0
+  }
+  return request({
+    url: '/community/paper-planes/conversations/unread',
+    cloudFunctionName: 'community',
+    action: 'getPaperPlaneUnreadCount',
+    method: 'GET',
+    mockData: { count }
+  })
+}
+
+/** 查看会话后清除该会话的未读数。 */
+export async function markPaperPlaneConversationRead(conversationId: number) {
+  restorePaperPlaneState()
+  const list = mockPaperPlaneConversations as any[]
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].id == conversationId) {
+      list[i].unreadCount = 0
+      break
+    }
+  }
+  savePaperPlaneState()
+  return request({
+    url: '/community/paper-planes/conversations/read',
+    cloudFunctionName: 'community',
+    action: 'markPaperPlaneConversationRead',
+    method: 'POST',
+    data: { conversationId },
+    mockData: { success: true }
+  })
+}
+
 /**
  * 放飞纸飞机
  * 新签名：sendPaperPlane({ content, scope?, anonymous? })
@@ -671,6 +795,9 @@ export async function replyPaperPlane(planeId: number, content: string) {
       }
       list[i].replied = true
       list[i].replyCount = (list[i].replyCount as number) + 1
+      if (list[i].userId != mockMeProfile.id) {
+        upsertPaperPlaneConversation(list[i], replyContent)
+      }
       savePaperPlaneState()
       return request({
         url: '/community/paper-planes/reply',
