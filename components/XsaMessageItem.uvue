@@ -83,7 +83,7 @@ const lastMessageText = computed(() => {
 		return '[电话申请]';
 	}
 
-	return msg.lastMessage;
+	return msg.lastMessage != null ? msg.lastMessage.toString() : '';
 });
 
 // 时间格式化
@@ -258,6 +258,7 @@ const handleLongPress = () => {
 .last-message {
 	font-size: 12px;
 	line-height: 17px;
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;

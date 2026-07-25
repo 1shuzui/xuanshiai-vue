@@ -138,6 +138,11 @@
 	import XsaButton from '@/components/XsaButton.uvue'
 	import XsaToast from '@/components/XsaToast.uvue'
 	import { getMessageList, getApplications, handleApplication } from '@/api'
+	import {
+		createMatchedConversation,
+		getMatchedConversations,
+		getConversationPreviews
+	} from '@/utils/conversation.uts'
 
 	const PINNED_MESSAGE_KEY = 'xsa-pinned-message-ids'
 	const READ_MESSAGE_KEY = 'xsa-read-message-ids'
@@ -250,8 +255,19 @@
 			loading.value = true
 			const res = await getMessageList()
 			if (res.success) {
-				const list = res.data as any[]
+				const apiList = (res.data as any[]).slice()
+				const createdList = getMatchedConversations()
+				const previewList = getConversationPreviews()
+				const list = createdList.concat(apiList.filter((item: any) => {
+					return createdList.findIndex((created: any) => created.userId == item.userId) < 0
+				}))
 				list.forEach((item: any) => {
+					const preview = previewList.find((stored: any) => stored.userId == item.userId)
+					if (preview != null) {
+						item.lastMessage = preview.lastMessage
+						item.time = preview.time
+						item.messageType = preview.messageType
+					}
 					item.pinned = pinnedMessageIds.value.indexOf(item.id) >= 0
 					if (readMessageIds.value.indexOf(item.id) >= 0) {
 						item.unreadCount = 0
@@ -288,6 +304,7 @@
 				const data = res.data
 				if (Array.isArray(data)) {
 					applications.value = data.map((x: any) => normalizeApp(x))
+					createAcceptedApplicationConversations()
 				} else if (data != null) {
 					const list: any[] = []
 					if (data.incoming != null) {
@@ -300,6 +317,7 @@
 						(data.list as any[]).forEach((x: any) => list.push(normalizeApp(x)))
 					}
 					applications.value = list
+					createAcceptedApplicationConversations()
 				}
 			}
 		} catch (e) {
@@ -326,6 +344,8 @@
 			avatar: x.avatar != null ? x.avatar : '/static/portraits/profile-woman-main.jpg',
 			message: x.message != null ? x.message : (x.remark != null ? x.remark : '申请认识'),
 			direction: x.direction != null ? x.direction : dir,
+			status: x.status != null ? x.status : 'pending',
+			accepted: x.accepted === true || x.matched === true,
 			statusText: x.statusText != null ? x.statusText : '待回应'
 		}
 	}
@@ -357,6 +377,18 @@
 	}
 
 	const clearUnreadNotices = () => {
+		uni.showModal({
+			title: '全部标记为已读',
+			content: '是否将全部未读消息标记为已读？',
+			confirmText: '确认',
+			cancelText: '取消',
+			success: (res) => {
+				if (res.confirm) markAllMessagesRead()
+			}
+		})
+	}
+
+	const markAllMessagesRead = () => {
 		let cleared = false
 		const messages = messageList.value as any[]
 		messages.forEach((message: any) => {
@@ -464,19 +496,48 @@
 		try {
 			const res = await handleApplication(item.id, 'accept')
 			if (res.success) {
-				showToast('已同意，聊天已开放')
-				appVisible.value = false
-				uni.navigateTo({
-					url: `/pages/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}`
-				})
+				completeMatchedApplication(item)
 			}
 		} catch (e) {
-			// mock 容错
-			showToast('已同意，聊天已开放')
-			appVisible.value = false
-			uni.navigateTo({
-				url: `/pages/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}`
-			})
+			completeMatchedApplication(item)
+		}
+	}
+
+	const completeMatchedApplication = (item: any) => {
+		const result = createConversationForApplication(item)
+		const created = result.created === true || result.conversation != null
+		applications.value = (applications.value as any[]).filter((application: any) => application.id != item.id)
+		showToast(created ? '匹配成功，已创建聊天' : '已同意，聊天已开放')
+		appVisible.value = false
+		uni.navigateTo({
+			url: `/pages/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}&newConversation=${created ? '1' : '0'}`
+		})
+	}
+
+	const createConversationForApplication = (item: any): any => {
+		const greetingIsMine = item.direction === 'in'
+		const result = createMatchedConversation(
+			item.userId,
+			item.name,
+			item.avatar,
+			'application',
+			greetingIsMine,
+			greetingIsMine ? '/static/portraits/profile-man-light.jpg' : item.avatar
+		)
+		if (result.conversation != null) {
+			const currentList = messageList.value as any[]
+			const withoutSameUser = currentList.filter((conversation: any) => conversation.userId != item.userId)
+			messageList.value = [result.conversation].concat(withoutSameUser)
+		}
+		return result
+	}
+
+	const createAcceptedApplicationConversations = () => {
+		const list = applications.value as any[]
+		const accepted = list.filter((item: any) => item.accepted === true || item.status === 'accepted')
+		accepted.forEach((item: any) => createConversationForApplication(item))
+		if (accepted.length > 0) {
+			applications.value = list.filter((item: any) => accepted.indexOf(item) < 0)
 		}
 	}
 
