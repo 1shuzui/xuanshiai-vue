@@ -1,4 +1,5 @@
 node_modules/
+dist/
 unpackage/
 .hbuilderx/
 .DS_Store
@@ -6,3 +7,9 @@ unpackage/
 最终版的文字需求/
 最终版分页面拆分的相关需求/
 docs/
+.playwright-mcp/
+.zcode/
+graphify-out/
+# Agent / local tooling (do not publish)
+.serena/
+docs/superpowers/

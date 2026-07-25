@@ -12,8 +12,8 @@ import { mockMessageList, mockChatMessages, mockApplications } from '@/mock'
 export async function getMessageList() {
   return request({
     url: '/message/list',
-    cloudFunctionName: 'message',
-    action: 'getList',
+    forceHttp: true,
+    mockFallback: true,
     method: 'GET',
     mockData: mockMessageList // Mock 数据
   })
@@ -26,8 +26,8 @@ export async function getMessageList() {
 export async function getChatMessages(userId: number) {
   return request({
     url: '/message/chat',
-    cloudFunctionName: 'message',
-    action: 'getChatMessages',
+    forceHttp: true,
+    mockFallback: true,
     method: 'GET',
     data: { userId },
     mockData: mockChatMessages // Mock 数据
@@ -43,8 +43,8 @@ export async function getChatMessages(userId: number) {
 export async function sendMessage(userId: number, content: string, type: string = 'text') {
   return request({
     url: '/message/send',
-    cloudFunctionName: 'message',
-    action: 'send',
+    forceHttp: true,
+    mockFallback: true,
     method: 'POST',
     data: { userId, content, type },
     mockData: { success: true, messageId: Date.now() } // Mock 数据
@@ -57,8 +57,8 @@ export async function sendMessage(userId: number, content: string, type: string 
 export async function getApplications() {
   return request({
     url: '/message/applications',
-    cloudFunctionName: 'message',
-    action: 'getApplications',
+    forceHttp: true,
+    mockFallback: true,
     method: 'GET',
     mockData: mockApplications // Mock 数据
   })
@@ -72,8 +72,8 @@ export async function getApplications() {
 export async function handleApplication(applicationId: number, action: string) {
   return request({
     url: '/message/application/handle',
-    cloudFunctionName: 'message',
-    action: 'handleApplication',
+    forceHttp: true,
+    mockFallback: true,
     method: 'POST',
     data: { applicationId, action },
     mockData: { success: true } // Mock 数据

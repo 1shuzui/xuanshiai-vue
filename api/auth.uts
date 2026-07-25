@@ -1,0 +1,55 @@
+/**
+ * 认证相关 API
+ * 优先走 FastAPI，失败时回退到本地演示数据。
+ */
+
+import { request, setTokens, clearTokens } from './request.uts'
+
+export async function sendSms(phone: string, purpose: string = 'login') {
+  return request({
+    url: '/auth/sms/send',
+    forceHttp: true,
+    skipAuth: true,
+    mockFallback: true,
+    method: 'POST',
+    data: { phone, purpose },
+    mockData: { message: '验证码已发送' }
+  })
+}
+
+export async function loginByPhone(phone: string, code: string) {
+  const res = await request({
+    url: '/auth/phone/login',
+    forceHttp: true,
+    skipAuth: true,
+    mockFallback: true,
+    method: 'POST',
+    data: { phone, code, purpose: 'login' },
+    mockData: {
+      access_token: 'mock_access_token_xsa',
+      refresh_token: 'mock_refresh_token_xsa',
+      token_type: 'bearer',
+      expires_in: 3600,
+      need_bind_phone: false,
+      user_id: 1
+    }
+  })
+  if (res.success && res.data != null && res.data.access_token != null) {
+    setTokens(String(res.data.access_token), res.data.refresh_token != null ? String(res.data.refresh_token) : '')
+  }
+  return res
+}
+
+export async function logout() {
+  try {
+    await request({
+      url: '/auth/logout',
+      forceHttp: true,
+      mockFallback: true,
+      method: 'POST',
+      mockData: { success: true }
+    })
+  } finally {
+    clearTokens()
+  }
+}

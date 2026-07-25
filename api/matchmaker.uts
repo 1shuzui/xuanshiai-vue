@@ -10,9 +10,75 @@ import {
   mockCustomMatchmakers,
   mockCustomPlans,
   mockVolunteerMatchmakers,
-  mockAiRecommendations,
-  mockCustomPackages
+  mockAiRecommendations
 } from '@/mock'
+
+function toMatchmakerCard(item: any) {
+  const successCount = item.success_count != null ? Number(item.success_count) : 0
+  return {
+    id: item.user_id != null ? Number(item.user_id) : Number(item.id),
+    name: item.nickname != null && String(item.nickname).length > 0 ? String(item.nickname) : '服务红娘',
+    avatar: item.avatar != null ? String(item.avatar) : '',
+    city: '',
+    title: '平台认证服务红娘',
+    introduction: item.intro != null ? String(item.intro) : '',
+    description: item.intro != null ? String(item.intro) : '',
+    serviceCount: successCount,
+    successCount,
+    successRate: 0,
+    rating: item.rating_score != null ? Number(item.rating_score) : 0,
+    ratingCount: item.rating_count != null ? Number(item.rating_count) : 0,
+    tags: item.certification_tags != null ? item.certification_tags : [],
+    badge: '平台认证',
+    price: null,
+    priceUnit: '',
+    status: item.is_available === true ? 'online' : 'busy',
+    certification: item.certification_tags != null && item.certification_tags.length > 0,
+    isOnline: item.is_available === true,
+    caseRecord: successCount > 0 ? '累计促成 ' + successCount + ' 次有效牵线。' : ''
+  }
+}
+
+function toCustomPlan(item: any) {
+  const serviceType = Number(item.service_type)
+  return {
+    id: Number(item.id),
+    name: String(item.name),
+    price: Number(item.price),
+    originalPrice: Number(item.price),
+    duration: serviceType == 3 ? '私人定制服务' : '牵线服务',
+    services: [String(item.description)],
+    features: [String(item.description)],
+    matchmakerCount: 1,
+    description: String(item.description),
+    isHot: false,
+    tag: serviceType == 3 ? '私人定制' : '服务红娘'
+  }
+}
+
+function toRoleApplication(applicationType: string, data: any) {
+  const images: string[] = []
+  if (data.avatar != null && String(data.avatar).length > 0) images.push(String(data.avatar))
+  if (data.cases != null) {
+    const cases = data.cases as any[]
+    for (let i = 0; i < cases.length; i++) {
+      const caseImages = cases[i].images as string[]
+      if (caseImages != null) {
+        for (let j = 0; j < caseImages.length; j++) {
+          if (images.length >= 6) break
+          images.push(caseImages[j])
+        }
+      }
+    }
+  }
+  return {
+    application_type: applicationType,
+    real_name: String(data.realName),
+    phone: String(data.phone),
+    intro: String(data.introduction),
+    cert_images: images
+  }
+}
 
 /**
  * 获取牵线首页 Banner 列表
@@ -20,6 +86,9 @@ import {
 export async function getMatchmakerBanners() {
   return request({
     url: '/matchmaker/banners',
+    forceHttp: true,
+    skipAuth: true,
+    mockFallback: true,
     cloudFunctionName: 'matchmaker',
     action: 'getBanners',
     method: 'GET',
@@ -31,52 +100,69 @@ export async function getMatchmakerBanners() {
  * 获取红娘详情
  */
 export async function getMatchmakerDetail(id: number) {
-  return request({
-    url: '/matchmaker/detail/' + id,
-    cloudFunctionName: 'matchmaker',
-    action: 'getDetail',
+  const result = await request({
+    url: '/matchmakers/' + id,
+    forceHttp: true,
+    skipAuth: true,
     method: 'GET',
-    mockData: null // 降级到列表匹配
+    mockData: null
   })
+  if (result.success && result.data != null) result.data = toMatchmakerCard(result.data)
+  return result
 }
 
 /**
  * 获取服务红娘列表
  */
 export async function getServiceMatchmakers() {
-  return request({
-    url: '/matchmaker/service/list',
-    cloudFunctionName: 'matchmaker',
-    action: 'getServiceList',
+  const result = await request({
+    url: '/matchmakers',
+    forceHttp: true,
+    skipAuth: true,
+    mockFallback: true,
     method: 'GET',
-    mockData: mockServiceMatchmakers // Mock 数据
+    mockData: mockServiceMatchmakers
   })
+  if (result.success && result.data != null && result.data.items != null) {
+    result.data = (result.data.items as any[]).map((item: any) => toMatchmakerCard(item))
+  }
+  return result
 }
 
 /**
  * 获取私人定制专属红娘列表
  */
 export async function getCustomMatchmakers() {
-  return request({
-    url: '/matchmaker/custom/list',
-    cloudFunctionName: 'matchmaker',
-    action: 'getCustomList',
+  const result = await request({
+    url: '/matchmakers',
+    forceHttp: true,
+    skipAuth: true,
+    mockFallback: true,
     method: 'GET',
-    mockData: mockCustomMatchmakers // Mock 数据
+    mockData: mockCustomMatchmakers
   })
+  if (result.success && result.data != null && result.data.items != null) {
+    result.data = (result.data.items as any[]).map((item: any) => toMatchmakerCard(item))
+  }
+  return result
 }
 
 /**
  * 获取热心红娘列表（兼容旧命名）
  */
 export async function getVolunteerMatchmakers() {
-  return request({
-    url: '/matchmaker/volunteer/list',
-    cloudFunctionName: 'matchmaker',
-    action: 'getVolunteerList',
+  const result = await request({
+    url: '/matchmakers/ranking',
+    forceHttp: true,
+    skipAuth: true,
+    mockFallback: true,
     method: 'GET',
-    mockData: mockVolunteerMatchmakers // Mock 数据
+    mockData: mockVolunteerMatchmakers
   })
+  if (result.success && result.data != null && result.data.items != null) {
+    result.data = (result.data.items as any[]).map((item: any) => toMatchmakerCard(item))
+  }
+  return result
 }
 
 /**
@@ -85,6 +171,9 @@ export async function getVolunteerMatchmakers() {
 export async function getAiRecommendations() {
   return request({
     url: '/matchmaker/ai/recommend',
+    forceHttp: true,
+    skipAuth: true,
+    mockFallback: true,
     cloudFunctionName: 'matchmaker',
     action: 'getAiRecommendations',
     method: 'GET',
@@ -96,26 +185,25 @@ export async function getAiRecommendations() {
  * 获取私人定制方案
  */
 export async function getCustomPlans() {
-  return request({
-    url: '/matchmaker/custom/plans',
-    cloudFunctionName: 'matchmaker',
-    action: 'getCustomPlans',
+  const result = await request({
+    url: '/matchmaker/service-products',
+    forceHttp: true,
+    skipAuth: true,
+    mockFallback: true,
     method: 'GET',
-    mockData: mockCustomPlans // Mock 数据
+    mockData: mockCustomPlans
   })
+  if (result.success && result.data != null && Array.isArray(result.data)) {
+    result.data = (result.data as any[]).map((item: any) => toCustomPlan(item))
+  }
+  return result
 }
 
 /**
  * 获取私人定制套餐（兼容旧命名）
  */
 export async function getCustomPackages() {
-  return request({
-    url: '/matchmaker/packages',
-    cloudFunctionName: 'matchmaker',
-    action: 'getPackages',
-    method: 'GET',
-    mockData: mockCustomPackages // Mock 数据
-  })
+  return getCustomPlans()
 }
 
 /**
@@ -123,12 +211,10 @@ export async function getCustomPackages() {
  */
 export async function submitMatchmakerApplication(data: any) {
   return request({
-    url: '/matchmaker/become/apply',
-    cloudFunctionName: 'matchmaker',
-    action: 'becomeApply',
+    url: '/matchmaker/applications',
+    forceHttp: true,
     method: 'POST',
-    data,
-    mockData: { success: true, applicationId: 'app_' + Date.now(), status: 'pending' }
+    data: toRoleApplication('service_matchmaker', data)
   })
 }
 
@@ -137,12 +223,10 @@ export async function submitMatchmakerApplication(data: any) {
  */
 export async function submitPartnerApplication(data: any) {
   return request({
-    url: '/partner/become/apply',
-    cloudFunctionName: 'matchmaker',
-    action: 'partnerApply',
+    url: '/matchmaker/applications',
+    forceHttp: true,
     method: 'POST',
-    data,
-    mockData: { success: true, applicationId: 'app_' + Date.now(), status: 'pending' }
+    data: toRoleApplication('partner', data)
   })
 }
 
@@ -151,23 +235,30 @@ export async function submitPartnerApplication(data: any) {
  */
 export async function submitPromoterApplication(data: any) {
   return request({
-    url: '/promoter/become/apply',
-    cloudFunctionName: 'matchmaker',
-    action: 'promoterApply',
+    url: '/matchmaker/applications',
+    forceHttp: true,
     method: 'POST',
-    data,
-    mockData: { success: true, applicationId: 'app_' + Date.now(), status: 'pending' }
+    data: toRoleApplication('promoter', data)
   })
 }
 
 export async function submitConnectionApplication(data: any) {
+  if (data.orderNo == null || String(data.orderNo).length == 0) {
+    return {
+      success: false,
+      data: null,
+      code: 400,
+      message: '请选择服务套餐并完成支付后再提交牵线需求'
+    }
+  }
   return request({
-    url: '/matchmaker/apply',
-    cloudFunctionName: 'matchmaker',
-    action: 'apply',
+    url: '/matchmaker/service-requests',
+    forceHttp: true,
     method: 'POST',
-    data,
-    mockData: { success: true, applicationId: Date.now() }
+    data: {
+      order_no: String(data.orderNo),
+      requirement: String(data.requirements)
+    }
   })
 }
 
@@ -177,12 +268,12 @@ export async function submitConnectionApplication(data: any) {
  * @param packageId 套餐 ID（可选）
  */
 export async function bookMatchmaker(matchmakerId: number, packageId?: number) {
-  return request({
-    url: '/matchmaker/book',
-    cloudFunctionName: 'matchmaker',
-    action: 'book',
-    method: 'POST',
-    data: { matchmakerId, packageId },
-    mockData: { success: true, orderId: Date.now() } // Mock 数据
-  })
+  return {
+    success: false,
+    data: null,
+    code: 400,
+    message: packageId == null
+      ? '请选择服务套餐后创建订单'
+      : '请在服务套餐页完成订单支付'
+  }
 }

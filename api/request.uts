@@ -12,6 +12,8 @@ export class RequestOptions {
   data ?: any
   skipAuth ?: boolean
   mockData ?: any
+  forceHttp ?: boolean
+  mockFallback ?: boolean
   cloudFunctionName ?: string
   action ?: string
 }
@@ -25,12 +27,44 @@ export class RequestResult {
   code ?: number
 }
 
+export function getAccessToken() {
+  const token = uni.getStorageSync('access_token')
+  return token != null ? String(token) : ''
+}
+
+export function getRefreshToken() {
+  const token = uni.getStorageSync('refresh_token')
+  return token != null ? String(token) : ''
+}
+
+export function setTokens(accessToken : string, refreshToken : string) {
+  uni.setStorageSync('access_token', accessToken)
+  uni.setStorageSync('refresh_token', refreshToken)
+}
+
+export function clearTokens() {
+  uni.removeStorageSync('access_token')
+  uni.removeStorageSync('refresh_token')
+}
+
 /**
  * 统一请求方法
  * @param options 请求配置
  * @returns Promise
  */
 export async function request(options: any) {
+  if (options.forceHttp === true) {
+    try {
+      return await httpRequest(options)
+    } catch (err) {
+      if (options.mockFallback === true && options.mockData !== null && options.mockData !== undefined) {
+        console.warn('⚠️ [HTTP Request Fallback To Mock]', options.url)
+        return mockRequest(options)
+      }
+      throw err
+    }
+  }
+
   // 开发模式：返回 Mock 数据
   if (USE_MOCK) {
     return mockRequest(options)
@@ -90,6 +124,83 @@ async function realRequest(options: any) {
       }
     })
   })
+}
+
+/**
+ * 直连 FastAPI HTTP 请求
+ */
+async function httpRequest(options: any) {
+  const requestUrl = buildHttpUrl(options.url)
+  const requestHeader: any = {
+    'Content-Type': 'application/json'
+  }
+
+  if (options.skipAuth !== true) {
+    const accessToken = getAccessToken()
+    if (accessToken.length > 0) {
+      requestHeader['Authorization'] = 'Bearer ' + accessToken
+    }
+  }
+
+  console.log('🌐 [HTTP Request]', requestUrl, options.data)
+
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: requestUrl,
+      method: options.method || 'GET',
+      data: options.data,
+      timeout: API_CONFIG.timeout,
+      header: requestHeader,
+      success: (res: any) => {
+        const statusCode = res.statusCode || 0
+        if (statusCode >= 200 && statusCode < 300) {
+          resolve({
+            success: true,
+            data: res.data,
+            code: statusCode,
+            message: extractResponseMessage(res.data, 'success')
+          })
+          return
+        }
+
+        const errorMessage = extractResponseMessage(res.data, '请求失败')
+        console.error('❌ [HTTP Response Error]', statusCode, res.data)
+        reject({
+          success: false,
+          data: res.data,
+          code: statusCode,
+          message: errorMessage
+        })
+      },
+      fail: (err: any) => {
+        console.error('❌ [HTTP Request Error]', err)
+        reject({
+          success: false,
+          data: null,
+          code: err.errCode || -1,
+          message: err.errMsg || err.message || '请求失败'
+        })
+      }
+    })
+  })
+}
+
+function buildHttpUrl(path: string) {
+  const base = API_CONFIG.httpBaseUrl
+  if (base.endsWith('/') && path.startsWith('/')) {
+    return base + path.slice(1)
+  }
+  if (!base.endsWith('/') && !path.startsWith('/')) {
+    return base + '/' + path
+  }
+  return base + path
+}
+
+function extractResponseMessage(data: any, fallback: string) {
+  if (data == null) return fallback
+  if (data.message != null) return String(data.message)
+  if (data.detail != null) return String(data.detail)
+  return fallback
 }
 
 /**

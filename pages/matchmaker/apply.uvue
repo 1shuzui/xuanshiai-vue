@@ -100,6 +100,8 @@ const submitApplication = async () => {
 		})
 		if (result.success) {
 			uni.showModal({ title: '申请已提交', content: '红娘会在核对资料后联系你，请保持手机畅通。', showCancel: false, confirmText: '知道了', success: () => uni.navigateBack() })
+		} else {
+			uni.showToast({ title: result.message != null ? result.message : '暂时无法提交申请', icon: 'none' })
 		}
 	} catch (e) {
 		uni.showToast({ title: '提交失败，请稍后重试', icon: 'none' })

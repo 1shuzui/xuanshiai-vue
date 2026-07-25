@@ -53,7 +53,7 @@ const handleOverlayClick = () => {
 /* 遮罩层 - 遵循 DESIGN.md */
 .xsa-sheet-overlay {
 	position: fixed;
-	z-index: 60;
+	z-index: 10050;
 	inset: 0;
 	background: rgba(12, 19, 19, 0.36);
 	opacity: 0;
@@ -102,6 +102,7 @@ const handleOverlayClick = () => {
 .sheet-header {
 	height: 54px;
 	display: flex;
+	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
 	padding: 0 18px;
@@ -115,27 +116,25 @@ const handleOverlayClick = () => {
 	color: var(--ink);
 }
 
-.close-btn {
-	width: 40px;
+	.close-btn {
+		width: 40px;
 	height: 40px;
 	border-radius: 50%;
 	background: transparent;
 	display: flex;
+	flex-direction: row;
 	align-items: center;
 	justify-content: center;
-	cursor: pointer;
-}
-
-.close-btn text {
-	font-size: 20px;
-	color: var(--muted);
+		cursor: pointer;
+		font-size: 20px;
+		color: var(--muted);
 }
 
 /* Sheet 内容区域 */
 .sheet-body {
 	max-height: calc(100% - 64px);
 	overflow-y: auto;
-	padding: 16px 18px 24px;
+	padding: 16px 18px calc(24px + env(safe-area-inset-bottom));
 	-webkit-overflow-scrolling: touch;
 }
 

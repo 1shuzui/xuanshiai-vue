@@ -1,441 +1,566 @@
 <template>
-	<view class="profile-page">
-		<!-- 用户信息卡片 -->
-		<view class="user-card">
-			<view class="user-header">
-				<image class="avatar" :src="userInfo.avatar" mode="aspectFill" @click="handleEditAvatar"></image>
-				<view class="user-info">
-					<view class="name-row">
-						<text class="name">{{ userInfo.name }}</text>
-						<text class="age">{{ userInfo.age }}</text>
-						<text class="gender-icon">{{ userInfo.gender === 1 ? '♂' : '♀' }}</text>
-					</view>
-					<view class="cert-badges">
-						<view class="cert-badge" v-for="(cert, index) in userInfo.certifications" :key="index">
-							<text class="cert-text">{{ cert }}</text>
+	<view class="page">
+		<!-- 状态栏 -->
+		<view class="status-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
+			<text class="time-text">9:41</text>
+			<view class="status-icons">
+				<text class="battery-icon">●●●</text>
+			</view>
+		</view>
+
+		<!-- 导航栏 -->
+		<view class="nav-bar">
+			<text class="nav-title">我的</text>
+			<view class="nav-right">
+				<view class="nav-icon-btn" @tap="onMessages">
+					<text class="nav-icon">🔔</text>
+				</view>
+				<view class="nav-icon-btn" @tap="onSettings">
+					<text class="nav-icon">⚙</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 滚动内容区 -->
+		<scroll-view scroll-y class="content-scroll" enhanced show-scrollbar="false">
+			<view class="content-inner">
+			<!-- 个人资料头部（横向布局） -->
+			<view class="profile-header">
+				<view class="avatar-wrap" @tap="onViewMyProfile">
+					<text class="avatar-emoji">👤</text>
+				</view>
+				<view class="profile-info">
+					<text class="nickname">张小姐</text>
+					<view class="vip-tag-row">
+						<view class="vip-tag">
+							<text class="vip-tag-text">VIP会员</text>
 						</view>
+						<text class="vip-tag-desc">解锁全部功能</text>
 					</view>
-					<text class="intro text-muted">{{ userInfo.introduction }}</text>
-				</view>
-			</view>
-
-			<!-- 资料完善度 -->
-			<view class="progress-section" @click="handleEditProfile">
-				<view class="progress-header">
-					<text class="progress-label">资料完善度</text>
-					<text class="progress-value">{{ userInfo.profileProgress }}%</text>
-				</view>
-				<view class="progress-bar">
-					<view class="progress-fill" :style="{ width: userInfo.profileProgress + '%' }"></view>
-				</view>
-				<text class="progress-tip text-muted">完善资料可以获得更多曝光</text>
-			</view>
-		</view>
-
-			<!-- 我的数据（对齐高保真：我看过谁 / 谁看过我 / 收藏） -->
-			<view class="stats-section">
-				<view class="stat-item" @click="handleNavTo('/pages/profile/visitors')">
-					<text class="stat-value">{{ userInfo.viewed }}</text>
-					<text class="stat-label text-muted">我看过谁</text>
-				</view>
-				<view class="stat-divider"></view>
-				<view class="stat-item" @click="handleNavTo('/pages/profile/visitors')">
-					<text class="stat-value">{{ userInfo.visitors }}</text>
-					<text class="stat-label text-muted">谁看过我</text>
-				</view>
-				<view class="stat-divider"></view>
-				<view class="stat-item" @click="handleNavTo('/pages/profile/likes')">
-					<text class="stat-value">{{ userInfo.likes }}</text>
-					<text class="stat-label text-muted">我的收藏</text>
-				</view>
-			</view>
-
-		<!-- 功能菜单 -->
-		<view class="menu-section">
-			<view class="menu-group">
-				<view class="menu-item" @click="handleNavTo('/pages/user/edit')">
-					<text class="menu-icon">✏️</text>
-					<text class="menu-title">编辑资料</text>
-					<text class="menu-arrow">›</text>
-				</view>
-				<view class="menu-item" @click="handleNavTo('/pages/profile/certification')">
-					<text class="menu-icon">✓</text>
-					<text class="menu-title">身份认证</text>
-					<view class="menu-badge" v-if="userInfo.unverifiedCount > 0">
-						<text class="badge-text">{{ userInfo.unverifiedCount }}</text>
+					<view class="progress-row">
+						<view class="progress-bar">
+							<view class="progress-fill" :style="{ width: user.vipProgress + '%' }"></view>
+						</view>
+						<text class="progress-percent">{{ user.vipProgress }}%</text>
 					</view>
-					<text class="menu-arrow">›</text>
 				</view>
-				<view class="menu-item" @click="handleNavTo('/pages/profile/vip')">
-					<text class="menu-icon">👑</text>
-					<text class="menu-title">会员中心</text>
-					<view class="vip-tag" v-if="userInfo.isVip">
-						<text class="vip-text">VIP</text>
+			</view>
+
+			<!-- 统计数据行 -->
+			<view class="stats-card">
+				<view class="stat-item" v-for="stat in stats" :key="stat.label">
+					<text class="stat-value">{{ stat.value }}</text>
+					<text class="stat-label">{{ stat.label }}</text>
+				</view>
+			</view>
+
+			<!-- VIP 会员卡 -->
+			<view class="vip-card" @tap="onOpenVIP">
+				<view class="vip-crown-wrap">
+					<text class="vip-crown">👑</text>
+				</view>
+				<view class="vip-text-col">
+					<text class="vip-card-title">开通会员</text>
+					<text class="vip-card-sub">解锁全部功能，遇见更多可能</text>
+				</view>
+				<text class="vip-arrow">›</text>
+			</view>
+
+			<!-- 主菜单 -->
+			<view class="menu-card">
+				<view class="menu-row" v-for="item in mainMenuItems" :key="item.label" @tap="item.action">
+					<view class="menu-icon-wrap" :style="{ backgroundColor: item.iconBg }">
+						<text class="menu-icon">{{ item.icon }}</text>
 					</view>
+					<text class="menu-label">{{ item.label }}</text>
+					<view v-if="item.badge" class="menu-badge">
+						<text class="menu-badge-text">{{ item.badge }}</text>
+					</view>
+					<view class="menu-spacer"></view>
 					<text class="menu-arrow">›</text>
 				</view>
 			</view>
 
-			<view class="menu-group">
-				<view class="menu-item" @click="handleNavTo('/pages/profile/wallet')">
-					<text class="menu-icon">💰</text>
-					<text class="menu-title">我的钱包</text>
-					<text class="menu-value text-muted">余额 {{ userInfo.balance }}</text>
-					<text class="menu-arrow">›</text>
-				</view>
-				<view class="menu-item" @click="handleNavTo('/pages/profile/orders')">
-					<text class="menu-icon">📋</text>
-					<text class="menu-title">我的订单</text>
+			<!-- 底部菜单 -->
+			<view class="menu-card">
+				<view class="menu-row" v-for="item in bottomMenuItems" :key="item.label" @tap="item.action">
+					<view class="menu-icon-wrap" :style="{ backgroundColor: item.iconBg }">
+						<text class="menu-icon">{{ item.icon }}</text>
+					</view>
+					<view class="menu-text-col">
+						<text class="menu-label">{{ item.label }}</text>
+						<text v-if="item.subtitle" class="menu-subtitle">{{ item.subtitle }}</text>
+					</view>
+					<view class="menu-spacer"></view>
 					<text class="menu-arrow">›</text>
 				</view>
 			</view>
 
-			<view class="menu-group">
-				<view class="menu-item" @click="handleNavTo('/pages/profile/settings')">
-					<text class="menu-icon">⚙️</text>
-					<text class="menu-title">设置</text>
-					<text class="menu-arrow">›</text>
-				</view>
-				<view class="menu-item" @click="handleNavTo('/pages/profile/help')">
-					<text class="menu-icon">❓</text>
-					<text class="menu-title">帮助与反馈</text>
-					<text class="menu-arrow">›</text>
-				</view>
+			<!-- 底部留白 -->
+			<view class="scroll-bottom-spacer"></view>
 			</view>
-		</view>
+		</scroll-view>
 	</view>
 </template>
 
 <script setup lang="uts">
-		import { getMeProfile } from '@/api'
+const systemInfo = uni.getSystemInfoSync()
+const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
 
-		// 高保真「我的」：顾言澄
-		const userInfo = ref({
-			id: 9001,
-			avatar: '/static/portraits/profile-man-light.jpg',
-			name: '顾言澄',
-			age: 29,
-			gender: 1,
-			certifications: ['实名', '头像', '单身'],
-			introduction: '29 岁 · 南京 · 产品经理',
-			profileProgress: 78,
-			visitors: 8,
-			likes: 5,
-			matches: 12,
-			viewed: 12,
-			unverifiedCount: 2,
-			isVip: false,
-			balance: '0.00',
-			points: 680
-		});
+const user = ref({
+	nickname: '张小姐',
+	vipProgress: 75,
+})
 
-		onMounted(async () => {
-			try {
-				const res = await getMeProfile()
-				if (res.success && res.data != null) {
-					const d = res.data
-					userInfo.value = {
-						id: d.id,
-						avatar: d.avatar,
-						name: d.name,
-						age: d.age,
-						gender: d.gender,
-						certifications: d.certifications != null ? d.certifications : userInfo.value.certifications,
-						introduction: d.introduction != null ? d.introduction : (d.city + ' · ' + d.job),
-						profileProgress: d.profileProgress != null ? d.profileProgress : 78,
-						visitors: d.visitors != null ? d.visitors : 8,
-						likes: d.favorites != null ? d.favorites : 5,
-						matches: 0,
-						viewed: d.viewed != null ? d.viewed : 12,
-						unverifiedCount: d.certTotal != null && d.certDone != null ? (d.certTotal - d.certDone) : 2,
-						isVip: false,
-						balance: '0.00',
-						points: d.points != null ? d.points : 680
-					}
-				}
-			} catch (e) {
-				console.error(e)
-			}
-		})
+const stats = [
+	{ value: '56', label: '我的申请' },
+	{ value: '128', label: '我看过谁/看过我' },
+	{ value: '12', label: '我的收藏' },
+	{ value: '3', label: '我的爆灯' },
+]
 
-		const handleEditAvatar = () => {
-			uni.chooseImage({
-				count: 1,
-				success: (res) => {
-					userInfo.value.avatar = res.tempFilePaths[0];
-					uni.showToast({
-						title: '头像上传成功',
-						icon: 'success'
-					});
-				}
-			});
-		};
+const onMessages = () => {
+	uni.showToast({ title: '消息中心', icon: 'none' })
+}
 
-		const handleEditProfile = () => {
-			uni.navigateTo({
-				url: '/pages/user/edit'
-			});
-		};
+const onSettings = () => {
+	uni.navigateTo({ url: '/pages/profile/settings' })
+}
 
-		const handleNavTo = (url: string) => {
-			// 未创建的子页降级提示，避免白屏
-			const known = [
-				'/pages/user/edit',
-				'/pages/profile/certification',
-				'/pages/profile/vip',
-				'/pages/profile/settings'
-			]
-			let ok = false
-			for (let i = 0; i < known.length; i++) {
-				if (url.indexOf(known[i]) == 0) {
-					ok = true
-					break
-				}
-			}
-			if (!ok) {
-				uni.showToast({ title: '功能入口 · 原型演示', icon: 'none' })
-				return
-			}
-			uni.navigateTo({ url: url })
-		};
-	</script>
+const onViewMyProfile = () => {
+	uni.navigateTo({ url: '/pages/user/edit' })
+}
 
-<style scoped>
-.profile-page {
+const onOpenVIP = () => {
+	uni.navigateTo({ url: '/pages/profile/vip' })
+}
+
+const onMyTasks = () => {
+	uni.showToast({ title: '我的任务', icon: 'none' })
+}
+
+const onMyMoments = () => {
+	uni.showToast({ title: '我的动态', icon: 'none' })
+}
+
+const onMyPoster = () => {
+	uni.showToast({ title: '我的海报', icon: 'none' })
+}
+
+const onMyRegistration = () => {
+	uni.showToast({ title: '我的报名', icon: 'none' })
+}
+
+const onCertification = () => {
+	uni.navigateTo({ url: '/pages/profile/certification' })
+}
+
+const onInviteFriend = () => {
+	uni.showToast({ title: '推荐给好友', icon: 'none' })
+}
+
+const onMenuSettings = () => {
+	uni.navigateTo({ url: '/pages/profile/settings' })
+}
+
+const onHelp = () => {
+	uni.showToast({ title: '客服与帮助', icon: 'none' })
+}
+
+const onAbout = () => {
+	uni.showToast({ title: '关于我们', icon: 'none' })
+}
+
+const onSecurity = () => {
+	uni.showToast({ title: '安全中心', icon: 'none' })
+}
+
+const mainMenuItems = [
+	{ icon: '👁', iconBg: '#EDE4F0', label: '我的任务', badge: 'NEW', action: onMyTasks },
+	{ icon: '👀', iconBg: '#E4EDE8', label: '我的动态', action: onMyMoments },
+	{ icon: '❤', iconBg: '#FDE8EC', label: '我的海报', action: onMyPoster },
+	{ icon: '💡', iconBg: '#FEF3E4', label: '我的报名', action: onMyRegistration },
+	{ icon: '💡', iconBg: '#FEF3E4', label: '诚信认证', action: onCertification },
+	{ icon: '💡', iconBg: '#FEF3E4', label: '推荐给好友', action: onInviteFriend },
+	{ icon: '💡', iconBg: '#FEF3E4', label: '设置', action: onMenuSettings },
+]
+
+const bottomMenuItems = [
+	{ icon: '🎧', iconBg: '#F7F4F0', label: '客服与帮助', subtitle: 'AI客服 . 意见反馈', action: onHelp },
+	{ icon: 'ℹ', iconBg: '#F7F4F0', label: '关于我们', subtitle: '版本 1.0.0', action: onAbout },
+	{ icon: '💡', iconBg: '#FEF3E4', label: '安全中心', action: onSecurity },
+]
+</script>
+
+<style>
+/* ==================== 页面级 CSS 变量 & 基础样式 ==================== */
+/* 注意：此块不加 scoped，让 CSS 变量能在整页生效 */
+
+page {
+	--profile-bg: #F7F4F0;
+	--profile-card: #FFFFFF;
+	--profile-dark: #3A3A3A;
+	--profile-accent: #8FA88A;
+	--profile-rose: #D4A89E;
+	--profile-text: #2C2C2C;
+	--profile-text-secondary: #8E8E8A;
+	--profile-text-muted: #C5C3BE;
+	--profile-text-inverse: #FFFFFF;
+	--profile-vip-sub: #B0B0B0;
+	background-color: var(--profile-bg);
+}
+
+/* ==================== 页面容器 ==================== */
+.page {
+	position: relative;
+	width: 100%;
 	min-height: 100vh;
-	background: var(--canvas);
-	padding-bottom: 20px;
-}
-
-/* 用户信息卡片 */
-.user-card {
-	background: var(--surface);
-	padding: 24px 16px;
-	margin-bottom: 12px;
-}
-
-.user-header {
-	display: flex;
-	gap: 16px;
-	margin-bottom: 20px;
-}
-
-.avatar {
-	width: 80px;
-	height: 80px;
-	border-radius: 50%;
-	flex-shrink: 0;
-}
-
-.user-info {
-	flex: 1;
+	background-color: var(--profile-bg);
 	display: flex;
 	flex-direction: column;
+}
+
+/* ==================== 状态栏 ==================== */
+.status-bar {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	height: 44px;
+	padding-left: 16px;
+	padding-right: 16px;
+	box-sizing: border-box;
+}
+
+.time-text {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--profile-text);
+}
+
+.status-icons {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.battery-icon {
+	font-size: 12px;
+	color: var(--profile-text);
+	letter-spacing: 1px;
+}
+
+/* ==================== 导航栏 ==================== */
+.nav-bar {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	padding: 12px 16px 16px 16px;
+	position: relative;
+}
+
+.nav-title {
+	font-size: 17px;
+	font-weight: 600;
+	color: var(--profile-text);
+}
+
+.nav-right {
+	position: absolute;
+	right: 16px;
+	top: 12px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
 	gap: 8px;
 }
 
-.name-row {
+.nav-icon-btn {
+	width: 36px;
+	height: 36px;
+	border-radius: 18px;
+	background-color: var(--profile-bg);
 	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.nav-icon {
+	font-size: 16px;
+}
+
+/* ==================== 滚动内容区 ==================== */
+.content-scroll {
+	flex: 1;
+}
+
+.content-inner {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	padding: 0 24px;
+}
+
+/* ==================== 个人资料头部 ==================== */
+.profile-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	padding-top: 8px;
+}
+
+.avatar-wrap {
+	width: 64px;
+	height: 64px;
+	border-radius: 32px;
+	background-color: var(--profile-rose);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.avatar-emoji {
+	font-size: 28px;
+	color: var(--profile-text-inverse);
+}
+
+.profile-info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.nickname {
+	font-size: 20px;
+	font-weight: 600;
+	color: var(--profile-text);
+	line-height: 1.3;
+}
+
+.vip-tag-row {
+	display: flex;
+	flex-direction: row;
 	align-items: center;
 	gap: 6px;
 }
 
-.name {
-	font-size: 20px;
-	font-weight: 600;
-	color: var(--ink);
-}
-
-.age {
-	font-size: 16px;
-	color: var(--ink2);
-}
-
-.gender-icon {
-	font-size: 16px;
-	color: var(--accent);
-}
-
-.cert-badges {
+.vip-tag {
+	background-color: var(--profile-accent);
+	border-radius: 10px;
+	padding: 2px 8px;
 	display: flex;
-	gap: 6px;
-	flex-wrap: wrap;
+	align-items: center;
+	height: 22px;
 }
 
-.cert-badge {
-	padding: 4px 10px;
-	background: var(--accent-bg);
-	border-radius: 999px;
+.vip-tag-text {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--profile-text-inverse);
 }
 
-.cert-text {
+.vip-tag-desc {
 	font-size: 12px;
-	color: var(--accent);
+	color: var(--profile-text-secondary);
 }
 
-.intro {
-	font-size: 13px;
-	line-height: 1.5;
-}
-
-/* 资料完善度 */
-.progress-section {
-	padding: 16px;
-	background: var(--paper);
-	border: 1px solid var(--line);
-	border-radius: 12px;
-}
-
-.progress-header {
+.progress-row {
 	display: flex;
-	justify-content: space-between;
-	margin-bottom: 8px;
-}
-
-.progress-label {
-	font-size: 14px;
-	color: var(--ink);
-}
-
-.progress-value {
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--accent);
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
 }
 
 .progress-bar {
-	height: 8px;
-	background: var(--canvas);
-	border-radius: 999px;
+	flex: 1;
+	height: 6px;
+	border-radius: 3px;
+	background-color: var(--profile-bg);
 	overflow: hidden;
-	margin-bottom: 8px;
+	position: relative;
 }
 
 .progress-fill {
-	height: 100%;
-	background: var(--accent);
-	border-radius: 999px;
-	transition: width 0.3s;
+	height: 6px;
+	border-radius: 3px;
+	background-color: var(--profile-accent);
+	position: absolute;
+	left: 0;
+	top: 0;
 }
 
-.progress-tip {
+.progress-percent {
 	font-size: 12px;
+	font-weight: 600;
+	color: var(--profile-accent);
 }
 
-/* 数据统计 */
-.stats-section {
+/* ==================== 统计数据卡 ==================== */
+.stats-card {
 	display: flex;
-	align-items: center;
-	justify-content: space-around;
-	padding: 20px 16px;
-	background: var(--surface);
-	margin-bottom: 12px;
+	flex-direction: row;
+	background-color: var(--profile-card);
+	border-radius: 16px;
+	padding: 20px 24px;
+	width: 100%;
 }
 
 .stat-item {
+	flex: 1;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 6px;
+	gap: 4px;
 }
 
 .stat-value {
 	font-size: 22px;
-	font-weight: 600;
-	color: var(--ink);
+	font-weight: 700;
+	color: var(--profile-text);
 }
 
 .stat-label {
-	font-size: 13px;
+	font-size: 11px;
+	color: var(--profile-text-secondary);
+	text-align: center;
 }
 
-.stat-divider {
-	width: 1px;
-	height: 32px;
-	background: var(--line);
-}
-
-/* 功能菜单 */
-.menu-section {
+/* ==================== VIP 会员卡 ==================== */
+.vip-card {
 	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.menu-group {
-	background: var(--surface);
-	border-radius: 12px;
-	overflow: hidden;
-}
-
-.menu-item {
-	display: flex;
+	flex-direction: row;
 	align-items: center;
-	gap: 12px;
-	padding: 16px;
-	border-bottom: 1px solid var(--line);
-	transition: background 0.18s;
+	gap: 14px;
+	background-color: var(--profile-dark);
+	border-radius: 16px;
+	padding: 18px 20px;
+	width: 100%;
+	height: 80px;
 }
 
-.menu-item:last-child {
-	border-bottom: none;
-}
-
-.menu-item:active {
-	background: var(--canvas);
-}
-
-.menu-icon {
-	width: 28px;
-	font-size: 20px;
-	flex-shrink: 0;
-}
-
-.menu-title {
-	flex: 1;
-	font-size: 15px;
-	color: var(--ink);
-}
-
-.menu-value {
-	font-size: 14px;
-	margin-right: 4px;
-}
-
-.menu-badge {
-	min-width: 18px;
-	height: 18px;
-	padding: 0 5px;
-	background: var(--accent);
-	border-radius: 999px;
+.vip-crown-wrap {
+	width: 44px;
+	height: 44px;
+	border-radius: 22px;
+	background-color: var(--profile-rose);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	margin-right: 8px;
+	flex-shrink: 0;
 }
 
-.badge-text {
-	font-size: 11px;
+.vip-crown {
+	font-size: 22px;
+	color: var(--profile-text-inverse);
+}
+
+.vip-text-col {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.vip-card-title {
+	font-size: 16px;
 	font-weight: 600;
-	color: var(--text-invert);
+	color: var(--profile-text-inverse);
 }
 
-.vip-tag {
+.vip-card-sub {
+	font-size: 12px;
+	color: var(--profile-vip-sub);
+}
+
+.vip-arrow {
+	font-size: 18px;
+	color: var(--profile-rose);
+}
+
+/* ==================== 菜单卡片 ==================== */
+.menu-card {
+	display: flex;
+	flex-direction: column;
+	background-color: var(--profile-card);
+	border-radius: 16px;
+	padding: 4px 0;
+	width: 100%;
+}
+
+.menu-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	padding: 14px 16px;
+	width: 100%;
+}
+
+.menu-icon-wrap {
+	width: 40px;
+	height: 40px;
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.menu-icon {
+	font-size: 18px;
+	color: var(--profile-text);
+}
+
+.menu-text-col {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.menu-label {
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--profile-text);
+}
+
+.menu-subtitle {
+	font-size: 12px;
+	color: var(--profile-text-secondary);
+}
+
+.menu-badge {
+	background-color: var(--profile-rose);
+	border-radius: 10px;
 	padding: 3px 8px;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-	border-radius: 999px;
-	margin-right: 8px;
+	display: flex;
+	align-items: center;
 }
 
-.vip-text {
-	font-size: 11px;
-	font-weight: 600;
-	color: var(--text-invert);
+.menu-badge-text {
+	font-size: 10px;
+	font-weight: 700;
+	color: var(--profile-text-inverse);
+}
+
+.menu-spacer {
+	flex: 1;
 }
 
 .menu-arrow {
-	font-size: 20px;
-	color: var(--muted);
+	font-size: 14px;
+	color: var(--profile-text-muted);
+}
+
+/* ==================== 底部留白 ==================== */
+.scroll-bottom-spacer {
+	height: 120px;
 	flex-shrink: 0;
 }
 </style>

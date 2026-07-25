@@ -6,10 +6,13 @@
  */
 
 // ⚠️ 唯一需要修改的开关：启用/禁用 Mock 数据
-export const USE_MOCK = true
+export const USE_MOCK = false
 
 // API 基础配置
 export const API_CONFIG = {
+  // FastAPI 后端基地址（本地开发默认）
+  httpBaseUrl: 'http://127.0.0.1:8001/api/v1',
+
   // uniCloud 云函数配置（生产环境使用）
   cloudFunction: {
     timeout: 60000,

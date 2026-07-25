@@ -8,8 +8,8 @@
     /* 快应用特有相关 */
     "quickapp" : {},
     /* 小程序特有相关 */
-    "mp-weixin" : {
-        "appid" : "",
+	"mp-weixin" : {
+		"appid" : "wxc234dee935f179e0",
         "setting" : {
             "urlCheck" : false,
             "es6" : true,
@@ -41,7 +41,7 @@
             "base" : "./"
         },
         "devServer" : {
-            "port" : 8080,
+            "port" : 5173,
             "https" : false
         },
         "title" : "宣誓爱",

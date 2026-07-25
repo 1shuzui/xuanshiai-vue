@@ -103,6 +103,7 @@ const handleConfirm = () => {
 	pointer-events: none;
 	transition: opacity 0.22s;
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	padding: 20px;
@@ -153,6 +154,7 @@ const handleConfirm = () => {
 	height: 48px;
 	border-radius: 50%;
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	margin-bottom: 14px;

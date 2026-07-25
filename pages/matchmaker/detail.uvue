@@ -30,10 +30,11 @@
 							</view>
 
 							<!-- 服务价格 -->
-							<view class="price-row">
+							<view v-if="matchmaker.price != null" class="price-row">
 								<text class="price-value">¥{{ matchmaker.price || 199 }}</text>
 								<text class="price-unit">/{{ matchmaker.priceUnit || '次' }}</text>
 							</view>
+							<text v-else class="price-pending">服务套餐定价以支付页为准</text>
 						</view>
 					</view>
 
@@ -590,6 +591,7 @@ const showToast = (msg: string) => {
 	align-items: baseline;
 	gap: 4rpx;
 }
+.price-pending { font-size: 22rpx; color: var(--muted); }
 
 .price-value {
 	font-size: 38rpx;

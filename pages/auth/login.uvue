@@ -73,12 +73,30 @@
 	</template>
 
 <script setup lang="uts">
+	import { loginByPhone, sendSms } from '@/api'
+
 	// 响应式数据
 	let phone = ref('')
 	let code = ref('')
 	let countdown = ref(0)
 	let codeBtnDisabled = ref(false)
 	let codeBtnText = ref('获取验证码')
+
+	const startCountdown = () => {
+		codeBtnDisabled.value = true
+		countdown.value = 60
+		codeBtnText.value = `${countdown.value}秒后重试`
+		const timer = setInterval(() => {
+			countdown.value--
+			if (countdown.value > 0) {
+				codeBtnText.value = `${countdown.value}秒后重试`
+			} else {
+				clearInterval(timer)
+				codeBtnDisabled.value = false
+				codeBtnText.value = '获取验证码'
+			}
+		}, 1000)
+	}
 
 	// 输入事件
 	const onPhoneInput = (e: InputEvent) => {
@@ -90,7 +108,7 @@
 	}
 
 	// 发送验证码
-	const sendCode = () => {
+	const sendCode = async () => {
 		if (!phone.value || phone.value.length !== 11) {
 			uni.showToast({
 				title: '请输入正确的手机号',
@@ -99,27 +117,25 @@
 			return
 		}
 
-		// 开始倒计时
-		codeBtnDisabled.value = true
-		countdown.value = 60
-		codeBtnText.value = `${countdown.value}秒后重试`
-
-		const timer = setInterval(() => {
-			countdown.value--
-			if (countdown.value > 0) {
-				codeBtnText.value = `${countdown.value}秒后重试`
-			} else {
-				clearInterval(timer)
-				codeBtnDisabled.value = false
-				codeBtnText.value = '获取验证码'
+		try {
+			const res = await sendSms(phone.value, 'login')
+			if (res.success) {
+				startCountdown()
+				uni.showToast({
+					title: res.data != null && res.data.message != null
+						? String(res.data.message)
+						: (res.message != null ? res.message : '验证码已发送'),
+					icon: 'success'
+				})
+				return
 			}
-		}, 1000)
-
-		// TODO: 调用发送验证码接口
-		uni.showToast({
-			title: '验证码已发送',
-			icon: 'success'
-		})
+			throw new Error(res.message != null ? res.message : '验证码发送失败')
+		} catch (e: any) {
+			uni.showToast({
+				title: e != null && e.message != null ? String(e.message) : '验证码发送失败',
+				icon: 'none'
+			})
+		}
 	}
 
 		const goHome = () => {
@@ -129,7 +145,7 @@
 		}
 
 		// 登录
-		const handleLogin = () => {
+		const handleLogin = async () => {
 			if (!phone.value || phone.value.length !== 11) {
 				uni.showToast({
 					title: '请输入正确的手机号',
@@ -146,11 +162,22 @@
 				return
 			}
 
-			uni.showToast({
-				title: '登录成功',
-				icon: 'success'
-			})
-			setTimeout(goHome, 800)
+			try {
+				const res = await loginByPhone(phone.value, code.value)
+				if (!res.success) {
+					throw new Error(res.message != null ? res.message : '登录失败')
+				}
+				uni.showToast({
+					title: '登录成功',
+					icon: 'success'
+				})
+				setTimeout(goHome, 800)
+			} catch (e: any) {
+				uni.showToast({
+					title: e != null && e.message != null ? String(e.message) : '登录失败',
+					icon: 'none'
+				})
+			}
 		}
 
 		const handleWechatLogin = () => {

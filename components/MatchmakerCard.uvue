@@ -32,9 +32,9 @@
 
 			<view class="card-footer">
 				<view class="card-price">
-					<text class="price-symbol">¥</text>
+					<text v-if="hasPrice" class="price-symbol">¥</text>
 					<text class="price-value">{{ priceText }}</text>
-					<text class="price-unit">{{ unitText }}</text>
+					<text v-if="hasPrice" class="price-unit">{{ unitText }}</text>
 				</view>
 				<view class="card-button" @click.stop="handleContact">
 					<text>{{ actionText }}</text>
@@ -67,8 +67,12 @@ const rateText = computed(() => {
 });
 
 const priceText = computed(() => {
-	if (props.data == null || props.data.price == null) return '199';
+	if (props.data == null || props.data.price == null) return '套餐定价';
 	return String(props.data.price);
+});
+
+const hasPrice = computed(() => {
+	return props.data != null && props.data.price != null;
 });
 
 const cardCopy = computed(() => {
