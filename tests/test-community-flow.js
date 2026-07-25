@@ -6,6 +6,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const assert = require('assert')
 
 const root = path.join(__dirname, '..')
 let failed = 0
@@ -172,6 +173,10 @@ const apiFns = [
   'likeDynamic',
   'collectDynamic',
   'followUserFromCommunity',
+  'unfollowUserFromCommunity',
+  'deleteDynamic',
+  'deleteComment',
+  'getMyPaperPlanes',
   'commentDynamic',
   'reportContent',
   'blockUser',
@@ -183,6 +188,97 @@ apiFns.forEach((fn) => {
   if (apiCommunity.includes(`export async function ${fn}`)) ok(fn)
   else fail(`API 缺少 ${fn}`)
 })
+
+// 关注 all：BE following_and_liked 真并集；mergeLiked 恒 false（禁止客户端假分页）
+	if (apiCommunity.includes("filter == 'likedUsers'") && apiCommunity.includes('liked_users')) {
+	  ok('关注 Tab 支持 following / liked_users 分流')
+	} else {
+	  fail('关注 Tab 缺少 liked_users 分流')
+	}
+	if (
+	  apiCommunity.includes("mode: 'following_and_liked'") &&
+	  apiCommunity.includes('mergeLiked: false')
+	) {
+	  ok('关注 Tab all → following_and_liked（BE 并集，无假分页）')
+	} else {
+	  fail('关注 Tab all 未切到 following_and_liked')
+	}
+if (
+		  apiCommunity.includes('COMMUNITY_CITY_OPTIONS') &&
+		  apiCommunity.includes('normalizeCityCode') &&
+		  apiCommunity.includes('city_code')
+		) {
+		  ok('同城 city_code 规范化 + 列表传参')
+		} else {
+		  fail('同城 city_code 对齐缺失')
+		}
+		// 同城 Mock 对齐 BE：location-only；拒未设置；一周限改
+		const cityFilterBlock = (() => {
+		  const i = apiCommunity.indexOf("tab == 'city'")
+		  if (i < 0) return ''
+		  return apiCommunity.slice(i, i + 500)
+		})()
+		if (
+		  cityFilterBlock.includes('loc.indexOf(city)') &&
+		  !cityFilterBlock.includes('cityTag == true') &&
+		  !cityFilterBlock.includes("tabs.indexOf('city')")
+		) {
+		  ok('Mock 同城 filter 仅 location/city（无 cityTag/tabs 放宽）')
+		} else {
+		  fail('Mock 同城 filter 未与 BE location-only 对齐')
+		}
+		if (
+		  apiCommunity.includes("城市名称不能为空") &&
+		  apiCommunity.includes('同城城市一周内仅可更换一次')
+		) {
+		  ok('Mock setCurrentCity 拒非法名 + 一周限改')
+		} else {
+		  fail('Mock setCurrentCity 契约不完整')
+		}
+if (apiCommunity.includes('points_available') && apiCommunity.includes(': false')) {
+  ok('mapQuotaItem pointsAvailable 缺省 fail-closed')
+} else {
+  fail('mapQuotaItem pointsAvailable 缺省未 fail-closed')
+}
+if (apiCommunity.includes('commentsLoadError') && apiCommunity.includes('动态加载失败，无法点赞')) {
+  ok('详情评论失败标记 + 赞藏预检失败不默认 PUT')
+} else {
+  fail('详情/赞藏 fail-closed 不完整')
+}
+
+const apiIndex = read('api/index.uts')
+;['unfollowUserFromCommunity', 'deleteDynamic', 'deleteComment', 'getMyPaperPlanes'].forEach((n) => {
+  if (apiIndex.includes(n)) ok(`api/index 导出 ${n}`)
+  else fail(`api/index 未导出 ${n}`)
+})
+
+console.log('\n3.0 user like/apply 双路径...')
+const apiUser = read('api/user.uts')
+if (apiUser.includes('USE_MOCK') && apiUser.includes('/discovery/applications/') && apiUser.includes('/users/') && apiUser.includes('/like')) {
+  ok('likeUser/applyToMeet 含 USE_MOCK 与 discovery/social 真路径')
+} else {
+  fail('user.uts 未双路径对接 discovery/social')
+}
+if (apiUser.includes('relations/likes')) {
+  ok('likeUser 真路径会查 relations/likes')
+} else {
+  fail('likeUser 缺少 likes 状态查询')
+}
+if (apiUser.includes('page_size: pageSize') || apiUser.includes('page_size: 50')) {
+  ok('likeUser page_size≤50 分页扫描')
+} else {
+  fail('likeUser 仍可能 page_size>50')
+}
+if (apiUser.includes('喜欢列表加载失败')) {
+  ok('likeUser 预检失败返回 failRes')
+} else {
+  fail('likeUser 预检失败路径缺失')
+}
+if (apiUser.includes('ALREADY_PENDING') && apiUser.includes('failRes') && apiUser.includes('quotaRefreshFailed')) {
+  ok('apply 409 failRes + 额度刷新失败标记')
+} else {
+  fail('apply 409/额度刷新修复不完整')
+}
 
 if (apiCommunity.includes('hasMore') && apiCommunity.includes('pageSize') && apiCommunity.includes('list:')) {
   ok('getDynamicList 分页结构 list/hasMore/pageSize')
@@ -232,7 +328,6 @@ if (
   fail('publishDynamic request data 未写入 mediaType/topicTitle')
 }
 
-const apiIndex = read('api/index.uts')
 ;[
   'commentDynamic',
   'signupActivity',
@@ -391,8 +486,18 @@ if (communityMain.includes('filterOptions') || communityMain.includes("key: 'med
 } else {
   fail('缺少二级筛选')
 }
-if (communityMain.includes('loadDynamics') && communityMain.includes('getDynamicList')) {
-  ok('动态列表可直接加载（浏览无门槛）')
+if (
+	  communityMain.includes("选择城市") &&
+	  communityMain.includes("!isValidCity(cityName.value)") &&
+	  communityMain.includes('switchCity()') &&
+	  communityMain.includes('城市加载失败')
+	) {
+	  ok('同城未设城 CTA→选择城市/switchCity；loadCity 失败可见')
+	} else {
+	  fail('同城空态 CTA 或 loadCity 失败提示缺失')
+	}
+	if (communityMain.includes('loadDynamics') && communityMain.includes('getDynamicList')) {
+	  ok('动态列表可直接加载（浏览无门槛）')
 } else {
   fail('动态列表加载异常')
 }
@@ -754,6 +859,15 @@ if (applyApi.includes('ALREADY_PENDING') && applyApi.includes('mockApplyStates')
 } else {
   fail('applyToMeet 幂等状态不完整')
 }
+// Mock 重复申请应 success:false，避免 Sheet 当成功
+if (
+  applyApi.includes("code: 'ALREADY_PENDING'") &&
+  applyApi.includes('success: false')
+) {
+  ok('applyToMeet 重复申请 mock/真路径均为失败语义')
+} else {
+  fail('applyToMeet 重复申请仍可能 success:true')
+}
 
 const planeApi = read('api/community.uts')
 if (planeApi.includes('paperPlaneDaily') && planeApi.includes('QUOTA_EXCEEDED')) {
@@ -802,6 +916,119 @@ if (paperPage.includes('sendPaperPlane') && paperPage.includes('scope')) {
 } else {
   fail('纸飞机发送未闭环')
 }
+
+// 11. Live API contract hardening. These checks intentionally inspect the UTS
+// source because this Node test does not execute a UniApp runtime.
+console.log('\n11. Live API contract...')
+function contract(name, check) {
+  try {
+    check()
+    ok(name)
+  } catch (err) {
+    fail(`${name}: ${err.message}`)
+  }
+}
+
+const liveUserApi = read('api/user.uts')
+const liveCommunityApi = read('api/community.uts')
+const liveTopicPage = read('pages/community/topic-detail.uvue')
+const dynamicCard = read('components/XsaDynamicCard.uvue')
+const livePublishPage = read('pages/community/publish.uvue')
+const livePostDetailPage = read('pages/community/post-detail.uvue')
+const livePaperPlanePage = read('pages/community/paper-plane.uvue')
+
+contract('getMeProfile uses /auth/me and maps real-name status', () => {
+  assert.match(liveUserApi, /url:\s*'\/auth\/me'/)
+  assert.match(liveUserApi, /realname_status/)
+  assert.match(liveUserApi, /status == 2.*passed/s)
+  assert.match(liveUserApi, /status == 1 \|\| status == 4.*reviewing/s)
+  assert.match(liveUserApi, /status == 3 \|\| status == 5.*rejected/s)
+})
+contract('real post mapper preserves verification, visibility, and declaration', () => {
+  assert.match(liveCommunityApi, /realname_status/)
+  assert.match(liveCommunityApi, /visibility:\s*row\.visibility/)
+  assert.match(liveCommunityApi, /declaration:\s*row\.declaration/)
+})
+contract('create requests transmit fields and idempotency keys', () => {
+  assert.match(liveCommunityApi, /visibility:\s*visibility/)
+  assert.match(liveCommunityApi, /declaration:\s*declaration/)
+  assert.match(liveCommunityApi, /'Idempotency-Key'/)
+})
+contract('real-media publishing is blocked before its HTTP request', () => {
+  assert.match(liveCommunityApi, /MEDIA_UPLOAD_REQUIRED/)
+  assert.match(liveCommunityApi, /图片和视频上传服务尚未接入，暂不能发布媒体动态/)
+})
+contract('topic detail passes page metadata and scroll pagination', () => {
+  assert.match(liveCommunityApi, /getTopicDetail\(topicId: number, sort: string = 'hot', page: number = 1, pageSize: number = 20\)/)
+  assert.match(liveTopicPage, /@scrolltolower="loadMore"/)
+  assert.match(liveTopicPage, /const hasMore = ref\(true\)/)
+  assert.match(liveTopicPage, /const loadingMore = ref\(false\)/)
+})
+contract('dynamic card emits interactions without optimistic local mutation', () => {
+  assert.doesNotMatch(dynamicCard, /liked\.value\s*=\s*!liked\.value/)
+  assert.doesNotMatch(dynamicCard, /collected\.value\s*=\s*!collected\.value/)
+  assert.doesNotMatch(dynamicCard, /followed\.value\s*=\s*true/)
+  assert.match(dynamicCard, /emit\('like', props\.dynamic\.id\)/)
+  assert.match(dynamicCard, /emit\('collect', props\.dynamic\.id\)/)
+  assert.match(dynamicCard, /emit\('follow', props\.dynamic\.user\.id\)/)
+})
+contract('publish page retains the request failure message', () => {
+  assert.match(livePublishPage, /res\.message/)
+})
+contract('like-user scan is bounded by returned data rather than a hard page cap', () => {
+  assert.doesNotMatch(liveUserApi, /while \(page <= 20\)/)
+  assert.match(liveUserApi, /scanned >= total/)
+  assert.match(liveUserApi, /items\.length < pageSize/)
+})
+
+const liveRequestApi = read('api/request.uts')
+contract('all create flows use caller-owned keys instead of a hidden durable cache', () => {
+  assert.match(liveCommunityApi, /export function createCommunityCreateKey/)
+  assert.match(liveCommunityApi, /export function discardCommunityCreateKey/)
+  assert.doesNotMatch(liveCommunityApi, /pendingCreateKeys/)
+  assert.match(liveCommunityApi, /suppliedCreateKey/)
+  assert.match(livePublishPage, /pendingPublishKey/)
+  assert.match(livePublishPage, /discardCommunityCreateKey\(pendingPublishKey\.value\)/)
+  assert.match(livePostDetailPage, /pendingCommentKey/)
+  assert.match(livePostDetailPage, /idempotencyKey:\s*pendingCommentKey\.value/)
+  assert.match(livePaperPlanePage, /pendingSendKey/)
+  assert.match(livePaperPlanePage, /idempotencyKey:\s*pendingSendKey\.value/)
+  assert.match(livePaperPlanePage, /pendingReplyKey/)
+  assert.match(livePaperPlanePage, /replyPaperPlane\(p\.id, content, pendingReplyKey\.value\)/)
+})
+contract('create keys rotate when the exact caller payload snapshot changes', () => {
+  assert.match(livePublishPage, /pendingPublishFingerprint/)
+  assert.match(livePublishPage, /publishFingerprint\(/)
+  assert.match(livePublishPage, /pendingPublishFingerprint\.value != fingerprint/)
+  assert.match(livePostDetailPage, /pendingCommentFingerprint/)
+  assert.match(livePaperPlanePage, /pendingSendFingerprint/)
+  assert.match(livePaperPlanePage, /pendingReplyFingerprint/)
+  assert.match(livePaperPlanePage, /discardPendingSendKey\(\)/)
+  assert.match(livePaperPlanePage, /discardPendingReplyKey\(\)/)
+})
+contract('paper-plane reply mutates local state only after business success', () => {
+  const replyStart = livePaperPlanePage.indexOf('const reply = async')
+  const replyHandler = livePaperPlanePage.slice(replyStart)
+  assert.match(replyHandler, /const replyOk = res != null && res\.success && \(res\.data == null \|\| res\.data\.success != false\)/)
+  assert.match(replyHandler, /if \(replyOk\) \{[\s\S]*p\.replied = true[\s\S]*p\.replyCount \+= 1/)
+})
+contract('topic requests invalidate stale load and pagination responses', () => {
+  assert.match(liveTopicPage, /const topicLoadSeq = ref\(0\)/)
+  assert.match(liveTopicPage, /const seq = topicLoadSeq\.value \+ 1/)
+  assert.match(liveTopicPage, /seq != topicLoadSeq\.value/)
+  assert.match(liveTopicPage, /const requestedSort = sort\.value/)
+  assert.match(liveTopicPage, /const requestedPage = nextPage/)
+})
+contract('comments fail closed without server certification data', () => {
+  const commentStart = liveCommunityApi.indexOf('function mapComment')
+  const commentEnd = liveCommunityApi.indexOf('function mapTopic', commentStart)
+  const commentMapper = liveCommunityApi.slice(commentStart, commentEnd)
+  assert.match(commentMapper, /realNameStatus: 'missing'/)
+  assert.doesNotMatch(commentMapper, /realNameStatus: 'passed'/)
+})
+contract('live HTTP request logging does not include request bodies', () => {
+  assert.doesNotMatch(liveRequestApi, /console\.log\('🌐 \[HTTP Request\]', method, url, body\)/)
+})
 
 // 无浏览器专属 API（社区关键路径）
 const browserApi = /window\.|document\.|localStorage|sessionStorage|querySelector|innerHTML/

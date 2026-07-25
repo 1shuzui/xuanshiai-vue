@@ -1,6 +1,6 @@
 ﻿# 当前工程状态与已知差异
 
-> 更新日期：2026-07-24
+> 更新日期：2026-07-25
 > 用途：防止文档把占位实现、Mock 或历史配置描述成已完成生产能力。
 
 ## 1. 当前可确认的工程事实
@@ -15,8 +15,10 @@
   - 发现：`全部 / MBTI / 校友 / 同乡`（TOPIC 面板仅在「发现·全部」）
 - 已有 `Xsa*` 组件含 `XsaDynamicCard`、`XsaApplySheet`、`XsaReportSheet` 等；实名门槛见 `utils/realNameGate.uts`（`passed|missing|reviewing|rejected`，兼容 pending/failed）。
 - 认证门槛：常规社区互动、申请认识、参与话题 / 带话题发布均仅要求实名通过；双重认证仅作展示加分。
-- 已有 `api/` 与 `mock/` 分层；社区 API 支持分页 list+hasMore、结构化 publish/comment/paperPlane、通知已读、拉黑过滤、同城城市；当前 `USE_MOCK = true`。
-- 申请认识：`applyToMeet` 与 `mockApplyStates` 幂等（pending/accepted 不重复扣次）；首页与社区统一 `XsaApplySheet`。
+- 已有 `api/` 与 `mock/` 分层；**社区 API 已支持 Mock / FastAPI 双路径**（`config.uts` + `request.uts` HTTP Bearer + `community.uts` map*）；**仓库默认 `USE_MOCK = true`**（关 Mock 联调时本地改为 `false` 并配置可达 `API_BASE_URL`）。
+- 申请认识：`applyToMeet` Mock 幂等（重复申请 `success:false`）；**真路径** `POST /discovery/applications/{id}` + 刷新 quotas；409 → failRes。喜欢用户：`likeUser` 真路径 `PUT|DELETE /users/{id}/like`，likes 列表 `page_size≤50` 分页预检。
+- 社区 API 另导出：删帖/删评/取关/我的纸飞机；关注 Tab「全部」真路径 **`mode=following_and_liked`**（关注∪用户级喜欢，BE 分页；原客户端假并集已撤）。
+- **联调总账：** [`COMMUNITY_HTTP_CHANGELOG.md`](./COMMUNITY_HTTP_CHANGELOG.md)；**对抗审查：** [`COMMUNITY_ADVERSARIAL_REVIEW.md`](./COMMUNITY_ADVERSARIAL_REVIEW.md)。
 - 2026-07-24：社区动态卡字段密度、发布页话题/声明/视频/表情、通知三栏已按设计实现（Mock + 页面渐进增强）；真机视频上传与 COS 仍属二期。
 - 用户肖像资源位于 `static/portraits/`。
 - HTML 参考 `design-demos/community-shell/` 已冻结，不再作为实现主线。
@@ -24,7 +26,7 @@
 ## 2. 运行与构建状态
 
 - 2026-07-24 结构验证：`node tests/test-mock-system.js` 与 `node tests/test-community-flow.js` 均 exit 0；`git diff --check` 无错误（仅有 CRLF 提示）。工作区根目录 graphify 见 `../graphify-out/`（本项目目录内无独立 `graphify-out/`）。
-- **HBuilderX 端侧编译（本会话已执行，2026-07-23 17:57 产物）：** 以 HBuilderX CLI `launch mp-weixin --compile true` 重新生成 `unpackage/dist/dev/mp-weixin`；社区子页与 `api/community.js` 同步刷新；微信开发者工具可导入该目录。H5 冒烟预览端口为本机 `http://localhost:8080`（`:5173` 不是本工程 UI）。
+- **HBuilderX 端侧编译：** 2026-07-25 关 Mock 后以 CLI `launch mp-weixin --compile true` 重新生成 `unpackage/dist/dev/mp-weixin`（产物 HTTP-only）；微信开发者工具已打开该目录。H5 冒烟预览端口为本机 `http://localhost:8080`（`:5173` 不是本工程 UI）。
 - **社区列表曾报“网络异常”：** 根因不是真实网络失败，而是 UTS 编译对象属性简写时丢掉局部变量（`normalizeListQuery` 返回 `{ tab }` 被编成裸 `tab` → ReferenceError → 页面 catch 文案）。源码已改为 `resolveTabValue` + 显式 `tab: tabName` 等属性名；产物中可见 `tab: tabName_1`。同类对象简写在 `.uts` 中应避免。
 - npm CLI 当前未通过：默认会读取不存在的 `src/manifest.json`；手动指定项目根目录后，又会在解析 `App.uvue` 时失败。`npm run build:mp-weixin` / `dev:mp-weixin` 不能作为端侧验收结论。
 - 因此当前应以 HBuilderX 作为端侧编译入口，并分别在浏览器和微信开发者工具验证；旧 `unpackage` 不能代替本次重新编译。
@@ -38,12 +40,19 @@
 
 聊天详情页已经存在，但产品规则仍是“先申请认识、双方同意后再建立沟通”。不得把现有页面理解为允许陌生人直接私信。
 
-## 4. 当前后端状态
+## 4. 当前后端 / 联调状态
 
-- `api/request.uts` 的真实分支调用 `uniCloud.callFunction`。
-- `api/config.uts` 中的 `spaceId` 当前是占位值，现有请求封装没有完成完整生产联调说明。
-- 因此不能只把 `USE_MOCK` 改为 `false` 就宣称真实接口完成。
-- Mock 应按模块逐步退役，不删除作为契约样例的有效数据。
+- `api/request.uts`：`USE_MOCK=true` 走 mock；`false` 且 `API_CONFIG.useHttp=true` 走 FastAPI HTTP（Bearer）；`useHttp=false` 才回退 `uniCloud.callFunction`。
+- 仓库默认 `API_BASE_URL=http://127.0.0.1:8000`（真机/同网段联调请本地改为局域网 IP）；token 存 `xsa_access_token`。
+- 社区模块主链路与旁路（like/apply）**适配器 + 审查 P0 缺陷已修**。
+- **2026-07-25 本地 HTTP 冒烟（A1–A4/B1 核心）已过：** quotas 200、like 可取消、`page_size` 50/100 契约、互喜欢无 `chat_session`、apply remain−1 + 409、accept 才建会话；记录见 changelog「实际测试」。环境：MySQL + Docker Redis + `SMS_PROVIDER=mock`。
+- **关 Mock 端侧联调（进行中，非物理真机完成）：** 本地将 `USE_MOCK=false` 并配置可达 `API_BASE_URL`；BE 监听 `0.0.0.0:8000`；登录页**仅「调试登录」**写 mock 短信 token（`13800001001`/`123456`），正式一键登录不绑联调账号；HBuilderX 5.15 编译成功；微信开发者工具已打开产物；`auto-preview` 因 IDE `access_token expired` 失败。详见 changelog「关 Mock 端侧联调」。
+- 实测顺带修：BE `discovery._viewer_context` 缺 `user_auth` JOIN（R-T1）；社区 feed `up.school` → `ua.school`（R-T2）。
+- 物理手机扫码预览、开发者工具内手点全路径、阶段 C 仍开放；**不能**只把 `USE_MOCK` 改为 `false` 就宣称生产完成。
+- BE：`set_like` 不再互喜欢建会话（对齐先申请再聊）；quotas VIP 用 `end_at`；额度 Redis 键 UTC 统一。
+- **同城城市（2026-07-25 续）：** 独立偏好 `community_city_*`（**不写** residence）；一周限改 429；`mode=city` **只按** 帖子 `p.location`；锚点请求→偏好→现居回落；未设城 FE CTA「选择城市」。Live：`tests/live/test_community_city_http.py`。详见 changelog「同城偏好独立 + location-only + 一周限改」。
+- Mock 应按模块逐步退役，不删除作为契约样例的有效数据；默认保持 `USE_MOCK = true`，联调结束后勿把个人局域网 IP 提交回仓库。
+- 仍后置：媒体上传、消息页 applications 真路径、聊天 sessions FE、纸飞机 reply 幂等、区级筛选/完整 regions 选择器、自动化 E2E 入库；见 changelog / 审查台账 deferred。
 
 ## 5. 配置与产品边界差异
 

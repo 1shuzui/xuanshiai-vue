@@ -6,6 +6,7 @@ unpackage/
 .playwright-mcp/
 .zcode/
 graphify-out/
+.tmp_smoke/
 # Agent / local tooling (do not publish)
 .serena/
 docs/superpowers/
