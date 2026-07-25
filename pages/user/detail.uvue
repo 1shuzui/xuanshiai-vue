@@ -107,7 +107,7 @@
 
 			<!-- ===== Ta的语音 ===== -->
 			<view class="section-card">
-				<text class="section-title">Ta的语音</text>
+				<text class="section-title">{{ isOwnProfile ? '我的语音' : 'Ta的语音' }}</text>
 
 				<!-- 锁定状态 -->
 				<view class="locked-block" v-if="isLockedView">
@@ -178,8 +178,8 @@
 			<!-- 卡片间距 -->
 			<view class="card-gap"></view>
 
-			<!-- ===== 人气爆灯 ===== -->
-			<view class="section-card">
+			<!-- ===== 人气爆灯（看自己主页不显示） ===== -->
+			<view class="section-card" v-if="!isOwnProfile">
 				<view class="spot-header">
 					<view class="spot-title-group">
 						<text class="spot-flame">🔥</text>
@@ -232,9 +232,16 @@
 			<!-- 底部留白 -->
 			<view class="scroll-bottom-spacer"></view>
 		</scroll-view>
-
 		<!-- ==================== 底部操作栏 ==================== -->
-		<view class="bottom-bar">
+		<!-- 看自己：编辑资料 -->
+		<view class="bottom-bar bottom-bar-own" v-if="isOwnProfile">
+			<view class="match-btn edit-only-btn" @tap="goEdit">
+				<text class="match-text">编辑资料</text>
+			</view>
+		</view>
+
+		<!-- 看别人：申请认识 + 喜欢 -->
+		<view class="bottom-bar" v-else>
 			<view class="bottom-home" @tap="onBack">
 				<text class="bottom-home-icon">←</text>
 				<text class="bottom-home-text">返回</text>
@@ -247,7 +254,6 @@
 				<text class="like-heart">♥</text>
 			</view>
 		</view>
-
 		<!-- 头像：独立于 cover-area，不被 profile-header 背景遮挡 -->
 		<view class="avatar-circle">
 			<image class="avatar-img" :src="user.avatar" mode="aspectFill"></image>
@@ -359,6 +365,9 @@ const onBack = () => {
 }
 const onShare = () => {
 	uni.showToast({ title: '分享给朋友', icon: 'none' })
+}
+const goEdit = () => {
+	uni.navigateTo({ url: '/pages/user/edit' })
 }
 const onUnlock = () => {
 	uni.navigateTo({ url: '/pages/profile/vip' })
@@ -1060,6 +1069,19 @@ const onLike = async () => {
 	border-radius: 48rpx;
 	background-color: var(--accent);
 	box-shadow: 0 8rpx 24rpx rgba(56, 152, 141, 0.25);
+}
+
+.bottom-bar-own {
+	justify-content: center;
+}
+
+.edit-only-btn {
+	width: 480rpx;
+}
+
+.bottom-like-placeholder {
+	width: 96rpx;
+	height: 96rpx;
 }
 
 .match-heart {
