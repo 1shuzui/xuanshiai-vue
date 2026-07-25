@@ -1,581 +1,1302 @@
 <template>
 	<view class="matchmaker-page">
-		<!-- 子 Tab：服务红娘 / 热心红娘 / AI 红娘 -->
-		<view class="subtabs">
-			<view
-				class="subtab"
-				:class="{ active: currentTab === 'service' }"
-				@click="switchTab('service')"
-			>
-				<text>服务红娘</text>
+		<view class="page-shell">
+			<view v-if="currentTabValue !== 'ai'" class="page-head">
+				<text class="page-kicker">认真牵线</text>
+				<text class="page-title">三种方式，帮你更稳地靠近合适的人</text>
+				<text class="page-desc">服务红娘负责匹配推进，私人定制负责长期陪跑，AI 红娘负责梳理线索与破冰建议。</text>
 			</view>
-			<view
-				class="subtab"
-				:class="{ active: currentTab === 'volunteer' }"
-				@click="switchTab('volunteer')"
-			>
-				<text>热心红娘</text>
+
+			<view v-if="currentTabValue !== 'ai'" class="page-tabs">
+				<view class="matchmaker-tab-bar">
+					<view
+						v-for="(tab, index) in tabs"
+						:key="tab"
+						class="matchmaker-tab"
+						:class="{ active: currentTabIndex === index }"
+						@click="handleTabChange(index)"
+					>
+						<text>{{ tab }}</text>
+					</view>
+				</view>
 			</view>
-			<view
-				class="subtab"
-				:class="{ active: currentTab === 'ai' }"
-				@click="switchTab('ai')"
-			>
-				<text>AI 红娘</text>
+
+			<scroll-view class="page-scroller" scroll-y enhanced :show-scrollbar="false">
+				<view class="page-content" :class="{ 'service-page-content': currentTabValue === 'service', 'ai-page-content': currentTabValue === 'ai' }">
+					<view class="error-card" v-if="loadError.length > 0">
+						<text class="error-title">部分内容加载失败</text>
+						<text class="error-desc">{{ loadError }}</text>
+						<view class="error-button" @click="reloadPage">
+							<text>重新加载</text>
+						</view>
+					</view>
+
+					<view v-if="currentTabValue === 'service'" class="tab-panel">
+						<view class="section-header">
+							<view>
+								<text class="section-title">服务红娘</text>
+								<text class="section-desc">专业顾问会先理解你的关系目标，再决定如何帮你更稳地认识一个人。</text>
+							</view>
+							<text class="section-link" @click="showServiceMore">查看更多</text>
+						</view>
+
+						<XsaEmpty
+							v-if="serviceMatchmakers.length === 0 && !pageLoading"
+							text="暂无服务红娘"
+							description="稍后再来看看，我们正在整理最新排期。"
+							size="small"
+						/>
+
+						<scroll-view v-else scroll-x enhanced :enable-flex="true" :show-scrollbar="false" class="horizontal-scroll">
+							<view class="horizontal-list">
+								<MatchmakerCard
+									v-for="item in serviceMatchmakers"
+									:key="item.id"
+									:data="item"
+									actionText="联系她"
+									unitText="/次"
+									@detail="handleMatchmakerDetail"
+									@contact="handleMatchmakerContact"
+								/>
+							</view>
+						</scroll-view>
+
+						<MatchmakerRank v-if="rankList.length > 0" :list="rankList" @item-click="handleMatchmakerDetail" />
+					<view class="join-entry-row">
+						<view class="join-entry" @click="handleBecomeMatchmaker">
+							<view class="join-entry-icon"><text>缘</text></view>
+							<text class="join-entry-label">我要做红娘</text>
+						</view>
+						<view class="join-entry" @click="handleBecomePartner">
+							<view class="join-entry-icon partner"><text>伴</text></view>
+							<text class="join-entry-label">申请合伙人</text>
+						</view>
+						<view class="join-entry" @click="handleBecomePromoter">
+							<view class="join-entry-icon promoter"><text>推</text></view>
+							<text class="join-entry-label">推广红娘</text>
+						</view>
+					</view>
+
+						<view class="notice-card">
+							<text class="notice-title">服务说明</text>
+							<text class="notice-text">红娘只帮助你梳理资料、匹配对象与安排节奏，不替双方自动同意，也不会承诺关系结果。</text>
+						</view>
+					</view>
+
+					<view v-if="currentTabValue === 'custom'" class="tab-panel">
+						<view class="custom-home-hero">
+							<view class="custom-home-copy">
+								<text class="custom-home-kicker">私人定制服务</text>
+								<text class="custom-home-title">专属红娘，认真陪你靠近</text>
+								<text class="custom-home-desc">从需求梳理、候选筛选到见面反馈，全程跟进每一个关键节点。</text>
+							</view>
+							<view class="custom-home-portraits">
+								<image class="custom-home-portrait front" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+								<image class="custom-home-portrait back" src="/static/portraits/profile-man-light.jpg" mode="aspectFill"></image>
+							</view>
+						</view>
+
+						<view class="section-header">
+							<view><text class="section-title">服务套餐</text><text class="section-desc">选择适合自己的服务节奏</text></view>
+						</view>
+
+						<XsaEmpty v-if="customPlans.length === 0 && !pageLoading" text="暂无定制方案" description="方案内容整理中。" size="small" />
+						<scroll-view v-if="customPlans.length > 0" scroll-x :enable-flex="true" class="custom-home-plan-scroll" :show-scrollbar="false">
+							<view class="custom-home-plan-list">
+								<view v-for="item in customPlans" :key="item.id" class="custom-home-plan" :class="{ selected: selectedCustomPlanId === item.id }" @click="selectCustomPlan(item)">
+									<view v-if="item.tag" class="custom-home-plan-badge"><text>{{ item.tag }}</text></view>
+									<text class="custom-home-plan-name">{{ item.name }}</text>
+									<view class="custom-home-plan-price"><text>¥{{ item.price }}</text></view>
+									<text class="custom-home-plan-duration">{{ item.duration }}</text>
+									<text class="custom-home-plan-feature">{{ item.features[0] }}</text>
+									<text class="custom-home-plan-copy">{{ item.description }}</text>
+								</view>
+							</view>
+						</scroll-view>
+
+					<view v-if="currentTabValue === 'custom'" class="join-entry-row">
+						<view class="join-entry" @click="handleBecomeMatchmaker">
+							<view class="join-entry-icon"><text>缘</text></view>
+							<text class="join-entry-label">我要做红娘</text>
+						</view>
+						<view class="join-entry" @click="handleBecomePartner">
+							<view class="join-entry-icon partner"><text>伴</text></view>
+							<text class="join-entry-label">申请合伙人</text>
+						</view>
+						<view class="join-entry" @click="handleBecomePromoter">
+							<view class="join-entry-icon promoter"><text>推</text></view>
+							<text class="join-entry-label">推广红娘</text>
+						</view>
+					</view>
+
+					</view>
+
+					<view v-if="currentTabValue === 'ai'" class="ai-chat-page">
+						<view class="ai-chat-nav">
+							<view class="ai-back" @click="leaveAiChat"><view class="ai-back-chevron"></view></view>
+							<text class="ai-nav-title">AI 红娘</text>
+							<text class="ai-clear" @click="clearAiMessages">清除记录</text>
+						</view>
+
+						<view class="ai-profile-card">
+							<image class="ai-profile-avatar" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+							<view class="ai-profile-copy">
+								<text class="ai-profile-name">小缘助手</text>
+								<text class="ai-profile-subtitle">关系沟通助手</text>
+							</view>
+							<view class="ai-online"><view class="ai-online-dot"></view><text>在线</text></view>
+						</view>
+
+						<view class="ai-message-list">
+							<view v-for="item in aiMessages" :key="item.id" class="ai-message" :class="item.role">
+								<text>{{ item.text }}</text>
+							</view>
+						</view>
+
+						<view class="quick-question-panel">
+							<view class="quick-question-title"><view></view><text>快捷问题</text><view></view></view>
+							<view class="quick-question-grid">
+								<view v-for="item in aiQuickQuestions" :key="item" class="quick-question" @click="askAiQuestion(item)"><text>{{ item }}</text></view>
+							</view>
+						</view>
+					</view>
+				</view>
+			</scroll-view>
+		</view>
+
+		<view v-if="currentTabValue === 'custom'" class="custom-apply-safe">
+			<view class="custom-apply-button" @click="applyCustomPlan">
+				<text>立即申请私人定制</text>
 			</view>
 		</view>
 
-		<scroll-view class="scroller" scroll-y>
-			<!-- 服务红娘 -->
-			<view v-if="currentTab === 'service'" class="page-pad">
-				<view class="hero-block">
-					<text class="hero-kicker">SERIOUS CONNECTION</text>
-					<text class="hero-title">专业红娘团队为你牵线</text>
-					<text class="hero-desc text-muted">不替你做决定，但帮你看见更多真实资料、澄清关系需求并安排合适见面。</text>
-				</view>
-
-				<XsaEmpty
-					v-if="serviceList.length === 0 && !loading"
-					text="暂无服务红娘"
-					description="稍后再来看看"
-					size="small"
-				/>
-
-				<view
-					class="mm-card"
-					v-for="item in serviceList"
-					:key="item.id"
-				>
-					<view class="mm-profile">
-						<image class="mm-avatar" :src="item.avatar" mode="aspectFill"></image>
-						<view class="mm-info">
-							<text class="mm-name">{{ item.name }}</text>
-							<text class="mm-title text-muted">{{ item.title }} · {{ item.experience }}</text>
-							<text class="mm-intro text-muted">{{ item.intro }}</text>
-						</view>
-					</view>
-					<view class="case-box">
-						<text>服务记录：近服务 {{ item.consultCount }} 人 · 成功牵线 {{ item.successCount }} 对</text>
-					</view>
-					<view class="contact-row">
-						<XsaButton variant="secondary" size="small" @click="handleCall(item)">电话咨询</XsaButton>
-						<XsaButton variant="primary" size="small" @click="handleBook(item)">预约服务</XsaButton>
-					</view>
-				</view>
+		<view v-if="currentTabValue === 'ai'" class="ai-input-safe">
+			<view class="ai-input-bar">
+				<input class="ai-chat-input" :value="aiInput" placeholder="请输入你的问题" confirm-type="send" @input="onAiInput" @confirm="sendAiMessage" />
+				<view class="ai-send-button" @click="sendAiMessage"><text>发送</text></view>
 			</view>
-
-			<!-- 热心红娘 -->
-			<view v-else-if="currentTab === 'volunteer'" class="page-pad">
-				<view class="hero-block">
-					<text class="hero-kicker">COMMUNITY MATCHMAKERS</text>
-					<text class="hero-title">把靠谱的朋友介绍给靠谱的人</text>
-					<text class="hero-desc text-muted">排行榜只展示真实有效的介绍数量，不承诺匹配结果。</text>
-				</view>
-
-				<view
-					class="rank-row"
-					v-for="(item, index) in volunteerList"
-					:key="item.id"
-				>
-					<text class="rank-no">0{{ index + 1 }}</text>
-					<image class="rank-avatar" :src="item.avatar" mode="aspectFill"></image>
-					<view class="rank-info">
-						<text class="rank-name">{{ item.name }}</text>
-						<text class="rank-desc text-muted">{{ item.intro }}</text>
-					</view>
-					<text class="rank-count text-muted">已介绍 {{ item.successCount }} 位</text>
-				</view>
-			</view>
-
-			<!-- AI 红娘：情感咨询对话（非直接匹配聊天） -->
-			<view v-else class="page-pad">
-				<view class="ai-intro">
-					<text class="ai-title">AI 红娘小誓</text>
-					<text class="ai-desc">帮你梳理择偶偏好、解读合拍线索和准备第一次对话。不会替代真人判断，也不会承诺匹配结果。</text>
-				</view>
-
-				<view class="mini-chat">
-					<view
-						v-for="(msg, idx) in aiMessages"
-						:key="idx"
-						class="bubble"
-						:class="msg.role"
-					>
-						<text>{{ msg.text }}</text>
-					</view>
-				</view>
-
-				<scroll-view class="prompts" scroll-x>
-					<view
-						class="prompt-chip"
-						v-for="(p, i) in prompts"
-						:key="i"
-						@click="usePrompt(p)"
-					>
-						<text>{{ p }}</text>
-					</view>
-				</scroll-view>
-
-				<view class="ai-input-row">
-					<input
-						class="ai-input"
-						:value="aiInput"
-						placeholder="描述你的困惑…"
-						confirm-type="send"
-						@input="onAiInput"
-						@confirm="sendAi"
-					/>
-					<view class="ai-send" @click="sendAi">
-						<text>发送</text>
-					</view>
-				</view>
-
-				<view class="section-block">
-					<text class="section-title">合拍线索推荐</text>
-					<XsaUserCard
-						v-for="user in aiRecommendUsers"
-						:key="user.id"
-						:user="user"
-						:show-actions="true"
-						@click="handleUserClick"
-						@like="handleLike"
-						@chat="handleApplyOnly"
-					/>
-				</view>
-			</view>
-		</scroll-view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import XsaUserCard from '@/components/XsaUserCard.uvue'
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
-	import XsaButton from '@/components/XsaButton.uvue'
+	import MatchmakerCard from '@/components/MatchmakerCard.uvue'
+	import MatchmakerRank from '@/components/MatchmakerRank.uvue'
 	import {
 		getServiceMatchmakers,
-		getVolunteerMatchmakers,
-		getAiRecommendations,
-		bookMatchmaker
+		getCustomPlans
 	} from '@/api'
 
-	const currentTab = ref('service')
-	const loading = ref(false)
-	const serviceList = ref([])
-	const volunteerList = ref([])
-	const aiRecommendUsers = ref([])
-	const aiInput = ref('')
-	const prompts = [
-		'帮我整理择偶要求',
-		'分析合拍度',
-		'准备破冰话题'
+	const tabs = ['服务红娘', '私人定制', 'AI红娘']
+	const tabValues = ['service', 'custom', 'ai']
+	const customHomeValues = [
+		{ mark: '准', title: '精准匹配', copy: '根据关系期待筛选候选对象。' },
+		{ mark: '专', title: '专属服务', copy: '一位红娘持续跟进反馈。' },
+		{ mark: '密', title: '隐私保护', copy: '资料只在必要范围内展示。' }
 	]
-	const aiMessages = ref([
-		{ role: 'ai', text: '你好，我可以先帮你把“想找什么样的人”从模糊感觉整理成可沟通的条件。' },
-		{ role: 'me', text: '我希望对方情绪稳定，也愿意认真沟通。' },
-		{ role: 'ai', text: '可以进一步拆成：冲突时不冷处理、能表达需求、对长期关系有共同规划。哪一项对你最重要？' }
-	])
+	const customHomeServices = [
+		{ title: '无需注册曝光', copy: '服务期间减少无关曝光。' },
+		{ title: '深度了解会员', copy: '梳理目标、方式与边界。' },
+		{ title: '开放隐藏会员', copy: '匹配更合适的隐藏资料。' },
+		{ title: '红娘精准推荐', copy: '结合资料和反馈推荐。' },
+		{ title: '个人形象指导', copy: '优化介绍、沟通与见面状态。' },
+		{ title: '安排线下见面', copy: '协助沟通首次见面安排。' },
+		{ title: '反馈约见结果', copy: '复盘感受并调整方向。' }
+	]
+	const customHomeSteps = [
+		{ title: '提交申请', copy: '填写期待' },
+		{ title: '红娘联系', copy: '确认需求' },
+		{ title: '需求分析', copy: '梳理方向' },
+		{ title: '精准匹配', copy: '推荐对象' },
+		{ title: '安排见面', copy: '双方沟通' },
+		{ title: '持续跟进', copy: '反馈复盘' }
+	]
+	const aiQuickQuestions = [
+		'如何提高相亲成功率',
+		'怎么写自我介绍',
+		'第一次约会注意什么',
+		'帮我分析择偶需求'
+	]
 
-	onMounted(() => {
-		loadService()
-		loadVolunteer()
-		loadAi()
+	const currentTabIndex = ref(0)
+	const pageLoading = ref(false)
+	const loadError = ref('')
+	const aiInput = ref('')
+	const aiMessages = ref<any[]>([
+		{ id: 1, role: 'assistant', text: '你好，我是你的 AI 红娘。可以告诉我你的择偶需求吗？' },
+		{ id: 2, role: 'user', text: '我希望对方性格开朗，有稳定职业。' }
+	])
+	const nextAiMessageId = ref(3)
+
+	const serviceMatchmakers = ref<any[]>([])
+	const customPlans = ref<any[]>([])
+	const selectedCustomPlanId = ref(0)
+
+	const currentTabValue = computed(() => {
+		return tabValues[currentTabIndex.value]
 	})
 
-	const switchTab = (tab: string) => {
-		currentTab.value = tab
+	const rankList = computed(() => {
+		const list = serviceMatchmakers.value.slice()
+		list.sort((a : any, b : any) => {
+			const aCount = a.serviceCount != null ? a.serviceCount : 0
+			const bCount = b.serviceCount != null ? b.serviceCount : 0
+			if (bCount != aCount) {
+				return bCount - aCount
+			}
+			const aRate = a.rating != null ? a.rating : 0
+			const bRate = b.rating != null ? b.rating : 0
+			return bRate - aRate
+		})
+		return list.slice(0, 4)
+	})
+
+	onMounted(() => {
+		reloadPage()
+	})
+
+	const handleTabChange = (index : number) => {
+		if (tabValues[index] === 'custom') {
+			uni.navigateTo({
+				url: '/pages/matchmaker/custom'
+			})
+			return
+		}
+		currentTabIndex.value = index
 	}
 
-	const loadService = async () => {
+	const reloadPage = async () => {
+		pageLoading.value = true
+		loadError.value = ''
 		try {
-			loading.value = true
+			await loadServiceMatchmakers()
+			await loadCustomContent()
+		} catch (e) {
+			loadError.value = '页面已展示可用内容，但有少量模块暂时未加载完整。'
+		} finally {
+			pageLoading.value = false
+		}
+	}
+
+	const loadServiceMatchmakers = async () => {
+		try {
 			const res = await getServiceMatchmakers()
 			if (res.success) {
-				serviceList.value = res.data
+				serviceMatchmakers.value = res.data as any[]
 			}
 		} catch (e) {
-			console.error(e)
-		} finally {
-			loading.value = false
+			if (loadError.value.length == 0) {
+				loadError.value = '服务红娘数据加载失败。'
+			}
 		}
 	}
 
-	const loadVolunteer = async () => {
+	const loadCustomContent = async () => {
 		try {
-			const res = await getVolunteerMatchmakers()
-			if (res.success) {
-				volunteerList.value = res.data
+			const planRes = await getCustomPlans()
+			if (planRes.success) {
+				customPlans.value = planRes.data as any[]
 			}
 		} catch (e) {
-			console.error(e)
+			if (loadError.value.length == 0) {
+				loadError.value = '私人定制内容加载失败。'
+			}
 		}
 	}
 
-	const loadAi = async () => {
-		try {
-			const res = await getAiRecommendations()
-			if (res.success) {
-				aiRecommendUsers.value = (res.data as any[]).map((item: any) => {
-					return {
-						id: item.userId != null ? item.userId : item.id,
-						name: item.name,
-						age: item.age,
-						gender: 2,
-						avatar: item.avatar,
-						online: true,
-						certifications: ['实名认证'],
-						tags: item.tags != null ? item.tags : [],
-						location: item.city,
-						introduction: item.aiSuggestion != null ? item.aiSuggestion : ''
-					}
-				})
-			}
-		} catch (e) {
-			console.error(e)
-		}
+	const showServiceMore = () => {
+		uni.showToast({
+			title: '已展示全部服务红娘',
+			icon: 'none'
+		})
 	}
 
-	const handleCall = (item: any) => {
-		uni.showToast({ title: '准备打开系统拨号 · 演示', icon: 'none' })
+	const handleMatchmakerDetail = (item : any) => {
+		uni.navigateTo({
+			url: '/pages/matchmaker/detail?id=' + item.id
+		})
 	}
 
-	const handleBook = async (item: any) => {
-		try {
-			const res = await bookMatchmaker(item.id)
-			if (res.success) {
-				uni.showToast({ title: '预约已提交', icon: 'success' })
-			}
-		} catch (e) {
-			uni.showToast({ title: '预约失败', icon: 'none' })
-		}
+	const handleMatchmakerContact = (item : any) => {
+		uni.navigateTo({
+			url: '/pages/matchmaker/apply?matchmakerId=' + item.id + '&matchmakerName=' + encodeURIComponent(item.name) + '&type=' + currentTabValue.value
+		})
 	}
 
-	const onAiInput = (e: any) => {
-		aiInput.value = e.detail.value
+	const handleSelectPlan = (item : any) => {
+		uni.navigateTo({
+			url: '/pages/matchmaker/custom?id=' + item.id
+		})
 	}
 
-	const usePrompt = (p: string) => {
-		aiInput.value = p
+	const goCustomPlans = () => {
+		uni.navigateTo({
+			url: '/pages/matchmaker/custom'
+		})
 	}
 
-	const sendAi = () => {
+	const selectCustomPlan = (item : any) => {
+		selectedCustomPlanId.value = item.id
+	}
+
+	const applyCustomPlan = () => {
+		const plan = customPlans.value.find((p: any) => p.id == selectedCustomPlanId.value)
+		const name = plan != null ? plan.name : '私人定制服务'
+		uni.navigateTo({
+			url: '/pages/matchmaker/apply?type=custom&matchmakerName=' + encodeURIComponent(name)
+		})
+	}
+
+	const showCustomHomeDetail = (item : any) => {
+		uni.showModal({ title: item.title, content: item.copy, showCancel: false, confirmText: '知道了' })
+	}
+
+	const handleBecomeMatchmaker = () => {
+		uni.navigateTo({
+			url: '/pages/matchmaker/become-matchmaker'
+		})
+	}
+
+	const handleBecomePartner = () => {
+		uni.navigateTo({
+			url: '/pages/matchmaker/become-partner'
+		})
+	}
+
+	const handleBecomePromoter = () => {
+		uni.navigateTo({
+			url: '/pages/matchmaker/become-promoter'
+		})
+	}
+
+	const applyCustomService = () => {
+		uni.navigateTo({
+			url: '/pages/matchmaker/apply?type=custom&matchmakerName=' + encodeURIComponent('私人定制服务')
+		})
+	}
+
+	const onAiInput = (event: any) => {
+		aiInput.value = event.detail.value
+	}
+
+	const sendAiMessage = () => {
 		const text = aiInput.value.trim()
 		if (text.length == 0) return
-		aiMessages.value.push({ role: 'me', text: text })
+		aiMessages.value.push({ id: nextAiMessageId.value, role: 'user', text: text })
+		nextAiMessageId.value = nextAiMessageId.value + 1
 		aiInput.value = ''
-		// 本地演示回复，不走即时社交聊天
-		setTimeout(() => {
-			aiMessages.value.push({
-				role: 'ai',
-				text: '我会把这个问题拆成可以观察和沟通的具体线索。原型阶段先展示到这里。'
-			})
-		}, 600)
+		aiMessages.value.push({ id: nextAiMessageId.value, role: 'assistant', text: '我先帮你把这个问题拆成可以观察和沟通的具体线索，再一起看看下一步怎么做。' })
+		nextAiMessageId.value = nextAiMessageId.value + 1
 	}
 
-	const handleUserClick = (user: any) => {
-		uni.navigateTo({ url: `/pages/user/detail?userId=${user.id}` })
+	const askAiQuestion = (question: string) => {
+		aiInput.value = question
+		sendAiMessage()
 	}
 
-	const handleLike = (userId: number) => {
-		uni.showToast({ title: '已添加到心动列表', icon: 'success' })
+	const clearAiMessages = () => {
+		aiMessages.value = [{ id: 1, role: 'assistant', text: '你好，我是你的 AI 红娘。可以告诉我你的择偶需求吗？' }]
+		nextAiMessageId.value = 2
 	}
 
-	// 产品约束：不能从红娘推荐直接进入聊天，应先申请认识
-	const handleApplyOnly = (userId: number) => {
-		uni.showToast({ title: '请先通过「申请认识」开启聊天', icon: 'none' })
-		uni.switchTab({ url: '/pages/index/index' })
+	const leaveAiChat = () => {
+		currentTabIndex.value = 0
 	}
 </script>
 
 <style scoped>
 	.matchmaker-page {
-		min-height: 100vh;
+		height: 100vh;
 		background: var(--canvas);
 	}
 
-	.subtabs {
-		position: sticky;
-		top: 0;
-		z-index: 8;
-		height: 48px;
+	.page-shell {
+		height: 100%;
 		display: flex;
-		flex-direction: row;
-		align-items: flex-end;
-		gap: 18px;
-		padding: 0 18px;
-		background: rgba(250, 252, 252, 0.96);
-		border-bottom: 1px solid var(--line);
+		flex-direction: column;
 	}
 
-	.subtab {
-		height: 48px;
+	.page-head {
+		padding: 20rpx 32rpx 12rpx;
+		display: flex;
+		flex-direction: column;
+		gap: 8rpx;
+	}
+
+	.page-kicker {
+		font-size: 20rpx;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		color: var(--accent2);
+	}
+
+	.page-title {
+		font-size: 44rpx;
+		line-height: 1.25;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.page-desc {
+		font-size: 22rpx;
+		line-height: 1.6;
+		color: var(--muted);
+	}
+
+	.page-tabs {
+		padding: 16rpx 32rpx 12rpx;
+	}
+
+	.matchmaker-tab-bar {
+		width: 100%;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		color: var(--muted);
-		font-size: 13px;
-		position: relative;
-	}
-
-	.subtab.active {
-		color: var(--ink);
-		font-weight: 800;
-	}
-
-	.subtab.active::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: -1px;
-		height: 3px;
-		background: var(--accent);
-		border-radius: 3px 3px 0 0;
-	}
-
-	.scroller {
-		height: calc(100vh - 48px);
-	}
-
-	.page-pad {
-		padding: 14px 14px 40px;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.hero-block {
-		padding: 18px;
-		background: var(--warm);
-		border-left: 3px solid var(--accent);
-		border-radius: 0 12px 12px 0;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.hero-kicker {
-		font-size: 10px;
-		color: var(--accent2);
-		font-weight: 800;
-		letter-spacing: 0.08em;
-	}
-
-	.hero-title {
-		font-size: 22px;
-		font-family: var(--serif);
-		font-weight: 700;
-		color: var(--ink);
-	}
-
-	.hero-desc {
-		font-size: 12px;
-		line-height: 1.6;
-	}
-
-	.mm-card {
-		border: 1px solid var(--line);
+		gap: 8rpx;
+		padding: 6rpx;
+		border-radius: 999rpx;
 		background: var(--surface);
-		border-radius: 12px;
-		padding: 13px;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
+		box-shadow: var(--shadow-sm);
 	}
 
-	.mm-profile {
-		display: flex;
-		flex-direction: row;
-		gap: 12px;
-	}
-
-	.mm-avatar {
-		width: 72px;
-		height: 88px;
-		border-radius: 8px;
-	}
-
-	.mm-info {
+	.matchmaker-tab {
+		position: relative;
 		flex: 1;
+		width: 33.3333%;
+		min-width: 0;
+		flex-shrink: 1;
+		height: 72rpx;
+		border-radius: 999rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 24rpx;
+		font-weight: 700;
+		color: var(--muted);
+	}
+
+	.matchmaker-tab.active {
+		background: var(--accent);
+		color: var(--paper);
+	}
+
+	.page-scroller {
+		flex: 1;
+		height: 0;
+	}
+
+	.page-content {
+		padding: 8rpx 32rpx 188rpx;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 24rpx;
 	}
 
-	.mm-name {
-		font-size: 17px;
-		font-family: var(--serif);
-		font-weight: 700;
+	.service-page-content {
+		padding-bottom: calc(env(safe-area-inset-bottom) + 56rpx);
 	}
 
-	.mm-title,
-	.mm-intro {
-		font-size: 11px;
+	.ai-page-content {
+		padding: 12rpx 24rpx calc(env(safe-area-inset-bottom) + 144rpx);
+	}
+
+	.error-card {
+		padding: 24rpx;
+		border-radius: 20rpx;
+		background: rgba(194, 224, 207, 0.56);
+		display: flex;
+		flex-direction: column;
+		gap: 10rpx;
+	}
+
+	.error-title {
+		font-size: 28rpx;
+		font-weight: 800;
+		color: var(--ink);
+	}
+
+	.error-desc {
+		font-size: 22rpx;
 		line-height: 1.55;
-	}
-
-	.case-box {
-		padding: 9px 10px;
-		background: var(--warm);
-		border-radius: 7px;
-		font-size: 11px;
-		line-height: 1.5;
 		color: var(--ink2);
 	}
 
-	.contact-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 8px;
+	.error-button {
+		margin-top: 4rpx;
+		align-self: flex-start;
+		height: 56rpx;
+		padding: 0 18rpx;
+		border-radius: 16rpx;
+		background: var(--surface);
+		display: flex;
+		align-items: center;
+		font-size: 20rpx;
+		font-weight: 800;
+		color: var(--accent2);
 	}
 
-	.rank-row {
+	.summary-card {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 12rpx;
+	}
+
+	.summary-item {
+		padding: 18rpx 16rpx;
+		border-radius: 20rpx;
+		background: var(--surface);
+		box-shadow: var(--shadow-sm);
+		display: flex;
+		flex-direction: column;
+		gap: 8rpx;
+		min-height: 120rpx;
+		justify-content: center;
+	}
+
+	.summary-value {
+		font-size: 30rpx;
+		line-height: 1.2;
+		font-weight: 800;
+		color: var(--ink);
+	}
+
+	.summary-label {
+		font-size: 18rpx;
+		line-height: 1.45;
+		color: var(--muted);
+	}
+
+	.tab-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 24rpx;
+	}
+
+	.custom-home-hero {
+		min-height: 300rpx;
+		padding: 28rpx;
+		border-radius: 20rpx;
+		background: var(--navy);
+		position: relative;
+		overflow: hidden;
+		display: flex;
+		flex-direction: row;
+	}
+
+	.custom-home-copy {
+		position: relative;
+		z-index: 1;
+		width: 62%;
+		display: flex;
+		flex-direction: column;
+		gap: 12rpx;
+	}
+
+	.custom-home-kicker { font-size: 20rpx; font-weight: 800; letter-spacing: .08em; color: var(--soft); }
+	.custom-home-title { font-size: 40rpx; line-height: 1.3; font-family: var(--serif); font-weight: 700; color: var(--paper); }
+	.custom-home-desc { font-size: 22rpx; line-height: 1.6; color: var(--paper); opacity: .82; }
+	.custom-home-portraits { position: absolute; right: 0; top: 0; width: 44%; height: 100%; }
+	.custom-home-portrait { position: absolute; bottom: 0; width: 68%; height: 74%; border: 4rpx solid var(--paper); object-fit: cover; }
+	.custom-home-portrait.front { right: 8rpx; border-radius: 20rpx 20rpx 0 0; z-index: 2; }
+	.custom-home-portrait.back { right: 96rpx; height: 62%; opacity: .72; border-radius: 16rpx 16rpx 0 0; }
+	.custom-home-values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; }
+	.custom-home-value { min-height: 188rpx; padding: 18rpx 14rpx; border-radius: 16rpx; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 10rpx; }
+	.custom-home-mark { width: 44rpx; height: 44rpx; border-radius: 50%; background: var(--accent-bg); color: var(--accent2); display: flex; align-items: center; justify-content: center; font-size: 22rpx; font-weight: 800; }
+	.custom-home-value-title { font-size: 24rpx; font-weight: 800; color: var(--ink); }.custom-home-value-copy { font-size: 18rpx; line-height: 1.5; color: var(--muted); }
+	.custom-home-services { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; }.custom-home-service { min-height: 144rpx; padding: 18rpx; border-radius: 16rpx; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 7rpx; }.custom-home-service-index { font-size: 18rpx; color: var(--accent2); font-weight: 800; }.custom-home-service-title { font-size: 25rpx; font-weight: 800; color: var(--ink); }.custom-home-service-copy { font-size: 19rpx; line-height: 1.45; color: var(--muted); }
+	.custom-home-process-scroll, .custom-home-plan-scroll { width: 100%; margin: 0 -32rpx; padding: 0 32rpx; }.custom-home-process-list, .custom-home-plan-list { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: flex-start; gap: 14rpx; padding-right: 32rpx; }.custom-home-process { width: 128rpx; flex-shrink: 0; display: flex; flex-direction: column; gap: 8rpx; }.custom-home-process-mark { width: 50rpx; height: 50rpx; border-radius: 50%; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 18rpx; font-weight: 800; }.custom-home-process-title { font-size: 23rpx; font-weight: 800; color: var(--ink); }.custom-home-process-copy { font-size: 18rpx; color: var(--muted); }
+	.custom-home-plan { position: relative; width: 236rpx; min-height: 220rpx; flex-shrink: 0; padding: 22rpx; border-radius: 16rpx; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 9rpx; }.custom-home-plan.selected { border-color: var(--accent); background: var(--accent-bg); }.custom-home-plan-name { font-size: 28rpx; font-family: var(--serif); font-weight: 700; color: var(--ink); }.custom-home-plan-price { font-size: 40rpx; color: var(--brown); font-weight: 800; }.custom-home-plan-duration { font-size: 18rpx; color: var(--muted); }.custom-home-plan-feature { font-size: 21rpx; color: var(--accent2); font-weight: 800; }.custom-home-plan-copy { font-size: 18rpx; line-height: 1.45; color: var(--muted); }.custom-home-plan-badge { position: absolute; top: 0; right: 0; padding: 6rpx 14rpx; border-radius: 0 16rpx 0 12rpx; background: var(--brown); color: var(--paper); font-size: 18rpx; font-weight: 800; }
+
+	.plan-entry-card {
+		padding: 28rpx;
+		border-radius: 20rpx;
+		background: var(--surface);
+		box-shadow: var(--shadow-sm);
+		border: 1px solid var(--line);
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		gap: 10px;
-		padding: 12px 2px;
-		border-bottom: 1px solid var(--line);
+		gap: 18rpx;
 	}
 
-	.rank-no {
-		width: 28px;
-		font-size: 18px;
-		font-family: var(--serif);
-		color: var(--accent);
-	}
-
-	.rank-avatar {
-		width: 48px;
-		height: 48px;
-		border-radius: 50%;
-	}
-
-	.rank-info {
+	.plan-entry-left {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: 8rpx;
+		min-width: 0;
 	}
 
-	.rank-name {
-		font-size: 13px;
+	.plan-entry-title {
+		font-size: 30rpx;
+		font-family: var(--serif);
 		font-weight: 700;
+		color: var(--ink);
 	}
 
-	.rank-desc {
-		font-size: 10px;
+	.plan-entry-desc {
+		font-size: 22rpx;
+		line-height: 1.5;
+		color: var(--muted);
 	}
 
-	.rank-count {
-		font-size: 10px;
+	.plan-entry-arrow {
+		width: 52rpx;
+		height: 52rpx;
+		border-radius: 50%;
+		background: var(--accent-bg);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
 	}
 
-	.ai-intro {
-		padding: 14px;
-		background: var(--navy);
-		border-radius: 12px;
+	.plan-entry-arrow text {
+		font-size: 36rpx;
+		font-weight: 700;
+		color: var(--accent2);
+	}
+
+	.section-header {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 20rpx;
+	}
+
+	.section-header.compact {
+		margin-top: -4rpx;
+	}
+
+	.section-title {
+		display: block;
+		font-size: 36rpx;
+		line-height: 1.2;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.section-desc {
+		display: block;
+		margin-top: 10rpx;
+		font-size: 22rpx;
+		line-height: 1.6;
+		color: var(--muted);
+	}
+
+	.section-link {
+		flex-shrink: 0;
+		font-size: 22rpx;
+		font-weight: 800;
+		color: var(--accent2);
+	}
+
+	.horizontal-scroll {
+		width: 100%;
+		margin: 0 -32rpx;
+		padding: 0 32rpx;
+	}
+
+	.horizontal-list {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		align-items: flex-start;
+		gap: 20rpx;
+		padding-right: 32rpx;
+	}
+
+	.notice-card {
+		padding: 24rpx;
+		border-radius: 22rpx;
+		background: var(--surface);
+		box-shadow: var(--shadow-sm);
 		display: flex;
 		flex-direction: column;
-		gap: 7px;
+		gap: 10rpx;
+	}
+
+	.notice-title {
+		font-size: 28rpx;
+		font-weight: 800;
+		color: var(--accent2);
+	}
+
+	.notice-text {
+		font-size: 22rpx;
+		line-height: 1.65;
+		color: var(--ink2);
+	}
+
+	.feature-card {
+		padding: 30rpx 28rpx;
+		border-radius: 24rpx 36rpx 24rpx 24rpx;
+		background: var(--navy);
+		color: var(--paper);
+		display: flex;
+		flex-direction: column;
+		gap: 12rpx;
+		box-shadow: var(--shadow-md);
+	}
+
+	.feature-kicker {
+		font-size: 20rpx;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		color: var(--soft);
+	}
+
+	.feature-title {
+		font-size: 38rpx;
+		line-height: 1.35;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--paper);
+	}
+
+	.feature-desc {
+		font-size: 22rpx;
+		line-height: 1.65;
+		color: rgba(250, 252, 252, 0.78);
+	}
+
+	.plan-list {
+		display: flex;
+		flex-direction: column;
+		gap: 18rpx;
+	}
+
+	.ai-hero {
+		padding: 30rpx 28rpx;
+		border-radius: 24rpx;
+		background: linear-gradient(180deg, rgba(24, 65, 93, 0.96), rgba(24, 65, 93, 0.88));
+		box-shadow: var(--shadow-md);
+		display: flex;
+		flex-direction: column;
+		gap: 14rpx;
+	}
+
+	.ai-badge {
+		align-self: flex-start;
+		height: 42rpx;
+		padding: 0 14rpx;
+		border-radius: 999rpx;
+		background: rgba(121, 177, 169, 0.22);
+		color: var(--paper);
+		display: flex;
+		align-items: center;
+		font-size: 18rpx;
+		font-weight: 800;
 	}
 
 	.ai-title {
-		font-size: 19px;
+		font-size: 38rpx;
+		line-height: 1.36;
 		font-family: var(--serif);
 		font-weight: 700;
 		color: var(--paper);
 	}
 
 	.ai-desc {
-		font-size: 11px;
-		line-height: 1.6;
-		color: rgba(231, 236, 236, 0.8);
+		font-size: 22rpx;
+		line-height: 1.65;
+		color: rgba(250, 252, 252, 0.76);
 	}
 
-	.mini-chat {
+	.ai-flow {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 12rpx;
+		margin-top: 6rpx;
 	}
 
-	.bubble {
-		max-width: 82%;
-		padding: 10px 12px;
-		border-radius: 12px;
-		font-size: 12px;
+	.ai-flow-item {
+		display: flex;
+		align-items: flex-start;
+		gap: 12rpx;
+	}
+
+	.flow-index {
+		width: 44rpx;
+		height: 44rpx;
+		border-radius: 50%;
+		background: rgba(250, 252, 252, 0.14);
+		color: var(--paper);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 18rpx;
+		font-weight: 800;
+		flex-shrink: 0;
+	}
+
+	.flow-copy {
+		font-size: 22rpx;
 		line-height: 1.6;
-		background: var(--surface);
-		border: 1px solid var(--line);
+		color: rgba(250, 252, 252, 0.82);
 	}
 
-	.bubble.ai {
-		align-self: flex-start;
-		border-radius: 4px 12px 12px 12px;
-	}
-
-	.bubble.me {
-		align-self: flex-end;
-		background: var(--soft);
-		border-color: var(--soft);
-		border-radius: 12px 4px 12px 12px;
-	}
-
-	.prompts {
-		white-space: nowrap;
-		width: 100%;
+	.prompt-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12rpx;
 	}
 
 	.prompt-chip {
-		display: inline-flex;
-		flex-direction: row;
+		min-height: 58rpx;
+		padding: 0 18rpx;
+		border-radius: 16rpx;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		display: flex;
 		align-items: center;
-		min-height: 38px;
-		padding: 0 10px;
-		margin-right: 6px;
+		font-size: 22rpx;
+		font-weight: 700;
+		color: var(--ink2);
+	}
+
+	.prompt-chip.selected {
+		background: var(--accent-bg);
+		border-color: var(--accent);
+		color: var(--accent2);
+	}
+
+	.prompt-preview {
+		padding: 22rpx 24rpx;
+		border-radius: 20rpx;
 		background: var(--surface);
-		border: 1px solid var(--line);
-		border-radius: 7px;
-		font-size: 10px;
+		box-shadow: var(--shadow-sm);
+		display: flex;
+		flex-direction: column;
+		gap: 8rpx;
 	}
 
-	.ai-input-row {
-		display: grid;
-		grid-template-columns: 1fr 64px;
-		gap: 8px;
+	.prompt-preview-title {
+		font-size: 20rpx;
+		font-weight: 800;
+		color: var(--accent2);
 	}
 
-	.ai-input {
-		height: 44px;
-		border: 1px solid var(--line);
+	.prompt-preview-text {
+		font-size: 24rpx;
+		line-height: 1.6;
+		color: var(--ink);
+	}
+
+	.ai-list {
+		display: flex;
+		flex-direction: column;
+		gap: 16rpx;
+	}
+
+	.ai-item {
+		display: flex;
+		gap: 18rpx;
+		padding: 24rpx;
+		border-radius: 22rpx;
 		background: var(--surface);
-		border-radius: 9px;
-		padding: 0 12px;
-		font-size: 12px;
+		box-shadow: var(--shadow-sm);
 	}
 
-	.ai-send {
-		height: 44px;
-		border-radius: 9px;
-		background: var(--brown);
-		color: var(--paper);
+	.ai-avatar {
+		width: 124rpx;
+		height: 156rpx;
+		border-radius: 18rpx 30rpx 18rpx 18rpx;
+		flex-shrink: 0;
+	}
+
+	.ai-body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 10rpx;
+		min-width: 0;
+	}
+
+	.ai-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10rpx;
+	}
+
+	.ai-name {
+		font-size: 32rpx;
+		line-height: 1.2;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.ai-score {
+		height: 42rpx;
+		padding: 0 12rpx;
+		border-radius: 999rpx;
+		background: rgba(56, 152, 141, 0.12);
+		color: var(--accent2);
+		display: flex;
+		align-items: center;
+		font-size: 20rpx;
+		font-weight: 800;
+		flex-shrink: 0;
+	}
+
+	.ai-meta {
+		font-size: 22rpx;
+		line-height: 1.5;
+		color: var(--muted);
+	}
+
+	.ai-copy {
+		font-size: 22rpx;
+		line-height: 1.6;
+		color: var(--ink2);
+	}
+
+	.ai-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8rpx;
+	}
+
+	.ai-chat-page {
+		display: flex;
+		flex-direction: column;
+		gap: 20rpx;
+	}
+
+	.ai-chat-nav {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
+		justify-content: space-between;
+		gap: 16rpx;
+		padding: 4rpx 4rpx 0;
+	}
+
+	.ai-back {
+		width: 64rpx;
+		height: 64rpx;
+		border-radius: 50%;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		display: flex;
+		align-items: center;
 		justify-content: center;
-		font-size: 12px;
+		box-shadow: var(--shadow-sm);
+		flex-shrink: 0;
+	}
+
+	.ai-back-chevron {
+		width: 18rpx;
+		height: 18rpx;
+		border-left: 4rpx solid var(--ink);
+		border-bottom: 4rpx solid var(--ink);
+		transform: rotate(45deg);
+		margin-left: 6rpx;
+	}
+
+	.ai-nav-title {
+		flex: 1;
+		min-width: 0;
+		font-size: 34rpx;
+		line-height: 1.2;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+		text-align: center;
+	}
+
+	.ai-clear {
+		flex-shrink: 0;
+		font-size: 22rpx;
+		font-weight: 700;
+		color: var(--accent2);
+	}
+
+	.ai-profile-card {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 18rpx;
+		padding: 22rpx;
+		border-radius: 24rpx;
+		background: linear-gradient(135deg, rgba(195, 222, 218, 0.42), rgba(255, 255, 255, 0.96));
+		box-shadow: var(--shadow-sm);
+	}
+
+	.ai-profile-avatar {
+		width: 112rpx;
+		height: 112rpx;
+		border-radius: 24rpx;
+		flex-shrink: 0;
+		border: 4rpx solid rgba(255, 255, 255, 0.82);
+	}
+
+	.ai-profile-copy {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6rpx;
+	}
+
+	.ai-profile-name {
+		font-size: 30rpx;
+		line-height: 1.2;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.ai-profile-subtitle {
+		font-size: 21rpx;
+		line-height: 1.5;
+		color: var(--muted);
+	}
+
+	.ai-online {
+		height: 44rpx;
+		padding: 0 14rpx;
+		border-radius: 999rpx;
+		background: rgba(56, 152, 141, 0.12);
+		color: var(--accent2);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8rpx;
+		font-size: 20rpx;
+		font-weight: 700;
+		flex-shrink: 0;
+	}
+
+	.ai-online-dot {
+		width: 12rpx;
+		height: 12rpx;
+		border-radius: 50%;
+		background: var(--sage);
+	}
+
+	.ai-message-list {
+		display: flex;
+		flex-direction: column;
+		gap: 14rpx;
+	}
+
+	.ai-message {
+		max-width: 86%;
+		padding: 18rpx 20rpx;
+		border-radius: 20rpx;
+		font-size: 24rpx;
+		line-height: 1.6;
+		word-break: break-word;
+	}
+
+	.ai-message.assistant {
+		align-self: flex-start;
+		background: var(--surface);
+		color: var(--ink2);
+		box-shadow: var(--shadow-sm);
+		border-bottom-left-radius: 8rpx;
+	}
+
+	.ai-message.assistant text {
+		color: var(--ink2);
+	}
+
+	.ai-message.user {
+		align-self: flex-end;
+		background: var(--accent);
+		color: var(--paper);
+		border-bottom-right-radius: 8rpx;
+		box-shadow: 0 8rpx 22rpx rgba(56, 152, 141, 0.18);
+	}
+
+	.ai-message.user text {
+		color: var(--paper);
+	}
+
+	.quick-question-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 16rpx;
+		padding: 24rpx 22rpx;
+		border-radius: 24rpx;
+		background: var(--surface);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.quick-question-title {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 12rpx;
+	}
+
+	.quick-question-title view {
+		flex: 1;
+		height: 1px;
+		background: var(--line);
+	}
+
+	.quick-question-title text {
+		flex-shrink: 0;
+		font-size: 21rpx;
+		font-weight: 800;
+		color: var(--accent2);
+	}
+
+	.quick-question-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12rpx;
+	}
+
+	.quick-question {
+		min-height: 58rpx;
+		padding: 0 18rpx;
+		border-radius: 16rpx;
+		border: 1px solid var(--line);
+		background: var(--paper);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 22rpx;
+		font-weight: 700;
+		color: var(--ink2);
+	}
+
+	.quick-question text,
+	.ai-online text,
+	.ai-send-button text {
+		color: inherit;
+	}
+
+.join-entry-row {
+	display: flex;
+	flex-direction: row;
+	gap: 16rpx;
+	padding: 24rpx 0 8rpx;
+}
+
+.join-entry {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10rpx;
+	padding: 24rpx 12rpx;
+	border-radius: 16rpx;
+	background: var(--surface);
+	box-shadow: var(--shadow-sm);
+	border: 1px solid var(--line);
+}
+
+.join-entry-icon {
+	width: 64rpx;
+	height: 64rpx;
+	border-radius: 50%;
+	background: linear-gradient(135deg, rgba(194, 106, 65, 0.18), rgba(56, 152, 141, 0.18));
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 26rpx;
+	font-weight: 800;
+	color: var(--accent2);
+}
+
+.join-entry-icon.partner {
+	background: linear-gradient(135deg, rgba(240, 163, 50, 0.18), rgba(194, 106, 65, 0.18));
+	color: var(--brown);
+}
+
+.join-entry-icon.promoter {
+	background: linear-gradient(135deg, rgba(139, 88, 232, 0.18), rgba(56, 152, 141, 0.18));
+	color: #8B58E8;
+}
+
+.join-entry-label {
+	font-size: 22rpx;
+	font-weight: 700;
+	color: var(--ink);
+	text-align: center;
+	line-height: 1.3;
+}
+
+	.custom-apply-safe {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 16rpx 24rpx calc(env(safe-area-inset-bottom) + 16rpx);
+		background: rgba(250, 252, 252, 0.96);
+		border-top: 1px solid var(--line);
+		z-index: 30;
+	}
+
+	.custom-apply-button {
+		height: 88rpx;
+		border-radius: 20rpx;
+		background: var(--accent);
+		color: var(--paper);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 28rpx;
+		font-weight: 800;
+		box-shadow: var(--shadow-md);
+	}
+
+	.custom-apply-button text {
+		color: var(--paper);
+	}
+
+	.ai-input-safe {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 16rpx 24rpx calc(env(safe-area-inset-bottom) + 16rpx);
+		background: rgba(250, 252, 252, 0.96);
+		border-top: 1px solid var(--line);
+		z-index: 30;
+	}
+
+	.ai-input-bar {
+		height: 88rpx;
+		padding-left: 28rpx;
+		border: 1px solid var(--line);
+		border-radius: 999rpx;
+		background: var(--surface);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 12rpx;
+	}
+
+	.ai-chat-input {
+		flex: 1;
+		min-width: 0;
+		height: 100%;
+		font-size: 24rpx;
+		color: var(--ink);
+	}
+
+	.ai-send-button {
+		min-width: 144rpx;
+		height: 88rpx;
+		border-radius: 999rpx;
+		background: var(--accent);
+		color: var(--paper);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 25rpx;
 		font-weight: 800;
 	}
 
-	.section-block {
-		margin-top: 8px;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.section-title {
-		font-size: 18px;
-		font-family: var(--serif);
-		font-weight: 700;
-	}
 </style>
