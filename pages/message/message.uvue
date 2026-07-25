@@ -58,6 +58,8 @@
 				</view>
 			</view>
 
+			<button class="unread-clear-action" aria-label="清除未读" @click="clearUnreadNotices">清除未读</button>
+
 			<XsaEmpty
 				v-if="messageList.length === 0 && !loading"
 				text="暂无消息"
@@ -80,17 +82,6 @@
 				<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
 			</view>
 		</scroll-view>
-
-		<button class="floating-clear-button" aria-label="清除消息提示" @click="clearUnreadNotices">
-			<view class="floating-broom-icon">
-				<view class="floating-broom-handle"></view>
-				<view class="floating-broom-head">
-					<view class="floating-broom-bristle floating-broom-bristle-one"></view>
-					<view class="floating-broom-bristle floating-broom-bristle-two"></view>
-					<view class="floating-broom-bristle floating-broom-bristle-three"></view>
-				</view>
-			</view>
-		</button>
 
 		<!-- 申请列表 Sheet -->
 		<XsaSheet :visible="appVisible" title="认识申请" @close="appVisible = false">
@@ -572,86 +563,29 @@
 		padding: 14px 14px 88px;
 	}
 
-	.floating-clear-button {
-		position: fixed;
-		right: 16px;
-		bottom: calc(18px + env(safe-area-inset-bottom));
-		z-index: 30;
-		width: 48px;
-		height: 48px;
+	.unread-clear-action {
+		display: block;
+		width: auto;
+		min-height: 0;
+		height: 24px;
 		margin: 0;
 		padding: 0;
-		border: 1px solid var(--line);
-		border-radius: 50%;
-		background: var(--paper);
-		box-shadow: var(--shadow-md);
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		color: var(--accent2);
+		font-size: 12px;
+		line-height: 24px;
+		text-align: left;
 		box-sizing: border-box;
-		transition: transform 0.18s ease-out, background 0.18s ease-out;
 	}
 
-	.floating-clear-button::after {
+	.unread-clear-action::after {
 		border: 0;
 	}
 
-	.floating-clear-button:active {
-		background: var(--sage-soft);
-		transform: scale(0.98);
-	}
-
-	.floating-broom-icon {
-		position: relative;
-		width: 26px;
-		height: 26px;
-	}
-
-	.floating-broom-handle {
-		position: absolute;
-		left: 13px;
-		top: 0;
-		width: 3px;
-		height: 17px;
-		border-radius: 999px;
-		background: var(--accent2);
-		transform: rotate(-34deg);
-		transform-origin: center bottom;
-	}
-
-	.floating-broom-head {
-		position: absolute;
-		left: 4px;
-		bottom: 1px;
-		width: 18px;
-		height: 11px;
-		border: 2px solid var(--accent2);
-		border-radius: 3px 3px 7px 7px;
-		background: var(--sage-soft);
-		box-sizing: border-box;
-		transform: rotate(-7deg);
-		overflow: hidden;
-	}
-
-	.floating-broom-bristle {
-		position: absolute;
-		top: 1px;
-		bottom: 0;
-		width: 1px;
-		background: var(--accent2);
-		opacity: 0.65;
-	}
-
-	.floating-broom-bristle-one {
-		left: 4px;
-	}
-
-	.floating-broom-bristle-two {
-		left: 8px;
-	}
-
-	.floating-broom-bristle-three {
-		left: 12px;
+	.unread-clear-action:active {
+		color: var(--sage);
 	}
 
 	.shortcuts {
