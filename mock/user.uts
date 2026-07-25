@@ -1,0 +1,375 @@
+/**
+ * 用户相关 Mock 数据
+ * 来源：design-demos/final/app.js 高保真 6 位嘉宾 + 广场结构
+ * 资源：/static/portraits/*
+ */
+
+const PORTRAIT = {
+  main: '/static/portraits/profile-woman-main.jpg',
+  alt: '/static/portraits/profile-woman-alt.jpg',
+  community: '/static/portraits/profile-woman-community.jpg',
+  man: '/static/portraits/profile-man-light.jpg',
+  sea: '/static/portraits/profile-man-sea.jpg',
+  manAlt: '/static/portraits/profile-man-alt.jpg'
+}
+
+/** 推荐故事流嘉宾（高保真 P[]） */
+export const mockRecommendUsers = [
+  {
+    id: 1,
+    code: 'su',
+    name: '苏晚晴',
+    age: 26,
+    gender: 2,
+    city: '杭州',
+    height: '165cm',
+    job: '插画师',
+    school: '浙江大学 · 本科',
+    education: '本科',
+    mbti: 'INFP',
+    match: 92,
+    online: '当前在线',
+    avatar: PORTRAIT.main,
+    photos: [PORTRAIT.main, PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main],
+    photoPosition: 'center 34%',
+    tags: ['看展', '猫', '咖啡', '城市散步'],
+    intro: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
+    income: '15k—30k',
+    marriage: '未婚',
+    hometown: '浙江绍兴',
+    updated: '资料更新于 7 月 18 日',
+    expect: [
+      '愿意把真实想法说清楚，不用猜来猜去',
+      '各自有生活，也愿意为共同计划留出时间',
+      '把长期关系当作两个人一起完成的作品'
+    ],
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: true,
+      single: true
+    }
+  },
+  {
+    id: 2,
+    code: 'lin',
+    name: '林雨桐',
+    age: 28,
+    gender: 2,
+    city: '南京',
+    height: '168cm',
+    job: '产品设计师',
+    school: '同济大学 · 硕士',
+    education: '硕士',
+    mbti: 'ENFJ',
+    match: 88,
+    online: '3 分钟前在线',
+    avatar: PORTRAIT.alt,
+    photos: [PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main],
+    photoPosition: 'center 35%',
+    tags: ['徒步', '纪录片', '烘焙', '羽毛球'],
+    intro: '工作之外，我喜欢把周末交给山野和厨房。期待遇见愿意沟通、对生活保持好奇的人。',
+    income: '20k—35k',
+    marriage: '未婚',
+    hometown: '江苏无锡',
+    updated: '资料更新于 7 月 16 日',
+    expect: [
+      '遇到问题时先沟通，不冷处理',
+      '尊重彼此的职业节奏与家人',
+      '未来两三年有稳定生活计划'
+    ],
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: true,
+      single: true
+    }
+  },
+  {
+    id: 3,
+    code: 'chen',
+    name: '陈知夏',
+    age: 27,
+    gender: 2,
+    city: '苏州',
+    height: '170cm',
+    job: '建筑设计师',
+    school: '东南大学 · 硕士',
+    education: '硕士',
+    mbti: 'INTJ',
+    match: 85,
+    online: '15 分钟前在线',
+    avatar: PORTRAIT.community,
+    photos: [PORTRAIT.community, PORTRAIT.alt],
+    photoPosition: 'center 40%',
+    tags: ['建筑', '摄影', '咖啡', '阅读'],
+    intro: '设计建筑，也设计生活。喜欢用相机记录城市的温度，周末在独立书店待一下午。',
+    income: '25k—40k',
+    marriage: '未婚',
+    hometown: '江苏苏州',
+    updated: '资料更新于 7 月 17 日',
+    expect: [
+      '有独立思考能力，也尊重彼此观点',
+      '能一起探讨深度话题，不只是聊天气',
+      '对未来有清晰规划，不随波逐流'
+    ],
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: true,
+      single: true
+    }
+  },
+  {
+    id: 4,
+    code: 'zhou',
+    name: '周以宁',
+    age: 29,
+    gender: 2,
+    city: '杭州',
+    height: '172cm',
+    job: '策展人',
+    school: '中国美院 · 本科',
+    education: '本科',
+    mbti: 'ENFP',
+    match: 83,
+    online: '1 小时前在线',
+    avatar: PORTRAIT.main,
+    photos: [PORTRAIT.main, PORTRAIT.community],
+    photoPosition: 'center 28%',
+    tags: ['艺术', '旅行', '电影', '音乐'],
+    intro: '做过十几个展览，见过很多人与故事。现在想找一个能一起看世界、也能一起安静待着的人。',
+    income: '18k—32k',
+    marriage: '未婚',
+    hometown: '浙江宁波',
+    updated: '资料更新于 7 月 15 日',
+    expect: [
+      '情绪稳定，不把坏心情转嫁给对方',
+      '理解文化艺术工作的不规律性',
+      '愿意一起经历生活的起伏'
+    ],
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: true,
+      single: true
+    }
+  },
+  {
+    id: 5,
+    code: 'xu',
+    name: '徐锦瑟',
+    age: 25,
+    gender: 2,
+    city: '南京',
+    height: '163cm',
+    job: '心理咨询师',
+    school: '南京师范大学 · 硕士',
+    education: '硕士',
+    mbti: 'INFJ',
+    match: 90,
+    online: '刚刚在线',
+    avatar: PORTRAIT.alt,
+    photos: [PORTRAIT.alt, PORTRAIT.main],
+    photoPosition: 'center 38%',
+    tags: ['心理学', '瑜伽', '写作', '园艺'],
+    intro: '倾听别人的故事，也在寻找自己的故事。喜欢安静的生活方式，但内心住着一个冒险家。',
+    income: '12k—25k',
+    marriage: '未婚',
+    hometown: '安徽合肥',
+    updated: '资料更新于 7 月 19 日',
+    expect: [
+      '有情绪觉察力，愿意表达内心真实感受',
+      '接纳彼此的不完美，一起成长',
+      '把关系当作修行，而不是消费'
+    ],
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: true,
+      single: true
+    }
+  },
+  {
+    id: 6,
+    code: 'wang',
+    name: '王舒颜',
+    age: 28,
+    gender: 2,
+    city: '杭州',
+    height: '167cm',
+    job: '新媒体编辑',
+    school: '复旦大学 · 本科',
+    education: '本科',
+    mbti: 'ISFP',
+    match: 86,
+    online: '5 分钟前在线',
+    avatar: PORTRAIT.community,
+    photos: [PORTRAIT.community, PORTRAIT.alt],
+    photoPosition: 'center 45%',
+    tags: ['写作', '植物', '手工', '独立音乐'],
+    intro: '用文字记录生活，用植物装点日常。不追热闹，更喜欢两个人的小确幸。',
+    income: '15k—28k',
+    marriage: '未婚',
+    hometown: '浙江温州',
+    updated: '资料更新于 7 月 18 日',
+    expect: [
+      '尊重彼此的独处时间和空间',
+      '能欣赏生活中的小美好',
+      '对长期关系有耐心和信心'
+    ],
+    certifications: {
+      realName: true,
+      education: true,
+      avatar: true,
+      single: true
+    }
+  }
+]
+
+/** 广场网格（高保真 square cards + 同城顾言澄） */
+export const mockSquareUsers = [
+  {
+    id: 1,
+    name: '苏晚晴',
+    age: 26,
+    gender: 2,
+    city: '杭州',
+    job: '插画师',
+    school: '浙江大学 · 本科',
+    avatar: PORTRAIT.main,
+    match: 92,
+    online: true,
+    tags: ['92% 合拍', '实名', '学历'],
+    location: '杭州',
+    introduction: '喜欢画画、猫和下雨天。'
+  },
+  {
+    id: 2,
+    name: '林雨桐',
+    age: 28,
+    gender: 2,
+    city: '南京',
+    job: '产品设计师',
+    school: '同济大学 · 硕士',
+    avatar: PORTRAIT.alt,
+    match: 88,
+    online: true,
+    tags: ['88% 合拍', '实名', '学历'],
+    location: '南京',
+    introduction: '把周末交给山野和厨房。'
+  },
+  {
+    id: 3,
+    name: '陈知夏',
+    age: 27,
+    gender: 2,
+    city: '苏州',
+    job: '建筑设计师',
+    school: '东南大学 · 硕士',
+    avatar: PORTRAIT.community,
+    match: 85,
+    online: false,
+    tags: ['85% 合拍', '实名', '学历'],
+    location: '苏州',
+    introduction: '设计建筑，也设计生活。'
+  },
+  {
+    id: 4,
+    name: '周以宁',
+    age: 29,
+    gender: 2,
+    city: '杭州',
+    job: '策展人',
+    school: '中国美院 · 本科',
+    avatar: PORTRAIT.main,
+    match: 83,
+    online: false,
+    tags: ['83% 合拍', '实名', '学历'],
+    location: '杭州',
+    introduction: '做过十几个展览。'
+  },
+  {
+    id: 7,
+    name: '顾言澄',
+    age: 29,
+    gender: 1,
+    city: '南京',
+    job: '医疗产品经理',
+    school: '南京大学 · 本科',
+    avatar: PORTRAIT.man,
+    match: 90,
+    online: true,
+    tags: ['90% 合拍', '实名'],
+    location: '南京',
+    introduction: '周日准备去玄武湖跑步。'
+  }
+]
+
+/** 用户详情（默认苏晚晴） */
+export const mockUserDetail = {
+  id: 1,
+  name: '苏晚晴',
+  age: 26,
+  gender: 2,
+  genderText: '女',
+  city: '杭州',
+  height: '165cm',
+  weight: '50kg',
+  education: '本科',
+  school: '浙江大学 · 本科',
+  job: '插画师',
+  salary: '15k—30k',
+  income: '15k—30k',
+  mbti: 'INFP',
+  constellation: '金牛座',
+  hometown: '浙江绍兴',
+  marriage: '未婚',
+  match: 92,
+  online: '当前在线',
+  avatar: PORTRAIT.main,
+  photos: [PORTRAIT.main, PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main],
+  intro: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
+  introduction: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
+  tags: ['看展', '猫', '咖啡', '城市散步'],
+  certifications: {
+    realName: true,
+    education: true,
+    avatar: true,
+    single: true
+  },
+  certList: ['实名', '学历', '头像', '单身'],
+  expect: [
+    '愿意把真实想法说清楚，不用猜来猜去',
+    '各自有生活，也愿意为共同计划留出时间',
+    '把长期关系当作两个人一起完成的作品'
+  ],
+  expectations: {
+    relationship: '期待长期关系',
+    marriage: '认真考虑婚姻',
+    children: '可沟通'
+  },
+  updated: '资料更新于 7 月 18 日'
+}
+
+/** 当前登录用户（我的页 · 高保真 顾言澄） */
+export const mockMeProfile = {
+  id: 9001,
+  name: '顾言澄',
+  age: 29,
+  gender: 1,
+  city: '南京',
+  job: '产品经理',
+  avatar: PORTRAIT.man,
+  points: 680,
+  profileProgress: 78,
+  visitors: 8,
+  viewed: 12,
+  favorites: 5,
+  certifications: ['实名', '头像', '单身'],
+  certDone: 3,
+  certTotal: 5,
+  introduction: '29 岁 · 南京 · 产品经理',
+  remainApply: 2,
+  tasksPending: 2
+}

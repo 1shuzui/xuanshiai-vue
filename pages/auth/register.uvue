@@ -1,0 +1,357 @@
+<template>
+	<view class="register-page">
+		<view class="register-header">
+			<text class="title text-serif">欢迎加入宣誓爱</text>
+			<text class="subtitle text-muted">完善信息，开启美好缘分</text>
+		</view>
+
+		<view class="register-form">
+			<!-- 手机号 -->
+			<view class="form-item">
+				<text class="label">手机号</text>
+				<input
+					class="input"
+					type="number"
+					placeholder="请输入手机号"
+					:value="phone"
+					@input="onPhoneInput"
+					maxlength="11"
+				/>
+			</view>
+
+			<!-- 验证码 -->
+			<view class="form-item">
+				<text class="label">验证码</text>
+				<view class="code-input-wrapper">
+					<input
+						class="input"
+						type="number"
+						placeholder="请输入验证码"
+						:value="code"
+						@input="onCodeInput"
+						maxlength="6"
+					/>
+					<button
+						class="code-btn"
+						:disabled="codeBtnDisabled"
+						@click="sendCode"
+					>
+						{{ codeBtnText }}
+					</button>
+				</view>
+			</view>
+
+			<!-- 昵称 -->
+			<view class="form-item">
+				<text class="label">昵称</text>
+				<input
+					class="input"
+					type="text"
+					placeholder="请输入昵称"
+					:value="nickname"
+					@input="onNicknameInput"
+					maxlength="20"
+				/>
+			</view>
+
+			<!-- 性别 -->
+			<view class="form-item">
+				<text class="label">性别</text>
+				<view class="gender-selector">
+					<view
+						class="gender-item"
+						:class="gender === 1 ? 'active' : ''"
+						@click="selectGender(1)"
+					>
+						<text class="icon">👨</text>
+						<text class="text">男</text>
+					</view>
+					<view
+						class="gender-item"
+						:class="gender === 2 ? 'active' : ''"
+						@click="selectGender(2)"
+					>
+						<text class="icon">👩</text>
+						<text class="text">女</text>
+					</view>
+				</view>
+			</view>
+
+			<button class="register-btn" @click="handleRegister">注册</button>
+
+			<view class="tips">
+				<text class="tip-text">注册即表示同意</text>
+				<text class="link">《用户协议》</text>
+				<text class="tip-text">和</text>
+				<text class="link">《隐私政策》</text>
+			</view>
+
+			<view class="login-link">
+				<text class="text-muted">已有账号？</text>
+				<text class="link" @click="goToLogin">去登录</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	// 响应式数据
+	let phone = ref('')
+	let code = ref('')
+	let nickname = ref('')
+	let gender = ref(0) // 0-未选择 1-男 2-女
+	let countdown = ref(0)
+	let codeBtnDisabled = ref(false)
+	let codeBtnText = ref('获取验证码')
+
+	// 输入事件
+	const onPhoneInput = (e: InputEvent) => {
+		phone.value = e.detail.value
+	}
+
+	const onCodeInput = (e: InputEvent) => {
+		code.value = e.detail.value
+	}
+
+	const onNicknameInput = (e: InputEvent) => {
+		nickname.value = e.detail.value
+	}
+
+	// 选择性别
+	const selectGender = (value: number) => {
+		gender.value = value
+	}
+
+	// 发送验证码
+	const sendCode = () => {
+		if (!phone.value || phone.value.length !== 11) {
+			uni.showToast({
+				title: '请输入正确的手机号',
+				icon: 'none'
+			})
+			return
+		}
+
+		// 开始倒计时
+		codeBtnDisabled.value = true
+		countdown.value = 60
+		codeBtnText.value = `${countdown.value}秒后重试`
+
+		const timer = setInterval(() => {
+			countdown.value--
+			if (countdown.value > 0) {
+				codeBtnText.value = `${countdown.value}秒后重试`
+			} else {
+				clearInterval(timer)
+				codeBtnDisabled.value = false
+				codeBtnText.value = '获取验证码'
+			}
+		}, 1000)
+
+		// TODO: 调用发送验证码接口
+		uni.showToast({
+			title: '验证码已发送',
+			icon: 'success'
+		})
+	}
+
+	// 注册
+	const handleRegister = () => {
+		if (!phone.value || phone.value.length !== 11) {
+			uni.showToast({
+				title: '请输入正确的手机号',
+				icon: 'none'
+			})
+			return
+		}
+
+		if (!code.value || code.value.length !== 6) {
+			uni.showToast({
+				title: '请输入6位验证码',
+				icon: 'none'
+			})
+			return
+		}
+
+		if (!nickname.value) {
+			uni.showToast({
+				title: '请输入昵称',
+				icon: 'none'
+			})
+			return
+		}
+
+		if (gender.value === 0) {
+			uni.showToast({
+				title: '请选择性别',
+				icon: 'none'
+			})
+			return
+		}
+
+		// TODO: 调用注册接口
+		uni.showToast({
+			title: '注册成功',
+			icon: 'success'
+		})
+
+		// 跳转到完善资料页
+		setTimeout(() => {
+			uni.navigateTo({
+				url: '/pages/user/edit?isNew=true'
+			})
+		}, 1500)
+	}
+
+	// 去登录
+	const goToLogin = () => {
+		uni.navigateBack()
+	}
+</script>
+
+<style scoped>
+.register-page {
+	min-height: 100vh;
+	background: var(--canvas);
+	padding: 60px 24px 40px;
+}
+
+.register-header {
+	text-align: center;
+	margin-bottom: 48px;
+}
+
+.title {
+	display: block;
+	font-size: 28px;
+	font-weight: 500;
+	color: var(--ink);
+	margin-bottom: 8px;
+}
+
+.subtitle {
+	font-size: 14px;
+}
+
+.register-form {
+}
+
+.form-item {
+	margin-bottom: 24px;
+}
+
+.label {
+	display: block;
+	font-size: 14px;
+	color: var(--ink);
+	margin-bottom: 8px;
+}
+
+.input {
+	width: 100%;
+	height: 48px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	padding: 0 16px;
+	font-size: 15px;
+	color: var(--ink);
+}
+
+.code-input-wrapper {
+	display: flex;
+	gap: 12px;
+}
+
+.code-input-wrapper .input {
+	flex: 1;
+}
+
+.code-btn {
+	width: 110px;
+	height: 48px;
+	background: var(--soft);
+	color: var(--accent2);
+	border-radius: 8px;
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+.code-btn[disabled] {
+	opacity: 0.5;
+	color: var(--muted);
+}
+
+.gender-selector {
+	display: flex;
+	gap: 16px;
+}
+
+.gender-item {
+	flex: 1;
+	height: 80px;
+	background: var(--surface);
+	border: 2px solid var(--line);
+	border-radius: 12px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	transition: all 0.3s;
+}
+
+.gender-item.active {
+	border-color: var(--accent);
+	background: var(--soft);
+}
+
+.gender-item .icon {
+	font-size: 32px;
+}
+
+.gender-item .text {
+	font-size: 14px;
+	color: var(--ink);
+}
+
+.register-btn {
+	width: 100%;
+	height: 48px;
+	background: var(--accent);
+	color: var(--text-invert);
+	border-radius: 999px;
+	font-size: 16px;
+	font-weight: 500;
+	margin-top: 32px;
+	margin-bottom: 16px;
+}
+
+.tips {
+	text-align: center;
+	margin-bottom: 24px;
+}
+
+.tip-text {
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.link {
+	font-size: 12px;
+	color: var(--accent2);
+}
+
+.login-link {
+	text-align: center;
+}
+
+.login-link .text-muted {
+	font-size: 14px;
+}
+
+.login-link .link {
+	font-size: 14px;
+	margin-left: 4px;
+}
+</style>

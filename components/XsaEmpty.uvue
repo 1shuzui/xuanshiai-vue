@@ -1,0 +1,156 @@
+<template>
+	<view class="xsa-empty" :class="size">
+		<!-- 图标 -->
+		<view class="empty-icon" v-if="icon">
+			<text class="icon-text">{{ icon }}</text>
+		</view>
+
+		<!-- 提示文字 -->
+		<text class="empty-text">{{ text || defaultText }}</text>
+
+		<!-- 描述文字 -->
+		<text class="empty-desc text-muted" v-if="description">{{ description }}</text>
+
+		<!-- 操作按钮 -->
+		<view class="empty-action" v-if="showAction">
+			<button class="action-btn" @click="handleAction">
+				<text class="btn-text">{{ actionText }}</text>
+			</button>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+/**
+ * XsaEmpty - 空状态组件
+ * 用于所有列表页面的空状态展示
+ */
+
+interface Props {
+	icon?: string; // 空状态图标（emoji）
+	text?: string; // 提示文字
+	description?: string; // 描述文字
+	showAction?: boolean; // 是否显示操作按钮
+	actionText?: string; // 操作按钮文字
+	size?: 'small' | 'medium' | 'large'; // 尺寸
+	type?: 'default' | 'noData' | 'noNetwork' | 'noPermission'; // 预设类型
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	showAction: false,
+	actionText: '刷新',
+	size: 'medium',
+	type: 'default'
+});
+
+const emit = defineEmits<{
+	action: [];
+}>();
+
+// 根据类型设置默认图标和文字
+const defaultIcon = computed(() => {
+	const icons = {
+		default: '📭',
+		noData: '📭',
+		noNetwork: '📡',
+		noPermission: '🔒'
+	};
+	return props.icon || icons[props.type];
+});
+
+const defaultText = computed(() => {
+	const texts = {
+		default: '暂无内容',
+		noData: '暂无数据',
+		noNetwork: '网络连接失败',
+		noPermission: '暂无权限访问'
+	};
+	return texts[props.type];
+});
+
+// 点击操作按钮
+const handleAction = () => {
+	emit('action');
+};
+</script>
+
+<style scoped>
+.xsa-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	text-align: center;
+}
+
+/* 尺寸变体 */
+.xsa-empty.small {
+	padding: 24px 20px;
+}
+
+.xsa-empty.medium {
+	padding: 40px 20px;
+}
+
+.xsa-empty.large {
+	padding: 60px 20px;
+}
+
+/* 图标 */
+.empty-icon {
+	margin-bottom: 16px;
+}
+
+.icon-text {
+	font-size: 64px;
+	opacity: 0.4;
+}
+
+.xsa-empty.small .icon-text {
+	font-size: 48px;
+}
+
+.xsa-empty.large .icon-text {
+	font-size: 80px;
+}
+
+/* 文字 */
+.empty-text {
+	font-size: 15px;
+	color: var(--ink2);
+	margin-bottom: 8px;
+}
+
+.empty-desc {
+	font-size: 13px;
+	line-height: 1.6;
+	max-width: 280px;
+}
+
+/* 操作按钮 */
+.empty-action {
+	margin-top: 24px;
+}
+
+.action-btn {
+	min-width: 120px;
+	height: 40px;
+	padding: 0 24px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--ink);
+	border-radius: 999px;
+	font-size: 14px;
+	transition: all 0.18s;
+}
+
+.action-btn:active {
+	background: var(--canvas);
+	transform: scale(0.96);
+}
+
+.btn-text {
+	display: block;
+}
+</style>

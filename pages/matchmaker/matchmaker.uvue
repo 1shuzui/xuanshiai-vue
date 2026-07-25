@@ -1,0 +1,866 @@
+<template>
+	<view class="matchmaker-page">
+		<!-- 子 Tab：服务红娘 / 热心红娘 / AI 红娘 -->
+		<view class="subtabs">
+			<view
+				class="subtab"
+				:class="{ active: currentTab === 'service' }"
+				@click="switchTab('service')"
+			>
+				<text>服务红娘</text>
+			</view>
+			<view
+				class="subtab"
+				:class="{ active: currentTab === 'volunteer' }"
+				@click="switchTab('volunteer')"
+			>
+				<text>热心红娘</text>
+			</view>
+			<view
+				class="subtab"
+				:class="{ active: currentTab === 'ai' }"
+				@click="switchTab('ai')"
+			>
+				<text>AI 红娘</text>
+			</view>
+		</view>
+
+		<scroll-view class="scroller" scroll-y>
+			<!-- 服务红娘 -->
+			<view v-if="currentTab === 'service'" class="page-pad">
+				<!-- 专业牵线服务横幅 -->
+				<view class="service-banner">
+					<view class="banner-copy">
+						<text class="banner-title">专业牵线 · 认真相识</text>
+						<text class="banner-subtitle">专人协助梳理期待，安排合适的认识机会</text>
+						<view class="banner-tags">
+							<text>一对一咨询</text>
+							<text>资料澄清</text>
+						</view>
+					</view>
+					<view class="banner-portrait-wrap">
+						<image class="banner-portrait" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
+						<view class="banner-mark"><text>牵线</text></view>
+					</view>
+				</view>
+
+				<!-- 红娘卡片横向滚动 -->
+				<view class="section-header">
+					<text class="section-label">服务红娘</text>
+					<text class="section-caption">平台认证 · 专业牵线</text>
+				</view>
+				<view class="card-scroll">
+					<view class="card-scroll-inner">
+						<view
+							class="mm-h-card"
+						v-for="item in serviceList"
+							:key="item.id"
+							@click="handleBook(item)"
+						>
+							<view class="mm-h-photo-wrap">
+								<image class="mm-h-photo" :src="item.avatar" mode="aspectFill" lazy-load></image>
+								<view class="mm-h-badge">平台认证</view>
+							</view>
+							<view class="mm-h-content">
+								<text class="mm-h-name">{{ item.name }}</text>
+								<text class="mm-h-title">{{ item.title }}</text>
+								<text class="mm-h-count">已协助 {{ item.successCount }} 对用户牵线</text>
+								<XsaButton variant="primary" size="small" block @click.stop="handleBook(item)">联系她</XsaButton>
+							</view>
+						</view>
+					</view>
+				</view>
+
+				<!-- 热心红娘排行榜 -->
+				<view class="section-header">
+					<text class="section-label">热心红娘排行榜</text>
+					<text class="section-caption">按有效协助人数排序</text>
+				</view>
+				<scroll-view class="rank-scroll" scroll-x :show-scrollbar="false">
+					<view class="rank-scroll-inner">
+						<view
+							class="rank-avatar-item"
+							v-for="(item, index) in volunteerList"
+							:key="item.id"
+							@click="handleVolunteerClick(item)"
+						>
+							<view class="rank-avatar-no">{{ index + 1 }}</view>
+							<image class="rank-avatar-img" :src="item.avatar" mode="aspectFill" lazy-load></image>
+							<text class="rank-avatar-name">{{ item.name.length > 4 ? item.name.slice(0, 4) + '…' : item.name }}</text>
+							<text class="rank-avatar-count text-muted">{{ item.successCount }} 位</text>
+						</view>
+					</view>
+				</scroll-view>
+
+				<!-- 我要做红娘 CTA 卡片 -->
+				<view class="cta-card" @click="goToApply">
+					<view class="cta-left">
+						<view class="cta-icon"><text>红娘</text></view>
+						<view class="cta-text">
+							<text class="cta-title">我要做红娘</text>
+							<text class="cta-desc">提交认证资料，帮助更多人认真相识</text>
+						</view>
+					</view>
+					<view class="cta-arrow"><text>›</text></view>
+				</view>
+			</view>
+
+			<!-- 热心红娘 -->
+			<view v-else-if="currentTab === 'volunteer'" class="page-pad">
+				<view class="hero-block">
+					<text class="hero-kicker">COMMUNITY MATCHMAKERS</text>
+					<text class="hero-title">把靠谱的朋友介绍给靠谱的人</text>
+					<text class="hero-desc text-muted">排行榜只展示真实有效的介绍数量，不承诺匹配结果。</text>
+				</view>
+
+				<view
+					class="rank-row"
+					v-for="(item, index) in volunteerList"
+					:key="item.id"
+				>
+					<text class="rank-no">0{{ index + 1 }}</text>
+					<image class="rank-avatar" :src="item.avatar" mode="aspectFill"></image>
+					<view class="rank-info">
+						<text class="rank-name">{{ item.name }}</text>
+						<text class="rank-desc text-muted">{{ item.intro }}</text>
+					</view>
+					<text class="rank-count text-muted">已介绍 {{ item.successCount }} 位</text>
+				</view>
+			</view>
+
+			<!-- AI 红娘：情感咨询对话（非直接匹配聊天） -->
+			<view v-else class="page-pad">
+				<view class="ai-intro">
+					<text class="ai-title">AI 红娘小誓</text>
+					<text class="ai-desc">帮你梳理择偶偏好、解读合拍线索和准备第一次对话。不会替代真人判断，也不会承诺匹配结果。</text>
+				</view>
+
+				<view class="mini-chat">
+					<view
+						v-for="(msg, idx) in aiMessages"
+						:key="idx"
+						class="bubble"
+						:class="msg.role"
+					>
+						<text>{{ msg.text }}</text>
+					</view>
+				</view>
+
+				<scroll-view class="prompts" scroll-x>
+					<view
+						class="prompt-chip"
+						v-for="(p, i) in prompts"
+						:key="i"
+						@click="usePrompt(p)"
+					>
+						<text>{{ p }}</text>
+					</view>
+				</scroll-view>
+
+				<view class="ai-input-row">
+					<input
+						class="ai-input"
+						:value="aiInput"
+						placeholder="描述你的困惑…"
+						confirm-type="send"
+						@input="onAiInput"
+						@confirm="sendAi"
+					/>
+					<view class="ai-send" @click="sendAi">
+						<text>发送</text>
+					</view>
+				</view>
+
+				<view class="section-block">
+					<text class="section-title">合拍线索推荐</text>
+					<XsaUserCard
+						v-for="user in aiRecommendUsers"
+						:key="user.id"
+						:user="user"
+						:show-actions="true"
+						@click="handleUserClick"
+						@like="handleLike"
+						@chat="handleApplyOnly"
+					/>
+				</view>
+			</view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaUserCard from '@/components/XsaUserCard.uvue'
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaButton from '@/components/XsaButton.uvue'
+	import {
+		getServiceMatchmakers,
+		getVolunteerMatchmakers,
+		getAiRecommendations,
+		bookMatchmaker
+	} from '@/api'
+
+	const currentTab = ref('service')
+	const loading = ref(false)
+	const serviceList = ref([])
+	const volunteerList = ref([])
+	const aiRecommendUsers = ref([])
+	const aiInput = ref('')
+	const prompts = [
+		'帮我整理择偶要求',
+		'分析合拍度',
+		'准备破冰话题'
+	]
+	const aiMessages = ref([
+		{ role: 'ai', text: '你好，我可以先帮你把"想找什么样的人"从模糊感觉整理成可沟通的条件。' },
+		{ role: 'me', text: '我希望对方情绪稳定，也愿意认真沟通。' },
+		{ role: 'ai', text: '可以进一步拆成：冲突时不冷处理、能表达需求、对长期关系有共同规划。哪一项对你最重要？' }
+	])
+
+	onMounted(() => {
+		loadService()
+		loadVolunteer()
+		loadAi()
+	})
+
+	const switchTab = (tab: string) => {
+		currentTab.value = tab
+	}
+
+	const loadService = async () => {
+		try {
+			loading.value = true
+			const res = await getServiceMatchmakers()
+			if (res.success) {
+				serviceList.value = res.data
+			}
+		} catch (e) {
+			console.error(e)
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const loadVolunteer = async () => {
+		try {
+			const res = await getVolunteerMatchmakers()
+			if (res.success) {
+				volunteerList.value = res.data
+			}
+		} catch (e) {
+			console.error(e)
+		}
+	}
+
+	const loadAi = async () => {
+		try {
+			const res = await getAiRecommendations()
+			if (res.success) {
+				aiRecommendUsers.value = (res.data as any[]).map((item: any) => {
+					return {
+						id: item.userId != null ? item.userId : item.id,
+						name: item.name,
+						age: item.age,
+						gender: 2,
+						avatar: item.avatar,
+						online: true,
+						certifications: ['实名认证'],
+						tags: item.tags != null ? item.tags : [],
+						location: item.city,
+						introduction: item.aiSuggestion != null ? item.aiSuggestion : ''
+					}
+				})
+			}
+		} catch (e) {
+			console.error(e)
+		}
+	}
+
+	const handleCall = (item: any) => {
+		uni.showToast({ title: '准备打开系统拨号 · 演示', icon: 'none' })
+	}
+
+	const handleBook = async (item: any) => {
+		try {
+			const res = await bookMatchmaker(item.id)
+			if (res.success) {
+				uni.showToast({ title: '预约已提交', icon: 'success' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '预约失败', icon: 'none' })
+		}
+	}
+
+	const handleVolunteerClick = (item: any) => {
+		uni.showToast({ title: `查看 ${item.name} 的主页 · 演示`, icon: 'none' })
+	}
+
+	const goToApply = () => {
+		uni.navigateTo({ url: '/pages/matchmaker/apply' })
+	}
+
+	const onAiInput = (e: any) => {
+		aiInput.value = e.detail.value
+	}
+
+	const usePrompt = (p: string) => {
+		aiInput.value = p
+	}
+
+	const sendAi = () => {
+		const text = aiInput.value.trim()
+		if (text.length == 0) return
+		aiMessages.value.push({ role: 'me', text: text })
+		aiInput.value = ''
+		// 本地演示回复，不走即时社交聊天
+		setTimeout(() => {
+			aiMessages.value.push({
+				role: 'ai',
+				text: '我会把这个问题拆成可以观察和沟通的具体线索。原型阶段先展示到这里。'
+			})
+		}, 600)
+	}
+
+	const handleUserClick = (user: any) => {
+		uni.navigateTo({ url: `/pages/user/detail?userId=${user.id}` })
+	}
+
+	const handleLike = (userId: number) => {
+		uni.showToast({ title: '已添加到心动列表', icon: 'success' })
+	}
+
+	// 产品约束：不能从红娘推荐直接进入聊天，应先申请认识
+	const handleApplyOnly = (userId: number) => {
+		uni.showToast({ title: '请先通过「申请认识」开启聊天', icon: 'none' })
+		uni.switchTab({ url: '/pages/index/index' })
+	}
+</script>
+
+<style scoped>
+	.matchmaker-page {
+		min-height: 100vh;
+		background: var(--canvas);
+	}
+
+	/* ===== 子 Tab ===== */
+	.subtabs {
+		position: sticky;
+		top: 0;
+		z-index: 8;
+		height: 48px;
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		gap: 18px;
+		padding: 0 18px;
+		background: rgba(250, 252, 252, 0.96);
+		border-bottom: 1px solid var(--line);
+	}
+
+	.subtab {
+		height: 48px;
+		display: flex;
+		align-items: center;
+		color: var(--muted);
+		font-size: 13px;
+		position: relative;
+	}
+
+	.subtab.active {
+		color: var(--ink);
+		font-weight: 800;
+	}
+
+	.subtab.active::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -1px;
+		height: 3px;
+		background: var(--accent);
+		border-radius: 3px 3px 0 0;
+	}
+
+	.scroller {
+		height: calc(100vh - 48px);
+	}
+
+	/* ===== 共用工区 ===== */
+	.page-pad {
+		padding: 16px 16px calc(40px + env(safe-area-inset-bottom));
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.service-banner {
+		min-height: 128px;
+		padding: 16px 14px 14px 18px;
+		border-radius: 8px;
+		background: var(--accent-bg);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		overflow: hidden;
+	}
+
+	.banner-copy {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		z-index: 1;
+	}
+
+	.banner-title {
+		font-size: 22px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--accent2);
+	}
+
+	.banner-subtitle {
+		max-width: 220px;
+		font-size: 11px;
+		line-height: 1.5;
+		color: var(--ink2);
+	}
+
+	.banner-tags {
+		display: flex;
+		gap: 6px;
+	}
+
+	.banner-tags text {
+		padding: 3px 7px;
+		border-radius: 999px;
+		background: var(--surface);
+		color: var(--accent2);
+		font-size: 9px;
+		font-weight: 700;
+	}
+
+	.banner-portrait-wrap {
+		position: relative;
+		width: 92px;
+		height: 108px;
+		margin-right: 2px;
+		border-radius: 50% 50% 8px 50%;
+		overflow: hidden;
+		background: var(--sage-soft);
+	}
+
+	.banner-portrait {
+		width: 100%;
+		height: 100%;
+	}
+
+	.banner-mark {
+		position: absolute;
+		right: 4px;
+		bottom: 4px;
+		padding: 3px 6px;
+		border-radius: 999px;
+		background: var(--accent2);
+		color: var(--text-invert);
+		font-size: 9px;
+		font-weight: 700;
+	}
+
+	/* ===== Hero ===== */
+	.hero-block {
+		padding: 18px;
+		background: var(--warm);
+		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.hero-kicker {
+		font-size: 10px;
+		color: var(--accent2);
+		font-weight: 800;
+		letter-spacing: 0.08em;
+	}
+
+	.hero-title {
+		font-size: 22px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.hero-desc {
+		font-size: 12px;
+		line-height: 1.6;
+	}
+
+	/* ===== Section Header ===== */
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+	}
+
+	.section-label {
+		font-size: 16px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.section-more {
+		font-size: 11px;
+	}
+
+	.section-caption {
+		font-size: 11px;
+		color: var(--muted);
+	}
+
+	/* ===== 横向红娘卡片 ===== */
+	.card-scroll {
+		width: 100%;
+	}
+
+	.card-scroll-inner {
+		display: flex;
+		gap: 8px;
+		padding: 2px 2px 6px;
+	}
+
+	.mm-h-card {
+		flex: 1;
+		min-width: 0;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		white-space: normal;
+		box-shadow: var(--shadow-sm);
+	}
+
+	.mm-h-photo-wrap {
+		position: relative;
+		width: 100%;
+	}
+
+	.mm-h-photo {
+		width: 100%;
+		height: 112px;
+		display: block;
+	}
+
+	.mm-h-badge {
+		position: absolute;
+		left: 8px;
+		top: 8px;
+		font-size: 9px;
+		color: var(--accent2);
+		background: var(--sage-soft);
+		padding: 3px 7px;
+		border-radius: 999px;
+		font-weight: 700;
+	}
+
+	.mm-h-content {
+		padding: 8px 7px;
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
+	}
+
+	.mm-h-name {
+		font-size: 14px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.mm-h-title {
+		font-size: 9px;
+		line-height: 1.4;
+		color: var(--muted);
+		min-height: 28px;
+	}
+
+	.mm-h-count {
+		font-size: 9px;
+		color: var(--ink2);
+	}
+
+	/* ===== 横向排行榜头像 ===== */
+	.rank-scroll {
+		width: 100%;
+		white-space: nowrap;
+	}
+
+	.rank-scroll-inner {
+		display: inline-flex;
+		gap: 10px;
+		padding: 2px 0;
+	}
+
+	.rank-avatar-item {
+		width: 78px;
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 5px;
+		position: relative;
+		white-space: normal;
+	}
+
+	.rank-avatar-no {
+		position: absolute;
+		top: -2px;
+		right: 7px;
+		width: 20px;
+		height: 20px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: var(--text-invert);
+		font-size: 10px;
+		font-weight: 800;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 2;
+	}
+
+	.rank-avatar-img {
+		width: 56px;
+		height: 56px;
+		border-radius: 50%;
+		border: 2px solid var(--line);
+	}
+
+	.rank-avatar-name {
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--ink);
+		text-align: center;
+	}
+
+	.rank-avatar-count {
+		font-size: 10px;
+	}
+
+	/* ===== 我要做红娘 CTA ===== */
+	.cta-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: var(--accent2);
+		border-radius: 12px;
+		padding: 16px;
+		gap: 12px;
+		min-height: 88px;
+		box-shadow: var(--shadow-md);
+	}
+
+	.cta-left {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex: 1;
+	}
+
+	.cta-icon {
+		width: 48px;
+		height: 48px;
+		border-radius: 999px;
+		background: var(--sage-soft);
+		color: var(--accent2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 11px;
+		font-weight: 800;
+	}
+
+	.cta-text {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		flex: 1;
+	}
+
+	.cta-title {
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--text-invert);
+	}
+
+	.cta-desc {
+		font-size: 11px;
+		line-height: 1.5;
+		color: var(--sage-soft);
+	}
+
+	.cta-arrow {
+		width: 32px;
+		height: 32px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: var(--text-invert);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 24px;
+	}
+
+	/* ===== 热心红娘 ===== */
+	.rank-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 2px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.rank-no {
+		width: 28px;
+		font-size: 18px;
+		font-family: var(--serif);
+		color: var(--accent);
+	}
+
+	.rank-avatar {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+	}
+
+	.rank-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.rank-name {
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	.rank-desc {
+		font-size: 10px;
+	}
+
+	.rank-count {
+		font-size: 10px;
+	}
+
+	/* ===== AI 红娘 ===== */
+	.ai-intro {
+		padding: 14px;
+		background: var(--navy);
+		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
+	}
+
+	.ai-title {
+		font-size: 19px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--paper);
+	}
+
+	.ai-desc {
+		font-size: 11px;
+		line-height: 1.6;
+		color: rgba(231, 236, 236, 0.8);
+	}
+
+	.mini-chat {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.bubble {
+		max-width: 82%;
+		padding: 10px 12px;
+		border-radius: 12px;
+		font-size: 12px;
+		line-height: 1.6;
+		background: var(--surface);
+		border: 1px solid var(--line);
+	}
+
+	.bubble.ai {
+		align-self: flex-start;
+		border-radius: 4px 12px 12px 12px;
+	}
+
+	.bubble.me {
+		align-self: flex-end;
+		background: var(--soft);
+		border-color: var(--soft);
+		border-radius: 12px 4px 12px 12px;
+	}
+
+	.prompts {
+		white-space: nowrap;
+		width: 100%;
+	}
+
+	.prompt-chip {
+		display: inline-flex;
+		align-items: center;
+		min-height: 38px;
+		padding: 0 10px;
+		margin-right: 6px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 7px;
+		font-size: 10px;
+	}
+
+	.ai-input-row {
+		display: grid;
+		grid-template-columns: 1fr 64px;
+		gap: 8px;
+	}
+
+	.ai-input {
+		height: 44px;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		border-radius: 9px;
+		padding: 0 12px;
+		font-size: 12px;
+	}
+
+	.ai-send {
+		height: 44px;
+		border-radius: 9px;
+		background: var(--brown);
+		color: var(--paper);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 12px;
+		font-weight: 800;
+	}
+
+	.section-block {
+		margin-top: 8px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.section-title {
+		font-size: 18px;
+		font-family: var(--serif);
+		font-weight: 700;
+	}
+</style>

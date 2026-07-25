@@ -1,0 +1,231 @@
+/**
+ * 社区相关 Mock 数据
+ * 对齐 design-demos/final 社区：喜欢 / 同城 / 发现
+ */
+
+const PORTRAIT = {
+  main: '/static/portraits/profile-woman-main.jpg',
+  alt: '/static/portraits/profile-woman-alt.jpg',
+  community: '/static/portraits/profile-woman-community.jpg',
+  man: '/static/portraits/profile-man-light.jpg',
+  sea: '/static/portraits/profile-man-sea.jpg'
+}
+
+/** 动态流 */
+export const mockDynamicList = [
+  {
+    id: 1,
+    user: {
+      id: 2,
+      avatar: PORTRAIT.alt,
+      name: '林雨桐',
+      age: 28,
+      city: '南京',
+      verified: true
+    },
+    content: '下班后绕路去看了晚霞。认真生活，大概就是不因为忙碌而错过这些小事。',
+    photos: [PORTRAIT.community],
+    location: '南京',
+    time: Date.now() - 10 * 60 * 1000,
+    timeText: '刚刚',
+    likeCount: 36,
+    commentCount: 5,
+    liked: false,
+    tab: 'discover'
+  },
+  {
+    id: 2,
+    user: {
+      id: 1,
+      avatar: PORTRAIT.main,
+      name: '苏晚晴',
+      age: 26,
+      city: '杭州',
+      verified: true
+    },
+    content: '最近的一张速写。比起画得像不像，我更喜欢保留当时的风和声音。',
+    photos: [PORTRAIT.main],
+    location: '杭州',
+    time: Date.now() - 30 * 60 * 1000,
+    timeText: '30 分钟前',
+    likeCount: 58,
+    commentCount: 12,
+    liked: true,
+    tab: 'liked'
+  },
+  {
+    id: 3,
+    user: {
+      id: 7,
+      avatar: PORTRAIT.man,
+      name: '顾言澄',
+      age: 29,
+      city: '南京',
+      verified: true
+    },
+    content: '周日准备去玄武湖跑步，有同样喜欢慢跑的人吗？',
+    photos: [PORTRAIT.sea],
+    location: '南京',
+    time: Date.now() - 12 * 60 * 1000,
+    timeText: '12 分钟前',
+    likeCount: 21,
+    commentCount: 4,
+    liked: false,
+    tab: 'city'
+  },
+  {
+    id: 4,
+    user: {
+      id: 2,
+      avatar: PORTRAIT.alt,
+      name: '林雨桐',
+      age: 28,
+      city: '南京',
+      verified: true
+    },
+    content: '第一次把自己做的面包带给朋友，收到的评价比项目评审温柔多了。',
+    photos: [PORTRAIT.community],
+    location: '南京',
+    time: Date.now() - 24 * 60 * 60 * 1000,
+    timeText: '昨天',
+    likeCount: 44,
+    commentCount: 9,
+    liked: false,
+    tab: 'liked'
+  }
+]
+
+/** 话题 */
+export const mockTopics = [
+  {
+    id: 1,
+    tag: '# 认真关系',
+    title: '什么让你决定靠近一个人？',
+    description: '认真关系里的靠近与边界',
+    cover: PORTRAIT.main,
+    participantCount: 328,
+    postCount: 890,
+    isHot: true
+  },
+  {
+    id: 2,
+    tag: '# 城市周末',
+    title: '一个人也会去的地方',
+    description: '城市里的独处与偶遇',
+    cover: PORTRAIT.alt,
+    participantCount: 214,
+    postCount: 560,
+    isHot: true
+  },
+  {
+    id: 3,
+    tag: '# 第一次见面',
+    title: '公共场所的安全感',
+    description: '安全见面与边界感',
+    cover: PORTRAIT.community,
+    participantCount: 156,
+    postCount: 320,
+    isHot: false
+  }
+]
+
+/** 纸飞机 */
+export const mockPaperPlanes = [
+  {
+    id: 1,
+    content: '希望能遇到一个喜欢看展的人，一起去看艺术展',
+    anonymous: true,
+    gender: '女',
+    age: 26,
+    city: '杭州',
+    time: Date.now() - 30 * 60 * 1000,
+    replyCount: 5
+  },
+  {
+    id: 2,
+    content: '周末想找人一起爬山，有没有同城的小伙伴',
+    anonymous: true,
+    gender: '男',
+    age: 28,
+    city: '南京',
+    time: Date.now() - 60 * 60 * 1000,
+    replyCount: 12
+  },
+  {
+    id: 3,
+    content: '最近在学烘焙，想找个一起研究食谱的朋友',
+    anonymous: true,
+    gender: '女',
+    age: 25,
+    city: '杭州',
+    time: Date.now() - 2 * 60 * 60 * 1000,
+    replyCount: 8
+  }
+]
+
+/** 线下活动（高保真：周末城市散步局） */
+export const mockActivities = [
+  {
+    id: 1,
+    title: '周末城市散步局',
+    description: '12 位完成实名认证的单身青年，在南京颐和路慢慢认识彼此。',
+    cover: PORTRAIT.community,
+    date: '2026-07-26',
+    time: '14:00',
+    location: '南京 · 颐和路（审核通过后告知集合点）',
+    participantCount: 12,
+    maxParticipants: 16,
+    tags: ['同城', '散步', '认真社交'],
+    organizer: {
+      name: '宣誓爱活动组',
+      avatar: PORTRAIT.man
+    },
+    price: 49,
+    status: 'recruiting',
+    kicker: 'OFFLINE · 07/26'
+  },
+  {
+    id: 2,
+    title: '艺术沙龙 | 插画与城市记忆',
+    description: '一起看展、分享创作，认识同样认真生活的人。',
+    cover: PORTRAIT.main,
+    date: '2026-08-02',
+    time: '15:00',
+    location: '杭州 · 西湖边美术馆',
+    participantCount: 8,
+    maxParticipants: 12,
+    tags: ['艺术', '看展'],
+    organizer: {
+      name: '文化小组',
+      avatar: PORTRAIT.alt
+    },
+    price: 39,
+    status: 'recruiting',
+    kicker: 'OFFLINE · 08/02'
+  }
+]
+
+/** 发现页 Banner */
+export const mockCommunityBanners = [
+  {
+    id: 1,
+    type: 'activity',
+    title: '周末城市散步局',
+    subtitle: '12 位完成实名认证的单身青年',
+    cover: PORTRAIT.community
+  },
+  {
+    id: 2,
+    type: 'topic',
+    title: '正在讨论：认真关系',
+    subtitle: '328 人正在参与',
+    cover: PORTRAIT.main
+  },
+  {
+    id: 3,
+    type: 'plane',
+    title: '纸飞机',
+    subtitle: '3 次免费认真表达',
+    cover: PORTRAIT.alt
+  }
+]

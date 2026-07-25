@@ -1,0 +1,129 @@
+/**
+ * 用户相关 API
+ * Mock 来源：design-demos/final 高保真嘉宾数据
+ */
+
+import { request } from './request.uts'
+import {
+  mockRecommendUsers,
+  mockSquareUsers,
+  mockUserDetail,
+  mockMeProfile
+} from '@/mock'
+
+/**
+ * 获取推荐用户（支持轮换 index）
+ */
+export async function getRecommendUser(index: number = 0) {
+  const list = mockRecommendUsers as any[]
+  const i = list.length > 0 ? (index % list.length) : 0
+  const user = list.length > 0 ? list[i] : mockUserDetail
+  return request({
+    url: '/user/recommend',
+    cloudFunctionName: 'user',
+    action: 'getRecommend',
+    method: 'GET',
+    data: { index: i },
+    mockData: user
+  })
+}
+
+/**
+ * 获取推荐用户列表（全量）
+ */
+export async function getRecommendUsers() {
+  return request({
+    url: '/user/recommend/list',
+    cloudFunctionName: 'user',
+    action: 'getRecommendList',
+    method: 'GET',
+    mockData: mockRecommendUsers
+  })
+}
+
+/**
+ * 获取广场用户列表
+ */
+export async function getSquareUsers(params: any) {
+  return request({
+    url: '/user/square',
+    cloudFunctionName: 'user',
+    action: 'getSquareList',
+    method: 'GET',
+    data: params,
+    mockData: mockSquareUsers
+  })
+}
+
+/**
+ * 获取用户详情（优先从高保真嘉宾列表查找）
+ */
+export async function getUserDetail(userId: number) {
+  const list = mockRecommendUsers as any[]
+  let found: any = null
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].id == userId) {
+      found = list[i]
+      break
+    }
+  }
+  const detail = found != null
+    ? {
+        ...mockUserDetail,
+        ...found,
+        introduction: found.intro,
+        genderText: found.gender == 1 ? '男' : '女',
+        certList: ['实名', '学历', '头像', '单身']
+      }
+    : mockUserDetail
+
+  return request({
+    url: '/user/detail',
+    cloudFunctionName: 'user',
+    action: 'getDetail',
+    method: 'GET',
+    data: { userId },
+    mockData: detail
+  })
+}
+
+/**
+ * 当前登录用户资料（我的）
+ */
+export async function getMeProfile() {
+  return request({
+    url: '/user/me',
+    cloudFunctionName: 'user',
+    action: 'getMe',
+    method: 'GET',
+    mockData: mockMeProfile
+  })
+}
+
+/**
+ * 申请认识用户
+ */
+export async function applyToMeet(userId: number, message: string) {
+  return request({
+    url: '/user/apply',
+    cloudFunctionName: 'user',
+    action: 'apply',
+    method: 'POST',
+    data: { userId, message },
+    mockData: { success: true, remain: 1 }
+  })
+}
+
+/**
+ * 喜欢用户
+ */
+export async function likeUser(userId: number) {
+  return request({
+    url: '/user/like',
+    cloudFunctionName: 'user',
+    action: 'like',
+    method: 'POST',
+    data: { userId },
+    mockData: { success: true }
+  })
+}

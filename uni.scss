@@ -1,0 +1,155 @@
+/* 宣誓爱全局样式变量 - 瓷白青瓷风格（冷调统一）
+ * 运行时使用 hex/rgba，保证微信小程序 / H5 / APP 一致可用。
+ * 语义名保持 DESIGN.md 约定；页面与组件继续使用 var(--token)。
+ */
+
+/* ========== 色彩体系 ========== */
+/* 同时定义 page / :root：微信以 page 为变量作用域，H5 常见 :root */
+page,
+:root {
+	/* 基底色（背景与表面） - 冷调瓷白 */
+	--canvas: #F4F8F7;
+	--paper: #FAFCFC;
+	--surface: #FFFFFF;
+	--warm: #E7ECEC;
+
+	/* 文字色（冷灰体系） */
+	--ink: #0C1313;
+	--ink2: #42494A;
+	--muted: #7B8282;
+
+	/* 分割与边框 */
+	--line: #D3D9D8;
+
+	/* 主色（青瓷绿） */
+	--accent: #38988D;
+	--accent2: #007565;
+	--soft: #79B1A9;
+
+	/* 功能色 */
+	--brown: #2C807C;
+	--navy: #18415D;
+	--sage: #338D6B;
+	--sage-soft: #C2E0CF;
+
+	/* 辅助色 */
+	--bg-hover: #E7ECEC;
+	--bg-subtle: #DCE3E2;
+	--accent-bg: #C3DEDA;
+	--accent-glow: rgba(56, 152, 141, 0.15);
+	--text-invert: #FCFCFC;
+	--shortcut-application: #ECEBF8;
+	--shortcut-plane: #DDF1F5;
+	--shortcut-dynamic: #DDF2EC;
+	--shortcut-lab: #F6E8DE;
+
+	/* 阴影（软阴影，非纯黑） */
+	--shadow-sm: 0 2px 12px rgba(17, 23, 24, 0.04);
+	--shadow-md: 0 4px 16px rgba(17, 23, 24, 0.08);
+	--shadow-lg: 0 8px 24px rgba(17, 23, 24, 0.10);
+
+	/* 字体 */
+	--serif: ui-serif, "Songti SC", "STSong", "Noto Serif SC", serif;
+	--sans: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+/* ========== 全局重置 ========== */
+page {
+	background-color: var(--canvas);
+	color: var(--ink);
+	font-family: var(--sans);
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+view, text, button, input {
+	box-sizing: border-box;
+}
+
+button {
+	border: 0;
+	background: transparent;
+	padding: 0;
+	font: inherit;
+	color: inherit;
+}
+
+/* ========== 工具类 ========== */
+.text-serif {
+	font-family: var(--serif);
+}
+
+.text-muted {
+	color: var(--muted);
+}
+
+.text-accent {
+	color: var(--accent2);
+}
+
+.bg-surface {
+	background: var(--surface);
+}
+
+.bg-paper {
+	background: var(--paper);
+}
+
+.border-line {
+	border: 1px solid var(--line);
+}
+
+/* ========== 间距工具类 ========== */
+.p-xs { padding: 8px; }
+.p-sm { padding: 12px; }
+.p-md { padding: 16px; }
+.p-lg { padding: 24px; }
+
+.px-xs { padding-left: 8px; padding-right: 8px; }
+.px-sm { padding-left: 12px; padding-right: 12px; }
+.px-md { padding-left: 16px; padding-right: 16px; }
+.px-lg { padding-left: 24px; padding-right: 24px; }
+
+.py-xs { padding-top: 8px; padding-bottom: 8px; }
+.py-sm { padding-top: 12px; padding-bottom: 12px; }
+.py-md { padding-top: 16px; padding-bottom: 16px; }
+.py-lg { padding-top: 24px; padding-bottom: 24px; }
+
+.m-xs { margin: 8px; }
+.m-sm { margin: 12px; }
+.m-md { margin: 16px; }
+.m-lg { margin: 24px; }
+
+.gap-xs { gap: 8px; }
+.gap-sm { gap: 12px; }
+.gap-md { gap: 16px; }
+.gap-lg { gap: 24px; }
+
+/* ========== Flex 布局 ========== */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-center { align-items: center; justify-content: center; }
+.flex-between { justify-content: space-between; }
+.flex-around { justify-content: space-around; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+
+/* ========== 圆角 ========== */
+.rounded-sm { border-radius: 6px; }
+.rounded-md { border-radius: 10px; }
+.rounded-lg { border-radius: 16px; }
+.rounded-full { border-radius: 999px; }
+
+/* ========== 阴影 ========== */
+.shadow-sm {
+	box-shadow: var(--shadow-sm);
+}
+
+.shadow-md {
+	box-shadow: var(--shadow-md);
+}
+
+.shadow-lg {
+	box-shadow: var(--shadow-lg);
+}

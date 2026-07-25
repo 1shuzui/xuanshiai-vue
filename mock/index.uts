@@ -1,0 +1,39 @@
+/**
+ * Mock 数据统一导出
+ * 含高保真 design-demos/final 迁移数据
+ *
+ * import { mockRecommendUsers, mockMessageList } from '@/mock'
+ */
+
+// 用户相关
+export {
+  mockRecommendUsers,
+  mockSquareUsers,
+  mockUserDetail,
+  mockMeProfile
+} from './user.uts'
+
+// 消息相关
+export {
+  mockMessageList,
+  mockChatMessages,
+  mockApplications
+} from './message.uts'
+
+// 社区相关
+export {
+  mockDynamicList,
+  mockTopics,
+  mockPaperPlanes,
+  mockActivities,
+  mockCommunityBanners
+} from './community.uts'
+
+// 红娘相关
+export {
+  mockServiceMatchmakers,
+  mockVolunteerMatchmakers,
+  mockAiRecommendations,
+  mockCustomPackages,
+  mockAiChatSeed
+} from './matchmaker.uts'

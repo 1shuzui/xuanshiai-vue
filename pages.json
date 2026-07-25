@@ -1,0 +1,131 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "首页"
+			}
+		},
+		{
+			"path": "pages/community/community",
+			"style": {
+				"navigationBarTitleText": "社区"
+			}
+		},
+		{
+			"path": "pages/matchmaker/matchmaker",
+			"style": {
+				"navigationBarTitleText": "红娘服务"
+			}
+		},
+		{
+			"path": "pages/matchmaker/apply",
+			"style": {
+				"navigationBarTitleText": "我要做红娘"
+			}
+		},
+		{
+			"path": "pages/message/message",
+			"style": {
+				"navigationBarTitleText": "消息"
+			}
+		},
+		{
+			"path": "pages/profile/profile",
+			"style": {
+				"navigationBarTitleText": "我的"
+			}
+		},
+		{
+			"path": "pages/auth/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/auth/register",
+			"style": {
+				"navigationBarTitleText": "注册",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/user/detail",
+			"style": {
+				"navigationBarTitleText": "用户详情"
+			}
+		},
+		{
+			"path": "pages/user/edit",
+			"style": {
+				"navigationBarTitleText": "编辑资料"
+			}
+		},
+		{
+			"path": "pages/chat/detail",
+			"style": {
+				"navigationBarTitleText": "聊天"
+			}
+		},
+		{
+			"path": "pages/profile/settings",
+			"style": {
+				"navigationBarTitleText": "设置"
+			}
+		},
+		{
+			"path": "pages/profile/certification",
+			"style": {
+				"navigationBarTitleText": "身份认证"
+			}
+		},
+		{
+			"path": "pages/profile/vip",
+			"style": {
+				"navigationBarTitleText": "会员中心"
+			}
+		},
+		{
+			"path": "pages/community/publish",
+			"style": {
+				"navigationBarTitleText": "发布动态"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "宣誓爱",
+		"navigationBarBackgroundColor": "#FCFCFC",
+		"backgroundColor": "#F9F9F9"
+	},
+	"tabBar": {
+		"color": "#666666",
+		"selectedColor": "#5A9D8E",
+		"backgroundColor": "#FCFCFC",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "首页"
+			},
+			{
+				"pagePath": "pages/community/community",
+				"text": "社区"
+			},
+			{
+				"pagePath": "pages/matchmaker/matchmaker",
+				"text": "牵线"
+			},
+			{
+				"pagePath": "pages/message/message",
+				"text": "消息"
+			},
+			{
+				"pagePath": "pages/profile/profile",
+				"text": "我的"
+			}
+		]
+	},
+	"uniIdRouter": {}
+}

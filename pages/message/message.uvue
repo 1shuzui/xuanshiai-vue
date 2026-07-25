@@ -1,0 +1,902 @@
+<template>
+	<view class="message-page">
+		<scroll-view class="scroller" scroll-y @scrolltolower="handleLoadMore">
+			<!-- 快捷入口：对齐高保真消息中心 -->
+			<view class="shortcuts">
+				<view class="shortcut shortcut-application" @click="openApplications">
+					<view class="shortcut-notice" v-if="hasApplicationNotice"></view>
+					<view class="sc-copy">
+						<text class="sc-title">认识申请</text>
+						<text class="sc-desc text-muted">{{ applicationHint }}</text>
+					</view>
+					<text class="sc-arrow">›</text>
+					<view class="sc-art sc-art-application">
+						<view class="art-chat art-chat-large"></view>
+						<view class="art-chat art-chat-small"></view>
+					</view>
+				</view>
+				<view class="shortcut shortcut-plane" @click="openPaperPlane">
+					<view class="shortcut-notice" v-if="hasPaperPlaneNotice"></view>
+					<view class="sc-copy">
+						<text class="sc-title">纸飞机</text>
+						<text class="sc-desc text-muted">匿名认真表达</text>
+					</view>
+					<text class="sc-arrow">›</text>
+					<view class="sc-art sc-art-plane">
+						<view class="art-plane-wing"></view>
+						<view class="art-plane-tail"></view>
+					</view>
+				</view>
+				<view class="shortcut shortcut-dynamic" @click="openDynamicNotice">
+					<view class="shortcut-notice" v-if="hasDynamicNotice"></view>
+					<view class="sc-copy">
+						<text class="sc-title">Ta 的动态</text>
+						<text class="sc-desc text-muted">关注的人有更新</text>
+					</view>
+					<text class="sc-arrow">›</text>
+					<view class="sc-art sc-art-dynamic">
+						<view class="art-photo art-photo-back"></view>
+						<view class="art-photo art-photo-front">
+							<view class="art-photo-dot"></view>
+						</view>
+					</view>
+				</view>
+				<view class="shortcut shortcut-lab" @click="openHint('情感实验室 · 完善 MBTI 线索')">
+					<view class="sc-copy">
+						<text class="sc-title">情感实验室</text>
+						<text class="sc-desc text-muted">完善匹配线索</text>
+					</view>
+					<text class="sc-arrow">›</text>
+					<view class="sc-art sc-art-lab">
+						<view class="art-flask-neck"></view>
+						<view class="art-flask-body">
+							<view class="art-flask-liquid"></view>
+						</view>
+						<view class="art-flask-bubble art-flask-bubble-one"></view>
+						<view class="art-flask-bubble art-flask-bubble-two"></view>
+					</view>
+				</view>
+			</view>
+
+			<XsaEmpty
+				v-if="messageList.length === 0 && !loading"
+				text="暂无消息"
+				description="申请通过后，对话会出现在这里"
+				size="large"
+			/>
+
+			<view v-else class="list">
+				<XsaMessageItem
+					v-for="msg in displayMessageList"
+					:key="msg.id"
+					:message="msg"
+					@click="handleMessageClick"
+					@longpress="handleMessageLongPress"
+				/>
+			</view>
+
+			<view class="load-more" v-if="messageList.length > 0">
+				<text class="load-text text-muted" v-if="loading">加载中...</text>
+				<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
+			</view>
+		</scroll-view>
+
+		<button class="floating-clear-button" aria-label="清除消息提示" @click="clearUnreadNotices">
+			<view class="floating-broom-icon">
+				<view class="floating-broom-handle"></view>
+				<view class="floating-broom-head">
+					<view class="floating-broom-bristle floating-broom-bristle-one"></view>
+					<view class="floating-broom-bristle floating-broom-bristle-two"></view>
+					<view class="floating-broom-bristle floating-broom-bristle-three"></view>
+				</view>
+			</view>
+		</button>
+
+		<!-- 申请列表 Sheet -->
+		<XsaSheet :visible="appVisible" title="认识申请" @close="appVisible = false">
+			<view class="app-list">
+				<view class="app-item" v-for="item in applications" :key="item.id">
+					<image class="app-avatar" :src="item.avatar" mode="aspectFill"></image>
+					<view class="app-meta">
+						<text class="app-name">{{ item.name }}</text>
+						<text class="app-msg text-muted">{{ item.message }}</text>
+					</view>
+					<view class="app-actions" v-if="item.direction === 'in'">
+						<XsaButton variant="secondary" size="small" @click="rejectApp(item)">拒绝</XsaButton>
+						<XsaButton variant="primary" size="small" @click="acceptApp(item)">同意</XsaButton>
+					</view>
+					<text v-else class="app-status text-muted">{{ item.statusText }}</text>
+				</view>
+				<view v-if="applications.length === 0" class="empty-apps">
+					<text class="text-muted">暂无申请</text>
+				</view>
+			</view>
+		</XsaSheet>
+
+		<XsaSheet :visible="pinVisible" :show-handle="false" @close="closePinSheet">
+			<view class="pin-actions">
+				<XsaButton
+					v-if="selectedMessage != null && selectedMessage.pinned === true"
+					variant="primary"
+					size="medium"
+					@click="togglePin"
+				>取消置顶</XsaButton>
+				<XsaButton v-else variant="primary" size="medium" @click="togglePin">置顶</XsaButton>
+				<XsaButton variant="secondary" size="medium" @click="deleteSelectedMessage">删除</XsaButton>
+				<XsaButton variant="secondary" size="medium" @click="closePinSheet">取消</XsaButton>
+			</view>
+		</XsaSheet>
+
+		<XsaToast :visible="toastVisible" :message="toastMessage" @hide="toastVisible = false" />
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaMessageItem from '@/components/XsaMessageItem.uvue'
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaSheet from '@/components/XsaSheet.uvue'
+	import XsaButton from '@/components/XsaButton.uvue'
+	import XsaToast from '@/components/XsaToast.uvue'
+	import { getMessageList, getApplications, handleApplication } from '@/api'
+
+	const PINNED_MESSAGE_KEY = 'xsa-pinned-message-ids'
+	const READ_MESSAGE_KEY = 'xsa-read-message-ids'
+	const READ_SHORTCUT_NOTICE_KEY = 'xsa-read-shortcut-notices'
+	const PAPER_PLANE_NOTICE_KEY = 'paper-plane:mock-1'
+	const DYNAMIC_NOTICE_KEY = 'dynamic:mock-1'
+	const loading = ref(false)
+	const hasMore = ref(true)
+	const messageList = ref([])
+	const applications = ref([])
+	const appVisible = ref(false)
+	const pinVisible = ref(false)
+	const selectedMessage = ref<any>(null)
+	const pinnedMessageIds = ref([] as any[])
+	const readMessageIds = ref([] as any[])
+	const readShortcutNotices = ref([] as any[])
+	const toastVisible = ref(false)
+	const toastMessage = ref('')
+
+	const displayMessageList = computed(() => {
+		const pinned: any[] = []
+		const regular: any[] = []
+		const source = messageList.value as any[]
+		source.forEach((item: any) => {
+			if (item.pinned === true) {
+				pinned.push(item)
+			} else {
+				regular.push(item)
+			}
+		})
+		return pinned.concat(regular)
+	})
+
+	const applicationHint = computed(() => {
+		const n = applications.value.length
+		if (n > 0) return `${n} 条待处理`
+		return '暂无新申请'
+	})
+
+	const applicationNoticeKey = computed(() => {
+		const ids: string[] = []
+		const list = applications.value as any[]
+		list.forEach((item: any) => {
+			if (item.direction === 'in') ids.push(item.id.toString())
+		})
+		return ids.length > 0 ? `application:${ids.join(',')}` : ''
+	})
+
+	const hasApplicationNotice = computed(() => {
+		const key = applicationNoticeKey.value
+		return key.length > 0 && readShortcutNotices.value.indexOf(key) < 0
+	})
+
+	const hasPaperPlaneNotice = computed(() => {
+		return readShortcutNotices.value.indexOf(PAPER_PLANE_NOTICE_KEY) < 0
+	})
+
+	const hasDynamicNotice = computed(() => {
+		return readShortcutNotices.value.indexOf(DYNAMIC_NOTICE_KEY) < 0
+	})
+
+	onMounted(() => {
+		loadPinnedMessageIds()
+		loadReadMessageIds()
+		loadReadShortcutNotices()
+		loadMessages()
+		loadApplications()
+	})
+
+	const loadPinnedMessageIds = () => {
+		try {
+			const stored = uni.getStorageSync(PINNED_MESSAGE_KEY)
+			if (Array.isArray(stored)) {
+				pinnedMessageIds.value = stored as any[]
+			}
+		} catch (e) {
+			pinnedMessageIds.value = []
+		}
+	}
+
+	const loadReadMessageIds = () => {
+		try {
+			const stored = uni.getStorageSync(READ_MESSAGE_KEY)
+			if (Array.isArray(stored)) {
+				readMessageIds.value = stored as any[]
+			}
+		} catch (e) {
+			readMessageIds.value = []
+		}
+	}
+
+	const loadReadShortcutNotices = () => {
+		try {
+			const stored = uni.getStorageSync(READ_SHORTCUT_NOTICE_KEY)
+			if (Array.isArray(stored)) {
+				readShortcutNotices.value = stored as any[]
+			}
+		} catch (e) {
+			readShortcutNotices.value = []
+		}
+	}
+
+	const showToast = (msg: string) => {
+		toastMessage.value = msg
+		toastVisible.value = true
+	}
+
+	const loadMessages = async () => {
+		try {
+			loading.value = true
+			const res = await getMessageList()
+			if (res.success) {
+				const list = res.data as any[]
+				list.forEach((item: any) => {
+					item.pinned = pinnedMessageIds.value.indexOf(item.id) >= 0
+					if (readMessageIds.value.indexOf(item.id) >= 0) {
+						item.unreadCount = 0
+					}
+				})
+				messageList.value = list
+			}
+		} catch (e) {
+			console.error(e)
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const markMessageRead = (message: any) => {
+		if (message.unreadCount == null || message.unreadCount <= 0) return
+		message.unreadCount = 0
+		if (readMessageIds.value.indexOf(message.id) < 0) {
+			readMessageIds.value.push(message.id)
+		}
+		try {
+			uni.setStorageSync(READ_MESSAGE_KEY, readMessageIds.value)
+		} catch (e) {
+			console.error(e)
+		}
+		messageList.value = (messageList.value as any[]).slice()
+	}
+
+	const loadApplications = async () => {
+		try {
+			const res = await getApplications()
+			if (res.success) {
+				// 兼容 mock 结构
+				const data = res.data
+				if (Array.isArray(data)) {
+					applications.value = data.map((x: any) => normalizeApp(x))
+				} else if (data != null) {
+					const list: any[] = []
+					if (data.incoming != null) {
+						(data.incoming as any[]).forEach((x: any) => list.push(normalizeApp(x, 'in')))
+					}
+					if (data.outgoing != null) {
+						(data.outgoing as any[]).forEach((x: any) => list.push(normalizeApp(x, 'out')))
+					}
+					if (list.length == 0 && data.list != null) {
+						(data.list as any[]).forEach((x: any) => list.push(normalizeApp(x)))
+					}
+					applications.value = list
+				}
+			}
+		} catch (e) {
+			// mock 可能未实现时给演示数据
+			applications.value = [
+				{
+					id: 1,
+					userId: 1,
+					name: '苏晚晴',
+					avatar: '/static/portraits/profile-woman-main.jpg',
+					message: '资料匹配度 92% · 想认真认识你',
+					direction: 'out',
+					statusText: '待回应'
+				}
+			]
+		}
+	}
+
+	const normalizeApp = (x: any, dir: string = 'in') => {
+		return {
+			id: x.id != null ? x.id : x.userId,
+			userId: x.userId != null ? x.userId : x.id,
+			name: x.name != null ? x.name : '用户',
+			avatar: x.avatar != null ? x.avatar : '/static/portraits/profile-woman-main.jpg',
+			message: x.message != null ? x.message : (x.remark != null ? x.remark : '申请认识'),
+			direction: x.direction != null ? x.direction : dir,
+			statusText: x.statusText != null ? x.statusText : '待回应'
+		}
+	}
+
+	const openApplications = () => {
+		markShortcutNoticeRead(applicationNoticeKey.value)
+		appVisible.value = true
+	}
+
+	const openPaperPlane = () => {
+		markShortcutNoticeRead(PAPER_PLANE_NOTICE_KEY)
+		openHint('纸飞机 · 3 次免费机会')
+	}
+
+	const openDynamicNotice = () => {
+		markShortcutNoticeRead(DYNAMIC_NOTICE_KEY)
+		openHint('Ta 的动态 · 入口已触发')
+	}
+
+	const markShortcutNoticeRead = (key: string) => {
+		if (key.length == 0 || readShortcutNotices.value.indexOf(key) >= 0) return
+		readShortcutNotices.value.push(key)
+		try {
+			uni.setStorageSync(READ_SHORTCUT_NOTICE_KEY, readShortcutNotices.value)
+		} catch (e) {
+			console.error(e)
+		}
+		readShortcutNotices.value = readShortcutNotices.value.slice()
+	}
+
+	const clearUnreadNotices = () => {
+		let cleared = false
+		const messages = messageList.value as any[]
+		messages.forEach((message: any) => {
+			if (message.unreadCount != null && message.unreadCount > 0) {
+				message.unreadCount = 0
+				cleared = true
+				if (readMessageIds.value.indexOf(message.id) < 0) {
+					readMessageIds.value.push(message.id)
+				}
+			}
+		})
+		const noticeKeys = [applicationNoticeKey.value, PAPER_PLANE_NOTICE_KEY, DYNAMIC_NOTICE_KEY]
+		noticeKeys.forEach((key: string) => {
+			if (key.length > 0 && readShortcutNotices.value.indexOf(key) < 0) {
+				readShortcutNotices.value.push(key)
+				cleared = true
+			}
+		})
+		try {
+			uni.setStorageSync(READ_MESSAGE_KEY, readMessageIds.value)
+			uni.setStorageSync(READ_SHORTCUT_NOTICE_KEY, readShortcutNotices.value)
+		} catch (e) {
+			console.error(e)
+		}
+		messageList.value = messages.slice()
+		readShortcutNotices.value = readShortcutNotices.value.slice()
+		showToast(cleared ? '消息提示已清除' : '暂无消息提示')
+	}
+
+	const openHint = (msg: string) => {
+		showToast(msg)
+	}
+
+	const handleMessageLongPress = (message: any) => {
+		selectedMessage.value = message
+		pinVisible.value = true
+	}
+
+	const closePinSheet = () => {
+		pinVisible.value = false
+		selectedMessage.value = null
+	}
+
+	const togglePin = () => {
+		if (selectedMessage.value == null) return
+		const message = selectedMessage.value
+		message.pinned = message.pinned !== true
+		const pinnedIndex = pinnedMessageIds.value.indexOf(message.id)
+		if (message.pinned === true && pinnedIndex < 0) {
+			pinnedMessageIds.value.push(message.id)
+		} else if (message.pinned !== true && pinnedIndex >= 0) {
+			pinnedMessageIds.value.splice(pinnedIndex, 1)
+		}
+		try {
+			uni.setStorageSync(PINNED_MESSAGE_KEY, pinnedMessageIds.value)
+		} catch (e) {
+			console.error(e)
+		}
+		messageList.value = (messageList.value as any[]).slice()
+		showToast(message.pinned === true ? '已置顶该会话' : '已取消置顶')
+		closePinSheet()
+	}
+
+	const deleteSelectedMessage = () => {
+		if (selectedMessage.value == null) return
+		const message = selectedMessage.value
+		pinVisible.value = false
+		uni.showModal({
+			title: '删除会话',
+			content: `确定删除与${message.name}的会话吗？`,
+			confirmText: '删除',
+			cancelText: '取消',
+			success: (res) => {
+				if (res.confirm) {
+					messageList.value = (messageList.value as any[]).filter((item: any) => item.id != message.id)
+					const pinnedIndex = pinnedMessageIds.value.indexOf(message.id)
+					if (pinnedIndex >= 0) pinnedMessageIds.value.splice(pinnedIndex, 1)
+					try {
+						uni.setStorageSync(PINNED_MESSAGE_KEY, pinnedMessageIds.value)
+					} catch (e) {
+						console.error(e)
+					}
+					showToast('已删除该会话')
+				}
+				selectedMessage.value = null
+			}
+		})
+	}
+
+	// 仅已匹配会话可进入聊天；否则提示申请流程
+	const handleMessageClick = (message: any) => {
+		markMessageRead(message)
+		const matched = message.matched === true || message.canChat === true || message.type === 'chat'
+		if (!matched && message.type === 'system') {
+			showToast(message.lastMessage != null ? message.lastMessage : '系统消息')
+			return
+		}
+		// 默认允许进入详情（mock 会话视为已通过双方同意）
+		uni.navigateTo({
+			url: `/pages/chat/detail?userId=${message.userId}&userName=${encodeURIComponent(message.name)}`
+		})
+	}
+
+	const acceptApp = async (item: any) => {
+		try {
+			const res = await handleApplication(item.id, 'accept')
+			if (res.success) {
+				showToast('已同意，聊天已开放')
+				appVisible.value = false
+				uni.navigateTo({
+					url: `/pages/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}`
+				})
+			}
+		} catch (e) {
+			// mock 容错
+			showToast('已同意，聊天已开放')
+			appVisible.value = false
+			uni.navigateTo({
+				url: `/pages/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}`
+			})
+		}
+	}
+
+	const rejectApp = async (item: any) => {
+		try {
+			await handleApplication(item.id, 'reject')
+		} catch (e) {}
+		applications.value = applications.value.filter((x: any) => x.id != item.id)
+		showToast('已拒绝，不扣除对方次数')
+	}
+
+	const handleLoadMore = async () => {
+		if (loading.value || !hasMore.value) return
+		loading.value = true
+		try {
+			await loadMessages()
+			if (messageList.value.length >= 20) hasMore.value = false
+		} finally {
+			loading.value = false
+		}
+	}
+</script>
+
+<style scoped>
+	.message-page {
+		min-height: 100vh;
+		background: var(--canvas);
+	}
+
+	.scroller {
+		height: 100vh;
+		padding: 14px 14px 88px;
+	}
+
+	.floating-clear-button {
+		position: fixed;
+		right: 16px;
+		bottom: calc(18px + env(safe-area-inset-bottom));
+		z-index: 30;
+		width: 48px;
+		height: 48px;
+		margin: 0;
+		padding: 0;
+		border: 1px solid var(--line);
+		border-radius: 50%;
+		background: var(--paper);
+		box-shadow: var(--shadow-md);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-sizing: border-box;
+		transition: transform 0.18s ease-out, background 0.18s ease-out;
+	}
+
+	.floating-clear-button::after {
+		border: 0;
+	}
+
+	.floating-clear-button:active {
+		background: var(--sage-soft);
+		transform: scale(0.98);
+	}
+
+	.floating-broom-icon {
+		position: relative;
+		width: 26px;
+		height: 26px;
+	}
+
+	.floating-broom-handle {
+		position: absolute;
+		left: 13px;
+		top: 0;
+		width: 3px;
+		height: 17px;
+		border-radius: 999px;
+		background: var(--accent2);
+		transform: rotate(-34deg);
+		transform-origin: center bottom;
+	}
+
+	.floating-broom-head {
+		position: absolute;
+		left: 4px;
+		bottom: 1px;
+		width: 18px;
+		height: 11px;
+		border: 2px solid var(--accent2);
+		border-radius: 3px 3px 7px 7px;
+		background: var(--sage-soft);
+		box-sizing: border-box;
+		transform: rotate(-7deg);
+		overflow: hidden;
+	}
+
+	.floating-broom-bristle {
+		position: absolute;
+		top: 1px;
+		bottom: 0;
+		width: 1px;
+		background: var(--accent2);
+		opacity: 0.65;
+	}
+
+	.floating-broom-bristle-one {
+		left: 4px;
+	}
+
+	.floating-broom-bristle-two {
+		left: 8px;
+	}
+
+	.floating-broom-bristle-three {
+		left: 12px;
+	}
+
+	.shortcuts {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px 8px;
+		margin-bottom: 18px;
+	}
+
+	.shortcut {
+		position: relative;
+		min-height: 96px;
+		padding: 15px 14px;
+		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		overflow: hidden;
+		box-shadow: var(--shadow-sm);
+		transition: transform 0.18s ease-out;
+	}
+
+	.shortcut:active {
+		transform: scale(0.98);
+	}
+
+	.shortcut-notice {
+		position: absolute;
+		top: 7px;
+		left: 7px;
+		z-index: 4;
+		width: 9px;
+		height: 9px;
+		border: 2px solid var(--paper);
+		border-radius: 50%;
+		background: var(--accent);
+		box-sizing: border-box;
+	}
+
+	.shortcut-application {
+		background: var(--shortcut-application);
+	}
+
+	.shortcut-plane {
+		background: var(--shortcut-plane);
+	}
+
+	.shortcut-dynamic {
+		background: var(--shortcut-dynamic);
+	}
+
+	.shortcut-lab {
+		background: var(--shortcut-lab);
+	}
+
+	.sc-copy {
+		position: relative;
+		z-index: 2;
+		max-width: 76%;
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.sc-title {
+		font-size: 15px;
+		font-family: var(--sans);
+		font-weight: 700;
+		line-height: 21px;
+		color: var(--ink);
+	}
+
+	.sc-desc {
+		font-size: 11px;
+		line-height: 17px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sc-arrow {
+		position: absolute;
+		top: 10px;
+		right: 12px;
+		z-index: 3;
+		font-size: 22px;
+		line-height: 22px;
+		color: var(--muted);
+		opacity: 0.72;
+	}
+
+	.sc-art {
+		position: absolute;
+		right: 10px;
+		bottom: 8px;
+		width: 54px;
+		height: 54px;
+		opacity: 0.18;
+		pointer-events: none;
+	}
+
+	.art-chat {
+		position: absolute;
+		background: var(--navy);
+		border-radius: 10px;
+		transform: rotate(-8deg);
+	}
+
+	.art-chat-large {
+		right: 0;
+		top: 5px;
+		width: 39px;
+		height: 27px;
+	}
+
+	.art-chat-small {
+		left: 1px;
+		bottom: 5px;
+		width: 29px;
+		height: 21px;
+		opacity: 0.72;
+	}
+
+	.art-plane-wing {
+		position: absolute;
+		right: 1px;
+		top: 11px;
+		width: 0;
+		height: 0;
+		border-top: 15px solid transparent;
+		border-bottom: 15px solid transparent;
+		border-left: 46px solid var(--accent);
+		transform: rotate(-15deg);
+	}
+
+	.art-plane-tail {
+		position: absolute;
+		left: 15px;
+		bottom: 5px;
+		width: 18px;
+		height: 8px;
+		background: var(--accent);
+		border-radius: 2px 8px 2px 8px;
+		transform: rotate(-34deg);
+	}
+
+	.art-photo {
+		position: absolute;
+		width: 36px;
+		height: 27px;
+		border-radius: 6px;
+		background: var(--sage);
+	}
+
+	.art-photo-back {
+		left: 1px;
+		top: 7px;
+		transform: rotate(-12deg);
+		opacity: 0.68;
+	}
+
+	.art-photo-front {
+		right: 1px;
+		bottom: 7px;
+		transform: rotate(8deg);
+	}
+
+	.art-photo-dot {
+		width: 8px;
+		height: 8px;
+		margin: 6px 0 0 7px;
+		border-radius: 999px;
+		background: var(--surface);
+	}
+
+	.art-flask-neck {
+		position: absolute;
+		left: 22px;
+		top: 4px;
+		width: 11px;
+		height: 18px;
+		border: 3px solid var(--sage);
+		border-bottom: 0;
+		border-radius: 4px 4px 0 0;
+		box-sizing: border-box;
+	}
+
+	.art-flask-body {
+		position: absolute;
+		left: 11px;
+		top: 17px;
+		width: 33px;
+		height: 31px;
+		border: 3px solid var(--sage);
+		border-radius: 7px 7px 14px 14px;
+		background: var(--paper);
+		box-sizing: border-box;
+		transform: rotate(4deg);
+		overflow: hidden;
+	}
+
+	.art-flask-liquid {
+		position: absolute;
+		left: -3px;
+		bottom: -3px;
+		width: 33px;
+		height: 16px;
+		background: var(--sage);
+		opacity: 0.86;
+		transform: rotate(-4deg);
+	}
+
+	.art-flask-bubble {
+		position: absolute;
+		border-radius: 999px;
+		background: var(--sage);
+	}
+
+	.art-flask-bubble-one {
+		right: 3px;
+		top: 9px;
+		width: 7px;
+		height: 7px;
+	}
+
+	.art-flask-bubble-two {
+		right: 0;
+		top: 1px;
+		width: 4px;
+		height: 4px;
+		opacity: 0.72;
+	}
+
+	.list {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		margin: 0 -14px;
+		padding: 0;
+		background: var(--surface);
+	}
+
+	.load-more {
+		text-align: center;
+		padding: 20px 0;
+	}
+
+	.load-text {
+		font-size: 13px;
+	}
+
+	.app-list {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.app-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding-bottom: 12px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.app-avatar {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+	}
+
+	.app-meta {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 0;
+	}
+
+	.app-name {
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	.app-msg {
+		font-size: 11px;
+	}
+
+	.app-actions {
+		display: flex;
+		gap: 6px;
+	}
+
+	.app-status {
+		font-size: 11px;
+	}
+
+	.empty-apps {
+		padding: 24px 0;
+		text-align: center;
+	}
+
+	.pin-actions {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+	}
+</style>

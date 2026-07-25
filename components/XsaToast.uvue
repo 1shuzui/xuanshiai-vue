@@ -1,0 +1,67 @@
+<template>
+	<view class="xsa-toast" :class="{ show: visible }">
+		<text class="toast-text">{{ message }}</text>
+	</view>
+</template>
+
+<script setup lang="uts">
+/**
+ * XsaToast - 宣誓爱提示消息组件
+ * 遵循 DESIGN.md 设计规范
+ */
+
+interface Props {
+	message: string;
+	visible: boolean;
+	duration?: number;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	duration: 1900
+});
+
+const emit = defineEmits<{
+	hide: []
+}>();
+
+// 监听 visible 变化，自动隐藏
+watch(() => props.visible, (newVal) => {
+	if (newVal) {
+		setTimeout(() => {
+			emit('hide');
+		}, props.duration);
+	}
+});
+</script>
+
+<style scoped>
+/* Toast 提示 - 遵循 DESIGN.md */
+.xsa-toast {
+	position: fixed;
+	z-index: 100;
+	left: 50%;
+	top: 86px;
+	transform: translate(-50%, -12px);
+	max-width: 330px;
+	padding: 10px 14px;
+	border-radius: 8px;
+	background: var(--ink);
+	color: var(--paper);
+	font-size: 11px;
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transition: 0.22s;
+	box-shadow: 0 8px 20px rgba(17, 23, 24, 0.20);
+}
+
+.xsa-toast.show {
+	opacity: 1;
+	transform: translate(-50%, 0);
+}
+
+.toast-text {
+	display: block;
+	color: var(--paper);
+}
+</style>

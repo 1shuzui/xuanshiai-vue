@@ -1,0 +1,101 @@
+<template>
+	<view class="xsa-tag" :class="[variant, size, { selected: selected }]" @click="handleClick">
+		<text class="tag-text"><slot></slot></text>
+	</view>
+</template>
+
+<script setup lang="uts">
+/**
+ * XsaTag - 宣誓爱标签/徽章组件
+ * 遵循 DESIGN.md 设计规范
+ */
+
+interface Props {
+	variant?: 'default' | 'accent' | 'badge';
+	size?: 'small' | 'medium';
+	selected?: boolean;
+	clickable?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	variant: 'default',
+	size: 'medium',
+	selected: false,
+	clickable: false
+});
+
+const emit = defineEmits<{
+	click: []
+}>();
+
+const handleClick = () => {
+	if (props.clickable) {
+		emit('click');
+	}
+};
+</script>
+
+<style scoped>
+/* 基础标签 - 遵循 DESIGN.md */
+.xsa-tag {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	font-family: var(--sans);
+	white-space: nowrap;
+}
+
+/* 尺寸变体 */
+.xsa-tag.small {
+	padding: 3px 5px;
+	font-size: 9px;
+	border-radius: 4px;
+}
+
+.xsa-tag.medium {
+	padding: 5px 8px;
+	font-size: 11px;
+	border-radius: 6px;
+}
+
+/* 默认标签 */
+.xsa-tag.default {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--ink2);
+}
+
+/* 强调标签 */
+.xsa-tag.accent {
+	background: var(--soft);
+	border: 1px solid var(--accent);
+	color: var(--accent2);
+	font-weight: 800;
+}
+
+/* 徽章（Badge） */
+.xsa-tag.badge {
+	min-width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: var(--accent);
+	color: var(--paper);
+	padding: 0 4px;
+	font-size: 9px;
+	font-weight: 800;
+	border: 2px solid var(--paper);
+}
+
+/* 选中状态 */
+.xsa-tag.selected {
+	background: var(--soft);
+	border-color: var(--accent);
+	color: var(--accent2);
+	font-weight: 800;
+}
+
+.tag-text {
+	display: block;
+}
+</style>

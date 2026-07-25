@@ -1,0 +1,80 @@
+/**
+ * 牵线/红娘相关 API
+ * 包含：服务红娘、热心红娘、AI 红娘、私人定制
+ */
+
+import { request } from './request.uts'
+import {
+  mockServiceMatchmakers,
+  mockVolunteerMatchmakers,
+  mockAiRecommendations,
+  mockCustomPackages
+} from '@/mock'
+
+/**
+ * 获取服务红娘列表
+ */
+export async function getServiceMatchmakers() {
+  return request({
+    url: '/matchmaker/service/list',
+    cloudFunctionName: 'matchmaker',
+    action: 'getServiceList',
+    method: 'GET',
+    mockData: mockServiceMatchmakers // Mock 数据
+  })
+}
+
+/**
+ * 获取热心红娘列表
+ */
+export async function getVolunteerMatchmakers() {
+  return request({
+    url: '/matchmaker/volunteer/list',
+    cloudFunctionName: 'matchmaker',
+    action: 'getVolunteerList',
+    method: 'GET',
+    mockData: mockVolunteerMatchmakers // Mock 数据
+  })
+}
+
+/**
+ * 获取 AI 红娘推荐
+ */
+export async function getAiRecommendations() {
+  return request({
+    url: '/matchmaker/ai/recommend',
+    cloudFunctionName: 'matchmaker',
+    action: 'getAiRecommendations',
+    method: 'GET',
+    mockData: mockAiRecommendations // Mock 数据
+  })
+}
+
+/**
+ * 获取私人定制套餐
+ */
+export async function getCustomPackages() {
+  return request({
+    url: '/matchmaker/packages',
+    cloudFunctionName: 'matchmaker',
+    action: 'getPackages',
+    method: 'GET',
+    mockData: mockCustomPackages // Mock 数据
+  })
+}
+
+/**
+ * 预约红娘服务
+ * @param matchmakerId 红娘 ID
+ * @param packageId 套餐 ID（可选）
+ */
+export async function bookMatchmaker(matchmakerId: number, packageId?: number) {
+  return request({
+    url: '/matchmaker/book',
+    cloudFunctionName: 'matchmaker',
+    action: 'book',
+    method: 'POST',
+    data: { matchmakerId, packageId },
+    mockData: { success: true, orderId: Date.now() } // Mock 数据
+  })
+}

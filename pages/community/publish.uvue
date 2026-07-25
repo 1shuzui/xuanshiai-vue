@@ -1,0 +1,371 @@
+<template>
+	<view class="publish-page">
+		<scroll-view class="scroll-content" scroll-y>
+			<!-- 图片上传区域 -->
+			<view class="photo-section">
+				<view class="photo-grid">
+					<view class="photo-item" v-for="(photo, index) in photos" :key="index">
+						<image class="photo" :src="photo" mode="aspectFill"></image>
+						<view class="delete-btn" @click="deletePhoto(index)">
+							<text class="icon">✕</text>
+						</view>
+					</view>
+					<view class="photo-item add-btn" @click="addPhoto" v-if="photos.length < 9">
+						<text class="icon">+</text>
+						<text class="text">添加图片</text>
+					</view>
+				</view>
+				<text class="photo-tip text-muted">最多上传9张图片</text>
+			</view>
+
+			<!-- 内容输入 -->
+			<view class="content-section">
+				<textarea
+					class="textarea"
+					:value="content"
+					@input="onContentInput"
+					placeholder="分享此刻的心情..."
+					maxlength="500"
+					auto-height
+				></textarea>
+				<text class="char-count">{{ content.length }}/500</text>
+			</view>
+
+			<!-- 位置选择 -->
+			<view class="option-item" @click="chooseLocation">
+				<view class="option-left">
+					<text class="option-icon">📍</text>
+					<text class="option-label">添加位置</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted" v-if="location">{{ location }}</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 可见范围 -->
+			<view class="option-item" @click="selectVisibility">
+				<view class="option-left">
+					<text class="option-icon">👁️</text>
+					<text class="option-label">谁可以看</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted">{{ visibilityText }}</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 提醒谁看 -->
+			<view class="option-item" @click="selectMention">
+				<view class="option-left">
+					<text class="option-icon">@</text>
+					<text class="option-label">提醒谁看</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted" v-if="mentions.length > 0">
+						已选择{{ mentions.length }}人
+					</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+		</scroll-view>
+
+		<!-- 底部发布按钮 -->
+		<view class="footer">
+			<button class="cancel-btn" @click="handleCancel">取消</button>
+			<button class="publish-btn" @click="handlePublish" :disabled="!canPublish">发布</button>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	// 表单数据
+	let photos = ref<string[]>([])
+	let content = ref('')
+	let location = ref('')
+	let visibility = ref(0) // 0-所有人 1-仅好友 2-仅自己
+	let mentions = ref<number[]>([])
+
+	// 可见范围文本
+	const visibilityText = computed(() => {
+		const texts = ['所有人可见', '仅好友可见', '仅自己可见']
+		return texts[visibility.value]
+	})
+
+	// 是否可以发布
+	const canPublish = computed(() => {
+		return photos.value.length > 0 || content.value.trim().length > 0
+	})
+
+	// 添加图片
+	const addPhoto = () => {
+		const remaining = 9 - photos.value.length
+		uni.chooseImage({
+			count: remaining,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				photos.value.push(...res.tempFilePaths)
+				// TODO: 上传图片到服务器
+			}
+		})
+	}
+
+	// 删除图片
+	const deletePhoto = (index: number) => {
+		photos.value.splice(index, 1)
+	}
+
+	// 输入内容
+	const onContentInput = (e: InputEvent) => {
+		content.value = e.detail.value
+	}
+
+	// 选择位置
+	const chooseLocation = () => {
+		uni.chooseLocation({
+			success: (res) => {
+				location.value = res.name || res.address
+			}
+		})
+	}
+
+	// 选择可见范围
+	const selectVisibility = () => {
+		uni.showActionSheet({
+			itemList: ['所有人可见', '仅好友可见', '仅自己可见'],
+			success: (res) => {
+				visibility.value = res.tapIndex
+			}
+		})
+	}
+
+	// 选择提醒谁看
+	const selectMention = () => {
+		uni.showToast({
+			title: '功能开发中',
+			icon: 'none'
+		})
+	}
+
+	// 取消
+	const handleCancel = () => {
+		if (photos.value.length > 0 || content.value.trim().length > 0) {
+			uni.showModal({
+				title: '提示',
+				content: '确定放弃编辑吗？',
+				success: (res) => {
+					if (res.confirm) {
+						uni.navigateBack()
+					}
+				}
+			})
+		} else {
+			uni.navigateBack()
+		}
+	}
+
+	// 发布
+	const handlePublish = () => {
+		if (!canPublish.value) {
+			uni.showToast({
+				title: '请添加内容或图片',
+				icon: 'none'
+			})
+			return
+		}
+
+		uni.showLoading({
+			title: '发布中...'
+		})
+
+		// TODO: 调用发布接口
+		setTimeout(() => {
+			uni.hideLoading()
+			uni.showToast({
+				title: '发布成功',
+				icon: 'success'
+			})
+
+			setTimeout(() => {
+				uni.navigateBack()
+			}, 1500)
+		}, 2000)
+	}
+</script>
+
+<style scoped>
+.publish-page {
+	height: 100vh;
+	background: var(--canvas);
+	display: flex;
+	flex-direction: column;
+}
+
+.scroll-content {
+	flex: 1;
+	padding: 16px;
+}
+
+.photo-section {
+	margin-bottom: 16px;
+}
+
+.photo-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.photo-item {
+	position: relative;
+	aspect-ratio: 1;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.photo {
+	width: 100%;
+	height: 100%;
+}
+
+.delete-btn {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	width: 24px;
+	height: 24px;
+	background: rgba(0, 0, 0, 0.6);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.delete-btn .icon {
+	color: var(--text-invert);
+	font-size: 16px;
+}
+
+.add-btn {
+	background: var(--surface);
+	border: 1px dashed var(--line);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+}
+
+.add-btn .icon {
+	font-size: 32px;
+	color: var(--muted);
+}
+
+.add-btn .text {
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.photo-tip {
+	font-size: 12px;
+}
+
+.content-section {
+	background: var(--surface);
+	border-radius: 12px;
+	padding: 16px;
+	margin-bottom: 12px;
+}
+
+.textarea {
+	width: 100%;
+	min-height: 120px;
+	font-size: 15px;
+	color: var(--ink);
+	line-height: 1.6;
+}
+
+.char-count {
+	display: block;
+	text-align: right;
+	font-size: 12px;
+	color: var(--muted);
+	margin-top: 8px;
+}
+
+.option-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 52px;
+	padding: 0 16px;
+	background: var(--surface);
+	border-radius: 12px;
+	margin-bottom: 8px;
+}
+
+.option-left {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.option-icon {
+	font-size: 20px;
+}
+
+.option-label {
+	font-size: 15px;
+	color: var(--ink);
+}
+
+.option-right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.option-value {
+	font-size: 14px;
+}
+
+.arrow {
+	font-size: 20px;
+	color: var(--muted);
+}
+
+.footer {
+	display: flex;
+	gap: 12px;
+	padding: 12px 16px;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+	padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+.cancel-btn {
+	flex: 1;
+	height: 44px;
+	background: var(--paper);
+	color: var(--ink);
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	font-size: 15px;
+}
+
+.publish-btn {
+	flex: 2;
+	height: 44px;
+	background: var(--accent);
+	color: var(--text-invert);
+	border-radius: 999px;
+	font-size: 15px;
+	font-weight: 500;
+}
+
+.publish-btn[disabled] {
+	opacity: 0.5;
+}
+</style>

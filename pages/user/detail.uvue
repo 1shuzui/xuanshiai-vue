@@ -1,0 +1,394 @@
+<template>
+	<view class="user-detail-page">
+		<!-- 用户头部信息 -->
+		<view class="user-header">
+			<image class="avatar" :src="userInfo.avatar" mode="aspectFill"></image>
+			<view class="user-info">
+				<view class="name-row">
+					<text class="name">{{ userInfo.name }}</text>
+					<text class="age">{{ userInfo.age }}岁</text>
+					<text class="gender-icon">{{ userInfo.gender === 1 ? '♂' : '♀' }}</text>
+				</view>
+				<view class="tags">
+					<text class="tag" v-for="(tag, index) in userInfo.tags" :key="index">{{ tag }}</text>
+				</view>
+				<view class="location">
+					<text class="icon">📍</text>
+					<text class="text text-muted">{{ userInfo.location }}</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 认证标识 -->
+		<view class="certification-badges" v-if="userInfo.certifications.length > 0">
+			<view class="badge" v-for="(cert, index) in userInfo.certifications" :key="index">
+				<text class="icon">✓</text>
+				<text class="text">{{ cert }}</text>
+			</view>
+		</view>
+
+		<!-- 基本资料 -->
+		<view class="info-section">
+			<text class="section-title">基本资料</text>
+			<view class="info-grid">
+				<view class="info-item">
+					<text class="label text-muted">身高</text>
+					<text class="value">{{ userInfo.height }}cm</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">学历</text>
+					<text class="value">{{ userInfo.education }}</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">职业</text>
+					<text class="value">{{ userInfo.occupation }}</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">月收入</text>
+					<text class="value">{{ userInfo.income }}</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">婚姻状况</text>
+					<text class="value">{{ userInfo.maritalStatus }}</text>
+				</view>
+				<view class="info-item">
+					<text class="label text-muted">购房情况</text>
+					<text class="value">{{ userInfo.housing }}</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 个人介绍 -->
+		<view class="info-section">
+			<text class="section-title">个人介绍</text>
+			<text class="intro-text">{{ userInfo.introduction }}</text>
+		</view>
+
+		<!-- 择偶要求 -->
+		<view class="info-section">
+			<text class="section-title">择偶要求</text>
+			<text class="intro-text">{{ userInfo.requirement }}</text>
+		</view>
+
+		<!-- 相册 -->
+		<view class="info-section">
+			<text class="section-title">相册 ({{ userInfo.photos.length }})</text>
+			<view class="photo-grid">
+				<image
+					class="photo-item"
+					v-for="(photo, index) in userInfo.photos"
+					:key="index"
+					:src="photo"
+					mode="aspectFill"
+					@click="previewPhoto(index)"
+				></image>
+			</view>
+		</view>
+
+		<!-- 底部操作栏 -->
+		<view class="footer-actions">
+			<button class="action-btn secondary" @click="handleLike">
+				<text class="icon">❤️</text>
+				<text class="text">喜欢</text>
+			</button>
+				<button class="action-btn primary" @click="handleApply">
+					<text class="icon">💬</text>
+					<text class="text">申请认识</text>
+				</button>
+		</view>
+	</view>
+</template>
+
+	<script setup lang="uts">
+		import { getUserDetail, likeUser, applyToMeet } from '@/api'
+
+		let userInfo = ref({
+			id: 1,
+			avatar: '/static/portraits/profile-woman-main.jpg',
+			name: '苏晚晴',
+			age: 26,
+			gender: 2,
+			tags: ['看展', '猫', '咖啡', '城市散步'],
+			location: '杭州',
+			certifications: ['实名', '学历', '头像', '单身'],
+			height: '165',
+			education: '本科',
+			occupation: '插画师',
+			income: '15k—30k',
+			maritalStatus: '未婚',
+			housing: '可沟通',
+			introduction: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
+			requirement: '愿意把真实想法说清楚，不用猜来猜去；各自有生活，也愿意为共同计划留出时间。',
+			photos: [
+				'/static/portraits/profile-woman-main.jpg',
+				'/static/portraits/profile-woman-alt.jpg',
+				'/static/portraits/profile-woman-community.jpg'
+			]
+		})
+
+		onMounted(async () => {
+			const pages = getCurrentPages()
+			const currentPage = pages[pages.length - 1]
+			const options = currentPage.options
+			const userId = options != null && options.userId != null ? parseInt(options.userId) : 1
+			try {
+				const res = await getUserDetail(userId)
+				if (res.success && res.data != null) {
+					const d = res.data
+					const certs: string[] = []
+					if (d.certList != null) {
+						for (let i = 0; i < d.certList.length; i++) certs.push(d.certList[i])
+					} else if (d.certifications != null && d.certifications.realName != null) {
+						if (d.certifications.realName) certs.push('实名')
+						if (d.certifications.education) certs.push('学历')
+						if (d.certifications.avatar) certs.push('头像')
+						if (d.certifications.single) certs.push('单身')
+					}
+					const expectText = d.expect != null && d.expect.length > 0
+						? d.expect.join('；')
+						: (d.expectations != null && d.expectations.relationship != null ? d.expectations.relationship : userInfo.value.requirement)
+					userInfo.value = {
+						id: d.id,
+						avatar: d.avatar,
+						name: d.name,
+						age: d.age,
+						gender: d.gender != null ? d.gender : 2,
+						tags: d.tags != null ? d.tags : [],
+						location: d.city != null ? d.city : (d.location != null ? d.location : ''),
+						certifications: certs.length > 0 ? certs : userInfo.value.certifications,
+						height: ('' + (d.height != null ? d.height : '')).replace('cm', ''),
+						education: d.education != null ? d.education : '',
+						occupation: d.job != null ? d.job : (d.occupation != null ? d.occupation : ''),
+						income: d.income != null ? d.income : (d.salary != null ? d.salary : ''),
+						maritalStatus: d.marriage != null ? d.marriage : '未婚',
+						housing: '可沟通',
+						introduction: d.intro != null ? d.intro : (d.introduction != null ? d.introduction : ''),
+						requirement: expectText,
+						photos: d.photos != null && d.photos.length > 0 ? d.photos : [d.avatar]
+					}
+				}
+			} catch (e) {
+				console.error(e)
+			}
+		})
+
+		const previewPhoto = (index: number) => {
+			uni.previewImage({
+				current: index,
+				urls: userInfo.value.photos
+			})
+		}
+
+		const handleLike = async () => {
+			try {
+				await likeUser(userInfo.value.id)
+				uni.showToast({ title: '已收藏，仅你自己可见', icon: 'none' })
+			} catch (e) {
+				uni.showToast({ title: '操作失败', icon: 'none' })
+			}
+		}
+
+		// 产品约束：先申请认识，双方同意后才能聊天
+		const handleApply = async () => {
+			try {
+				const res = await applyToMeet(userInfo.value.id, '你好，想认真认识一下。')
+				if (res.success) {
+					uni.showToast({ title: '申请已送达，等待对方回应', icon: 'none' })
+				}
+			} catch (e) {
+				uni.showToast({ title: '申请失败', icon: 'none' })
+			}
+		}
+	</script>
+
+<style scoped>
+.user-detail-page {
+	min-height: 100vh;
+	background: var(--canvas);
+	padding-bottom: 80px;
+}
+
+.user-header {
+	background: var(--surface);
+	padding: 24px;
+	display: flex;
+	gap: 16px;
+}
+
+.avatar {
+	width: 90px;
+	height: 90px;
+	border-radius: 12px;
+	flex-shrink: 0;
+}
+
+.user-info {
+	flex: 1;
+}
+
+.name-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.name {
+	font-size: 20px;
+	font-weight: 500;
+	color: var(--ink);
+}
+
+.age {
+	font-size: 15px;
+	color: var(--ink2);
+}
+
+.gender-icon {
+	font-size: 18px;
+	color: var(--accent);
+}
+
+.tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.tag {
+	padding: 4px 12px;
+	background: var(--soft);
+	color: var(--accent2);
+	border-radius: 999px;
+	font-size: 12px;
+}
+
+.location {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.location .icon {
+	font-size: 14px;
+}
+
+.location .text {
+	font-size: 13px;
+}
+
+.certification-badges {
+	display: flex;
+	gap: 12px;
+	padding: 16px 24px;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+}
+
+.badge {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 12px;
+	background: var(--sage-soft);
+	color: var(--sage);
+	border-radius: 999px;
+	font-size: 12px;
+}
+
+.badge .icon {
+	font-size: 14px;
+}
+
+.info-section {
+	margin-top: 12px;
+	padding: 20px 24px;
+	background: var(--surface);
+}
+
+.section-title {
+	display: block;
+	font-size: 16px;
+	font-weight: 500;
+	color: var(--ink);
+	margin-bottom: 16px;
+}
+
+.info-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 16px;
+}
+
+.info-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.info-item .label {
+	font-size: 13px;
+}
+
+.info-item .value {
+	font-size: 15px;
+	color: var(--ink);
+}
+
+.intro-text {
+	font-size: 14px;
+	color: var(--ink2);
+	line-height: 1.6;
+}
+
+.photo-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+}
+
+.photo-item {
+	width: 100%;
+	aspect-ratio: 1;
+	border-radius: 8px;
+}
+
+.footer-actions {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	gap: 12px;
+	padding: 12px 24px;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+}
+
+.action-btn {
+	flex: 1;
+	height: 48px;
+	border-radius: 999px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	font-size: 16px;
+}
+
+.action-btn.secondary {
+	background: var(--paper);
+	border: 1px solid var(--line);
+	color: var(--ink);
+}
+
+.action-btn.primary {
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.action-btn .icon {
+	font-size: 18px;
+}
+</style>

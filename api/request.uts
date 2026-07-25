@@ -1,0 +1,80 @@
+/**
+ * 统一请求封装
+ * 自动根据 USE_MOCK 配置决定返回 Mock 数据还是真实 API
+ */
+
+import { USE_MOCK, API_CONFIG, MOCK_DELAY } from './config.uts'
+
+/**
+ * 统一请求方法
+ * @param options 请求配置
+ * @returns Promise
+ */
+export async function request(options: any) {
+  // 开发模式：返回 Mock 数据
+  if (USE_MOCK) {
+    return mockRequest(options)
+  }
+
+  // 生产模式：调用真实 uniCloud 云函数
+  return realRequest(options)
+}
+
+/**
+ * Mock 请求（开发阶段）
+ */
+async function mockRequest(options: any) {
+  console.log('📦 [Mock Request]', options.url, options.data)
+
+  // 模拟网络延迟
+  await sleep(MOCK_DELAY)
+
+  // 返回 Mock 数据
+  return {
+    success: true,
+    data: options.mockData,
+    code: 0,
+    message: 'success'
+  }
+}
+
+/**
+ * 真实请求（生产阶段）
+ */
+async function realRequest(options: any) {
+  console.log('🌐 [Real Request]', options.url, options.data)
+
+  return new Promise((resolve, reject) => {
+    uniCloud.callFunction({
+      name: options.cloudFunctionName,
+      data: {
+        action: options.action,
+        ...options.data
+      },
+      success: (res: any) => {
+        resolve({
+          success: true,
+          data: res.result,
+          code: 0,
+          message: 'success'
+        })
+      },
+      fail: (err: any) => {
+        console.error('❌ [Request Error]', err)
+        reject({
+          success: false,
+          data: null,
+          code: err.code || -1,
+          message: err.message || '请求失败'
+        })
+      }
+    })
+  })
+}
+
+/**
+ * 延迟函数
+ */
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}

@@ -1,0 +1,176 @@
+<template>
+	<view class="xsa-input-wrapper" :class="{ focused: isFocused, error: error }">
+		<text v-if="label" class="input-label">{{ label }}</text>
+		<view class="input-container">
+			<view v-if="prefixIcon" class="prefix-icon" :data-icon="prefixIcon"></view>
+			<input
+				class="xsa-input"
+				:type="type"
+				:value="modelValue"
+				:placeholder="placeholder"
+				:disabled="disabled"
+				:maxlength="maxlength"
+				@input="handleInput"
+				@focus="handleFocus"
+				@blur="handleBlur"
+			/>
+			<view v-if="clearable && modelValue" class="clear-btn" @click="handleClear">
+				<text>✕</text>
+			</view>
+			<view v-if="suffixIcon" class="suffix-icon" :data-icon="suffixIcon"></view>
+		</view>
+		<text v-if="error" class="error-text">{{ error }}</text>
+		<text v-else-if="hint" class="hint-text">{{ hint }}</text>
+	</view>
+</template>
+
+<script setup lang="uts">
+/**
+ * XsaInput - 宣誓爱输入框组件
+ * 遵循 DESIGN.md 设计规范
+ */
+
+interface Props {
+	modelValue: string;
+	type?: 'text' | 'number' | 'password' | 'tel';
+	label?: string;
+	placeholder?: string;
+	hint?: string;
+	error?: string;
+	prefixIcon?: string;
+	suffixIcon?: string;
+	clearable?: boolean;
+	disabled?: boolean;
+	maxlength?: number;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	type: 'text',
+	clearable: false,
+	disabled: false,
+	maxlength: -1
+});
+
+const emit = defineEmits<{
+	'update:modelValue': [value: string];
+	focus: [];
+	blur: [];
+}>();
+
+const isFocused = ref(false);
+
+const handleInput = (e: any) => {
+	emit('update:modelValue', e.detail.value);
+};
+
+const handleFocus = () => {
+	isFocused.value = true;
+	emit('focus');
+};
+
+const handleBlur = () => {
+	isFocused.value = false;
+	emit('blur');
+};
+
+const handleClear = () => {
+	emit('update:modelValue', '');
+};
+</script>
+
+<style scoped>
+/* 输入框容器 - 遵循 DESIGN.md */
+.xsa-input-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.input-label {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--ink);
+}
+
+.input-container {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: 44px;
+	border: 1px solid var(--line);
+	background: var(--surface);
+	border-radius: 9px;
+	padding: 0 12px;
+	transition: 0.18s;
+}
+
+.xsa-input-wrapper.focused .input-container {
+	outline: 3px solid rgba(56, 152, 141, 0.45);
+	outline-offset: 2px;
+	border-color: var(--accent);
+}
+
+.xsa-input-wrapper.error .input-container {
+	border-color: #d9534f;
+}
+
+.xsa-input-wrapper.disabled .input-container {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.xsa-input {
+	flex: 1;
+	height: 100%;
+	border: 0;
+	background: transparent;
+	font-size: 13px;
+	color: var(--ink);
+	min-width: 0;
+}
+
+.xsa-input::placeholder {
+	color: var(--muted);
+}
+
+.prefix-icon,
+.suffix-icon {
+	width: 18px;
+	height: 18px;
+	color: var(--muted);
+}
+
+.prefix-icon {
+	margin-right: 8px;
+}
+
+.suffix-icon {
+	margin-left: 8px;
+}
+
+.clear-btn {
+	width: 20px;
+	height: 20px;
+	margin-left: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	color: var(--muted);
+	transition: 0.18s;
+}
+
+.clear-btn:hover {
+	color: var(--accent2);
+}
+
+.error-text {
+	font-size: 11px;
+	color: #d9534f;
+}
+
+.hint-text {
+	font-size: 11px;
+	color: var(--muted);
+}
+</style>

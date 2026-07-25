@@ -1,0 +1,205 @@
+/**
+ * 消息相关 Mock 数据
+ * 对齐 design-demos/final 消息中心 + chat.html
+ */
+
+const PORTRAIT = {
+  main: '/static/portraits/profile-woman-main.jpg',
+  community: '/static/portraits/profile-woman-community.jpg',
+  man: '/static/portraits/profile-man-light.jpg'
+}
+
+/** 会话列表 */
+export const mockMessageList = [
+  {
+    id: 1,
+    userId: 1,
+    avatar: PORTRAIT.main,
+    name: '苏晚晴',
+    lastMessage: '已成功交换微信',
+    time: Date.now() - 60 * 1000,
+    unreadCount: 0,
+    online: true,
+    messageType: 'wechat-request',
+    type: 'chat',
+    matched: true,
+    canChat: true
+  },
+  {
+    id: 2,
+    userId: 2,
+    avatar: PORTRAIT.community,
+    name: '林知夏',
+    lastMessage: '你上次提到的那家书店，我也很喜欢。',
+    time: Date.now() - 24 * 60 * 60 * 1000,
+    unreadCount: 0,
+    online: false,
+    messageType: 'text',
+    type: 'chat',
+    matched: true,
+    canChat: true
+  },
+  {
+    id: 3,
+    userId: 3,
+    avatar: PORTRAIT.man,
+    name: '周予安',
+    lastMessage: '周末天气不错，要不要一起去看展？',
+    time: Date.now() - 3 * 24 * 60 * 60 * 1000,
+    unreadCount: 0,
+    online: false,
+    messageType: 'text',
+    type: 'chat',
+    matched: true,
+    canChat: true
+  }
+]
+
+/** 与苏晚晴的聊天详情（chat.html） */
+export const mockChatMessages = [
+  {
+    id: 1,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '你好，谢谢你认真看完我的资料。',
+    type: 'text',
+    time: Date.now() - 50 * 60 * 1000,
+    isMine: false,
+    showTime: true,
+    timeLabel: '今天 20:36 · 双方已同意认识'
+  },
+  {
+    id: 2,
+    senderId: 'me',
+    senderName: '我',
+    senderAvatar: PORTRAIT.man,
+    content: '你好，我看到你也喜欢看展和城市散步。最近有没有特别喜欢的展？',
+    type: 'text',
+    time: Date.now() - 48 * 60 * 1000,
+    isMine: true,
+    status: '已读'
+  },
+  {
+    id: 3,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '有呀，上周刚去看了一个插画展。你平时更喜欢哪一类？',
+    type: 'text',
+    time: Date.now() - 45 * 60 * 1000,
+    isMine: false
+  },
+  {
+    id: 4,
+    senderId: 'me',
+    senderName: '我',
+    senderAvatar: PORTRAIT.man,
+    content: '我比较喜欢当代艺术和摄影展。最近在看一个关于城市记忆的摄影系列。',
+    type: 'text',
+    time: Date.now() - 40 * 60 * 1000,
+    isMine: true,
+    status: '已读'
+  },
+  {
+    id: 5,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '听起来很有意思！我一直想找人一起逛展，这样可以交流不同的感受。',
+    type: 'text',
+    time: Date.now() - 35 * 60 * 1000,
+    isMine: false
+  },
+  {
+    id: 6,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '/static/portraits/profile-woman-community.jpg',
+    type: 'image',
+    time: Date.now() - 34 * 60 * 1000,
+    isMine: false
+  },
+  {
+    id: 7,
+    senderId: 'me',
+    senderName: '我',
+    senderAvatar: PORTRAIT.man,
+    content: '这个想法很好！下周末我打算去看一个新开的展览，要不要一起？',
+    type: 'text',
+    time: Date.now() - 30 * 60 * 1000,
+    isMine: true,
+    status: '已读'
+  },
+  {
+    id: 8,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '可以啊，是在哪里的展览？',
+    type: 'text',
+    time: Date.now() - 25 * 60 * 1000,
+    isMine: false
+  },
+  {
+    id: 9,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '对方申请与您交换电话',
+    type: 'phone-request',
+    requestStatus: 'rejected',
+    contactType: 'phone',
+    contactValue: '13812341234',
+    time: Date.now() - 2 * 60 * 1000,
+    isMine: false
+  },
+  {
+    id: 10,
+    senderId: 'me',
+    senderName: '我',
+    senderAvatar: PORTRAIT.man,
+    content: '您已向对方发起交换微信申请，等待对方确认…',
+    type: 'wechat-request',
+    requestStatus: 'accepted',
+    contactType: 'wechat',
+    contactValue: 'wanqing_art',
+    time: Date.now() - 60 * 1000,
+    isMine: true
+  }
+]
+
+/** 认识申请 */
+export const mockApplications = [
+  {
+    id: 1,
+    userId: 1,
+    avatar: PORTRAIT.main,
+    name: '苏晚晴',
+    age: 26,
+    city: '杭州',
+    job: '插画师',
+    message: '你好，看到你也喜欢看展和城市散步，想认真认识一下。',
+    time: Date.now() - 2 * 60 * 60 * 1000,
+    status: 'pending',
+    match: 92,
+    direction: 'out',
+    statusText: '待回应'
+  },
+  {
+    id: 2,
+    userId: 2,
+    avatar: '/static/portraits/profile-woman-alt.jpg',
+    name: '林雨桐',
+    age: 28,
+    city: '南京',
+    job: '产品设计师',
+    message: '资料匹配度 88%，想认真认识你',
+    time: Date.now() - 5 * 60 * 60 * 1000,
+    status: 'pending',
+    match: 88,
+    direction: 'in',
+    statusText: '待处理'
+  }
+]
