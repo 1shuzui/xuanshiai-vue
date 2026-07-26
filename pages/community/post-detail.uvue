@@ -24,14 +24,22 @@
 				<view v-if="comments.length == 0" class="empty-c">
 					<text class="text-muted">还没有评论，说一句真诚的话吧</text>
 				</view>
-				<view class="comment" v-for="c in comments" :key="c.id">
-					<image class="avatar" :src="c.user.avatar" mode="aspectFill"></image>
-					<view class="body">
-						<text class="name">{{ c.user.name }}</text>
-						<text class="content">{{ c.content }}</text>
-						<text class="time text-muted">{{ c.timeText }}</text>
+<view class="comment" v-for="c in comments" :key="c.id">
+						<image class="avatar" :src="c.user.avatar" mode="aspectFill"></image>
+						<view class="body">
+							<view class="comment-row">
+								<text class="name">{{ c.user.name }}</text>
+								<text class="report-link" @click="onReportComment(c)">举报</text>
+							</view>
+							<text class="content">{{ c.content }}</text>
+							<view class="comment-foot">
+								<text class="time text-muted">{{ c.timeText }}</text>
+								<text class="like-btn" :class="{ on: c.liked }" @click="onLikeComment(c)">
+									{{ c.liked ? '已赞' : '点赞' }} {{ c.likeCount > 0 ? c.likeCount : '' }}
+								</text>
+							</view>
+						</view>
 					</view>
-				</view>
 			</view>
 			<view class="pad"></view>
 		</scroll-view>
@@ -56,7 +64,7 @@
 			/>
 				<XsaReportSheet
 					:visible="reportVisible"
-					target-type="post"
+					:target-type="reportTargetType"
 					:target-id="reportTargetId"
 					:user-id="reportUserId"
 					@close="reportVisible = false"
@@ -70,15 +78,16 @@
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
 	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
 	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
-	import {
-		getDynamicDetail,
-		likeDynamic,
-		collectDynamic,
-		followUserFromCommunity,
-		commentDynamic,
-		createCommunityCreateKey,
-		discardCommunityCreateKey
-	} from '@/api'
+import {
+			getDynamicDetail,
+			likeDynamic,
+			likeComment,
+			collectDynamic,
+			followUserFromCommunity,
+			commentDynamic,
+			createCommunityCreateKey,
+			discardCommunityCreateKey
+		} from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
 	const postId = ref(0)
@@ -255,6 +264,32 @@ const onLike = async (id: number) => {
 			}
 		}
 
+		const onLikeComment = async (c: any) => {
+			if (c == null) return
+			const ok = await guardRealName('like')
+			if (!ok) return
+			const prevLiked = c.liked == true
+			const prevCount = c.likeCount != null ? (c.likeCount as number) : 0
+			c.liked = !prevLiked
+			c.likeCount = prevCount + (c.liked ? 1 : -1)
+			if (c.likeCount < 0) c.likeCount = 0
+			const res = await likeComment(c.id, prevLiked)
+			if (res.success && res.data != null) {
+				c.liked = res.data.liked == true
+				if (res.data.likeCount != null) c.likeCount = res.data.likeCount
+			} else {
+				c.liked = prevLiked
+				c.likeCount = prevCount
+				const msg =
+					res != null && res.data != null && res.data.message != null
+						? res.data.message
+						: res != null && res.message != null
+							? res.message
+							: '评论点赞失败'
+				uni.showToast({ title: msg, icon: 'none' })
+			}
+		}
+
 		const onCollect = async (id: number) => {
 			const ok = await guardRealName('collect')
 			if (!ok) return
@@ -306,8 +341,18 @@ const onApply = (userId: number) => {
 		}
 
 			const onMore = (dynamicId: number, userId: number) => {
+				reportTargetType.value = 'post'
 				reportTargetId.value = dynamicId
 				reportUserId.value = userId
+				reportVisible.value = true
+			}
+
+			const onReportComment = (c: any) => {
+				if (c == null) return
+				reportTargetType.value = 'comment'
+				reportTargetId.value = c.id != null ? (c.id as number) : 0
+				const uid = c.user != null && c.user.id != null ? (c.user.id as number) : 0
+				reportUserId.value = uid
 				reportVisible.value = true
 			}
 
@@ -376,6 +421,22 @@ const onApply = (userId: number) => {
 	.time {
 		font-size: 11px;
 	}
+	.comment-foot {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 2px;
+	}
+	.like-btn {
+		font-size: 12px;
+		color: var(--muted);
+		padding: 2px 0 2px 8px;
+	}
+	.like-btn.on {
+		color: var(--accent);
+		font-weight: 600;
+	}
 	.composer {
 		display: flex;
 		flex-direction: row;
@@ -411,4 +472,16 @@ const onApply = (userId: number) => {
 	.pad {
 		height: 24px;
 	}
+
+		.comment-row {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+		}
+		.report-link {
+			font-size: 12px;
+			color: var(--text-muted, #999);
+			padding: 2px 4px;
+		}
 </style>

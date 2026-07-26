@@ -156,6 +156,7 @@ const apiFns = [
   'getTopicList',
   'getTopicDetail',
   'joinTopic',
+  'leaveTopic',
   'getPaperPlanes',
   'sendPaperPlane',
   'replyPaperPlane',
@@ -608,6 +609,37 @@ if (topicDetail.includes("guardRealName('topicJoin')") && topicDetail.includes('
 } else {
   fail('参与话题实名门槛或 topicId 缺失')
 }
+if (
+  topicDetail.includes('joinTopic') &&
+  topicDetail.includes('leaveTopic') &&
+  topicDetail.includes('doJoin') &&
+  topicDetail.includes('confirmLeave') &&
+  topicDetail.includes('去发言') &&
+  topicDetail.includes('取消参与') &&
+  topicDetail.includes('onShow')
+) {
+  ok('话题详情接线 join/leave 与已参与态 CTA')
+} else {
+  fail('话题详情未接线 join/leave 或已参与 CTA')
+}
+const communityApiSrc = read('api/community.uts')
+if (
+  communityApiSrc.includes('export async function leaveTopic') &&
+  communityApiSrc.includes("/leave") &&
+  communityApiSrc.includes('unmarkTopicParticipation') &&
+  communityApiSrc.includes('participant_count') &&
+  communityApiSrc.includes('raw.joined == true') &&
+  communityApiSrc.includes("failRes('话题不存在', 404)")
+) {
+  ok('joinTopic/leaveTopic API 含 fail-closed 与 participantCount')
+} else {
+  fail('join/leave API 契约不完整')
+}
+if (topicDetail.includes('joining.value || leaving.value')) {
+  ok('话题详情 onShow 在 join/leave 进行中跳过重拉')
+} else {
+  fail('话题详情未防护 join/leave 与 onShow 竞态')
+}
 if (topicDetail.includes("guardRealName('like')") && topicDetail.includes("guardRealName('collect')") && topicDetail.includes("guardRealName('follow')")) {
   ok('话题内点赞、收藏、关注仍仅要求实名')
 } else {
@@ -958,6 +990,19 @@ contract('real-media publishing is blocked before its HTTP request', () => {
   assert.match(liveCommunityApi, /MEDIA_UPLOAD_REQUIRED/)
   assert.match(liveCommunityApi, /图片和视频上传服务尚未接入，暂不能发布媒体动态/)
 })
+contract('community api exposes media upload helpers', () => {
+  const api = read('api/community.uts')
+  assert.match(api, /uploadCommunityMedia/)
+  assert.match(api, /deleteCommunityMedia/)
+  assert.match(api, /image_media_ids|imageMediaIds/)
+  assert.match(api, /community\/media\/uploads/)
+})
+contract('real publish no longer hard-blocks all temp media without upload path', () => {
+  const api = read('api/community.uts')
+  // 仍可保留 isTemporaryMediaPath 工具，但正常路径应先 upload 再发 media ids
+  assert.match(api, /uploadCommunityMedia/)
+  assert.match(api, /image_media_ids/)
+})
 contract('topic detail passes page metadata and scroll pagination', () => {
   assert.match(liveCommunityApi, /getTopicDetail\(topicId: number, sort: string = 'hot', page: number = 1, pageSize: number = 20\)/)
   assert.match(liveTopicPage, /@scrolltolower="loadMore"/)
@@ -974,6 +1019,46 @@ contract('dynamic card emits interactions without optimistic local mutation', ()
 })
 contract('publish page retains the request failure message', () => {
   assert.match(livePublishPage, /res\.message/)
+})
+contract('publish page uploads media before publish', () => {
+	  const page = read('pages/community/publish.uvue')
+	  assert.match(page, /uploadCommunityMedia/)
+	  assert.match(page, /mediaId|imageMediaIds/)
+	  assert.match(page, /deleteCommunityMedia/)
+	  assert.match(page, /cancelled/)
+	  assert.match(page, /inFlightMedia/)
+	  assert.match(page, /hasReadyMedia/)
+	})
+	contract('publish photo→video / video replace cancels in-flight uploads', () => {
+	  const page = read('pages/community/publish.uvue')
+	  // addVideo clear photos + pickVideo replace must cancel uploading, not only delete ready
+	  const addVideoStart = page.indexOf('const addVideo = ')
+	  assert.ok(addVideoStart >= 0, 'addVideo should exist')
+	  const pickVideoStart = page.indexOf('const pickVideo = ')
+	  assert.ok(pickVideoStart >= 0, 'pickVideo should exist')
+	  const addVideoBody = page.slice(addVideoStart, pickVideoStart > addVideoStart ? pickVideoStart : undefined)
+	  assert.match(addVideoBody, /cancelled\s*=\s*true/)
+	  assert.match(addVideoBody, /trackInFlight/)
+	  assert.match(addVideoBody, /photoItems\.value\s*=\s*\[\]/)
+	  const deletePhotoStart = page.indexOf('const deletePhoto = ')
+	  const pickVideoEnd = deletePhotoStart > pickVideoStart ? deletePhotoStart : page.length
+	  const pickVideoBody = page.slice(pickVideoStart, pickVideoEnd)
+	  assert.match(pickVideoBody, /cancelled\s*=\s*true/)
+	  assert.match(pickVideoBody, /trackInFlight/)
+	})
+contract('paper plane supports image pick and upload', () => {
+  const page = read('pages/community/paper-plane.uvue')
+  assert.match(page, /chooseImage|addPhoto/)
+  assert.match(page, /uploadCommunityMedia/)
+  assert.match(page, /imageMediaIds|image_media_ids/)
+  assert.match(page, /cancelled/)
+  assert.match(page, /inFlightMedia/)
+})
+contract('mock community media map resolves ids on publish/send', () => {
+  const api = read('api/community.uts')
+  assert.match(api, /mockCommunityMediaById/)
+  assert.match(api, /resolveMockMediaUrls/)
+  assert.match(api, /images:\s*planeImages/)
 })
 contract('like-user scan is bounded by returned data rather than a hard page cap', () => {
   assert.doesNotMatch(liveUserApi, /while \(page <= 20\)/)

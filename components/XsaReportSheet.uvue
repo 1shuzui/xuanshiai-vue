@@ -96,30 +96,47 @@
 
 	const handleReport = async () => {
 		if (submitting.value || reasonId.value == '') return
-		// 后端举报接口 target 必须是用户 id；禁止用帖/评 id 顶替
-		if (props.userId <= 0) {
-			uni.showToast({ title: '无法举报：缺少用户信息', icon: 'none' })
-			return
+		// 内容举报：targetType + targetId；用户举报：userId
+		let type = props.targetType != null && props.targetType != '' ? props.targetType : 'user'
+		if (type == 'paperPlane') {
+			type = 'paper_plane'
 		}
-		const reportUserId = props.userId
+		const isContent = type == 'post' || type == 'comment' || type == 'paper_plane'
+		let reportId = 0
+		if (isContent) {
+			reportId = props.targetId
+			if (reportId <= 0) {
+				uni.showToast({ title: '无法举报：缺少内容信息', icon: 'none' })
+				return
+			}
+		} else {
+			reportId = props.userId
+			if (reportId <= 0) {
+				uni.showToast({ title: '无法举报：缺少用户信息', icon: 'none' })
+				return
+			}
+			type = 'user'
+		}
 		submitting.value = true
 		try {
-			const ctx =
-				props.targetType != null && props.targetType != ''
-					? ' [context:' + props.targetType + ':' + props.targetId + ']'
-					: ''
 			const res = await reportContent(
-				'user',
-				reportUserId,
+				type,
+				reportId,
 				reasonId.value,
-				(detail.value != null ? detail.value : '') + ctx
+				detail.value != null ? detail.value : ''
 			)
 			if (res.success) {
 				uni.showToast({ title: '举报已提交', icon: 'success' })
 				emit('reported')
 				emit('close')
 			} else {
-				uni.showToast({ title: '提交失败', icon: 'none' })
+				const msg =
+					res.data != null && res.data.message != null
+						? res.data.message
+						: res.message != null
+							? res.message
+							: '提交失败'
+				uni.showToast({ title: msg, icon: 'none' })
 			}
 		} catch (e) {
 			uni.showToast({ title: '网络异常', icon: 'none' })

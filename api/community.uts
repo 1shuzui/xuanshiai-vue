@@ -8,7 +8,7 @@
  */
 
 import { request } from './request.uts'
-import { USE_MOCK } from './config.uts'
+import { USE_MOCK, API_BASE_URL, API_PREFIX, getAccessToken, buildApiUrl } from './config.uts'
 import {
   mockDynamicList,
   mockTopics,
@@ -29,6 +29,43 @@ import {
 const PAPER_PLANE_STORAGE_KEY = 'xsa_paper_plane_state_v1'
 let paperPlaneStateLoaded = false
 let paperPlaneStateDateKey = ''
+
+/** mock 媒体 id → { url, mediaType, purpose }，供 publish/send 解析 */
+const mockCommunityMediaById: any = {}
+
+function guessMockMediaType(filePath: string): string {
+  const p = (filePath != null ? ('' + filePath) : '').toLowerCase()
+  if (
+    p.indexOf('.mp4') >= 0 ||
+    p.indexOf('.mov') >= 0 ||
+    p.indexOf('.m4v') >= 0 ||
+    p.indexOf('.webm') >= 0 ||
+    p.indexOf('video') >= 0
+  ) {
+    return 'video'
+  }
+  return 'image'
+}
+
+function resolveMockMediaUrls(mediaIds: number[]): string[] {
+  const urls: string[] = []
+  if (mediaIds == null) return urls
+  for (let i = 0; i < mediaIds.length; i++) {
+    const id = mediaIds[i]
+    if (id == null || id <= 0) continue
+    const entry = mockCommunityMediaById['' + id]
+    if (entry != null && entry.url != null && ('' + entry.url) != '') {
+      urls.push('' + entry.url)
+    }
+  }
+  return urls
+}
+
+function resolveMockMediaEntry(mediaId: number): any {
+  if (mediaId == null || mediaId <= 0) return null
+  const entry = mockCommunityMediaById['' + mediaId]
+  return entry != null ? entry : null
+}
 
 function currentDateKey(): string {
   const now = new Date()
@@ -220,6 +257,13 @@ function markTopicParticipation(topic: any): void {
   if (topic == null || topic.joined == true) return
   topic.joined = true
   topic.participantCount = ((topic.participantCount as number) || 0) + 1
+}
+
+function unmarkTopicParticipation(topic: any): void {
+  if (topic == null || topic.joined != true) return
+  topic.joined = false
+  const n = (topic.participantCount as number) || 0
+  topic.participantCount = n > 0 ? n - 1 : 0
 }
 
 function findActivity(activityId: number): any {
@@ -553,7 +597,7 @@ function mapComment(row: any): any {
     content: row.content != null ? row.content : '',
     timeText: timeTextFrom(row.created_at),
     likeCount: row.like_count != null ? row.like_count : 0,
-    liked: false,
+    liked: row.is_liked == true,
     replyTo: row.parent_id != null ? row.parent_id : null,
     replyToCommentId: row.parent_id != null ? row.parent_id : null
   }
@@ -688,7 +732,10 @@ function mapPaperPlane(row: any): any {
     replyCount: row.reply_count != null ? row.reply_count : 0,
     replied: false,
     images: row.images != null ? row.images : [],
-    tags: row.tags != null ? row.tags : []
+    tags: row.tags != null ? row.tags : [],
+    voiceUrl: row.voice_url != null ? row.voice_url : '',
+    voiceDurationSec: row.voice_duration_sec != null ? row.voice_duration_sec : 0,
+    conversationId: row.conversation_id != null ? row.conversation_id : 0
   }
 }
 
@@ -1117,16 +1164,20 @@ export async function getTopicDetail(topicId: number, sort: string = 'hot', page
 export async function joinTopic(topicId: number) {
   if (USE_MOCK) {
     const topic = findTopic(topicId)
-    if (topic != null) {
-      markTopicParticipation(topic)
+    if (topic == null) {
+      return failRes('话题不存在', 404)
     }
+    markTopicParticipation(topic)
+    const participantCount = topic.participantCount != null
+      ? (topic.participantCount as number)
+      : 0
     return request({
       url: '/community/topic/join',
       cloudFunctionName: 'community',
       action: 'joinTopic',
       method: 'POST',
       data: { topicId },
-      mockData: { success: true, joined: true }
+      mockData: { success: true, joined: true, topicId, participantCount }
     })
   }
 
@@ -1140,7 +1191,45 @@ export async function joinTopic(topicId: number) {
   return okRes({
     success: true,
     // fail-closed：缺 joined 不当已加入
-    joined: raw != null && raw.joined == true
+    joined: raw != null && raw.joined == true,
+    topicId: raw != null && raw.topic_id != null ? raw.topic_id : topicId,
+    participantCount: raw != null && raw.participant_count != null ? raw.participant_count : null
+  })
+}
+
+export async function leaveTopic(topicId: number) {
+  if (USE_MOCK) {
+    const topic = findTopic(topicId)
+    if (topic == null) {
+      return failRes('话题不存在', 404)
+    }
+    unmarkTopicParticipation(topic)
+    const participantCount = topic.participantCount != null
+      ? (topic.participantCount as number)
+      : 0
+    return request({
+      url: '/community/topic/leave',
+      cloudFunctionName: 'community',
+      action: 'leaveTopic',
+      method: 'DELETE',
+      data: { topicId },
+      mockData: { success: true, joined: false, topicId, participantCount }
+    })
+  }
+
+  const res = await request({
+    url: '/community/topics/' + topicId + '/leave',
+    method: 'DELETE',
+    data: {}
+  })
+  if (!res.success) return res
+  const raw = res.data
+  return okRes({
+    success: true,
+    // fail-closed：缺 joined=false 时仍视为未参与
+    joined: raw != null && raw.joined == true,
+    topicId: raw != null && raw.topic_id != null ? raw.topic_id : topicId,
+    participantCount: raw != null && raw.participant_count != null ? raw.participant_count : null
   })
 }
 
@@ -1224,21 +1313,34 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
   let anonymous = true
   let scope = 'city'
   let suppliedCreateKey = ''
+  let voiceUrl = ''
+  let voiceDurationSec = 0
+  let imageMediaIds: number[] = []
   if (contentOrPayload != null && typeof contentOrPayload === 'object') {
     content = contentOrPayload.content != null ? ('' + contentOrPayload.content).trim() : ''
     anonymous = contentOrPayload.anonymous != null ? contentOrPayload.anonymous == true : true
     scope = contentOrPayload.scope != null ? contentOrPayload.scope : 'city'
     suppliedCreateKey = contentOrPayload.idempotencyKey != null ? ('' + contentOrPayload.idempotencyKey) : ''
+    voiceUrl = contentOrPayload.voiceUrl != null ? ('' + contentOrPayload.voiceUrl) : ''
+    voiceDurationSec = contentOrPayload.voiceDurationSec != null ? (contentOrPayload.voiceDurationSec as number) : 0
+    const rawImageMediaIds = contentOrPayload.imageMediaIds != null ? contentOrPayload.imageMediaIds : contentOrPayload.image_media_ids
+    if (rawImageMediaIds != null && Array.isArray(rawImageMediaIds)) {
+      imageMediaIds = rawImageMediaIds as number[]
+    }
   } else {
     content = contentOrPayload != null ? ('' + contentOrPayload).trim() : ''
     anonymous = anonymousArg
   }
 
-  if (content.length == 0) {
-    return failRes('请写下你想表达的内容', 'EMPTY_CONTENT')
+  const hasImageMediaIds = imageMediaIds != null && imageMediaIds.length > 0
+  if (content.length == 0 && voiceUrl == '' && !hasImageMediaIds) {
+    return failRes('请写下内容或录制语音', 'EMPTY_CONTENT')
   }
   if (content.length > 120) {
     return failRes('纸飞机内容不能超过 120 字', 'CONTENT_TOO_LONG')
+  }
+  if (voiceUrl != '' && (voiceDurationSec < 1 || voiceDurationSec > 60)) {
+    return failRes('语音时长需在 1-60 秒', 'INVALID_VOICE')
   }
 
   if (USE_MOCK) {
@@ -1261,6 +1363,7 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
     }
     quotas.paperPlaneDaily.used += 1
     quotas.paperPlaneDaily.remain -= 1
+    const planeImages = hasImageMediaIds ? resolveMockMediaUrls(imageMediaIds) : []
     const plane = {
       id: Date.now(),
       content,
@@ -1273,7 +1376,12 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
       time: Date.now(),
       timeText: '刚刚',
       replyCount: 0,
-      replied: false
+      replied: false,
+      voiceUrl: voiceUrl,
+      voiceDurationSec: voiceDurationSec,
+      conversationId: 0,
+      images: planeImages,
+      photos: planeImages
     }
     ;(mockPaperPlanes as any[]).unshift(plane)
     savePaperPlaneState()
@@ -1288,16 +1396,22 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
   }
 
   const key = idempotencyKey('paper-plane', suppliedCreateKey)
+  const planeBody: any = {
+    content: content,
+    images: [],
+    city: null,
+    tags: [],
+    is_anonymous: anonymous,
+    voice_url: voiceUrl != '' ? voiceUrl : null,
+    voice_duration_sec: voiceUrl != '' ? voiceDurationSec : null
+  }
+  if (hasImageMediaIds) {
+    planeBody.image_media_ids = imageMediaIds
+  }
   const res = await request({
     url: '/paper-planes',
     method: 'POST',
-    data: {
-      content: content,
-      images: [],
-      city: null,
-      tags: [],
-      is_anonymous: anonymous
-    },
+    data: planeBody,
     headers: { 'Idempotency-Key': key }
   })
   if (!res.success) {
@@ -1354,6 +1468,10 @@ export async function replyPaperPlane(planeId: number, content: string, supplied
         }
         list[i].replied = true
         list[i].replyCount = (list[i].replyCount as number) + 1
+        if (list[i].conversationId == null || list[i].conversationId == 0) {
+          list[i].conversationId = 900000 + planeId
+        }
+        ensureMockPlaneConversation(list[i].conversationId as number, planeId, replyContent)
         savePaperPlaneState()
         return request({
           url: '/community/paper-planes/reply',
@@ -1363,7 +1481,9 @@ export async function replyPaperPlane(planeId: number, content: string, supplied
           data: { planeId, content: replyContent },
           mockData: {
             success: true,
-            replyCount: list[i].replyCount
+            replyCount: list[i].replyCount,
+            conversationId: list[i].conversationId,
+            conversation_id: list[i].conversationId
           }
         })
       }
@@ -1396,7 +1516,13 @@ export async function replyPaperPlane(planeId: number, content: string, supplied
   if (res.data != null && res.data.success == false) {
     return okRes({ success: false, message: res.data.message != null ? res.data.message : '回复失败，请重试' })
   }
-  return okRes({ success: true })
+  const convId = res.data != null && res.data.conversation_id != null ? res.data.conversation_id : 0
+  return okRes({
+    success: true,
+    replyCount: null,
+    conversationId: convId,
+    conversation_id: convId
+  })
 }
 
 // ─── 活动 ───────────────────────────────────────────────────
@@ -1713,6 +1839,8 @@ export async function publishDynamic(
   let visibility = 0
   let declaration = ''
   let suppliedCreateKey = ''
+  let imageMediaIds: number[] = []
+  let videoMediaId = 0
 
   if (contentOrPayload != null && typeof contentOrPayload === 'object' && !Array.isArray(contentOrPayload)) {
     content = contentOrPayload.content != null ? ('' + contentOrPayload.content).trim() : ''
@@ -1725,6 +1853,14 @@ export async function publishDynamic(
     visibility = contentOrPayload.visibility != null ? (contentOrPayload.visibility as number) : 0
     declaration = contentOrPayload.declaration != null ? ('' + contentOrPayload.declaration) : ''
     suppliedCreateKey = contentOrPayload.idempotencyKey != null ? ('' + contentOrPayload.idempotencyKey) : ''
+    const rawImageMediaIds = contentOrPayload.imageMediaIds != null ? contentOrPayload.imageMediaIds : contentOrPayload.image_media_ids
+    if (rawImageMediaIds != null && Array.isArray(rawImageMediaIds)) {
+      imageMediaIds = rawImageMediaIds as number[]
+    }
+    const rawVideoMediaId = contentOrPayload.videoMediaId != null ? contentOrPayload.videoMediaId : contentOrPayload.video_media_id
+    if (rawVideoMediaId != null) {
+      videoMediaId = rawVideoMediaId as number
+    }
   } else {
     content = contentOrPayload != null ? ('' + contentOrPayload).trim() : ''
     photos = photosArg != null ? photosArg : []
@@ -1733,12 +1869,14 @@ export async function publishDynamic(
     visibility = visibilityArg
   }
 
+  const hasImageMediaIds = imageMediaIds != null && imageMediaIds.length > 0
+  const hasVideoMediaId = videoMediaId != null && videoMediaId > 0
   const hasPhotos = photos != null && photos.length > 0
   const hasVideos = videos != null && videos.length > 0
-  if (content.length == 0 && !hasPhotos && !hasVideos) {
+  if (content.length == 0 && !hasPhotos && !hasVideos && !hasImageMediaIds && !hasVideoMediaId) {
     return failRes('请添加正文或图片、视频后再发布', 'EMPTY_CONTENT')
   }
-  if (hasPhotos && hasVideos) {
+  if ((hasPhotos || hasImageMediaIds) && (hasVideos || hasVideoMediaId)) {
     return failRes('图片与视频不能同时发布，请只保留一种媒体', 'INVALID_MEDIA')
   }
   if (hasVideos && videos.length > 1) {
@@ -1747,19 +1885,46 @@ export async function publishDynamic(
   if (hasPhotos && photos.length > 9) {
     photos = photos.slice(0, 9)
   }
+  if (hasImageMediaIds && imageMediaIds.length > 9) {
+    imageMediaIds = imageMediaIds.slice(0, 9)
+  }
 
   if (USE_MOCK) {
     let topicTitle = ''
     let topic: any = null
     if (topicId > 0) {
       topic = findTopic(topicId)
-      if (topic != null && topic.title != null) {
+      if (topic == null) {
+        return failRes('话题不存在', 404)
+      }
+      if (topic.title != null) {
         topicTitle = '' + topic.title
       }
     }
-    const mediaType = hasVideos ? 'video' : (hasPhotos ? 'image' : 'none')
-    const finalPhotos: string[] = hasVideos ? [] : (photos != null ? photos : [])
-    const finalVideos: string[] = hasVideos ? videos : []
+    // media ids 优先：从 mock 上传表解析 url，避免发布后 photos/videos 为空
+    let finalPhotos: string[] = hasPhotos ? (photos != null ? photos : []) : []
+    let finalVideos: string[] = hasVideos ? (videos != null ? videos : []) : []
+    let mediaType = hasVideos ? 'video' : (hasPhotos ? 'image' : 'none')
+    if (hasVideoMediaId) {
+      const vEntry = resolveMockMediaEntry(videoMediaId)
+      if (vEntry != null && vEntry.url != null && ('' + vEntry.url) != '') {
+        finalVideos = ['' + vEntry.url]
+        finalPhotos = []
+        mediaType = 'video'
+      }
+    } else if (hasImageMediaIds) {
+      const resolved = resolveMockMediaUrls(imageMediaIds)
+      if (resolved.length > 0) {
+        finalPhotos = resolved
+        finalVideos = []
+        mediaType = 'image'
+      }
+    }
+    if (mediaType == 'video') {
+      finalPhotos = []
+    } else if (mediaType == 'image') {
+      finalVideos = []
+    }
     const dynamicId = Date.now()
     const cityName = location != '' ? ('' + location).split('·')[0].trim() : mockCurrentCity.name
     const item = {
@@ -1834,18 +1999,32 @@ export async function publishDynamic(
   }
 
   const body: any = {
-    content: content.length > 0 ? content : (hasVideos ? '[视频动态]' : '[图片动态]'),
-    images: hasVideos ? [] : (photos != null ? photos : []),
+    content: content,
+    images: hasVideos || hasVideoMediaId ? [] : (photos != null ? photos : []),
     video: hasVideos && videos.length > 0 ? videos[0] : null,
     location: location != '' ? location : null,
     topic_id: topicId > 0 ? topicId : null,
     visibility: visibility,
     declaration: declaration
   }
-  const selectedMedia = hasVideos ? videos : photos
-  for (let i = 0; i < selectedMedia.length; i++) {
-    if (isTemporaryMediaPath(selectedMedia[i])) {
-      return failRes('图片和视频上传服务尚未接入，暂不能发布媒体动态', 'MEDIA_UPLOAD_REQUIRED')
+  // 优先走已上传的 media ids；有 ids 时不硬拦临时路径
+  if (hasImageMediaIds || hasVideoMediaId) {
+    body.image_media_ids = hasImageMediaIds ? imageMediaIds : []
+    body.video_media_id = hasVideoMediaId ? videoMediaId : null
+    body.images = []
+    body.video = null
+    // media-only: content 允许空字符串（后端已支持）
+    body.content = content
+  } else {
+    // 旧路径：若仍是临时路径则 MEDIA_UPLOAD_REQUIRED（应先 uploadCommunityMedia）
+    const selectedMedia = hasVideos ? videos : photos
+    for (let i = 0; i < selectedMedia.length; i++) {
+      if (isTemporaryMediaPath(selectedMedia[i])) {
+        return failRes('图片和视频上传服务尚未接入，暂不能发布媒体动态', 'MEDIA_UPLOAD_REQUIRED')
+      }
+    }
+    if (content.length == 0) {
+      body.content = hasVideos ? '[视频动态]' : '[图片动态]'
     }
   }
   const key = idempotencyKey('post', suppliedCreateKey)
@@ -1914,6 +2093,50 @@ export async function likeDynamic(dynamicId: number) {
     success: true,
     liked: raw != null && raw.is_liked == true,
     likeCount: raw != null && raw.like_count != null ? raw.like_count : 0
+  })
+}
+
+export async function likeComment(commentId: number, currentlyLiked: boolean = false) {
+  if (USE_MOCK) {
+    const all = mockDynamics as any[]
+    let liked = !currentlyLiked
+    let likeCount = currentlyLiked ? 0 : 1
+    for (let i = 0; i < all.length; i++) {
+      const comments = all[i].comments as any[]
+      if (comments == null) continue
+      for (let j = 0; j < comments.length; j++) {
+        if (comments[j].id == commentId) {
+          comments[j].liked = !comments[j].liked
+          comments[j].likeCount = (comments[j].likeCount as number) + (comments[j].liked ? 1 : -1)
+          if ((comments[j].likeCount as number) < 0) comments[j].likeCount = 0
+          liked = comments[j].liked == true
+          likeCount = comments[j].likeCount as number
+        }
+      }
+    }
+    return request({
+      url: '/community/comments/' + commentId + '/like',
+      cloudFunctionName: 'community',
+      action: 'likeComment',
+      method: currentlyLiked ? 'DELETE' : 'PUT',
+      data: { commentId },
+      mockData: { success: true, liked: liked, likeCount: likeCount, is_liked: liked, like_count: likeCount }
+    })
+  }
+
+  const method = currentlyLiked ? 'DELETE' : 'PUT'
+  const res = await request({
+    url: '/community/comments/' + commentId + '/like',
+    method: method,
+    data: {}
+  })
+  if (!res.success) return res
+  const raw = res.data
+  return okRes({
+    success: true,
+    liked: raw != null && raw.is_liked == true,
+    likeCount: raw != null && raw.like_count != null ? raw.like_count : 0,
+    comment: raw != null ? mapComment(raw) : null
   })
 }
 
@@ -2206,13 +2429,19 @@ export async function commentDynamic(
 // ─── 举报 / 屏蔽 / 城市 ─────────────────────────────────────
 
 export async function reportContent(targetType: string, targetId: number, reasonId: string, detail: string = '') {
+  // 统一命名：历史 UI 可能传 paperPlane
+  let normalizedType = targetType != null ? targetType : 'user'
+  if (normalizedType == 'paperPlane') {
+    normalizedType = 'paper_plane'
+  }
+
   if (USE_MOCK) {
     return request({
       url: '/community/report',
       cloudFunctionName: 'community',
       action: 'reportContent',
       method: 'POST',
-      data: { targetType, targetId, reasonId, detail },
+      data: { targetType: normalizedType, targetId, reasonId, detail },
       mockData: {
         success: true,
         message: '举报已提交，我们会尽快处理'
@@ -2220,14 +2449,39 @@ export async function reportContent(targetType: string, targetId: number, reason
     })
   }
 
-  // 后端 POST /security/reports/{target_id} 的 target 是用户 id
-  // XsaReportSheet 已优先传作者 userId，targetType 固定为 user
+  const reason = reasonId != null && reasonId != '' ? reasonId : 'other'
+  const description = detail != null ? detail : ''
+
+  // 内容轨：post / comment / paper_plane → POST /community/reports
+  if (normalizedType == 'post' || normalizedType == 'comment' || normalizedType == 'paper_plane') {
+    if (targetId <= 0) {
+      return okRes({ success: false, message: '无法举报：缺少内容信息' })
+    }
+    const res = await request({
+      url: '/community/reports',
+      method: 'POST',
+      data: {
+        target_type: normalizedType,
+        target_id: targetId,
+        reason_id: reason,
+        description,
+        images: []
+      }
+    })
+    if (!res.success) return res
+    return okRes({
+      success: true,
+      message: '举报已提交，我们会尽快处理'
+    })
+  }
+
+  // 用户轨：POST /security/reports/{userId}
   const res = await request({
     url: '/security/reports/' + targetId,
     method: 'POST',
     data: {
-      type: reasonId != null && reasonId != '' ? reasonId : 'other',
-      description: detail != null ? detail : '',
+      type: reason,
+      description,
       images: []
     }
   })
@@ -2387,6 +2641,355 @@ export async function getCurrentCity() {
 		    }
 		  })
 		}
+
+
+// ─── 媒体上传 / 纸飞机匿名会话 ───────────────────────────────
+
+const mockPlaneConversations: any[] = []
+const mockPlaneMessages: any = {}
+
+function ensureMockPlaneConversation(conversationId: number, planeId: number, firstContent: string) {
+  let found = false
+  for (let i = 0; i < mockPlaneConversations.length; i++) {
+    if (mockPlaneConversations[i].id == conversationId) {
+      found = true
+      mockPlaneConversations[i].lastMessage = firstContent
+      mockPlaneConversations[i].unreadCount = 1
+    }
+  }
+  if (!found) {
+    mockPlaneConversations.unshift({
+      id: conversationId,
+      planeId: planeId,
+      status: 1,
+      lastMessage: firstContent,
+      unreadCount: 1,
+      peerLabel: '纸飞机主人',
+      planeContent: ''
+    })
+  }
+  const key = '' + conversationId
+  if (mockPlaneMessages[key] == null) mockPlaneMessages[key] = []
+  ;(mockPlaneMessages[key] as any[]).push({
+    id: Date.now(),
+    conversationId: conversationId,
+    fromUserId: mockMeProfile.id,
+    content: firstContent,
+    type: 1,
+    mediaUrl: '',
+    voiceDurationSec: 0,
+    mine: true,
+    timeText: '刚刚'
+  })
+}
+
+function mapPlaneConversation(row: any): any {
+  if (row == null) return null
+  return {
+    id: row.id,
+    planeId: row.plane_id != null ? row.plane_id : row.planeId,
+    status: row.status != null ? row.status : 1,
+    lastMessage: row.last_message != null ? row.last_message : (row.lastMessage != null ? row.lastMessage : ''),
+    lastMessageAt: row.last_message_at != null ? row.last_message_at : null,
+    unreadCount: row.unread_count != null ? row.unread_count : (row.unreadCount != null ? row.unreadCount : 0),
+    peerLabel: row.peer_label != null ? row.peer_label : (row.peerLabel != null ? row.peerLabel : '匿名用户'),
+    planeContent: row.plane_content != null ? row.plane_content : (row.planeContent != null ? row.planeContent : ''),
+    createdAt: row.created_at != null ? row.created_at : null
+  }
+}
+
+function mapPlaneMessage(row: any, myId: number = 0): any {
+  if (row == null) return null
+  const fromId = row.from_user_id != null ? row.from_user_id : row.fromUserId
+  return {
+    id: row.id,
+    conversationId: row.conversation_id != null ? row.conversation_id : row.conversationId,
+    fromUserId: fromId,
+    content: row.content != null ? row.content : '',
+    type: row.type != null ? row.type : 1,
+    mediaUrl: row.media_url != null ? row.media_url : (row.mediaUrl != null ? row.mediaUrl : ''),
+    voiceDurationSec: row.voice_duration_sec != null ? row.voice_duration_sec : (row.voiceDurationSec != null ? row.voiceDurationSec : 0),
+    mine: myId > 0 ? fromId == myId : row.mine == true,
+    timeText: row.created_at != null ? timeTextFrom(row.created_at) : (row.timeText != null ? row.timeText : '')
+  }
+}
+
+function extractUploadDetail(data: any): string {
+  if (data == null) return '上传失败'
+  if (typeof data === 'string') return data
+  if (data.detail != null) {
+    if (typeof data.detail === 'string') return '' + data.detail
+    if (Array.isArray(data.detail) && data.detail.length > 0) {
+      const first = data.detail[0]
+      if (first != null && first.msg != null) return '' + first.msg
+      return JSON.stringify(data.detail)
+    }
+  }
+  if (data.message != null) return '' + data.message
+  return '上传失败'
+}
+
+function mapCommunityMedia(row: any): any {
+  if (row == null) return null
+  return {
+    id: row.id != null ? row.id : 0,
+    purpose: row.purpose != null ? row.purpose : '',
+    mediaType: row.media_type != null ? row.media_type : (row.mediaType != null ? row.mediaType : ''),
+    url: row.url != null ? row.url : '',
+    thumbnailUrl: row.thumbnail_url != null ? row.thumbnail_url : (row.thumbnailUrl != null ? row.thumbnailUrl : ''),
+    fileSize: row.file_size != null ? row.file_size : (row.fileSize != null ? row.fileSize : 0),
+    durationSeconds: row.duration_seconds != null ? row.duration_seconds : (row.durationSeconds != null ? row.durationSeconds : null),
+    status: row.status != null ? row.status : ''
+  }
+}
+
+/**
+ * 社区媒体上传（帖子图/视频、纸飞机图）
+ * purpose: post | paper_plane
+ */
+export async function uploadCommunityMedia(filePath: string, purpose: string) {
+  if (filePath == null || ('' + filePath).length == 0) {
+    return failRes('请选择要上传的文件', 'EMPTY_FILE')
+  }
+  const purposeVal = purpose != null ? ('' + purpose) : 'post'
+  if (USE_MOCK) {
+    const id = Date.now() + Math.floor(Math.random() * 1000)
+    const mediaType = guessMockMediaType(filePath)
+    const url = '' + filePath
+    mockCommunityMediaById['' + id] = {
+      url: url,
+      mediaType: mediaType,
+      purpose: purposeVal
+    }
+    return okRes({
+      id: id,
+      purpose: purposeVal,
+      mediaType: mediaType,
+      url: url,
+      thumbnailUrl: url,
+      fileSize: 0,
+      durationSeconds: null,
+      status: 'ready'
+    })
+  }
+  const token = getAccessToken()
+  const url = buildApiUrl('/community/media/uploads')
+  return await new Promise<any>((resolve) => {
+    uni.uploadFile({
+      url: url,
+      filePath: filePath,
+      name: 'file',
+      formData: { purpose: purposeVal },
+      header: token != '' ? { Authorization: 'Bearer ' + token } : {},
+      success: (res) => {
+        let data: any = null
+        try {
+          data = JSON.parse('' + res.data)
+        } catch (e) {
+          resolve(failRes('上传响应解析失败', res.statusCode))
+          return
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(okRes(mapCommunityMedia(data)))
+        } else {
+          resolve(failRes(extractUploadDetail(data), res.statusCode))
+        }
+      },
+      fail: (_err) => {
+        resolve(failRes('上传失败，请重试', 'UPLOAD_FAILED'))
+      }
+    })
+  })
+}
+
+/** 删除未绑定的社区媒体 */
+export async function deleteCommunityMedia(mediaId: number) {
+  if (mediaId == null || mediaId <= 0) {
+    return failRes('无效的媒体 ID', 'INVALID_MEDIA_ID')
+  }
+  if (USE_MOCK) {
+    try {
+      delete mockCommunityMediaById['' + mediaId]
+    } catch (e) {}
+    return okRes({ success: true })
+  }
+  return request({
+    url: '/community/media/' + mediaId,
+    method: 'DELETE'
+  })
+}
+
+export async function uploadMedia(filePath: string, purpose: string = 'paper_plane_voice') {
+  if (filePath == null || ('' + filePath).length == 0) {
+    return failRes('请选择要上传的文件', 'EMPTY_FILE')
+  }
+  if (USE_MOCK) {
+    return request({
+      url: '/media/uploads',
+      cloudFunctionName: 'community',
+      action: 'uploadMedia',
+      method: 'POST',
+      data: { purpose },
+      mockData: {
+        url: 'mock://voice/' + Date.now() + '.mp3',
+        content_type: 'audio/mpeg',
+        size: 1024,
+        purpose: purpose
+      }
+    })
+  }
+  return new Promise<any>((resolve) => {
+    const token = getAccessTokenLocal()
+    const url = buildApiUrlLocal('/media/uploads')
+    uni.uploadFile({
+      url: url,
+      filePath: filePath,
+      name: 'file',
+      formData: { purpose: purpose },
+      header: token != '' ? { Authorization: 'Bearer ' + token } : {},
+      success: (res) => {
+        let data: any = null
+        try {
+          data = JSON.parse('' + res.data)
+        } catch (e) {
+          resolve(failRes('上传响应解析失败', res.statusCode))
+          return
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(okRes(data))
+        } else {
+          const msg = data != null && data.detail != null ? ('' + data.detail) : '上传失败'
+          resolve(failRes(msg, res.statusCode))
+        }
+      },
+      fail: () => {
+        resolve(failRes('上传失败，请检查网络', -1))
+      }
+    })
+  })
+}
+
+function buildApiUrlLocal(path: string): string {
+  return buildApiUrl(path)
+}
+
+function getAccessTokenLocal(): string {
+  return getAccessToken()
+}
+
+export async function getPaperPlaneConversations() {
+  if (USE_MOCK) {
+    return request({
+      url: '/paper-plane-conversations',
+      method: 'GET',
+      mockData: mockPlaneConversations
+    })
+  }
+  const res = await request({
+    url: '/paper-plane-conversations',
+    method: 'GET',
+    data: { page: 1, page_size: 50 }
+  })
+  if (!res.success) return res
+  const arr = res.data != null && Array.isArray(res.data) ? res.data : []
+  const list: any[] = []
+  for (let i = 0; i < arr.length; i++) list.push(mapPlaneConversation(arr[i]))
+  return okRes(list)
+}
+
+export async function getPaperPlaneMessages(conversationId: number) {
+  if (USE_MOCK) {
+    const key = '' + conversationId
+    const list = mockPlaneMessages[key] != null ? mockPlaneMessages[key] : []
+    return request({
+      url: '/paper-plane-conversations/' + conversationId + '/messages',
+      method: 'GET',
+      mockData: list
+    })
+  }
+  const res = await request({
+    url: '/paper-plane-conversations/' + conversationId + '/messages',
+    method: 'GET',
+    data: { page: 1, page_size: 50 }
+  })
+  if (!res.success) return res
+  const arr = res.data != null && Array.isArray(res.data) ? res.data : []
+  const list: any[] = []
+  for (let i = 0; i < arr.length; i++) list.push(mapPlaneMessage(arr[i]))
+  list.reverse()
+  return okRes(list)
+}
+
+export async function sendPaperPlaneMessage(conversationId: number, content: string, suppliedCreateKey: string = '') {
+  const textContent = content != null ? ('' + content).trim() : ''
+  if (textContent.length == 0) return failRes('请输入消息', 'EMPTY_CONTENT')
+  if (USE_MOCK) {
+    const key = '' + conversationId
+    if (mockPlaneMessages[key] == null) mockPlaneMessages[key] = []
+    const msg = {
+      id: Date.now(),
+      conversationId: conversationId,
+      fromUserId: mockMeProfile.id,
+      content: textContent,
+      type: 1,
+      mediaUrl: '',
+      voiceDurationSec: 0,
+      mine: true,
+      timeText: '刚刚'
+    }
+    ;(mockPlaneMessages[key] as any[]).push(msg)
+    for (let i = 0; i < mockPlaneConversations.length; i++) {
+      if (mockPlaneConversations[i].id == conversationId) {
+        mockPlaneConversations[i].lastMessage = textContent
+      }
+    }
+    return request({
+      url: '/paper-plane-conversations/' + conversationId + '/messages',
+      method: 'POST',
+      data: { content: textContent },
+      mockData: msg
+    })
+  }
+  const key = idempotencyKey('paper-plane-message', suppliedCreateKey)
+  const res = await request({
+    url: '/paper-plane-conversations/' + conversationId + '/messages',
+    method: 'POST',
+    data: { content: textContent, type: 1 },
+    headers: { 'Idempotency-Key': key }
+  })
+  if (!res.success) return res
+  return okRes(mapPlaneMessage(res.data))
+}
+
+export async function readPaperPlaneConversation(conversationId: number) {
+  if (USE_MOCK) {
+    for (let i = 0; i < mockPlaneConversations.length; i++) {
+      if (mockPlaneConversations[i].id == conversationId) mockPlaneConversations[i].unreadCount = 0
+    }
+    return okRes({ success: true })
+  }
+  return await request({
+    url: '/paper-plane-conversations/' + conversationId + '/read',
+    method: 'POST',
+    data: {}
+  })
+}
+
+export async function endPaperPlaneConversation(conversationId: number) {
+  if (USE_MOCK) {
+    for (let i = 0; i < mockPlaneConversations.length; i++) {
+      if (mockPlaneConversations[i].id == conversationId) mockPlaneConversations[i].status = 2
+    }
+    return okRes({ success: true, status: 2 })
+  }
+  const res = await request({
+    url: '/paper-plane-conversations/' + conversationId + '/end',
+    method: 'POST',
+    data: {}
+  })
+  if (!res.success) return res
+  return okRes(mapPlaneConversation(res.data))
+}
 
 /** 供 apply 同步动态卡状态 */
 export function __syncApplyStatus(userId: number, status: string) {
