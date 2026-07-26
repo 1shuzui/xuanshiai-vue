@@ -1,4 +1,75 @@
+### 评论点赞 / 纸飞机语音 / 匿名会话（2026-07-26）
+
+- FE：likeComment、详情页评论点赞；uploadMedia；纸飞机录音/播放；回复后打开匿名对话面板。
+- BE：PUT/DELETE /community/comments/{id}/like、POST /media/uploads、纸飞机 voice_url/voice_duration_sec、/paper-plane-conversations*。
+- 匿名对话不等于真实私信（不建 chat_session / user_match）。
+
+# Community HTTP Changelog
+
+## 2026-07-26 内容举报契约（双轨）
+
+- `reportContent(targetType, targetId, reasonId, detail)` live：
+  - `post` / `comment` / `paper_plane`（兼容 `paperPlane`）→ `POST /community/reports`，body 用 `target_type` / `target_id` / `reason_id`
+  - `user` → 仍 `POST /security/reports/{userId}`
+- `XsaReportSheet` 提交真实内容对象，不再把 context 塞进 description，也不再强制内容举报必须有 userId（屏蔽仍要 userId）
+- 详情页评论增加举报入口；纸飞机 `target-type=paper_plane`
+
 # 社区 FE ↔ BE 联调修改记录
+
+## 2026-07-26 · 社区媒体上传契约（Task 5–6 代码完成 / Task 7 验收）
+
+> 目标：发布页 / 纸飞机先上传拿 `media_id`，再在 create 请求传 id；拒外链与本地临时路径。
+> **自动化验收**：FE 静态 + BE 单测已跑；**真实 HTTP / 微信端手测未跑**（见下方清单）。
+
+### 前端 `xuanshiai-vue`（commits `ccfcba4` … `3efcfcd`）
+
+| 能力 | 契约 |
+|------|------|
+| 上传 | `uploadCommunityMedia(filePath, purpose)` → `uni.uploadFile` `POST /community/media/uploads`，字段 `file` + `formData.purpose`（`post` \| `paper_plane`） |
+| 删除未绑定 | `deleteCommunityMedia(mediaId)` → `DELETE /community/media/{id}`（取消编辑 / 换图清理 orphan） |
+| 发帖 | `publishDynamic` 优先 body：`image_media_ids[]`、`video_media_id`；图/视频互斥；media-only 允许空文案 |
+| 纸飞机 | `sendPaperPlane` body：`image_media_ids[]`（最多 6）；无视频；语音另走通用 `uploadMedia` → `POST /media/uploads` |
+| 幂等 | create 仍带 `Idempotency-Key`；key 指纹含 media id，连点同 payload 复用 key |
+| 取消上传 | 发布页 photo↔video / 替换时取消 in-flight `uploadFile` 任务 |
+| Mock | `mockCommunityMediaById` 解析 id→url，publish/send 后列表可见 |
+
+页面：`pages/community/publish.uvue`、`pages/community/paper-plane.uvue`；API：`api/community.uts`。
+
+### 后端 `xuanshiai-backend`（commits `baa939e` … `5f899bc`，分支 `codex/community-live-api-hardening`）
+
+| 项 | 说明 |
+|----|------|
+| 表 | `community_media` / `community_media_attachment`（`baa939e`） |
+| 上传/删 | `POST/DELETE /api/v1/community/media/...`（实现于 `community` 路由 + `community_media` 服务） |
+| 绑定 | 发帖/纸飞机 create 将 ready → bound；删帖标 deleted |
+| 安全 | 外链 / `wxfile://` / 本地路径 `422`；非本人 media id `422`；图视频互斥 |
+| 文档 | `docs/api/community.md` 媒体生命周期（`5f899bc`） |
+
+### Task 7 真实 HTTP 联调清单（人工）
+
+| # | 场景 | 状态 |
+|---|------|------|
+| 1 | 登录实名用户 | **skipped** — 本轮未起 live 服务 / 未拿 token |
+| 2 | 选图上传成功拿 media id | **skipped** — 同上 |
+| 3 | 发布图片动态 | **skipped** |
+| 4 | 选视频上传并发布 | **skipped** |
+| 5 | 纸飞机选图发送 | **skipped** |
+| 6 | 上传失败重试 | **skipped** |
+| 7 | 取消编辑清理媒体（或 24h cleanup） | **skipped** |
+| 8 | 连点发布只一条（幂等 + fingerprint 含 media id） | **skipped**（单测覆盖幂等逻辑；端到端未跑） |
+| 9 | 伪造外部 URL 发布被拒 | **skipped**（单测有 `assert_owned_media_urls` / legacy external 拒绝；HTTP 未手测） |
+
+### 自动化（本轮）
+
+- BE dirty WIP 树：`pytest` media/features/bootstrap **83 passed, 4 skipped**；`ruff` media 相关路径 **All checks passed**
+- BE clean `HEAD=5f899bc`：**2 failed**（见 Task 7 报告：路由断言测错层 + 纸飞机 rollback 与 WIP content_filter 序差异）
+- FE：`test-mock-system` / `test-community-flow` / `git diff --check` 均 **pass**
+
+## 2026-07-26 · 话题参与表持久化
+
+- BE：`community_topic_participant`；`joined` / `participant_count` 读参与表；`POST .../join` 真实写入；`DELETE .../leave`；带话题发帖自动参与；历史发帖作者 init 幂等回填。
+- FE：`joinTopic` / `leaveTopic` 映射 `joined`（fail-closed）与 `participantCount`；话题详情按 `joined` 切换「参与话题 / 去发言 + 取消参与」；`onShow` 重拉详情；Mock 对称。
+- 文档：`xuanshiai-backend/docs/api/community.md` §7.3–7.4 与变更记录。
 
 ## 2026-07-25 · 实时契约对齐（Task 4）
 
@@ -31,7 +102,8 @@
 | 关 Mock 端侧联调（编译 + DevTools） | 进行中 | 见 2026-07-25 · 关 Mock 端侧联调；`USE_MOCK=false` 当前开启 |
 | 同城城市 GET/PUT + mode=city 传参 | 已完成 | 见 2026-07-25 · 同城城市端到端；过滤在 BE |
 | 同城 city_code + 关注全部 BE 并集 | 已完成 | 见 2026-07-25 · 同城 city_code 与关注并集 |
-| 媒体上传 / 物理真机手测全路径 / 消息申请 E2E | 未完成 | 阶段 C 后置；物理手机需同网预览扫码 |
+| 媒体上传 FE/BE 代码 + 单测/静态验收 | 代码完成 | 见 2026-07-26 · 社区媒体上传契约；真实 HTTP/微信手测仍 skipped |
+| 媒体上传真实 HTTP / 物理真机手测 / 消息申请 E2E | 未完成 | Task 7 清单 1–9 skipped；物理手机需同网预览扫码 |
 
 默认开关：**当前联调为 `USE_MOCK = false`**（`api/config.uts`）；演示回退时改回 `true`。
 
@@ -120,7 +192,7 @@
 - 动态流 `mode`：`latest | following | liked_users | city`；`filter` / `sort`。
 - `CommunityPostResponse` 兼容资料字段（nickname/avatar/gender/age/mbti/school/hometown/residence 等）。
 - `tests/test_community_features.py`：OpenAPI 路径注册 + 关键 GET 401 + schema 限长。
-- 边界：无媒体上传/审核、无评论点赞、join 幂等存在性校验。
+- 边界：媒体上传/审核仍有边界；评论点赞已接通；join 幂等存在性校验。
 
 ### 前端 `xuanshiai-vue`
 
@@ -176,7 +248,7 @@ cd xuanshiai-vue && node tests/test-community-flow.js
 - 积分加次写路径
 - mutual-like 自动建 match 与 PRD「先申请再聊」产品冲突裁决（**已在审查修复中按定版改 BE**）
 - 消息页 applications 列表 / accept / reject 完整真路径
-- 评论点赞、内容审核、feed 服务端 union mode
+- 内容审核、feed 服务端 union mode（评论点赞已提供）
 
 ---
 
