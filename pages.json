@@ -222,6 +222,13 @@
 			"style": {
 				"navigationBarTitleText": "社区通知"
 			}
+		},
+		{
+			"path": "pages/mytags/edit",
+			"style": {
+				"navigationBarTitleText": "编辑标签",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {
@@ -231,6 +238,7 @@
 		"backgroundColor": "#F9F9F9"
 	},
 	"tabBar": {
+		"custom": true,
 		"color": "#666666",
 		"selectedColor": "#5A9D8E",
 		"backgroundColor": "#FCFCFC",

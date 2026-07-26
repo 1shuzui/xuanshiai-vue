@@ -159,9 +159,14 @@
 			@blocked="onBlocked"
 		/>
 	</view>
+
+	<!-- 自定义底部导航栏 -->
+	<XsaTabBar />
 </template>
 
+
 <script setup lang="uts">
+import XsaTabBar from '@/components/XsaTabBar.uvue'
 	import XsaDynamicCard from '@/components/XsaDynamicCard.uvue'
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
 	import XsaApplySheet from '@/components/XsaApplySheet.uvue'

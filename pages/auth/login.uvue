@@ -142,22 +142,7 @@
 		}, 500)
 	}
 
-	const handleDebugLogin = async () => {
-		// 仅调试入口：关 Mock 时用 mock 短信换 token；Mock 开启时直接进首页
-		if (!USE_MOCK) {
-			authLoading.value = true
-			const ok = await loginWithMockSms('13800001001')
-			authLoading.value = false
-			if (!ok) {
-				uni.showToast({ title: '联调登录失败，请确认后端', icon: 'none' })
-				return
-			}
-			uni.showToast({ title: '已写入联调 token', icon: 'success' })
-			setTimeout(() => {
-				goHome()
-			}, 400)
-			return
-		}
+	const handleDebugLogin = () => {
 		goHome()
 	}
 

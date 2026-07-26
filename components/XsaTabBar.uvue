@@ -1,0 +1,100 @@
+<template>
+	<view class="custom-tab-bar">
+		<view
+			class="tab-item"
+			v-for="(item, i) in tabs"
+			:key="i"
+			@click="switchTab(i)"
+		>
+			<text :class="[item.iconClass, currentIndex === i ? 'tab-icon-active' : 'tab-icon']"></text>
+			<text :class="['tab-text', currentIndex === i ? 'active' : '']">{{ item.text }}</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	const currentIndex = ref(0)
+
+	const tabs = [
+		{ text: '首页', iconClass: 'ic ic-home ic-search tab-ic', pagePath: '/pages/index/index' },
+		{ text: '社区', iconClass: 'ic ic-social ic-huati tab-ic', pagePath: '/pages/community/community' },
+		{ text: '牵线', iconClass: 'ic ic-social ic-peidui tab-ic', pagePath: '/pages/matchmaker/matchmaker' },
+		{ text: '消息', iconClass: 'ic ic-home ic-hello tab-ic', pagePath: '/pages/message/message' },
+		{ text: '我的', iconClass: 'ic ic-social ic-touxiang tab-ic', pagePath: '/pages/profile/profile' }
+	]
+
+	// 通过当前页面路径确定选中项
+	const pageMap: Map<string, number> = new Map()
+	pageMap.set('pages/index/index', 0)
+	pageMap.set('pages/community/community', 1)
+	pageMap.set('pages/matchmaker/matchmaker', 2)
+	pageMap.set('pages/message/message', 3)
+	pageMap.set('pages/profile/profile', 4)
+
+	// 获取当前页面路由
+	const pages = getCurrentPages()
+	if (pages.length > 0) {
+		const currentPage = pages[pages.length - 1]
+		if (currentPage != null) {
+			const route = currentPage.route != null ? String(currentPage.route) : ''
+			const idx = pageMap.get(route)
+			if (idx != null) {
+				currentIndex.value = idx
+			}
+		}
+	}
+
+	const switchTab = (index: number) => {
+		if (index === currentIndex.value) return
+		const item = tabs[index]
+		if (item != null) {
+			uni.switchTab({ url: item.pagePath })
+		}
+	}
+</script>
+
+<style>
+.custom-tab-bar {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: flex-end;
+	justify-content: space-around;
+	padding: 8px 0;
+	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+	background-color: #FCFCFC;
+	border-top: 1px solid #E8EDE6;
+	z-index: 50;
+}
+.tab-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	padding: 4px 0;
+}
+.tab-ic { font-size: 24px; }
+.tab-icon { color: #666666; }
+.tab-icon-active { color: #5A9D8E; }
+.tab-text { font-size: 10px; color: #666666; }
+.tab-text.active { color: #5A9D8E; font-weight: 600; }
+
+/* iconfont */
+@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-social"; src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-me"; src: url('/static/婚恋小程序图标/个人中心/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/个人中心/iconfont.woff') format('woff'); }
+
+.ic { font-style: normal; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+.ic-home { font-family: "iconfont-home" !important; }
+.ic-social { font-family: "iconfont-social" !important; }
+.ic-me { font-family: "iconfont-me" !important; }
+
+.ic-search:before { content: "\e600"; }
+.ic-hello:before { content: "\e601"; }
+.ic-huati:before { content: "\e651"; }
+.ic-peidui:before { content: "\e634"; }
+.ic-touxiang:before { content: "\e632"; }
+</style>
