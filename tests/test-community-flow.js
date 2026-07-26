@@ -156,6 +156,7 @@ const apiFns = [
   'getTopicList',
   'getTopicDetail',
   'joinTopic',
+  'leaveTopic',
   'getPaperPlanes',
   'sendPaperPlane',
   'replyPaperPlane',
@@ -608,6 +609,37 @@ if (topicDetail.includes("guardRealName('topicJoin')") && topicDetail.includes('
 } else {
   fail('参与话题实名门槛或 topicId 缺失')
 }
+if (
+  topicDetail.includes('joinTopic') &&
+  topicDetail.includes('leaveTopic') &&
+  topicDetail.includes('doJoin') &&
+  topicDetail.includes('confirmLeave') &&
+  topicDetail.includes('去发言') &&
+  topicDetail.includes('取消参与') &&
+  topicDetail.includes('onShow')
+) {
+  ok('话题详情接线 join/leave 与已参与态 CTA')
+} else {
+  fail('话题详情未接线 join/leave 或已参与 CTA')
+}
+const communityApiSrc = read('api/community.uts')
+if (
+  communityApiSrc.includes('export async function leaveTopic') &&
+  communityApiSrc.includes("/leave") &&
+  communityApiSrc.includes('unmarkTopicParticipation') &&
+  communityApiSrc.includes('participant_count') &&
+  communityApiSrc.includes('raw.joined == true') &&
+  communityApiSrc.includes("failRes('话题不存在', 404)")
+) {
+  ok('joinTopic/leaveTopic API 含 fail-closed 与 participantCount')
+} else {
+  fail('join/leave API 契约不完整')
+}
+if (topicDetail.includes('joining.value || leaving.value')) {
+  ok('话题详情 onShow 在 join/leave 进行中跳过重拉')
+} else {
+  fail('话题详情未防护 join/leave 与 onShow 竞态')
+}
 if (topicDetail.includes("guardRealName('like')") && topicDetail.includes("guardRealName('collect')") && topicDetail.includes("guardRealName('follow')")) {
   ok('话题内点赞、收藏、关注仍仅要求实名')
 } else {
@@ -957,6 +989,19 @@ contract('create requests transmit fields and idempotency keys', () => {
 contract('real-media publishing is blocked before its HTTP request', () => {
   assert.match(liveCommunityApi, /MEDIA_UPLOAD_REQUIRED/)
   assert.match(liveCommunityApi, /图片和视频上传服务尚未接入，暂不能发布媒体动态/)
+})
+contract('community api exposes media upload helpers', () => {
+  const api = read('api/community.uts')
+  assert.match(api, /uploadCommunityMedia/)
+  assert.match(api, /deleteCommunityMedia/)
+  assert.match(api, /image_media_ids|imageMediaIds/)
+  assert.match(api, /community\/media\/uploads/)
+})
+contract('real publish no longer hard-blocks all temp media without upload path', () => {
+  const api = read('api/community.uts')
+  // 仍可保留 isTemporaryMediaPath 工具，但正常路径应先 upload 再发 media ids
+  assert.match(api, /uploadCommunityMedia/)
+  assert.match(api, /image_media_ids/)
 })
 contract('topic detail passes page metadata and scroll pagination', () => {
   assert.match(liveCommunityApi, /getTopicDetail\(topicId: number, sort: string = 'hot', page: number = 1, pageSize: number = 20\)/)
