@@ -9,7 +9,7 @@
 // 关 Mock 联调时改为 false，并确认下方 API_BASE_URL 可达；演示/默认请保持 true
 // 不要只靠关 Mock 宣称生产完成
 // 本机真联调（临时）：false + :8001；勿当作生产完成，联调结束请改回 true / 默认地址
-export const USE_MOCK = false
+export const USE_MOCK = true
 
 // FastAPI 服务根地址（不含 /api/v1）
 // 本机联调示例：http://127.0.0.1:8000
