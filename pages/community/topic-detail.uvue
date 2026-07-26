@@ -19,30 +19,41 @@
 				<view class="chip" :class="{ active: sort == 'latest' }" @click="changeSort('latest')"><text>最新</text></view>
 			</view>
 
-			<XsaEmpty v-if="!loading && !topicError && posts.length == 0" text="还没有帖子" description="成为第一个认真发言的人" :show-action="true" action-text="参与话题" @action="goPublish" />
-			<XsaDynamicCard
-				v-for="item in posts"
-				:key="item.id"
-				:dynamic="normalize(item)"
-				@user-click="goUser"
-				@like="onLike"
-				@comment="goPost"
-				@collect="onCollect"
-				@follow="onFollow"
-				@apply="onApply"
-				@more="onMore"
-				@open="goPost"
-			/>
-			<view v-if="posts.length > 0" class="load-more">
-				<text class="text-muted" v-if="loadingMore">加载中...</text>
-				<text class="text-muted" v-else-if="!hasMore">没有更多了</text>
-			</view>
-			<view class="pad"></view>
-		</scroll-view>
+<XsaEmpty
+					v-if="!loading && !topicError && posts.length == 0"
+					text="还没有帖子"
+					description="成为第一个认真发言的人"
+					:show-action="true"
+					:action-text="emptyActionText"
+					@action="onEmptyAction"
+				/>
+				<XsaDynamicCard
+					v-for="item in posts"
+					:key="item.id"
+					:dynamic="normalize(item)"
+					@user-click="goUser"
+					@like="onLike"
+					@comment="goPost"
+					@collect="onCollect"
+					@follow="onFollow"
+					@apply="onApply"
+					@more="onMore"
+					@open="goPost"
+				/>
+				<view v-if="posts.length > 0" class="load-more">
+					<text class="text-muted" v-if="loadingMore">加载中...</text>
+					<text class="text-muted" v-else-if="!hasMore">没有更多了</text>
+				</view>
+				<view class="pad"></view>
+			</scroll-view>
 
-		<view v-if="topic != null && !topicError" class="join-bar">
-			<button class="join-btn" @click="goPublish">+ 参与话题</button>
-		</view>
+			<view v-if="topic != null && !topicError" class="join-bar">
+				<view v-if="topicJoined" class="join-row">
+					<button class="join-btn join-btn-main" :disabled="joining || leaving" @click="goPublish">去发言</button>
+					<button class="join-btn join-btn-secondary" :disabled="joining || leaving" @click="confirmLeave">取消参与</button>
+				</view>
+				<button v-else class="join-btn" :disabled="joining || leaving" @click="doJoin">+ 参与话题</button>
+			</view>
 
 		<XsaApplySheet :visible="applyVisible" :user-id="applyUserId" @close="applyVisible = false" @success="onApplyOk" />
 		<XsaReportSheet
@@ -61,30 +72,44 @@
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
 	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
 	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
-	import {
-		getTopicDetail,
-		likeDynamic,
-		collectDynamic,
-		followUserFromCommunity
-	} from '@/api'
-	import { guardRealName } from '@/utils/realNameGate.uts'
+import {
+			getTopicDetail,
+			joinTopic,
+			leaveTopic,
+			likeDynamic,
+			collectDynamic,
+			followUserFromCommunity
+		} from '@/api'
+		import { guardRealName } from '@/utils/realNameGate.uts'
 
-	const topicId = ref(0)
-	const topic = ref(null)
-	const posts = ref([])
-	const loading = ref(false)
-	const loadingMore = ref(false)
-	const topicError = ref(false)
-	const sort = ref('hot')
-	const page = ref(1)
-	const pageSize = 20
-	const hasMore = ref(true)
-	const topicLoadSeq = ref(0)
-	const applyVisible = ref(false)
-	const applyUserId = ref(0)
-	const reportVisible = ref(false)
-	const reportTargetId = ref(0)
-	const reportUserId = ref(0)
+		const topicId = ref(0)
+		const topic = ref(null)
+		const posts = ref([])
+		const loading = ref(false)
+		const loadingMore = ref(false)
+		const topicError = ref(false)
+		const joining = ref(false)
+		const leaving = ref(false)
+		const sort = ref('hot')
+		const page = ref(1)
+		const pageSize = 20
+		const hasMore = ref(true)
+		const topicLoadSeq = ref(0)
+		const skipNextShowReload = ref(true)
+		const applyVisible = ref(false)
+		const applyUserId = ref(0)
+		const reportVisible = ref(false)
+		const reportTargetId = ref(0)
+		const reportUserId = ref(0)
+
+		const topicJoined = computed(() => {
+			const t = topic.value as any
+			return t != null && t.joined == true
+		})
+
+		const emptyActionText = computed(() => {
+			return topicJoined.value ? '去发言' : '参与话题'
+		})
 
 	const formatViews = (n: any) => {
 		const v = n != null ? Number(n) : 0
@@ -99,12 +124,25 @@
 		return '' + v
 	}
 
-	onLoad((q: any) => {
-		topicId.value = q != null && q.id != null ? parseInt('' + q.id) : 0
-		load()
-	})
+onLoad((q: any) => {
+			topicId.value = q != null && q.id != null ? parseInt('' + q.id) : 0
+			skipNextShowReload.value = true
+			load()
+		})
 
-const normalize = (item: any) => {
+onShow(() => {
+				if (skipNextShowReload.value) {
+					skipNextShowReload.value = false
+					return
+				}
+				// 参与写路径进行中时不重拉，避免陈旧详情覆盖 join/leave 结果
+				if (joining.value || leaving.value) return
+				if (topicId.value > 0 && !loading.value) {
+					load()
+				}
+			})
+
+	const normalize = (item: any) => {
 			return {
 				id: item.id,
 				user: item.user,
@@ -209,14 +247,85 @@ const normalize = (item: any) => {
 		await load()
 	}
 
-	const goPublish = async () => {
-		if (topicId.value <= 0 || topic.value == null || topicError.value) return
-		const ok = await guardRealName('topicJoin')
-		if (!ok) return
-		uni.navigateTo({ url: `/pages/community/publish?topicId=${topicId.value}` })
-	}
+const applyParticipation = (joined: boolean, participantCount: any) => {
+			const t = topic.value as any
+			if (t == null) return
+			t.joined = joined
+			if (participantCount != null) {
+				t.participantCount = participantCount
+			}
+		}
 
-	const goUser = (id: number) => {
+		const doJoin = async () => {
+			if (topicId.value <= 0 || topic.value == null || topicError.value || joining.value || leaving.value) return
+			const ok = await guardRealName('topicJoin')
+			if (!ok) return
+			joining.value = true
+			try {
+				const res = await joinTopic(topicId.value)
+				if (res.success && res.data != null && res.data.joined == true) {
+					applyParticipation(true, res.data.participantCount)
+					uni.showToast({ title: '已参与', icon: 'none' })
+				} else {
+					uni.showToast({ title: '参与失败，请重试', icon: 'none' })
+				}
+			} catch (e) {
+				console.error(e)
+				uni.showToast({ title: '参与失败，请重试', icon: 'none' })
+			} finally {
+				joining.value = false
+			}
+		}
+
+		const doLeave = async () => {
+			if (topicId.value <= 0 || topic.value == null || topicError.value || joining.value || leaving.value) return
+			const ok = await guardRealName('topicJoin')
+			if (!ok) return
+			leaving.value = true
+			try {
+				const res = await leaveTopic(topicId.value)
+				if (res.success && res.data != null && res.data.joined != true) {
+					applyParticipation(false, res.data.participantCount)
+					uni.showToast({ title: '已取消参与', icon: 'none' })
+				} else {
+					uni.showToast({ title: '取消失败，请重试', icon: 'none' })
+				}
+			} catch (e) {
+				console.error(e)
+				uni.showToast({ title: '取消失败，请重试', icon: 'none' })
+			} finally {
+				leaving.value = false
+			}
+		}
+
+		const confirmLeave = () => {
+			uni.showModal({
+				title: '取消参与',
+				content: '取消后将不再计入话题参与人数，确认取消？',
+				success: (r: any) => {
+					if (r != null && r.confirm == true) {
+						doLeave()
+					}
+				}
+			})
+		}
+
+		const goPublish = async () => {
+			if (topicId.value <= 0 || topic.value == null || topicError.value) return
+			const ok = await guardRealName('topicJoin')
+			if (!ok) return
+			uni.navigateTo({ url: `/pages/community/publish?topicId=${topicId.value}` })
+		}
+
+		const onEmptyAction = async () => {
+			if (topicJoined.value) {
+				await goPublish()
+			} else {
+				await doJoin()
+			}
+		}
+
+		const goUser = (id: number) => {
 		uni.navigateTo({ url: `/pages/user/detail?userId=${id}` })
 	}
 
@@ -386,23 +495,42 @@ const normalize = (item: any) => {
 	.pad {
 		height: calc(72px + env(safe-area-inset-bottom));
 	}
-	.join-bar {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-		background: var(--surface-overlay);
-		border-top: 1px solid var(--line);
-		z-index: 30;
-	}
-	.join-btn {
-		height: 44px;
-		background: var(--sage);
-		color: var(--paper);
-		border-radius: 10px;
-		font-size: 14px;
-		font-weight: 800;
-		border: none;
-	}
-</style>
+.join-bar {
+			position: fixed;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+			background: var(--surface-overlay);
+			border-top: 1px solid var(--line);
+			z-index: 30;
+		}
+		.join-row {
+			display: flex;
+			flex-direction: row;
+			gap: 10px;
+		}
+		.join-btn {
+			height: 44px;
+			background: var(--sage);
+			color: var(--paper);
+			border-radius: 10px;
+			font-size: 14px;
+			font-weight: 800;
+			border: none;
+			flex: 1;
+		}
+		.join-btn-main {
+			flex: 1.4;
+		}
+		.join-btn-secondary {
+			flex: 1;
+			background: var(--surface);
+			color: var(--muted);
+			border: 1px solid var(--line);
+			font-weight: 600;
+		}
+		.join-btn[disabled] {
+			opacity: 0.6;
+		}
+	</style>
