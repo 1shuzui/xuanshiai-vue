@@ -1020,6 +1020,18 @@ contract('dynamic card emits interactions without optimistic local mutation', ()
 contract('publish page retains the request failure message', () => {
   assert.match(livePublishPage, /res\.message/)
 })
+contract('publish page uploads media before publish', () => {
+  const page = read('pages/community/publish.uvue')
+  assert.match(page, /uploadCommunityMedia/)
+  assert.match(page, /mediaId|imageMediaIds/)
+  assert.match(page, /deleteCommunityMedia/)
+})
+contract('paper plane supports image pick and upload', () => {
+  const page = read('pages/community/paper-plane.uvue')
+  assert.match(page, /chooseImage|addPhoto/)
+  assert.match(page, /uploadCommunityMedia/)
+  assert.match(page, /imageMediaIds|image_media_ids/)
+})
 contract('like-user scan is bounded by returned data rather than a hard page cap', () => {
   assert.doesNotMatch(liveUserApi, /while \(page <= 20\)/)
   assert.match(liveUserApi, /scanned >= total/)

@@ -1,11 +1,17 @@
 <template>
 	<view class="publish-page">
 		<scroll-view class="scroll-content" scroll-y>
-			<!-- 媒体区：图片 / 视频互斥 -->
+			<!-- 媒体区：图片 / 视频互斥；选择后立即上传 -->
 			<view class="photo-section">
-				<view class="photo-grid" v-if="videos.length == 0">
-					<view class="photo-item" v-for="(photo, index) in photos" :key="index">
-						<image class="photo" :src="photo" mode="aspectFill"></image>
+				<view class="photo-grid" v-if="videoItems.length == 0">
+					<view class="photo-item" v-for="(item, index) in photoItems" :key="index">
+						<image class="photo" :src="item.localPath" mode="aspectFill"></image>
+						<view class="media-status" v-if="item.status == 'uploading' || item.status == 'pending'">
+							<text class="media-status-text">上传中</text>
+						</view>
+						<view class="media-status media-failed" v-else-if="item.status == 'failed'" @click="retryPhoto(index)">
+							<text class="media-status-text">失败·点重试</text>
+						</view>
 						<view class="delete-btn" @click="deletePhoto(index)">
 							<text class="icon">✕</text>
 						</view>
@@ -16,22 +22,28 @@
 					</view>
 				</view>
 
-				<view class="video-block" v-if="videos.length > 0">
+				<view class="video-block" v-if="videoItems.length > 0">
 					<view class="video-preview">
-						<video class="video-player" :src="videos[0]" controls></video>
+						<video class="video-player" :src="videoItems[0].localPath" controls></video>
+						<view class="media-status" v-if="videoItems[0].status == 'uploading' || videoItems[0].status == 'pending'">
+							<text class="media-status-text">上传中</text>
+						</view>
+						<view class="media-status media-failed" v-else-if="videoItems[0].status == 'failed'" @click="retryVideo">
+							<text class="media-status-text">失败·点重试</text>
+						</view>
 						<view class="delete-btn" @click="deleteVideo">
 							<text class="icon">✕</text>
 						</view>
 					</view>
 				</view>
 
-				<view class="media-actions" v-if="videos.length == 0">
-					<view class="media-action-btn" @click="addVideo" v-if="canAddVideo || photos.length > 0">
+				<view class="media-actions" v-if="videoItems.length == 0">
+					<view class="media-action-btn" @click="addVideo" v-if="canAddVideo || photoItems.length > 0">
 						<text class="media-action-text">添加视频</text>
 					</view>
 				</view>
 
-				<text class="photo-tip text-muted">图片最多 9 张，或视频 1 条（互斥）</text>
+				<text class="photo-tip text-muted">图片最多 9 张，或视频 1 条（互斥）；选择后自动上传</text>
 			</view>
 
 			<!-- 内容输入 + 表情 -->
@@ -167,27 +179,36 @@
 </template>
 
 <script setup lang="uts">
-import { publishDynamic, getTopics, getTopicDetail, createCommunityCreateKey, discardCommunityCreateKey } from '@/api'
-import { guardRealName } from '@/utils/realNameGate.uts'
+	import { publishDynamic, getTopics, getTopicDetail, createCommunityCreateKey, discardCommunityCreateKey, uploadCommunityMedia, deleteCommunityMedia } from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
 
-const photos = ref<string[]>([])
-const videos = ref<string[]>([])
-const content = ref('')
-const location = ref('')
-const visibility = ref(0)
-const mentions = ref<number[]>([])
-const publishing = ref(false)
-const pendingPublishKey = ref('')
-const pendingPublishFingerprint = ref('')
-const topicId = ref(0)
-const topicTitle = ref('')
-const declaration = ref('')
-const showEmojiPanel = ref(false)
-const showTopicSheet = ref(false)
-const topicLoading = ref(false)
-const topicError = ref('')
-const topicKeyword = ref('')
-const topicOptions = ref([] as any[])
+	type LocalMedia = {
+		localPath: string
+		mediaId: number
+		remoteUrl: string
+		status: string // pending | uploading | ready | failed
+		mediaType: string // image | video
+	}
+
+	const photoItems = ref<LocalMedia[]>([])
+	const videoItems = ref<LocalMedia[]>([])
+	const content = ref('')
+	const location = ref('')
+	const visibility = ref(0)
+	const mentions = ref<number[]>([])
+	const publishing = ref(false)
+	const publishedOk = ref(false)
+	const pendingPublishKey = ref('')
+	const pendingPublishFingerprint = ref('')
+	const topicId = ref(0)
+	const topicTitle = ref('')
+	const declaration = ref('')
+	const showEmojiPanel = ref(false)
+	const showTopicSheet = ref(false)
+	const topicLoading = ref(false)
+	const topicError = ref('')
+	const topicKeyword = ref('')
+	const topicOptions = ref([] as any[])
 
 const DECLARATION_OPTIONS = [
 	'内容无需声明',
@@ -246,20 +267,90 @@ onLoad(async (query: any) => {
 	})
 
 const canPublish = computed(() => {
-	return (
-		content.value.trim().length > 0 ||
-		photos.value.length > 0 ||
-		videos.value.length > 0
-	)
-})
+		return (
+			content.value.trim().length > 0 ||
+			photoItems.value.length > 0 ||
+			videoItems.value.length > 0
+		)
+	})
 
-const canAddPhoto = computed(() => {
-	return videos.value.length == 0 && photos.value.length < 9
-})
+	const canAddPhoto = computed(() => {
+		return videoItems.value.length == 0 && photoItems.value.length < 9
+	})
 
-const canAddVideo = computed(() => {
-	return photos.value.length == 0 && videos.value.length < 1
-})
+	const canAddVideo = computed(() => {
+		return photoItems.value.length == 0 && videoItems.value.length < 1
+	})
+
+	const mediaIdsFingerprint = (): string => {
+		const ids: string[] = []
+		const photos = photoItems.value as LocalMedia[]
+		for (let i = 0; i < photos.length; i++) {
+			ids.push('i' + photos[i].mediaId + ':' + photos[i].status)
+		}
+		const videos = videoItems.value as LocalMedia[]
+		for (let i = 0; i < videos.length; i++) {
+			ids.push('v' + videos[i].mediaId + ':' + videos[i].status)
+		}
+		return ids.join(',')
+	}
+
+	const makeLocalMedia = (localPath: string, mediaType: string): LocalMedia => {
+		return {
+			localPath: localPath,
+			mediaId: 0,
+			remoteUrl: '',
+			status: 'uploading',
+			mediaType: mediaType
+		}
+	}
+
+	const uploadOne = async (item: LocalMedia) => {
+		item.status = 'uploading'
+		try {
+			const res = await uploadCommunityMedia(item.localPath, 'post')
+			if (res != null && res.success && res.data != null) {
+				const data = res.data as any
+				item.mediaId = data.id != null ? (data.id as number) : 0
+				item.remoteUrl = data.url != null ? ('' + data.url) : ''
+				if (data.mediaType != null && ('' + data.mediaType) != '') {
+					item.mediaType = '' + data.mediaType
+				}
+				item.status = item.mediaId > 0 ? 'ready' : 'failed'
+			} else {
+				item.status = 'failed'
+				item.mediaId = 0
+				item.remoteUrl = ''
+			}
+		} catch (e) {
+			item.status = 'failed'
+			item.mediaId = 0
+			item.remoteUrl = ''
+		}
+		invalidatePendingPublishKey()
+	}
+
+	const cleanupUnboundMedia = async () => {
+		if (publishedOk.value) return
+		const photos = photoItems.value as LocalMedia[]
+		for (let i = 0; i < photos.length; i++) {
+			const m = photos[i]
+			if (m.status == 'ready' && m.mediaId > 0) {
+				try {
+					await deleteCommunityMedia(m.mediaId)
+				} catch (e) {}
+			}
+		}
+		const videos = videoItems.value as LocalMedia[]
+		for (let i = 0; i < videos.length; i++) {
+			const m = videos[i]
+			if (m.status == 'ready' && m.mediaId > 0) {
+				try {
+					await deleteCommunityMedia(m.mediaId)
+				} catch (e) {}
+			}
+		}
+	}
 
 const visibilityText = computed(() => {
 	const texts = ['公开', '仅好友可见', '仅自己可见']
@@ -286,72 +377,131 @@ const filteredTopics = computed(() => {
 })
 
 const addPhoto = () => {
-	if (!canAddPhoto.value) {
-		if (videos.value.length > 0) {
-			uni.showToast({ title: '已选择视频，无法再添加图片', icon: 'none' })
-		}
-		return
-	}
-	const remaining = 9 - photos.value.length
-	uni.chooseImage({
-		count: remaining,
-		sizeType: ['compressed'],
-		sourceType: ['album', 'camera'],
-		success: (res) => {
-			const paths = res.tempFilePaths as string[]
-			for (let i = 0; i < paths.length; i++) {
-				photos.value.push(paths[i])
+		if (!canAddPhoto.value) {
+			if (videoItems.value.length > 0) {
+				uni.showToast({ title: '已选择视频，无法再添加图片', icon: 'none' })
 			}
-			invalidatePendingPublishKey()
+			return
 		}
-	})
-}
-
-const addVideo = () => {
-	if (photos.value.length > 0) {
-		uni.showModal({
-			title: '提示',
-			content: '添加视频将清除已选图片，是否继续？',
-			success: (res) => {
-				if (res.confirm) {
-					photos.value = []
-					invalidatePendingPublishKey()
-					pickVideo()
+		const remaining = 9 - photoItems.value.length
+		uni.chooseImage({
+			count: remaining,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: async (res) => {
+				const paths = res.tempFilePaths as string[]
+				const start = photoItems.value.length
+				for (let i = 0; i < paths.length; i++) {
+					const path = paths[i] != null ? ('' + paths[i]) : ''
+					if (path == '') continue
+					photoItems.value.push(makeLocalMedia(path, 'image'))
+				}
+				invalidatePendingPublishKey()
+				const list = photoItems.value as LocalMedia[]
+				for (let i = start; i < list.length; i++) {
+					await uploadOne(list[i])
 				}
 			}
 		})
-		return
 	}
-	if (videos.value.length >= 1) {
-		uni.showToast({ title: '最多添加 1 个视频', icon: 'none' })
-		return
-	}
-	pickVideo()
-}
 
-const pickVideo = () => {
-	uni.chooseVideo({
-		sourceType: ['album', 'camera'],
-		compressed: true,
-		success: (res) => {
-			const path = res.tempFilePath != null ? ('' + res.tempFilePath) : ''
-			if (path !== '') {
-				videos.value = [path]
-				invalidatePendingPublishKey()
+	const addVideo = () => {
+		if (photoItems.value.length > 0) {
+			uni.showModal({
+				title: '提示',
+				content: '添加视频将清除已选图片，是否继续？',
+				success: async (res) => {
+					if (res.confirm) {
+						// 清理已上传未绑定图片
+						const old = photoItems.value as LocalMedia[]
+						for (let i = 0; i < old.length; i++) {
+							if (old[i].status == 'ready' && old[i].mediaId > 0) {
+								try {
+									await deleteCommunityMedia(old[i].mediaId)
+								} catch (e) {}
+							}
+						}
+						photoItems.value = []
+						invalidatePendingPublishKey()
+						pickVideo()
+					}
+				}
+			})
+			return
+		}
+		if (videoItems.value.length >= 1) {
+			uni.showToast({ title: '最多添加 1 个视频', icon: 'none' })
+			return
+		}
+		pickVideo()
+	}
+
+	const pickVideo = () => {
+		uni.chooseVideo({
+			sourceType: ['album', 'camera'],
+			compressed: true,
+			success: async (res) => {
+				const path = res.tempFilePath != null ? ('' + res.tempFilePath) : ''
+				if (path !== '') {
+					// 替换旧视频时清理
+					const old = videoItems.value as LocalMedia[]
+					for (let i = 0; i < old.length; i++) {
+						if (old[i].status == 'ready' && old[i].mediaId > 0) {
+							try {
+								await deleteCommunityMedia(old[i].mediaId)
+							} catch (e) {}
+						}
+					}
+					const item = makeLocalMedia(path, 'video')
+					videoItems.value = [item]
+					invalidatePendingPublishKey()
+					await uploadOne(item)
+				}
+			}
+		})
+	}
+
+	const deletePhoto = async (index: number) => {
+		const list = photoItems.value as LocalMedia[]
+		if (index < 0 || index >= list.length) return
+		const item = list[index]
+		if (item.status == 'ready' && item.mediaId > 0) {
+			try {
+				await deleteCommunityMedia(item.mediaId)
+			} catch (e) {}
+		}
+		photoItems.value.splice(index, 1)
+		invalidatePendingPublishKey()
+	}
+
+	const deleteVideo = async () => {
+		const list = videoItems.value as LocalMedia[]
+		for (let i = 0; i < list.length; i++) {
+			if (list[i].status == 'ready' && list[i].mediaId > 0) {
+				try {
+					await deleteCommunityMedia(list[i].mediaId)
+				} catch (e) {}
 			}
 		}
-	})
-}
+		videoItems.value = []
+		invalidatePendingPublishKey()
+	}
 
-const deletePhoto = (index: number) => {
-	photos.value.splice(index, 1)
-	invalidatePendingPublishKey()
-}
+	const retryPhoto = async (index: number) => {
+		const list = photoItems.value as LocalMedia[]
+		if (index < 0 || index >= list.length) return
+		const item = list[index]
+		if (item.status != 'failed') return
+		await uploadOne(item)
+	}
 
-const deleteVideo = () => {
-	videos.value = []
-	invalidatePendingPublishKey()
-}
+	const retryVideo = async () => {
+		const list = videoItems.value as LocalMedia[]
+		if (list.length == 0) return
+		const item = list[0]
+		if (item.status != 'failed') return
+		await uploadOne(item)
+	}
 
 const onContentInput = (e: any) => {
 	content.value = e.detail.value
@@ -458,108 +608,152 @@ const closeTopicSheet = () => {
 }
 
 const handleCancel = () => {
-	if (
-		photos.value.length > 0 ||
-		videos.value.length > 0 ||
-		content.value.trim().length > 0 ||
-		topicId.value > 0
-	) {
-		uni.showModal({
-			title: '提示',
-			content: '确定放弃编辑吗？',
-			success: (res) => {
-				if (res.confirm) {
-					discardPendingPublishKey()
-					uni.navigateBack()
+		if (
+			photoItems.value.length > 0 ||
+			videoItems.value.length > 0 ||
+			content.value.trim().length > 0 ||
+			topicId.value > 0
+		) {
+			uni.showModal({
+				title: '提示',
+				content: '确定放弃编辑吗？',
+				success: async (res) => {
+					if (res.confirm) {
+						discardPendingPublishKey()
+						await cleanupUnboundMedia()
+						uni.navigateBack()
+					}
 				}
-			}
-		})
-	} else {
-		discardPendingPublishKey()
-		uni.navigateBack()
-	}
-}
-
-const discardPendingPublishKey = () => {
-	if (pendingPublishKey.value != '') {
-		discardCommunityCreateKey(pendingPublishKey.value)
-	}
-	pendingPublishKey.value = ''
-	pendingPublishFingerprint.value = ''
-}
-
-const publishFingerprint = () => {
-	return content.value.trim() + '|' + photos.value.join('|') + '|' + videos.value.join('|') + '|' + location.value + '|' + topicId.value + '|' + visibility.value + '|' + declaration.value
-}
-
-const invalidatePendingPublishKey = () => {
-	if (pendingPublishFingerprint.value != '' && pendingPublishFingerprint.value != publishFingerprint()) {
-		discardPendingPublishKey()
-	}
-}
-
-onUnload(() => {
-	discardPendingPublishKey()
-})
-
-const handlePublish = async () => {
-	if (publishing.value) return
-	const ok = await guardRealName(topicId.value > 0 ? 'topicJoin' : 'publish')
-	if (!ok) return
-	if (!canPublish.value) {
-		uni.showToast({
-			title: '请添加正文或图片、视频',
-			icon: 'none'
-		})
-		return
-	}
-	publishing.value = true
-	const fingerprint = publishFingerprint()
-	if (pendingPublishKey.value == '' || pendingPublishFingerprint.value != fingerprint) {
-		discardPendingPublishKey()
-		pendingPublishKey.value = createCommunityCreateKey('post')
-		pendingPublishFingerprint.value = fingerprint
-	}
-	uni.showLoading({ title: '发布中...' })
-	try {
-		const res = await publishDynamic({
-			content: content.value.trim(),
-			media: photos.value,
-			videos: videos.value,
-			location: location.value,
-			topicId: topicId.value,
-			visibility: visibility.value,
-			declaration: declaration.value,
-			idempotencyKey: pendingPublishKey.value
-		})
-		const data = res != null ? res.data : null
-		const bizOk = res != null && res.success && (data == null || data.success != false)
-		uni.hideLoading()
-		if (bizOk) {
-			discardPendingPublishKey()
-			uni.showToast({ title: '发布成功', icon: 'success' })
-			setTimeout(() => {
-				uni.navigateBack()
-			}, 800)
+			})
 		} else {
-			if (data != null && data.idempotencyRejected === true) {
-				discardPendingPublishKey()
-			}
-			const msg =
-				data != null && data.message != null
-					? data.message
-					: res != null && res.message != null
-						? res.message
-						: '发布失败，请重试'
-			uni.showToast({ title: msg, icon: 'none' })
+			discardPendingPublishKey()
+			uni.navigateBack()
 		}
-	} catch (e) {
-		uni.hideLoading()
-		uni.showToast({ title: '网络异常，请重试', icon: 'none' })
-	} finally {
-		publishing.value = false
 	}
-}
+
+	const discardPendingPublishKey = () => {
+		if (pendingPublishKey.value != '') {
+			discardCommunityCreateKey(pendingPublishKey.value)
+		}
+		pendingPublishKey.value = ''
+		pendingPublishFingerprint.value = ''
+	}
+
+	const publishFingerprint = () => {
+		return content.value.trim() + '|' + mediaIdsFingerprint() + '|' + location.value + '|' + topicId.value + '|' + visibility.value + '|' + declaration.value
+	}
+
+	const invalidatePendingPublishKey = () => {
+		if (pendingPublishFingerprint.value != '' && pendingPublishFingerprint.value != publishFingerprint()) {
+			discardPendingPublishKey()
+		}
+	}
+
+	onUnload(() => {
+		discardPendingPublishKey()
+		// fire-and-forget cleanup of ready unbound media
+		cleanupUnboundMedia()
+	})
+
+	const handlePublish = async () => {
+		if (publishing.value) return
+		const ok = await guardRealName(topicId.value > 0 ? 'topicJoin' : 'publish')
+		if (!ok) return
+		if (!canPublish.value) {
+			uni.showToast({
+				title: '请添加正文或图片、视频',
+				icon: 'none'
+			})
+			return
+		}
+
+		const photos = photoItems.value as LocalMedia[]
+		const videos = videoItems.value as LocalMedia[]
+		for (let i = 0; i < photos.length; i++) {
+			if (photos[i].status == 'uploading' || photos[i].status == 'pending') {
+				uni.showToast({ title: '图片上传中，请稍候', icon: 'none' })
+				return
+			}
+			if (photos[i].status == 'failed') {
+				uni.showToast({ title: '有图片上传失败，请重试或删除', icon: 'none' })
+				return
+			}
+		}
+		for (let i = 0; i < videos.length; i++) {
+			if (videos[i].status == 'uploading' || videos[i].status == 'pending') {
+				uni.showToast({ title: '视频上传中，请稍候', icon: 'none' })
+				return
+			}
+			if (videos[i].status == 'failed') {
+				uni.showToast({ title: '视频上传失败，请重试或删除', icon: 'none' })
+				return
+			}
+		}
+
+		const imageMediaIds: number[] = []
+		for (let i = 0; i < photos.length; i++) {
+			if (photos[i].status == 'ready' && photos[i].mediaId > 0) {
+				imageMediaIds.push(photos[i].mediaId)
+			}
+		}
+		let videoMediaId = 0
+		if (videos.length > 0 && videos[0].status == 'ready' && videos[0].mediaId > 0) {
+			videoMediaId = videos[0].mediaId
+		}
+
+		publishing.value = true
+		const fingerprint = publishFingerprint()
+		if (pendingPublishKey.value == '' || pendingPublishFingerprint.value != fingerprint) {
+			discardPendingPublishKey()
+			pendingPublishKey.value = createCommunityCreateKey('post')
+			pendingPublishFingerprint.value = fingerprint
+		}
+		uni.showLoading({ title: '发布中...' })
+		try {
+			const payload: any = {
+				content: content.value.trim(),
+				location: location.value,
+				topicId: topicId.value,
+				visibility: visibility.value,
+				declaration: declaration.value,
+				idempotencyKey: pendingPublishKey.value
+			}
+			if (imageMediaIds.length > 0) {
+				payload.imageMediaIds = imageMediaIds
+			}
+			if (videoMediaId > 0) {
+				payload.videoMediaId = videoMediaId
+			}
+			const res = await publishDynamic(payload)
+			const data = res != null ? res.data : null
+			const bizOk = res != null && res.success && (data == null || data.success != false)
+			uni.hideLoading()
+			if (bizOk) {
+				publishedOk.value = true
+				discardPendingPublishKey()
+				uni.showToast({ title: '发布成功', icon: 'success' })
+				setTimeout(() => {
+					uni.navigateBack()
+				}, 800)
+			} else {
+				if (data != null && data.idempotencyRejected === true) {
+					discardPendingPublishKey()
+				}
+				const msg =
+					data != null && data.message != null
+						? data.message
+						: res != null && res.message != null
+							? res.message
+							: '发布失败，请重试'
+				uni.showToast({ title: msg, icon: 'none' })
+			}
+		} catch (e) {
+			uni.hideLoading()
+			uni.showToast({ title: '网络异常，请重试', icon: 'none' })
+		} finally {
+			publishing.value = false
+		}
+	}
 </script>
 
 <style scoped>
@@ -631,9 +825,31 @@ const handlePublish = async () => {
 }
 
 .delete-btn .icon {
-	color: var(--text-invert);
-	font-size: 16px;
-}
+		color: var(--text-invert);
+		font-size: 16px;
+	}
+
+	.media-status {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 4px 0;
+		background: rgba(0, 0, 0, 0.55);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.media-failed {
+		background: rgba(0, 0, 0, 0.7);
+	}
+
+	.media-status-text {
+		font-size: 11px;
+		color: var(--text-invert);
+	}
 
 .add-btn {
 	background: var(--surface);

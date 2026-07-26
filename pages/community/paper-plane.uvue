@@ -27,12 +27,17 @@
 			/>
 			<XsaEmpty v-else-if="planes.length == 0" text="暂时没有纸飞机" description="成为第一个放飞的人" />
 			<view class="plane" v-for="p in planes" :key="p.id">
-				<text class="content">{{ p.content }}</text>
+				<text class="content" v-if="p.content">{{ p.content }}</text>
+				<view class="voice-row" v-if="p.voiceUrl">
+					<button class="voice-btn" @click="playVoice(p)">
+						{{ playingId == p.id ? '播放中…' : '播放语音' }} · {{ p.voiceDurationSec || 0 }}″
+					</button>
+				</view>
 				<view class="meta">
 					<text class="meta-text text-muted">{{ p.anonymous ? '匿名' : '' }} · {{ p.gender }} · {{ p.city }} · {{ p.age }}岁 · {{ p.timeText }}</text>
 					<view class="plane-actions">
-						<button class="reply-btn" :class="{ replied: p.replied }" :disabled="p.replied" @click="reply(p)">
-							{{ p.replied ? '已回复' : '回复' }} · {{ p.replyCount }}
+						<button class="reply-btn" :class="{ replied: p.replied }" @click="onPlaneAction(p)">
+							{{ p.replied ? '匿名对话' : '回复' }} · {{ p.replyCount }}
 						</button>
 						<button class="report-btn" @click="openReport(p)">举报</button>
 					</view>
@@ -47,11 +52,35 @@
 					class="ta"
 					:value="draft"
 					@input="onDraft"
-					placeholder="写下一句认真的话（120 字内）"
+					placeholder="写下一句认真的话（可选，120 字内）"
 					maxlength="120"
 				></textarea>
 				<text class="count">{{ draft.length }}/120</text>
-				<button class="send" :disabled="sending || draft.trim().length == 0" @click="send">放飞</button>
+				<view class="photo-grid">
+					<view class="photo-item" v-for="(item, index) in photoItems" :key="index">
+						<image class="photo" :src="item.localPath" mode="aspectFill"></image>
+						<view class="media-status" v-if="item.status == 'uploading' || item.status == 'pending'">
+							<text class="media-status-text">上传中</text>
+						</view>
+						<view class="media-status media-failed" v-else-if="item.status == 'failed'" @click="retryPhoto(index)">
+							<text class="media-status-text">失败·点重试</text>
+						</view>
+						<view class="delete-btn" @click="deletePhoto(index)">
+							<text class="icon">✕</text>
+						</view>
+					</view>
+					<view class="photo-item add-btn" @click="addPhoto" v-if="photoItems.length < 6">
+						<text class="icon">+</text>
+						<text class="text">添加图片</text>
+					</view>
+				</view>
+				<text class="photo-tip text-muted">最多 6 张图，选择后自动上传</text>
+				<view class="voice-tools">
+					<button class="voice-btn" @click="toggleRecord">{{ recording ? '停止录音' : '录制语音' }}</button>
+					<text class="voice-tip text-muted" v-if="pendingVoiceDuration > 0">已录 {{ pendingVoiceDuration }}″</text>
+					<text class="voice-tip text-muted" v-else-if="recording">录音中…</text>
+				</view>
+				<button class="send" :disabled="sending || !canSend" @click="send">放飞</button>
 			</view>
 		</XsaSheet>
 
@@ -71,9 +100,29 @@
 			</view>
 		</XsaSheet>
 
+		<XsaSheet :visible="chatVisible" title="纸飞机匿名对话" @close="closeChat">
+			<view class="chat-box">
+				<text class="chat-hint text-muted">这是纸飞机匿名对话，不是双方同意后的真实私信。</text>
+				<scroll-view class="chat-list" scroll-y>
+					<view class="chat-msg" v-for="m in chatMessages" :key="m.id" :class="{ mine: m.mine }">
+						<text class="chat-text">{{ m.content }}</text>
+						<text class="chat-time text-muted">{{ m.timeText }}</text>
+					</view>
+				</scroll-view>
+				<view class="chat-composer" v-if="chatStatus == 1">
+					<input class="chat-input" :value="chatDraft" @input="onChatDraft" placeholder="继续认真回复" confirm-type="send" @confirm="sendChat" />
+					<button class="chat-send" :disabled="chatSending" @click="sendChat">发送</button>
+				</view>
+				<view class="chat-ended" v-else>
+					<text class="text-muted">对话已结束</text>
+				</view>
+				<button class="end-btn" v-if="chatStatus == 1" @click="endChat">结束对话</button>
+			</view>
+		</XsaSheet>
+
 		<XsaReportSheet
 			:visible="reportVisible"
-			target-type="paperPlane"
+			target-type="paper_plane"
 			:target-id="reportTargetId"
 			:user-id="reportUserId"
 			@close="reportVisible = false"
@@ -86,8 +135,16 @@
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
 	import XsaSheet from '@/components/XsaSheet.uvue'
 	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
-	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas, createCommunityCreateKey, discardCommunityCreateKey } from '@/api'
+	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas, createCommunityCreateKey, discardCommunityCreateKey, uploadMedia, uploadCommunityMedia, deleteCommunityMedia, getPaperPlaneMessages, sendPaperPlaneMessage, readPaperPlaneConversation, endPaperPlaneConversation } from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	type LocalMedia = {
+		localPath: string
+		mediaId: number
+		remoteUrl: string
+		status: string // pending | uploading | ready | failed
+		mediaType: string // image | video
+	}
 
 	const planes = ref([])
 	const loading = ref(false)
@@ -96,6 +153,7 @@
 	const composerVisible = ref(false)
 	const draft = ref('')
 	const sending = ref(false)
+	const sendBound = ref(false)
 	const loadError = ref(false)
 	const replyVisible = ref(false)
 	const replyDraft = ref('')
@@ -108,6 +166,20 @@
 	const pendingSendFingerprint = ref('')
 	const pendingReplyKey = ref('')
 	const pendingReplyFingerprint = ref('')
+	const photoItems = ref<LocalMedia[]>([])
+	const pendingVoicePath = ref('')
+	const pendingVoiceDuration = ref(0)
+	const recording = ref(false)
+	const playingId = ref(0)
+	let recorder: any = null
+	let recordStartedAt = 0
+	let audioPlayer: any = null
+	const chatVisible = ref(false)
+	const chatMessages = ref([] as any[])
+	const chatDraft = ref('')
+	const chatSending = ref(false)
+	const chatConversationId = ref(0)
+	const chatStatus = ref(1)
 
 	onMounted(() => {
 		load()
@@ -140,7 +212,15 @@
 		}
 	}
 
-	const sendFingerprint = (text: string) => text + '|city|true'
+	const mediaIdsFingerprint = (): string => {
+		const ids: string[] = []
+		const photos = photoItems.value as LocalMedia[]
+		for (let i = 0; i < photos.length; i++) {
+			ids.push('i' + photos[i].mediaId + ':' + photos[i].status)
+		}
+		return ids.join(',')
+	}
+	const sendFingerprint = (text: string) => text + '|city|true|' + mediaIdsFingerprint() + '|v' + pendingVoiceDuration.value
 	const replyFingerprint = (planeId: number, text: string) => planeId + '|' + text + '|true'
 	const discardPendingSendKey = () => {
 		if (pendingSendKey.value != '') discardCommunityCreateKey(pendingSendKey.value)
@@ -158,6 +238,125 @@
 		return res.data != null && res.data.success == false
 	}
 
+	const readyImageMediaIds = (): number[] => {
+		const out: number[] = []
+		const photos = photoItems.value as LocalMedia[]
+		for (let i = 0; i < photos.length; i++) {
+			if (photos[i].status == 'ready' && photos[i].mediaId > 0) {
+				out.push(photos[i].mediaId)
+			}
+		}
+		return out
+	}
+
+	const canSend = computed(() => {
+		if (draft.value.trim().length > 0) return true
+		if (pendingVoicePath.value != '') return true
+		const photos = photoItems.value as LocalMedia[]
+		for (let i = 0; i < photos.length; i++) {
+			if (photos[i].status == 'ready' && photos[i].mediaId > 0) return true
+		}
+		return false
+	})
+
+	const makeLocalMedia = (localPath: string): LocalMedia => {
+		return {
+			localPath: localPath,
+			mediaId: 0,
+			remoteUrl: '',
+			status: 'uploading',
+			mediaType: 'image'
+		}
+	}
+
+	const uploadOne = async (item: LocalMedia) => {
+		item.status = 'uploading'
+		try {
+			const res = await uploadCommunityMedia(item.localPath, 'paper_plane')
+			if (res != null && res.success && res.data != null) {
+				const data = res.data as any
+				item.mediaId = data.id != null ? (data.id as number) : 0
+				item.remoteUrl = data.url != null ? ('' + data.url) : ''
+				item.status = item.mediaId > 0 ? 'ready' : 'failed'
+			} else {
+				item.status = 'failed'
+				item.mediaId = 0
+				item.remoteUrl = ''
+			}
+		} catch (e) {
+			item.status = 'failed'
+			item.mediaId = 0
+			item.remoteUrl = ''
+		}
+		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+			discardPendingSendKey()
+		}
+	}
+
+	const cleanupUnboundPhotos = async () => {
+		if (sendBound.value) return
+		const photos = photoItems.value as LocalMedia[]
+		for (let i = 0; i < photos.length; i++) {
+			if (photos[i].status == 'ready' && photos[i].mediaId > 0) {
+				try {
+					await deleteCommunityMedia(photos[i].mediaId)
+				} catch (e) {}
+			}
+		}
+	}
+
+	const addPhoto = () => {
+		const remaining = 6 - photoItems.value.length
+		if (remaining <= 0) {
+			uni.showToast({ title: '最多添加 6 张图片', icon: 'none' })
+			return
+		}
+		uni.chooseImage({
+			count: remaining,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: async (res) => {
+				const paths = res.tempFilePaths as string[]
+				const start = photoItems.value.length
+				for (let i = 0; i < paths.length; i++) {
+					const path = paths[i] != null ? ('' + paths[i]) : ''
+					if (path == '') continue
+					if (photoItems.value.length >= 6) break
+					photoItems.value.push(makeLocalMedia(path))
+				}
+				if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+					discardPendingSendKey()
+				}
+				const list = photoItems.value as LocalMedia[]
+				for (let i = start; i < list.length; i++) {
+					await uploadOne(list[i])
+				}
+			}
+		})
+	}
+
+	const deletePhoto = async (index: number) => {
+		const list = photoItems.value as LocalMedia[]
+		if (index < 0 || index >= list.length) return
+		const item = list[index]
+		if (item.status == 'ready' && item.mediaId > 0) {
+			try {
+				await deleteCommunityMedia(item.mediaId)
+			} catch (e) {}
+		}
+		photoItems.value.splice(index, 1)
+		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+			discardPendingSendKey()
+		}
+	}
+
+	const retryPhoto = async (index: number) => {
+		const list = photoItems.value as LocalMedia[]
+		if (index < 0 || index >= list.length) return
+		if (list[index].status != 'failed') return
+		await uploadOne(list[index])
+	}
+
 	const openComposer = async () => {
 		if (remain.value <= 0) {
 			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
@@ -167,12 +366,20 @@
 		if (!ok) return
 		discardPendingSendKey()
 		draft.value = ''
+		photoItems.value = []
+		sendBound.value = false
+		clearPendingVoice()
 		composerVisible.value = true
 	}
 
-	const closeComposer = () => {
+	const closeComposer = async () => {
 		discardPendingSendKey()
 		draft.value = ''
+		stopRecordingIfNeeded()
+		clearPendingVoice()
+		await cleanupUnboundPhotos()
+		photoItems.value = []
+		sendBound.value = false
 		composerVisible.value = false
 	}
 
@@ -200,18 +407,116 @@
 		}
 	}
 
+
+	const clearPendingVoice = () => {
+		pendingVoicePath.value = ''
+		pendingVoiceDuration.value = 0
+	}
+	const stopRecordingIfNeeded = () => {
+		if (recording.value && recorder != null) { try { recorder.stop() } catch (e) {} }
+		recording.value = false
+	}
+	const ensureRecorder = () => {
+		if (recorder != null) return recorder
+		try {
+			recorder = uni.getRecorderManager()
+			recorder.onStop((res: any) => {
+				recording.value = false
+				const path = res != null && res.tempFilePath != null ? ('' + res.tempFilePath) : ''
+				let durationSec = 0
+				if (res != null && res.duration != null) durationSec = Math.max(1, Math.round((res.duration as number) / 1000))
+				else if (recordStartedAt > 0) durationSec = Math.max(1, Math.round((Date.now() - recordStartedAt) / 1000))
+				if (durationSec > 60) durationSec = 60
+				pendingVoicePath.value = path
+				pendingVoiceDuration.value = durationSec
+			})
+			recorder.onError(() => { recording.value = false; uni.showToast({ title: '录音失败', icon: 'none' }) })
+		} catch (e) { recorder = null }
+		return recorder
+	}
+	const toggleRecord = () => {
+		const mgr = ensureRecorder()
+		if (mgr == null) { uni.showToast({ title: '当前环境不支持录音', icon: 'none' }); return }
+		if (recording.value) { try { mgr.stop() } catch (e) {}; return }
+		clearPendingVoice(); recording.value = true; recordStartedAt = Date.now()
+		try { mgr.start({ duration: 60000, format: 'mp3' }) } catch (e) { recording.value = false; uni.showToast({ title: '无法开始录音', icon: 'none' }) }
+	}
+	const playVoice = (p: any) => {
+		if (p == null || p.voiceUrl == null || p.voiceUrl == '') return
+		try {
+			if (audioPlayer != null) { try { audioPlayer.stop() } catch (e) {}; try { audioPlayer.destroy() } catch (e) {}; audioPlayer = null }
+			audioPlayer = uni.createInnerAudioContext(); audioPlayer.src = p.voiceUrl; playingId.value = p.id
+			audioPlayer.onEnded(() => { playingId.value = 0 }); audioPlayer.onStop(() => { playingId.value = 0 })
+			audioPlayer.onError(() => { playingId.value = 0; uni.showToast({ title: '播放失败', icon: 'none' }) }); audioPlayer.play()
+		} catch (e) { uni.showToast({ title: '播放失败', icon: 'none' }) }
+	}
+	const onPlaneAction = async (p: any) => {
+		if (p.replied == true && p.conversationId != null && p.conversationId > 0) { await openChat(p.conversationId); return }
+		if (p.replied) { uni.showToast({ title: '已回复，会话暂不可用', icon: 'none' }); return }
+		await reply(p)
+	}
+	const openChat = async (conversationId: number) => {
+		if (conversationId == null || conversationId <= 0) return
+		chatConversationId.value = conversationId; chatVisible.value = true; chatDraft.value = ''; chatStatus.value = 1
+		try {
+			await readPaperPlaneConversation(conversationId)
+			const res = await getPaperPlaneMessages(conversationId)
+			chatMessages.value = (res.success && res.data != null) ? res.data as any[] : []
+		} catch (e) { chatMessages.value = [] }
+	}
+	const closeChat = () => { chatVisible.value = false; chatDraft.value = ''; chatConversationId.value = 0 }
+	const onChatDraft = (e: any) => { chatDraft.value = e.detail.value }
+	const sendChat = async () => {
+		const content = chatDraft.value.trim()
+		if (chatSending.value || content.length == 0 || chatConversationId.value <= 0) return
+		chatSending.value = true
+		try {
+			const res = await sendPaperPlaneMessage(chatConversationId.value, content)
+			if (res.success && res.data != null) { (chatMessages.value as any[]).push(res.data); chatDraft.value = '' }
+			else uni.showToast({ title: res.message != null ? res.message : '发送失败', icon: 'none' })
+		} catch (e) { uni.showToast({ title: '发送失败', icon: 'none' }) }
+		finally { chatSending.value = false }
+	}
+	const endChat = async () => {
+		if (chatConversationId.value <= 0) return
+		const res = await endPaperPlaneConversation(chatConversationId.value)
+		if (res.success) { chatStatus.value = 2; uni.showToast({ title: '已结束对话', icon: 'none' }) }
+		else uni.showToast({ title: res.message != null ? res.message : '结束失败', icon: 'none' })
+	}
+
 	onUnload(() => {
 		discardPendingSendKey()
 		discardPendingReplyKey()
+		stopRecordingIfNeeded()
+		cleanupUnboundPhotos()
+		if (audioPlayer != null) {
+			try { audioPlayer.stop() } catch (e) {}
+			try { audioPlayer.destroy() } catch (e) {}
+			audioPlayer = null
+		}
 	})
 
 	const send = async () => {
 		const text = draft.value.trim()
-		if (text.length == 0 || sending.value) return
+		if (sending.value) return
+		if (!canSend.value) return
 		if (remain.value <= 0) {
 			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
 			return
 		}
+		const photos = photoItems.value as LocalMedia[]
+		for (let i = 0; i < photos.length; i++) {
+			if (photos[i].status == 'uploading' || photos[i].status == 'pending') {
+				uni.showToast({ title: '图片上传中，请稍候', icon: 'none' })
+				return
+			}
+			if (photos[i].status == 'failed') {
+				uni.showToast({ title: '有图片上传失败，请重试或删除', icon: 'none' })
+				return
+			}
+		}
+		const imageMediaIds = readyImageMediaIds()
+		stopRecordingIfNeeded()
 		const fingerprint = sendFingerprint(text)
 		if (pendingSendKey.value == '' || pendingSendFingerprint.value != fingerprint) {
 			discardPendingSendKey()
@@ -220,49 +525,52 @@
 		}
 		sending.value = true
 		try {
-			const res = await sendPaperPlane({
+			let voiceUrl = ''
+			let voiceDurationSec = 0
+			if (pendingVoicePath.value != '') {
+				const up = await uploadMedia(pendingVoicePath.value, 'paper_plane_voice')
+				if (!up.success || up.data == null || up.data.url == null) {
+					uni.showToast({ title: up.message != null ? up.message : '语音上传失败', icon: 'none' })
+					return
+				}
+				voiceUrl = '' + up.data.url
+				voiceDurationSec = pendingVoiceDuration.value > 0 ? pendingVoiceDuration.value : 1
+			}
+			const payload: any = {
 				content: text,
 				anonymous: true,
 				scope: 'city',
-				idempotencyKey: pendingSendKey.value
-			})
+				idempotencyKey: pendingSendKey.value,
+				voiceUrl: voiceUrl,
+				voiceDurationSec: voiceDurationSec
+			}
+			if (imageMediaIds.length > 0) {
+				payload.imageMediaIds = imageMediaIds
+			}
+			const res = await sendPaperPlane(payload)
 			const data = res != null ? res.data : null
 			const bizOk = res != null && res.success && data != null && data.success != false
 			if (bizOk) {
+				sendBound.value = true
 				discardPendingSendKey()
-				if (data.plane != null) {
-					;(planes.value as any[]).unshift(data.plane)
-				} else {
-					await load()
-				}
+				if (data.plane != null) { (planes.value as any[]).unshift(data.plane) } else { await load() }
 				if (data.quotas != null && data.quotas.remain != null) {
 					remain.value = data.quotas.remain
 					if (data.quotas.total != null) total.value = data.quotas.total
-				} else if (data.remain != null) {
-					remain.value = data.remain
-				} else {
-					remain.value = Math.max(0, remain.value - 1)
-				}
+				} else if (data.remain != null) { remain.value = data.remain }
+				else { remain.value = Math.max(0, remain.value - 1) }
+				photoItems.value = []
 				composerVisible.value = false
+				clearPendingVoice()
 				uni.showToast({ title: '已放飞', icon: 'success' })
 			} else {
 				if (shouldDiscardCreateKey(res)) discardPendingSendKey()
-				const msg =
-					data != null && data.message != null
-						? data.message
-						: res != null && res.message != null
-							? res.message
-							: '放飞失败'
+				const msg = data != null && data.message != null ? data.message : (res != null && res.message != null ? res.message : '放飞失败')
 				uni.showToast({ title: msg, icon: 'none' })
-				if (data != null && data.remain != null) {
-					remain.value = data.remain
-				}
+				if (data != null && data.remain != null) remain.value = data.remain
 			}
-		} catch (e) {
-			uni.showToast({ title: '网络异常', icon: 'none' })
-		} finally {
-			sending.value = false
-		}
+		} catch (e) { uni.showToast({ title: '网络异常', icon: 'none' }) }
+		finally { sending.value = false }
 	}
 
 	const reply = async (p: any) => {
@@ -300,9 +608,14 @@
 				if (data != null && data.replyCount != null) {
 					p.replyCount = data.replyCount
 				}
+				const convId = data != null && data.conversationId != null ? data.conversationId : (data != null && data.conversation_id != null ? data.conversation_id : 0)
+				if (convId != null && convId > 0) p.conversationId = convId
 				replyVisible.value = false
 				replyTarget = null
-				uni.showToast({ title: '已回复', icon: 'success' })
+				uni.showToast({ title: '已回复，进入匿名对话', icon: 'none' })
+				if (p.conversationId != null && p.conversationId > 0) {
+					await openChat(p.conversationId)
+				}
 			} else {
 				if (shouldDiscardCreateKey(res)) discardPendingReplyKey()
 				const message =
@@ -503,6 +816,169 @@
 	}
 	.pad {
 		height: 24px;
+	}
+	.photo-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 8px;
+	}
+	.photo-item {
+		position: relative;
+		aspect-ratio: 1;
+		border-radius: 8px;
+		overflow: hidden;
+	}
+	.photo {
+		width: 100%;
+		height: 100%;
+	}
+	.delete-btn {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 22px;
+		height: 22px;
+		background: rgba(0, 0, 0, 0.6);
+		border-radius: 50%;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+	.delete-btn .icon {
+		color: var(--text-invert);
+		font-size: 14px;
+	}
+	.add-btn {
+		background: var(--surface);
+		border: 1px dashed var(--line);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 2px;
+	}
+	.add-btn .icon {
+		font-size: 24px;
+		color: var(--muted);
+	}
+	.add-btn .text {
+		font-size: 11px;
+		color: var(--muted);
+	}
+	.media-status {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 3px 0;
+		background: rgba(0, 0, 0, 0.55);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+	.media-failed {
+		background: rgba(0, 0, 0, 0.7);
+	}
+	.media-status-text {
+		font-size: 10px;
+		color: var(--text-invert);
+	}
+	.photo-tip {
+		font-size: 11px;
+	}
+	.voice-tools {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
+	}
+	.voice-btn {
+		height: 34px;
+		padding: 0 12px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		color: var(--ink);
+		font-size: 12px;
+	}
+	.voice-tip {
+		font-size: 11px;
+	}
+	.voice-row {
+		display: flex;
+		flex-direction: row;
+	}
+	.chat-box {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		min-height: 240px;
+	}
+	.chat-hint {
+		font-size: 12px;
+		line-height: 1.5;
+	}
+	.chat-list {
+		max-height: 280px;
+		min-height: 120px;
+	}
+	.chat-msg {
+		padding: 8px 10px;
+		margin-bottom: 8px;
+		border-radius: 8px;
+		background: var(--paper);
+		align-self: flex-start;
+		max-width: 90%;
+	}
+	.chat-msg.mine {
+		background: var(--accent-bg);
+		align-self: flex-end;
+	}
+	.chat-text {
+		font-size: 14px;
+		color: var(--ink);
+		line-height: 1.45;
+	}
+	.chat-time {
+		font-size: 10px;
+		margin-top: 4px;
+	}
+	.chat-composer {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+		align-items: center;
+	}
+	.chat-input {
+		flex: 1;
+		height: 40px;
+		padding: 0 10px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		font-size: 14px;
+	}
+	.chat-send {
+		height: 40px;
+		padding: 0 12px;
+		background: var(--accent);
+		color: var(--text-invert);
+		border-radius: 8px;
+		font-size: 13px;
+		border: none;
+	}
+	.chat-ended {
+		padding: 8px 0;
+		text-align: center;
+	}
+	.end-btn {
+		height: 36px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		color: var(--muted);
+		font-size: 12px;
 	}
 
 </style>
