@@ -627,7 +627,9 @@ export const mockCommunityQuotas = {
     used: 0,
     remain: 3,
     pointsAvailable: true,
-    pointsCost: 10
+    pointsCost: 50,
+    purchasedThrow: 0,
+    purchasedCatch: 0
   }
 }
 

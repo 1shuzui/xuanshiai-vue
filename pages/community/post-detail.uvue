@@ -183,7 +183,7 @@ const submitComment = async () => {
 		}
 
 	const goUser = (id: number) => {
-		uni.navigateTo({ url: `/pages/user/detail?userId=${id}` })
+		uni.navigateTo({ url: `/pages/user/detail?userId=${id}&source=community` })
 	}
 
 	const goTopic = (id: number) => {

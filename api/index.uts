@@ -13,7 +13,9 @@ export {
   applyToMeet,
   likeUser,
   getChatFeatureUnlocks,
-  unlockChatFeature
+  unlockChatFeature,
+  getUserProfileUnlockStatus,
+  unlockUserProfile
 } from './user.uts'
 
 // 消息相关
@@ -50,6 +52,7 @@ export {
   markNotificationRead,
   markAllNotificationsRead,
   getCommunityQuotas,
+  purchasePaperPlaneChance,
   publishDynamic,
   likeDynamic,
   collectDynamic,

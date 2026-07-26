@@ -163,7 +163,7 @@ const normalize = (item: any) => {
 	}
 
 	const goUser = (id: number) => {
-		uni.navigateTo({ url: `/pages/user/detail?userId=${id}` })
+		uni.navigateTo({ url: `/pages/user/detail?userId=${id}&source=community` })
 	}
 
 	const goPost = (id: number) => {

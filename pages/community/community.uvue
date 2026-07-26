@@ -78,6 +78,12 @@
 								</view>
 						<!-- 活动 / 纸飞机 -->
 						<view v-else class="feature" :class="'type-' + b.type" @click="openBanner(b)">
+							<view v-if="b.type === 'plane'" class="plane-banner-art">
+								<view class="plane-banner-blue-panel"></view>
+								<text class="plane-banner-plane plane-banner-plane-main">✈</text>
+								<text class="plane-banner-plane plane-banner-plane-blue">✈</text>
+								<text class="plane-banner-plane plane-banner-plane-pink">✈</text>
+							</view>
 							<text class="feature-kicker">{{ b.kicker != null ? b.kicker : bannerKicker(b.type) }}</text>
 							<text class="feature-title">{{ b.title }}</text>
 							<text class="feature-desc">{{ b.description }}</text>
@@ -526,7 +532,7 @@ const bannerCta = (type: string) => {
 	}
 
 	const handleUserClick = (userId: number) => {
-		uni.navigateTo({ url: '/pages/user/detail?userId=' + userId })
+		uni.navigateTo({ url: '/pages/user/detail?userId=' + userId + '&source=community' })
 	}
 
 	const handleLike = async (dynamicId: number) => {
@@ -999,7 +1005,12 @@ const bannerCta = (type: string) => {
 		}
 
 		.feature.type-plane {
-			background: var(--sage);
+			position: relative;
+			overflow: hidden;
+			gap: 8px;
+			background: var(--plane-lilac);
+			border: 1px solid var(--plane-purple);
+			box-shadow: var(--shadow-md);
 		}
 
 		.feature.type-activity {
@@ -1011,6 +1022,91 @@ const bannerCta = (type: string) => {
 			font-size: 10px;
 			font-weight: 800;
 			letter-spacing: 0.08em;
+		}
+
+		.feature.type-plane .feature-kicker,
+		.feature.type-plane .feature-title,
+		.feature.type-plane .feature-desc,
+		.feature.type-plane .feature-btn {
+			position: relative;
+			z-index: 1;
+		}
+
+		.feature.type-plane .feature-kicker {
+			color: var(--plane-purple);
+			line-height: 1.4;
+		}
+
+		.feature.type-plane .feature-desc {
+			color: var(--plane-purple-deep);
+			max-width: 56%;
+			line-height: 1.65;
+		}
+
+		.feature.type-plane .feature-title {
+			font-size: 22px;
+			line-height: 1.35;
+			color: var(--plane-purple-deep);
+		}
+
+		.feature.type-plane .feature-btn {
+			background: var(--plane-cloud);
+		}
+
+		.feature.type-plane .feature-btn text {
+			color: var(--plane-purple-deep);
+		}
+
+		.plane-banner-art {
+			position: absolute;
+			inset: 0;
+			overflow: hidden;
+			pointer-events: none;
+		}
+
+		.plane-banner-blue-panel {
+			position: absolute;
+			right: -30px;
+			bottom: -38px;
+			width: 146px;
+			height: 156px;
+			border-radius: 32px 0 0 0;
+			background: var(--plane-blue);
+			opacity: 0.22;
+			transform: rotate(-14deg);
+		}
+
+		.plane-banner-plane {
+			position: absolute;
+			display: block;
+			line-height: 1;
+		}
+
+		.plane-banner-plane-main {
+			right: 27px;
+			top: 60px;
+			font-size: 58px;
+			color: var(--plane-purple);
+			opacity: 0.78;
+			transform: rotate(-18deg);
+		}
+
+		.plane-banner-plane-blue {
+			right: 94px;
+			top: 26px;
+			font-size: 22px;
+			color: var(--plane-blue);
+			opacity: 0.76;
+			transform: rotate(12deg);
+		}
+
+		.plane-banner-plane-pink {
+			right: 12px;
+			bottom: 18px;
+			font-size: 19px;
+			color: var(--plane-pink);
+			opacity: 0.76;
+			transform: rotate(-8deg);
 		}
 
 		.feature-title {

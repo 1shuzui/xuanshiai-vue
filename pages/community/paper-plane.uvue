@@ -14,24 +14,31 @@
 			<view class="flight-plane flight-plane-k"><text>✈</text></view>
 			<view class="flight-plane flight-plane-l"><text>✈</text></view>
 		</view>
-		<view class="hero">
-			<view class="hero-copy">
-				<text class="eyebrow">PAPER PLANE · 认真表达</text>
-				<text class="hero-title">把想说的话轻轻放出去</text>
-				<text class="hero-desc">给这一刻留一句话，也给未来的自己留一个回声。</text>
+		<view class="plane-profile-bar">
+			<view class="plane-profile-summary" @click="openPaperPlaneProfileEditor">
+				<view class="plane-profile-avatar">
+					<image v-if="paperPlaneProfile.avatarType == 'album' && paperPlaneProfile.avatar != ''" class="plane-profile-avatar-image" :src="paperPlaneProfile.avatar" mode="aspectFill"></image>
+					<view v-else class="plane-profile-default">
+						<view class="plane-profile-default-head"></view>
+						<view class="plane-profile-default-body"></view>
+					</view>
+				</view>
+				<view class="plane-profile-copy">
+					<text class="plane-profile-name">{{ paperPlaneProfile.nickname }}</text>
+					<text class="plane-profile-note">{{ paperPlaneProfile.initialized ? '纸飞机身份' : '请完成身份初始化' }}</text>
+				</view>
 			</view>
-			<view class="hero-mark">
-				<text class="hero-plane">✈</text>
-				<text class="hero-spark">✦</text>
-			</view>
+			<button class="plane-profile-edit" @click="openPaperPlaneProfileEditor" aria-label="修改纸飞机身份">
+				<text>✎</text>
+			</button>
 		</view>
 
 		<view class="quota-bar">
 			<view class="quota-copy">
-				<text class="q-label">扔纸飞机次数：{{ total - remain }}</text>
+				<text class="q-label">扔纸飞机次数：{{ total - remain + purchasedThrowCount }}</text>
 				<text class="q-label">捡纸飞机次数：{{ catchCount }}</text>
 			</view>
-			<view class="quota-badge"><text>实名可放飞</text></view>
+			<button class="quota-badge" @click="openPlaneQuota"><text>获取纸飞机</text></button>
 		</view>
 
 		<view class="topic-card">
@@ -180,6 +187,64 @@
 			</view>
 		</XsaSheet>
 
+		<view v-if="planeQuotaVisible" class="plane-quota-overlay" @click="closePlaneQuota">
+			<view class="plane-quota-modal" @click.stop>
+				<view class="plane-quota-heading">
+					<text class="plane-quota-title">获取纸飞机</text>
+					<button class="plane-quota-close" @click="closePlaneQuota">×</button>
+				</view>
+				<view class="plane-quota-tabs">
+					<button class="plane-quota-tab" :class="{ active: planeQuotaTab == 'throw' }" @click="selectPlaneQuotaTab('throw')">扔纸飞机次数</button>
+					<button class="plane-quota-tab" :class="{ active: planeQuotaTab == 'catch' }" @click="selectPlaneQuotaTab('catch')">捡纸飞机次数</button>
+				</view>
+				<view class="plane-quota-panel">
+					<text class="plane-quota-copy">{{ planeQuotaTab == 'throw' ? '补充一次今日可扔纸飞机次数' : '补充一次捡纸飞机次数' }}</text>
+					<button class="plane-quota-buy" :disabled="planeQuotaPurchasing" @click="purchasePaperPlaneTimes">{{ planeQuotaPurchasing ? '获取中...' : '50积分/次' }}</button>
+					<text v-if="planeQuotaTab == 'catch'" class="plane-quota-hint">每日免费刷新3次捡飞机次数</text>
+				</view>
+			</view>
+		</view>
+
+		<view v-if="paperPlaneProfileEditorVisible" class="plane-profile-overlay" @click="closePaperPlaneProfileEditor">
+			<view class="plane-profile-modal" @click.stop>
+				<view class="plane-profile-modal-heading">
+					<view>
+						<text class="plane-profile-modal-title">{{ paperPlaneProfile.initialized ? '修改纸飞机身份' : '先完成纸飞机身份' }}</text>
+						<text class="plane-profile-modal-desc">仅用于纸飞机，不会同步到小程序其他页面</text>
+					</view>
+					<button class="plane-profile-modal-close" @click="closePaperPlaneProfileEditor">×</button>
+				</view>
+
+				<view class="plane-profile-form-field">
+					<view class="plane-profile-label-row">
+						<text class="plane-profile-form-label">昵称</text>
+						<button class="plane-profile-random" @click="randomizePaperPlaneNickname">随机昵称</button>
+					</view>
+					<input class="plane-profile-input" :value="paperPlaneProfileDraft.nickname" @input="onPaperPlaneNicknameInput" placeholder="请输入纸飞机昵称" maxlength="16" />
+				</view>
+
+				<view class="plane-profile-form-field">
+					<text class="plane-profile-form-label">头像</text>
+					<view class="plane-avatar-options">
+						<button class="plane-avatar-choice" :class="{ active: paperPlaneProfileDraft.avatarType == 'default' }" @click="useDefaultPaperPlaneAvatar">
+							<view class="plane-profile-default plane-profile-default-small">
+								<view class="plane-profile-default-head"></view>
+								<view class="plane-profile-default-body"></view>
+							</view>
+							<text>默认头像</text>
+						</button>
+						<button class="plane-avatar-choice" :class="{ active: paperPlaneProfileDraft.avatarType == 'album' }" @click="choosePaperPlaneAvatar">
+							<image v-if="paperPlaneProfileDraft.avatarType == 'album' && paperPlaneProfileDraft.avatar != ''" class="plane-profile-choice-image" :src="paperPlaneProfileDraft.avatar" mode="aspectFill"></image>
+							<view v-else class="plane-profile-album-placeholder"><text>+</text></view>
+							<text>从相册选择</text>
+						</button>
+					</view>
+				</view>
+
+				<button class="plane-profile-save" @click="savePaperPlaneProfile">{{ paperPlaneProfile.initialized ? '保存修改' : '完成并进入纸飞机' }}</button>
+			</view>
+		</view>
+
 		<view v-if="composerVisible" class="composer-overlay" @click="closeComposer">
 			<view class="composer-modal" @click.stop>
 				<view class="modal-topline">
@@ -220,13 +285,34 @@
 
 <script setup lang="uts">
 	import XsaSheet from '@/components/XsaSheet.uvue'
-	import { sendPaperPlane, getCommunityQuotas, replyPaperPlane, getPaperPlaneUnreadCount } from '@/api'
+	import { sendPaperPlane, getCommunityQuotas, purchasePaperPlaneChance, replyPaperPlane, getPaperPlaneUnreadCount } from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	const PAPER_PLANE_PROFILE_STORAGE_KEY = 'xsa_paper_plane_profile_v1'
+	const PAPER_PLANE_DEFAULT_NICKNAME = '宣誓爱用户'
+	const paperPlaneRandomNames = ['云端旅人', '微光信使', '晚风邮差', '星河来信', '晴天收件人', '月光投递员']
+
+	const paperPlaneProfile = ref({
+		nickname: PAPER_PLANE_DEFAULT_NICKNAME,
+		avatar: '',
+		avatarType: '',
+		initialized: false
+	})
+	const paperPlaneProfileDraft = ref({
+		nickname: PAPER_PLANE_DEFAULT_NICKNAME,
+		avatar: '',
+		avatarType: ''
+	})
+	const paperPlaneProfileEditorVisible = ref(false)
 
 	const activeMode = ref('catch')
 	const remain = ref(3)
 	const total = ref(3)
 	const catchCount = ref(0)
+	const purchasedThrowCount = ref(0)
+	const planeQuotaVisible = ref(false)
+	const planeQuotaTab = ref('throw')
+	const planeQuotaPurchasing = ref(false)
 	const paperPlaneUnreadCount = ref(0)
 	const menuVisible = ref(false)
 	const catchMenuVisible = ref(false)
@@ -271,6 +357,101 @@
 	let recorderManager: any = null
 	let recordTimer: any = null
 
+	const loadPaperPlaneProfile = () => {
+		try {
+			const saved = uni.getStorageSync(PAPER_PLANE_PROFILE_STORAGE_KEY) as any
+			if (saved == null || typeof saved !== 'object' || saved.initialized != true) return
+
+			const nickname = typeof saved.nickname === 'string' && saved.nickname.trim().length > 0
+				? saved.nickname.trim()
+				: PAPER_PLANE_DEFAULT_NICKNAME
+			const hasAlbumAvatar = saved.avatarType == 'album' && typeof saved.avatar === 'string' && saved.avatar != ''
+			const avatarType = hasAlbumAvatar ? 'album' : (saved.avatarType == 'default' ? 'default' : '')
+			if (avatarType == '') return
+
+			paperPlaneProfile.value.nickname = nickname
+			paperPlaneProfile.value.avatar = hasAlbumAvatar ? saved.avatar : ''
+			paperPlaneProfile.value.avatarType = avatarType
+			paperPlaneProfile.value.initialized = true
+		} catch (e) {
+			console.error('恢复纸飞机身份失败', e)
+		}
+	}
+
+	const openPaperPlaneProfileEditor = () => {
+		paperPlaneProfileDraft.value.nickname = paperPlaneProfile.value.nickname
+		paperPlaneProfileDraft.value.avatar = paperPlaneProfile.value.avatar
+		paperPlaneProfileDraft.value.avatarType = paperPlaneProfile.value.avatarType
+		paperPlaneProfileEditorVisible.value = true
+	}
+
+	const closePaperPlaneProfileEditor = () => {
+		paperPlaneProfileEditorVisible.value = false
+	}
+
+	const ensurePaperPlaneProfile = (): boolean => {
+		if (paperPlaneProfile.value.initialized) return true
+		openPaperPlaneProfileEditor()
+		return false
+	}
+
+	const onPaperPlaneNicknameInput = (e: any) => {
+		paperPlaneProfileDraft.value.nickname = e.detail.value
+	}
+
+	const randomizePaperPlaneNickname = () => {
+		const index = Math.floor(Math.random() * paperPlaneRandomNames.length)
+		paperPlaneProfileDraft.value.nickname = paperPlaneRandomNames[index]
+	}
+
+	const useDefaultPaperPlaneAvatar = () => {
+		paperPlaneProfileDraft.value.avatar = ''
+		paperPlaneProfileDraft.value.avatarType = 'default'
+	}
+
+	const choosePaperPlaneAvatar = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album'],
+			success: (res: any) => {
+				if (res != null && res.tempFilePaths != null && res.tempFilePaths.length > 0) {
+					paperPlaneProfileDraft.value.avatar = res.tempFilePaths[0]
+					paperPlaneProfileDraft.value.avatarType = 'album'
+				}
+			}
+		})
+	}
+
+	const savePaperPlaneProfile = () => {
+		const nickname = paperPlaneProfileDraft.value.nickname.trim()
+		if (nickname.length == 0) {
+			uni.showToast({ title: '请输入纸飞机昵称', icon: 'none' })
+			return
+		}
+		if (paperPlaneProfileDraft.value.avatarType == '') {
+			uni.showToast({ title: '请选择纸飞机头像', icon: 'none' })
+			return
+		}
+
+		paperPlaneProfile.value.nickname = nickname
+		paperPlaneProfile.value.avatar = paperPlaneProfileDraft.value.avatar
+		paperPlaneProfile.value.avatarType = paperPlaneProfileDraft.value.avatarType
+		paperPlaneProfile.value.initialized = true
+		try {
+			uni.setStorageSync(PAPER_PLANE_PROFILE_STORAGE_KEY, {
+				nickname: paperPlaneProfile.value.nickname,
+				avatar: paperPlaneProfile.value.avatar,
+				avatarType: paperPlaneProfile.value.avatarType,
+				initialized: true
+			})
+		} catch (e) {
+			console.error('保存纸飞机身份失败', e)
+		}
+		paperPlaneProfileEditorVisible.value = false
+		uni.showToast({ title: '纸飞机身份已保存', icon: 'success' })
+	}
+
 	const recordTime = computed(() => {
 		const seconds = recordSeconds.value
 		const minute = seconds >= 60 ? Math.floor(seconds / 60) : 0
@@ -279,6 +460,7 @@
 	})
 
 	onMounted(() => {
+		loadPaperPlaneProfile()
 		setupRecorder()
 		loadQuota()
 		loadPaperPlaneUnreadCount()
@@ -319,6 +501,13 @@
 			if (res.success && res.data != null && res.data.paperPlaneDaily != null) {
 				remain.value = res.data.paperPlaneDaily.remain
 				total.value = res.data.paperPlaneDaily.total
+				purchasedThrowCount.value = res.data.paperPlaneDaily.purchasedThrow != null
+					? Math.max(0, Number(res.data.paperPlaneDaily.purchasedThrow))
+					: 0
+				const purchasedCatch = res.data.paperPlaneDaily.purchasedCatch != null
+					? Math.max(0, Number(res.data.paperPlaneDaily.purchasedCatch))
+					: 0
+				catchCount.value = Math.max(catchCount.value, purchasedCatch)
 			}
 		} catch (e) {
 			console.error(e)
@@ -341,11 +530,13 @@
 	}
 
 	const openPaperPlaneMessages = () => {
+		if (!ensurePaperPlaneProfile()) return
 		activeMode.value = 'mine'
 		uni.navigateTo({ url: '/pages/community/paper-plane-messages' })
 	}
 
 	const openCatchMenu = () => {
+		if (!ensurePaperPlaneProfile()) return
 		activeMode.value = 'catch'
 		catchMenuVisible.value = true
 	}
@@ -358,7 +549,62 @@
 		catchCount.value += 1
 	}
 
+	const openPlaneQuota = () => {
+		if (!ensurePaperPlaneProfile()) return
+		planeQuotaTab.value = 'throw'
+		planeQuotaVisible.value = true
+	}
+
+	const closePlaneQuota = () => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaVisible.value = false
+	}
+
+	const selectPlaneQuotaTab = (tab: string) => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaTab.value = tab
+	}
+
+	const purchasePaperPlaneTimes = async () => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaPurchasing.value = true
+		try {
+			const res = await purchasePaperPlaneChance(planeQuotaTab.value)
+			const data = res != null ? res.data as any : null
+			if (res != null && res.success && data != null && data.success) {
+				if (data.quotas != null) {
+					total.value = data.quotas.total
+					remain.value = data.quotas.remain
+					purchasedThrowCount.value = data.quotas.purchasedThrow != null
+						? Math.max(0, Number(data.quotas.purchasedThrow))
+						: purchasedThrowCount.value
+					if (planeQuotaTab.value == 'catch') {
+						const purchasedCatch = data.quotas.purchasedCatch != null
+							? Math.max(0, Number(data.quotas.purchasedCatch))
+							: catchCount.value + 1
+						catchCount.value = Math.max(catchCount.value, purchasedCatch)
+					}
+				}
+				const points = data.points != null ? Number(data.points) : 0
+				uni.showModal({
+					title: '已获取纸飞机次数',
+					content: '积分 -50，剩余 ' + points + ' 积分',
+					showCancel: false,
+					confirmText: '知道了'
+				})
+				return
+			}
+			uni.showToast({ title: data != null && data.message != null ? data.message : '获取失败，请稍后重试', icon: 'none' })
+		} catch (e) {
+			console.error(e)
+			uni.showToast({ title: '获取失败，请稍后重试', icon: 'none' })
+		} finally {
+			planeQuotaPurchasing.value = false
+		}
+	}
+
 	const openNormalCatch = () => {
+		if (!ensurePaperPlaneProfile()) return
 		catchMenuVisible.value = false
 		recordCatch()
 		normalReportVisible.value = false
@@ -412,10 +658,12 @@
 	}
 
 	const openComposerMenu = () => {
+		if (!ensurePaperPlaneProfile()) return
 		menuVisible.value = true
 	}
 
 	const openDatingPlane = () => {
+		if (!ensurePaperPlaneProfile()) return
 		menuVisible.value = false
 		catchMenuVisible.value = false
 		recordCatch()
@@ -423,11 +671,13 @@
 	}
 
 	const openDatingPlaneComposer = () => {
+		if (!ensurePaperPlaneProfile()) return
 		menuVisible.value = false
 		uni.navigateTo({ url: '/pages/community/dating-plane-compose' })
 	}
 
 	const prepareComposer = async (tab: string) => {
+		if (!ensurePaperPlaneProfile()) return
 		if (remain.value <= 0) {
 			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
 			return
@@ -443,10 +693,12 @@
 	}
 
 	const openTextComposer = async () => {
+		if (!ensurePaperPlaneProfile()) return
 		await prepareComposer('text')
 	}
 
 	const openVoiceComposer = async () => {
+		if (!ensurePaperPlaneProfile()) return
 		await prepareComposer('voice')
 	}
 
@@ -598,28 +850,23 @@
 	/* #ifdef H5 */
 	.page { height: calc(100vh - 44px); }
 	/* #endif */
-	.hero {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		padding: 18px 16px 16px;
-		background: var(--plane-cloud);
-		border-bottom: 1px solid var(--line);
-		position: relative;
-		z-index: 2;
-	}
-	.hero-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; padding-right: 12px; }
-	.eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--plane-purple); }
-	.hero-title { font-size: 23px; line-height: 1.25; font-family: var(--serif); font-weight: 700; color: var(--ink); }
-	.hero-desc { font-size: 12px; line-height: 1.5; color: var(--muted); }
-	.hero-mark { width: 72px; height: 72px; border-radius: 24px; background: var(--plane-lilac); position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-	.hero-plane { font-size: 39px; color: var(--plane-purple); transform: rotate(-14deg); }
-	.hero-spark { position: absolute; right: 10px; top: 8px; font-size: 17px; color: var(--plane-pink); }
+	.plane-profile-bar { position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; justify-content: space-between; min-height: 86px; padding: 14px 16px; background: var(--plane-cloud); border-bottom: 1px solid var(--line); }
+	.plane-profile-summary { flex: 1; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 11px; }
+	.plane-profile-avatar { width: 54px; height: 54px; overflow: hidden; border-radius: 50%; flex-shrink: 0; background: #EDF0F3; border: 1px solid #DDE1E7; }
+	.plane-profile-avatar-image { width: 100%; height: 100%; }
+	.plane-profile-default { width: 100%; height: 100%; position: relative; overflow: hidden; background: #E8EBEF; }
+	.plane-profile-default-head { position: absolute; left: 50%; top: 11px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #9FA7B2; }
+	.plane-profile-default-body { position: absolute; left: 50%; bottom: -3px; width: 33px; height: 24px; margin-left: -16.5px; border-radius: 18px 18px 0 0; background: #9FA7B2; }
+	.plane-profile-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+	.plane-profile-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; line-height: 1.25; font-weight: 800; color: var(--ink); }
+	.plane-profile-note { font-size: 11px; line-height: 1.4; color: var(--muted); }
+	.plane-profile-edit { width: 38px; height: 38px; margin-left: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--plane-lilac); color: var(--plane-purple); font-size: 22px; font-weight: 800; line-height: 38px; }
+	.plane-profile-edit::after { border: none; }
 	.quota-bar { position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--plane-lavender-surface); border-bottom: 1px solid var(--line); }
 	.quota-copy { display: flex; flex-direction: row; align-items: baseline; gap: 12px; }
 	.q-label { font-size: 11px; color: var(--plane-purple); }
-	.quota-badge { padding: 4px 8px; border-radius: 999px; background: var(--surface); }
+	.quota-badge { min-width: 84px; margin: 0; padding: 4px 8px; border-radius: 999px; background: var(--surface); }
+	.quota-badge::after { border: none; }
 	.quota-badge text { font-size: 10px; font-weight: 700; color: var(--plane-purple); }
 	.topic-card { position: relative; z-index: 2; margin: 16px 14px 0; padding: 16px; border-radius: 18px; background: var(--plane-surface); border: 1px solid #DDD2F8; box-shadow: var(--shadow-sm); }
 	.topic-row { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; }
@@ -703,6 +950,47 @@
 	.normal-send-button { background: var(--plane-purple); color: #FFFFFF; }
 	.normal-send-button:disabled { opacity: 0.55; }
 	.throw-back-button { background: #9C93AE; border: 1px solid #8E849F; color: #FFFFFF; }
+	.plane-quota-overlay { position: fixed; inset: 0; z-index: 10080; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(25, 15, 48, 0.55); }
+	.plane-quota-modal { width: 100%; max-width: 340px; padding: 18px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
+	.plane-quota-heading { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+	.plane-quota-title { font-size: 19px; line-height: 1.3; font-family: var(--serif); font-weight: 800; color: var(--ink); }
+	.plane-quota-close { width: 30px; height: 30px; flex-shrink: 0; margin: 0; border-radius: 15px; background: var(--bg-subtle); color: var(--muted); font-size: 21px; line-height: 28px; }
+	.plane-quota-close::after { border: none; }
+	.plane-quota-tabs { display: flex; flex-direction: row; gap: 4px; margin-top: 18px; padding: 4px; border-radius: 14px; background: var(--bg-subtle); }
+	.plane-quota-tab { flex: 1; height: 38px; margin: 0; border-radius: 10px; background: transparent; color: var(--muted); font-size: 12px; }
+	.plane-quota-tab::after { border: none; }
+	.plane-quota-tab.active { background: var(--plane-purple); color: var(--text-invert); font-weight: 800; }
+	.plane-quota-panel { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-top: 20px; }
+	.plane-quota-copy { text-align: center; font-size: 13px; line-height: 1.5; color: var(--muted); }
+	.plane-quota-buy { width: 100%; height: 46px; margin: 0; border-radius: 14px; background: var(--plane-purple); color: var(--text-invert); font-size: 15px; font-weight: 800; }
+	.plane-quota-buy::after { border: none; }
+	.plane-quota-buy:disabled { opacity: 0.55; }
+	.plane-quota-hint { text-align: center; font-size: 11px; line-height: 1.5; color: var(--plane-purple); }
+	.plane-profile-overlay { position: fixed; inset: 0; z-index: 10070; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(25, 15, 48, 0.55); }
+	.plane-profile-modal { width: 100%; max-width: 340px; padding: 18px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
+	.plane-profile-modal-heading { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 12px; }
+	.plane-profile-modal-title { display: block; font-size: 19px; line-height: 1.3; font-family: var(--serif); font-weight: 800; color: var(--ink); }
+	.plane-profile-modal-desc { display: block; margin-top: 5px; font-size: 11px; line-height: 1.5; color: var(--muted); }
+	.plane-profile-modal-close { width: 30px; height: 30px; flex-shrink: 0; border-radius: 15px; background: var(--bg-subtle); color: var(--muted); font-size: 21px; line-height: 28px; }
+	.plane-profile-modal-close::after { border: none; }
+	.plane-profile-form-field { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+	.plane-profile-label-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+	.plane-profile-form-label { font-size: 13px; font-weight: 800; color: var(--ink); }
+	.plane-profile-random { height: 28px; padding: 0 10px; border-radius: 10px; background: var(--plane-lilac); color: var(--plane-purple); font-size: 11px; font-weight: 800; line-height: 28px; }
+	.plane-profile-random::after { border: none; }
+	.plane-profile-input { width: 100%; height: 43px; padding: 0 12px; border: 1px solid #D9D4E7; border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 14px; }
+	.plane-avatar-options { display: flex; flex-direction: row; gap: 10px; }
+	.plane-avatar-choice { flex: 1; min-width: 0; height: 82px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px solid #DED9E9; border-radius: 14px; background: var(--surface); color: var(--muted); font-size: 11px; }
+	.plane-avatar-choice::after { border: none; }
+	.plane-avatar-choice.active { border-color: var(--plane-purple); background: #F7F2FF; color: var(--plane-purple); }
+	.plane-profile-default-small, .plane-profile-choice-image, .plane-profile-album-placeholder { width: 32px; height: 32px; border-radius: 50%; }
+	.plane-profile-default-small { border: 1px solid #DDE1E7; }
+	.plane-profile-default-small .plane-profile-default-head { top: 6px; width: 10px; height: 10px; margin-left: -5px; }
+	.plane-profile-default-small .plane-profile-default-body { bottom: -2px; width: 20px; height: 14px; margin-left: -10px; border-radius: 11px 11px 0 0; }
+	.plane-profile-choice-image { background: #E8EBEF; }
+	.plane-profile-album-placeholder { display: flex; align-items: center; justify-content: center; background: #EEF0F6; color: #81899A; font-size: 21px; line-height: 32px; }
+	.plane-profile-save { width: 100%; height: 46px; margin-top: 22px; border-radius: 14px; background: var(--plane-purple); color: var(--text-invert); font-size: 14px; font-weight: 800; }
+	.plane-profile-save::after { border: none; }
 	.composer-overlay { position: fixed; inset: 0; z-index: 10060; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(25, 15, 48, 0.55); }
 	.composer-modal { width: 100%; max-width: 340px; padding: 16px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
 	.modal-topline { display: flex; flex-direction: row; justify-content: flex-end; align-items: center; height: 32px; }

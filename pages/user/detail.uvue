@@ -1,8 +1,9 @@
 <template>
 	<view class="page">
+		<view class="profile-content" :class="{ 'profile-locked': isLockedView && !isHomeProfileEntry && !isCommunityProfileEntry }">
 		<!-- ==================== 封面区 ==================== -->
 		<view class="cover-area">
-			<image class="cover-img" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
+			<image class="cover-img" :src="user.cover" mode="aspectFill"></image>
 			<!-- 返回按钮 -->
 			<view class="back-btn" @tap="onBack">
 				<text class="back-icon">←</text>
@@ -254,6 +255,20 @@
 		</view>
 
 		<!-- 申请认识：与社区同源 XsaApplySheet -->
+		</view>
+
+		<view v-if="isLockedView && !isHomeProfileEntry && !isCommunityProfileEntry" class="profile-unlock-mask">
+			<view class="profile-unlock-dialog">
+				<text class="profile-unlock-icon">🔒</text>
+				<text class="profile-unlock-title">50积分解锁全部资料</text>
+				<text class="profile-unlock-desc">包含 VIP 专属内容</text>
+				<text class="profile-unlock-points">当前积分：{{ profilePoints }}</text>
+				<view class="profile-unlock-btn" @tap="onProfileUnlock">
+					<text>{{ profileUnlocking ? '解锁中...' : '去解锁' }}</text>
+				</view>
+			</view>
+		</view>
+
 		<XsaApplySheet
 			:visible="applyVisible"
 			:user-id="applyUserId"
@@ -266,20 +281,25 @@
 <script setup lang="uts">
 import { ref } from 'vue'
 import XsaApplySheet from '@/components/XsaApplySheet.uvue'
-import { likeUser } from '@/api'
+import { getUserDetail, getUserProfileUnlockStatus, likeUser, unlockUserProfile } from '@/api'
 import { guardRealName } from '@/utils/realNameGate.uts'
 
 const isLockedView = ref(true)
+const isHomeProfileEntry = ref(false)
+const isCommunityProfileEntry = ref(false)
 const isOwnProfile = ref(false)
 const viewerIsVIP = ref(false)
 const applyVisible = ref(false)
 const applyUserId = ref(1)
+const profilePoints = ref(0)
+const profileUnlocking = ref(false)
 
 const user = ref({
 	id: 1,
 	name: '林悦',
 	age: '26',
 	avatar: '/static/portraits/profile-woman-main.jpg',
+	cover: '/static/portraits/profile-woman-community.jpg',
 	isVIP: true,
 	job: '产品经理',
 	edu: '本科',
@@ -354,6 +374,117 @@ onMounted(() => {
 	}
 })
 
+const loadRoutedUserDetail = async (userId: number) => {
+	try {
+		const res = await getUserDetail(userId)
+		if (res == null || !res.success || res.data == null) return
+		const data = res.data as any
+		const age = data.age != null ? '' + data.age : '未知'
+		const education = data.education != null ? '' + data.education : (data.edu != null ? '' + data.edu : '未填写')
+		const avatar = data.avatar != null ? '' + data.avatar : user.value.avatar
+		const photos = Array.isArray(data.photos) ? data.photos as string[] : []
+		const cover = photos.length > 0 && photos[0] != null ? '' + photos[0] : avatar
+		const tags = Array.isArray(data.tags) ? data.tags as string[] : []
+		user.value = {
+			id: data.id != null ? Number(data.id) : userId,
+			name: data.name != null ? '' + data.name : user.value.name,
+			age,
+			avatar,
+			cover,
+			isVIP: data.isVIP != false,
+			job: data.job != null ? '' + data.job : '未填写',
+			edu: education,
+			city: data.city != null ? '' + data.city : '未填写',
+			tags,
+			bio: data.introduction != null ? '' + data.introduction : (data.intro != null ? '' + data.intro : '这个人暂未填写个人介绍。'),
+			basicInfo: [
+				[
+					{ label: '年龄', value: age + '岁' },
+					{ label: '身高', value: data.height != null ? '' + data.height : '未填写' },
+					{ label: '体重', value: data.weight != null ? '' + data.weight : '未填写' }
+				],
+				[
+					{ label: '星座', value: data.constellation != null ? '' + data.constellation : '未填写' },
+					{ label: '学历', value: education },
+					{ label: '职业', value: data.job != null ? '' + data.job : '未填写' }
+				],
+				[
+					{ label: '现居', value: data.city != null ? '' + data.city : '未填写' },
+					{ label: '家乡', value: data.hometown != null ? '' + data.hometown : '未填写' },
+					{ label: '收入', value: data.income != null ? '' + data.income : '未填写' }
+				],
+				[
+					{ label: '婚姻', value: data.marriage != null ? '' + data.marriage : '未填写' },
+					{ label: 'MBTI', value: data.mbti != null ? '' + data.mbti : '未填写' },
+					{ label: '状态', value: data.activeStatus != null ? '' + data.activeStatus : '未填写' }
+				]
+			]
+		}
+		applyUserId.value = user.value.id
+	} catch (e) {
+		console.error('加载用户详情失败', e)
+	}
+}
+
+const loadProfileUnlockState = async (userId: number) => {
+	if (isHomeProfileEntry.value || isCommunityProfileEntry.value) return
+	if (isOwnProfile.value || viewerIsVIP.value) {
+		isLockedView.value = false
+		return
+	}
+	try {
+		const res = await getUserProfileUnlockStatus(userId)
+		if (res != null && res.success && res.data != null) {
+			const data = res.data as any
+			profilePoints.value = data.points != null ? Number(data.points) : 0
+			isLockedView.value = data.unlocked != true
+		}
+	} catch (e) {
+		console.error('加载资料解锁状态失败', e)
+	}
+}
+
+const onProfileUnlock = async () => {
+	if (profileUnlocking.value || isOwnProfile.value) return
+	profileUnlocking.value = true
+	try {
+		const res = await unlockUserProfile(user.value.id)
+		const data = res != null ? res.data as any : null
+		if (res != null && res.success && data != null && data.success == true) {
+			profilePoints.value = data.points != null ? Number(data.points) : profilePoints.value
+			isLockedView.value = false
+			uni.showModal({
+				title: '资料已解锁',
+				content: '积分 -50，剩余 ' + profilePoints.value + ' 积分',
+				showCancel: false,
+				confirmText: '知道了'
+			})
+			return
+		}
+		uni.showModal({
+			title: '暂时无法解锁',
+			content: data != null && data.message != null ? '' + data.message : '积分不足，无法解锁全部资料',
+			showCancel: false,
+			confirmText: '知道了'
+		})
+	} catch (e) {
+		uni.showToast({ title: '解锁失败，请稍后重试', icon: 'none' })
+	} finally {
+		profileUnlocking.value = false
+	}
+}
+
+onMounted(async () => {
+	const pages = getCurrentPages()
+	const currentPage = pages[pages.length - 1]
+	const options = currentPage.options
+	isHomeProfileEntry.value = options.source == 'home'
+	isCommunityProfileEntry.value = options.source == 'community'
+	const userId = options.userId != null && options.userId != '' && Number(options.userId) > 0 ? Number(options.userId) : 1
+	await loadRoutedUserDetail(userId)
+	await loadProfileUnlockState(user.value.id)
+})
+
 const onBack = () => {
 	uni.navigateBack({ delta: 1 })
 }
@@ -420,6 +551,84 @@ const onLike = async () => {
 }
 
 /* ==================== 封面区 ==================== */
+.profile-content {
+	position: relative;
+	min-height: 100vh;
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+}
+
+.profile-content.profile-locked {
+	filter: blur(12px);
+	opacity: 0.58;
+	pointer-events: none;
+}
+
+.profile-unlock-mask {
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 50%;
+	right: auto;
+	width: 100vw;
+	transform: translateX(-50%);
+	z-index: 80;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32rpx;
+	box-sizing: border-box;
+	background-color: rgba(245, 242, 252, 0.36);
+}
+
+.profile-unlock-dialog {
+	width: 100%;
+	max-width: 560rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 18rpx;
+	padding: 44rpx 38rpx 36rpx;
+	box-sizing: border-box;
+	border: 1rpx solid #DED4F5;
+	border-radius: 24rpx;
+	background-color: #FFFFFF;
+	box-shadow: 0 18rpx 48rpx rgba(54, 35, 98, 0.2);
+}
+
+.profile-unlock-icon {
+	font-size: 54rpx;
+}
+
+.profile-unlock-title {
+	font-size: 34rpx;
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.profile-unlock-desc,
+.profile-unlock-points {
+	font-size: 24rpx;
+	color: var(--ink2);
+}
+
+.profile-unlock-btn {
+	width: 100%;
+	height: 84rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 14rpx;
+	background-color: var(--plane-purple);
+}
+
+.profile-unlock-btn text {
+	font-size: 28rpx;
+	font-weight: 800;
+	color: #FFFFFF;
+}
+
 .cover-area {
 	position: relative;
 	width: 100%;
