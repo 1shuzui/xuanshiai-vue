@@ -21,7 +21,7 @@ export const ROLE_APPLICATION_USE_MOCK = false
 
 // 纸飞机的”获取次数”接口尚未在 FastAPI 中提供，暂使用本地 Mock，避免在小程序中请求超时。
 // 后端补齐 POST /community/paper-planes/chances 后改为 false。
-export const PAPER_PLANE_CHANCE_USE_MOCK = false
+export const PAPER_PLANE_CHANCE_USE_MOCK = true
 
 // 真机联调时将 API_BASE_URL 改为此局域网地址，并确认 8000 已向本地子网放行。
 export const LAN_API_BASE_URL = 'http://192.168.112.247:8000'
