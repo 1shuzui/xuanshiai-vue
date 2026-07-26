@@ -8,7 +8,7 @@
  */
 
 import { request } from './request.uts'
-import { USE_MOCK, API_BASE_URL, API_PREFIX, getAccessToken, buildApiUrl } from './config.uts'
+import { USE_MOCK, PAPER_PLANE_CHANCE_USE_MOCK, API_BASE_URL, API_PREFIX, getAccessToken, buildApiUrl } from './config.uts'
 import {
   mockDynamicList,
   mockTopics,
@@ -28,6 +28,8 @@ import {
 
 
 const PAPER_PLANE_STORAGE_KEY = 'xsa_paper_plane_state_v1'
+export const PAPER_PLANE_CHANCE_COST = 50
+const PAPER_PLANE_FREE_TIMES = 3
 let paperPlaneStateLoaded = false
 let paperPlaneStateDateKey = ''
 
@@ -78,24 +80,46 @@ function currentDateKey(): string {
 }
 
 function savePaperPlaneState() {
-  const quotas = mockCommunityQuotas as any
-  uni.setStorageSync(PAPER_PLANE_STORAGE_KEY, {
-    dateKey: currentDateKey(),
-    planes: mockPaperPlanes,
-    conversations: mockPaperPlaneConversations,
-    paperPlaneDaily: quotas.paperPlaneDaily
-  })
+	const quotas = mockCommunityQuotas as any
+	uni.setStorageSync(PAPER_PLANE_STORAGE_KEY, {
+		dateKey: currentDateKey(),
+		planes: mockPaperPlanes,
+		conversations: mockPaperPlaneConversations,
+		paperPlaneDaily: quotas.paperPlaneDaily,
+		points: mockMeProfile.points
+	})
+}
+
+function resetPaperPlaneDaily() {
+	const daily = (mockCommunityQuotas as any).paperPlaneDaily
+	daily.total = PAPER_PLANE_FREE_TIMES
+	daily.used = 0
+	daily.remain = PAPER_PLANE_FREE_TIMES
+	daily.purchasedThrow = 0
+	daily.purchasedCatch = 0
+}
+
+function syncPaperPlanePoints() {
+	const points = mockMeProfile.points
+	try {
+		const chatSaved = uni.getStorageSync('xsa_chat_feature_unlocks_v1') as any
+		const chatState = chatSaved != null && typeof chatSaved === 'object'
+			? chatSaved
+			: { album: false, camera: false, profile: false }
+		chatState.points = points
+		uni.setStorageSync('xsa_chat_feature_unlocks_v1', chatState)
+	} catch (e) {
+		console.error('同步纸飞机积分失败', e)
+	}
 }
 
 function restorePaperPlaneState() {
   const today = currentDateKey()
-  if (paperPlaneStateLoaded) {
-    if (paperPlaneStateDateKey != today) {
-      const quotas = mockCommunityQuotas as any
-      quotas.paperPlaneDaily.used = 0
-      quotas.paperPlaneDaily.remain = quotas.paperPlaneDaily.total
-      paperPlaneStateDateKey = today
-      savePaperPlaneState()
+	if (paperPlaneStateLoaded) {
+		if (paperPlaneStateDateKey != today) {
+			resetPaperPlaneDaily()
+			paperPlaneStateDateKey = today
+			savePaperPlaneState()
     }
     return
   }
@@ -118,17 +142,25 @@ function restorePaperPlaneState() {
       ;(saved.conversations as any[]).forEach((item: any) => target.push(item))
     }
 
-    const quotas = mockCommunityQuotas as any
-    if (saved.dateKey == today && saved.paperPlaneDaily != null) {
-      const daily = saved.paperPlaneDaily as any
-      quotas.paperPlaneDaily.remain = daily.remain != null
-        ? Math.max(0, Math.min(quotas.paperPlaneDaily.total, daily.remain))
-        : quotas.paperPlaneDaily.total
-      quotas.paperPlaneDaily.used = quotas.paperPlaneDaily.total - quotas.paperPlaneDaily.remain
-    } else {
-      quotas.paperPlaneDaily.used = 0
-      quotas.paperPlaneDaily.remain = quotas.paperPlaneDaily.total
-      savePaperPlaneState()
+		const quotas = mockCommunityQuotas as any
+		if (saved.dateKey == today && saved.paperPlaneDaily != null) {
+			const daily = saved.paperPlaneDaily as any
+			const purchasedThrow = daily.purchasedThrow != null ? Math.max(0, Number(daily.purchasedThrow)) : 0
+			const purchasedCatch = daily.purchasedCatch != null ? Math.max(0, Number(daily.purchasedCatch)) : 0
+			quotas.paperPlaneDaily.total = PAPER_PLANE_FREE_TIMES + purchasedThrow
+			quotas.paperPlaneDaily.remain = daily.remain != null
+				? Math.max(0, Math.min(quotas.paperPlaneDaily.total, Number(daily.remain)))
+				: quotas.paperPlaneDaily.total
+			quotas.paperPlaneDaily.used = quotas.paperPlaneDaily.total - quotas.paperPlaneDaily.remain
+			quotas.paperPlaneDaily.purchasedThrow = purchasedThrow
+			quotas.paperPlaneDaily.purchasedCatch = purchasedCatch
+			if (saved.points != null && Number(saved.points) >= 0) {
+				mockMeProfile.points = Number(saved.points)
+				syncPaperPlanePoints()
+			}
+		} else {
+			resetPaperPlaneDaily()
+			savePaperPlaneState()
     }
   } catch (e) {
     console.error('恢复纸飞机本地状态失败', e)
@@ -1826,6 +1858,49 @@ export async function getCommunityQuotas() {
   })
   if (!res.success) return res
   return okRes(mapQuotas(res.data))
+}
+
+/** 购买纸飞机次数。扔飞机次数会直接补充今日可投额度，捡飞机次数单独累计。 */
+export async function purchasePaperPlaneChance(type: string) {
+  if (PAPER_PLANE_CHANCE_USE_MOCK != true) {
+    return request({
+      url: '/community/paper-planes/chances',
+      method: 'POST',
+      data: { type }
+    })
+  }
+
+  restorePaperPlaneState()
+  if (type != 'throw' && type != 'catch') {
+    return failRes('无效的纸飞机次数类型', 'INVALID_TYPE')
+  }
+
+  if (mockMeProfile.points < PAPER_PLANE_CHANCE_COST) {
+    return failRes('积分不足，无法获取纸飞机次数', 'INSUFFICIENT_POINTS', {
+      points: mockMeProfile.points,
+      cost: PAPER_PLANE_CHANCE_COST
+    })
+  }
+
+  const daily = (mockCommunityQuotas as any).paperPlaneDaily
+  mockMeProfile.points -= PAPER_PLANE_CHANCE_COST
+  if (type == 'throw') {
+    daily.purchasedThrow = daily.purchasedThrow != null ? Number(daily.purchasedThrow) + 1 : 1
+    daily.total = Number(daily.total) + 1
+    daily.remain = Number(daily.remain) + 1
+  } else {
+    daily.purchasedCatch = daily.purchasedCatch != null ? Number(daily.purchasedCatch) + 1 : 1
+  }
+  syncPaperPlanePoints()
+  savePaperPlaneState()
+
+  return okRes({
+    success: true,
+    type: type,
+    points: mockMeProfile.points,
+    cost: PAPER_PLANE_CHANCE_COST,
+    quotas: daily
+  })
 }
 
 // ─── 发布 / 点赞 / 收藏 / 关注 / 评论 ───────────────────────

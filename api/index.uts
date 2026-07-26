@@ -58,6 +58,7 @@ export {
   markNotificationRead,
   markAllNotificationsRead,
   getCommunityQuotas,
+  purchasePaperPlaneChance,
   publishDynamic,
   likeDynamic,
   collectDynamic,
