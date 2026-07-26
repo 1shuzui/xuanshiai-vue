@@ -138,37 +138,40 @@
 	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas, createCommunityCreateKey, discardCommunityCreateKey, uploadMedia, uploadCommunityMedia, deleteCommunityMedia, getPaperPlaneMessages, sendPaperPlaneMessage, readPaperPlaneConversation, endPaperPlaneConversation } from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
-	type LocalMedia = {
-		localPath: string
-		mediaId: number
-		remoteUrl: string
-		status: string // pending | uploading | ready | failed
-		mediaType: string // image | video
-	}
+		type LocalMedia = {
+			localPath: string
+			mediaId: number
+			remoteUrl: string
+			status: string // pending | uploading | ready | failed
+			mediaType: string // image | video
+			cancelled: boolean
+		}
 
-	const planes = ref([])
-	const loading = ref(false)
-	const remain = ref(3)
-	const total = ref(3)
-	const composerVisible = ref(false)
-	const draft = ref('')
-	const sending = ref(false)
-	const sendBound = ref(false)
-	const loadError = ref(false)
-	const replyVisible = ref(false)
-	const replyDraft = ref('')
-	const replying = ref(false)
-	let replyTarget: any = null
-	const reportVisible = ref(false)
-	const reportTargetId = ref(0)
-	const reportUserId = ref(0)
-	const pendingSendKey = ref('')
-	const pendingSendFingerprint = ref('')
-	const pendingReplyKey = ref('')
-	const pendingReplyFingerprint = ref('')
-	const photoItems = ref<LocalMedia[]>([])
-	const pendingVoicePath = ref('')
-	const pendingVoiceDuration = ref(0)
+		const planes = ref([])
+		const loading = ref(false)
+		const remain = ref(3)
+		const total = ref(3)
+		const composerVisible = ref(false)
+		const draft = ref('')
+		const sending = ref(false)
+		const sendBound = ref(false)
+		const loadError = ref(false)
+		const replyVisible = ref(false)
+		const replyDraft = ref('')
+		const replying = ref(false)
+		let replyTarget: any = null
+		const reportVisible = ref(false)
+		const reportTargetId = ref(0)
+		const reportUserId = ref(0)
+		const pendingSendKey = ref('')
+		const pendingSendFingerprint = ref('')
+		const pendingReplyKey = ref('')
+		const pendingReplyFingerprint = ref('')
+		const photoItems = ref<LocalMedia[]>([])
+		/** 已从 UI 移除但仍在上传中的项 */
+		const inFlightMedia = ref<LocalMedia[]>([])
+		const pendingVoicePath = ref('')
+		const pendingVoiceDuration = ref(0)
 	const recording = ref(false)
 	const playingId = ref(0)
 	let recorder: any = null
@@ -249,61 +252,124 @@
 		return out
 	}
 
-	const canSend = computed(() => {
-		if (draft.value.trim().length > 0) return true
-		if (pendingVoicePath.value != '') return true
-		const photos = photoItems.value as LocalMedia[]
-		for (let i = 0; i < photos.length; i++) {
-			if (photos[i].status == 'ready' && photos[i].mediaId > 0) return true
-		}
-		return false
-	})
+		const canSend = computed(() => {
+			const photos = photoItems.value as LocalMedia[]
+			let hasReadyMedia = false
+			for (let i = 0; i < photos.length; i++) {
+				const s = photos[i].status
+				if (s == 'uploading' || s == 'pending' || s == 'failed') return false
+				if (s == 'ready' && photos[i].mediaId > 0) hasReadyMedia = true
+			}
+			const hasText = draft.value.trim().length > 0
+			const hasVoice = pendingVoicePath.value != ''
+			return hasText || hasVoice || hasReadyMedia
+		})
 
-	const makeLocalMedia = (localPath: string): LocalMedia => {
-		return {
-			localPath: localPath,
-			mediaId: 0,
-			remoteUrl: '',
-			status: 'uploading',
-			mediaType: 'image'
+		const makeLocalMedia = (localPath: string): LocalMedia => {
+			return {
+				localPath: localPath,
+				mediaId: 0,
+				remoteUrl: '',
+				status: 'uploading',
+				mediaType: 'image',
+				cancelled: false
+			}
 		}
-	}
 
-	const uploadOne = async (item: LocalMedia) => {
-		item.status = 'uploading'
-		try {
-			const res = await uploadCommunityMedia(item.localPath, 'paper_plane')
-			if (res != null && res.success && res.data != null) {
-				const data = res.data as any
-				item.mediaId = data.id != null ? (data.id as number) : 0
-				item.remoteUrl = data.url != null ? ('' + data.url) : ''
-				item.status = item.mediaId > 0 ? 'ready' : 'failed'
-			} else {
+		const trackInFlight = (item: LocalMedia) => {
+			const list = inFlightMedia.value as LocalMedia[]
+			for (let i = 0; i < list.length; i++) {
+				if (list[i] === item) return
+			}
+			list.push(item)
+			inFlightMedia.value = list
+		}
+
+		const untrackInFlight = (item: LocalMedia) => {
+			const list = inFlightMedia.value as LocalMedia[]
+			const next: LocalMedia[] = []
+			for (let i = 0; i < list.length; i++) {
+				if (list[i] !== item) next.push(list[i])
+			}
+			inFlightMedia.value = next
+		}
+
+		const removePhotoFromUi = (item: LocalMedia) => {
+			const photos = photoItems.value as LocalMedia[]
+			const next: LocalMedia[] = []
+			for (let i = 0; i < photos.length; i++) {
+				if (photos[i] !== item) next.push(photos[i])
+			}
+			photoItems.value = next
+		}
+
+		const uploadOne = async (item: LocalMedia) => {
+			if (item.cancelled) return
+			item.status = 'uploading'
+			trackInFlight(item)
+			try {
+				const res = await uploadCommunityMedia(item.localPath, 'paper_plane')
+				if (item.cancelled) {
+					const mid = res != null && res.success && res.data != null && res.data.id != null
+						? (res.data.id as number)
+						: 0
+					if (mid > 0) {
+						try {
+							await deleteCommunityMedia(mid)
+						} catch (e) {}
+					}
+					item.mediaId = 0
+					item.remoteUrl = ''
+					item.status = 'failed'
+					return
+				}
+				if (res != null && res.success && res.data != null) {
+					const data = res.data as any
+					item.mediaId = data.id != null ? (data.id as number) : 0
+					item.remoteUrl = data.url != null ? ('' + data.url) : ''
+					item.status = item.mediaId > 0 ? 'ready' : 'failed'
+				} else {
+					item.status = 'failed'
+					item.mediaId = 0
+					item.remoteUrl = ''
+				}
+			} catch (e) {
+				if (item.cancelled) {
+					item.mediaId = 0
+					item.remoteUrl = ''
+					item.status = 'failed'
+					return
+				}
 				item.status = 'failed'
 				item.mediaId = 0
 				item.remoteUrl = ''
+			} finally {
+				untrackInFlight(item)
+				if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+					discardPendingSendKey()
+				}
 			}
-		} catch (e) {
-			item.status = 'failed'
-			item.mediaId = 0
-			item.remoteUrl = ''
 		}
-		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
-			discardPendingSendKey()
-		}
-	}
 
-	const cleanupUnboundPhotos = async () => {
-		if (sendBound.value) return
-		const photos = photoItems.value as LocalMedia[]
-		for (let i = 0; i < photos.length; i++) {
-			if (photos[i].status == 'ready' && photos[i].mediaId > 0) {
-				try {
-					await deleteCommunityMedia(photos[i].mediaId)
-				} catch (e) {}
+		const cleanupUnboundPhotos = async () => {
+			if (sendBound.value) return
+			const photos = photoItems.value as LocalMedia[]
+			for (let i = 0; i < photos.length; i++) {
+				const m = photos[i]
+				if (m.status == 'uploading' || m.status == 'pending') {
+					m.cancelled = true
+					trackInFlight(m)
+				} else if (m.status == 'ready' && m.mediaId > 0) {
+					try {
+						await deleteCommunityMedia(m.mediaId)
+					} catch (e) {}
+				}
+			}
+			const flying = inFlightMedia.value as LocalMedia[]
+			for (let i = 0; i < flying.length; i++) {
+				flying[i].cancelled = true
 			}
 		}
-	}
 
 	const addPhoto = () => {
 		const remaining = 6 - photoItems.value.length
@@ -335,20 +401,29 @@
 		})
 	}
 
-	const deletePhoto = async (index: number) => {
-		const list = photoItems.value as LocalMedia[]
-		if (index < 0 || index >= list.length) return
-		const item = list[index]
-		if (item.status == 'ready' && item.mediaId > 0) {
-			try {
-				await deleteCommunityMedia(item.mediaId)
-			} catch (e) {}
+		const deletePhoto = async (index: number) => {
+			const list = photoItems.value as LocalMedia[]
+			if (index < 0 || index >= list.length) return
+			const item = list[index]
+			if (item.status == 'uploading' || item.status == 'pending') {
+				item.cancelled = true
+				trackInFlight(item)
+				removePhotoFromUi(item)
+				if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+					discardPendingSendKey()
+				}
+				return
+			}
+			if (item.status == 'ready' && item.mediaId > 0) {
+				try {
+					await deleteCommunityMedia(item.mediaId)
+				} catch (e) {}
+			}
+			photoItems.value.splice(index, 1)
+			if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+				discardPendingSendKey()
+			}
 		}
-		photoItems.value.splice(index, 1)
-		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
-			discardPendingSendKey()
-		}
-	}
 
 	const retryPhoto = async (index: number) => {
 		const list = photoItems.value as LocalMedia[]

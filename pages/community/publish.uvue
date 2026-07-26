@@ -182,33 +182,36 @@
 	import { publishDynamic, getTopics, getTopicDetail, createCommunityCreateKey, discardCommunityCreateKey, uploadCommunityMedia, deleteCommunityMedia } from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
-	type LocalMedia = {
-		localPath: string
-		mediaId: number
-		remoteUrl: string
-		status: string // pending | uploading | ready | failed
-		mediaType: string // image | video
-	}
+		type LocalMedia = {
+			localPath: string
+			mediaId: number
+			remoteUrl: string
+			status: string // pending | uploading | ready | failed
+			mediaType: string // image | video
+			cancelled: boolean
+		}
 
-	const photoItems = ref<LocalMedia[]>([])
-	const videoItems = ref<LocalMedia[]>([])
-	const content = ref('')
-	const location = ref('')
-	const visibility = ref(0)
-	const mentions = ref<number[]>([])
-	const publishing = ref(false)
-	const publishedOk = ref(false)
-	const pendingPublishKey = ref('')
-	const pendingPublishFingerprint = ref('')
-	const topicId = ref(0)
-	const topicTitle = ref('')
-	const declaration = ref('')
-	const showEmojiPanel = ref(false)
-	const showTopicSheet = ref(false)
-	const topicLoading = ref(false)
-	const topicError = ref('')
-	const topicKeyword = ref('')
-	const topicOptions = ref([] as any[])
+		const photoItems = ref<LocalMedia[]>([])
+		const videoItems = ref<LocalMedia[]>([])
+		/** 已从 UI 移除但仍在上传中的项，完成时若 cancelled 则 delete */
+		const inFlightMedia = ref<LocalMedia[]>([])
+		const content = ref('')
+		const location = ref('')
+		const visibility = ref(0)
+		const mentions = ref<number[]>([])
+		const publishing = ref(false)
+		const publishedOk = ref(false)
+		const pendingPublishKey = ref('')
+		const pendingPublishFingerprint = ref('')
+		const topicId = ref(0)
+		const topicTitle = ref('')
+		const declaration = ref('')
+		const showEmojiPanel = ref(false)
+		const showTopicSheet = ref(false)
+		const topicLoading = ref(false)
+		const topicError = ref('')
+		const topicKeyword = ref('')
+		const topicOptions = ref([] as any[])
 
 const DECLARATION_OPTIONS = [
 	'内容无需声明',
@@ -266,13 +269,23 @@ onLoad(async (query: any) => {
 		}
 	})
 
-const canPublish = computed(() => {
-		return (
-			content.value.trim().length > 0 ||
-			photoItems.value.length > 0 ||
-			videoItems.value.length > 0
-		)
-	})
+	const canPublish = computed(() => {
+			const photos = photoItems.value as LocalMedia[]
+			const videos = videoItems.value as LocalMedia[]
+			let hasReadyMedia = false
+			for (let i = 0; i < photos.length; i++) {
+				const s = photos[i].status
+				if (s == 'uploading' || s == 'pending' || s == 'failed') return false
+				if (s == 'ready' && photos[i].mediaId > 0) hasReadyMedia = true
+			}
+			for (let i = 0; i < videos.length; i++) {
+				const s = videos[i].status
+				if (s == 'uploading' || s == 'pending' || s == 'failed') return false
+				if (s == 'ready' && videos[i].mediaId > 0) hasReadyMedia = true
+			}
+			const hasText = content.value.trim().length > 0
+			return hasText || hasReadyMedia
+		})
 
 	const canAddPhoto = computed(() => {
 		return videoItems.value.length == 0 && photoItems.value.length < 9
@@ -295,62 +308,131 @@ const canPublish = computed(() => {
 		return ids.join(',')
 	}
 
-	const makeLocalMedia = (localPath: string, mediaType: string): LocalMedia => {
-		return {
-			localPath: localPath,
-			mediaId: 0,
-			remoteUrl: '',
-			status: 'uploading',
-			mediaType: mediaType
+		const makeLocalMedia = (localPath: string, mediaType: string): LocalMedia => {
+			return {
+				localPath: localPath,
+				mediaId: 0,
+				remoteUrl: '',
+				status: 'uploading',
+				mediaType: mediaType,
+				cancelled: false
+			}
 		}
-	}
 
-	const uploadOne = async (item: LocalMedia) => {
-		item.status = 'uploading'
-		try {
-			const res = await uploadCommunityMedia(item.localPath, 'post')
-			if (res != null && res.success && res.data != null) {
-				const data = res.data as any
-				item.mediaId = data.id != null ? (data.id as number) : 0
-				item.remoteUrl = data.url != null ? ('' + data.url) : ''
-				if (data.mediaType != null && ('' + data.mediaType) != '') {
-					item.mediaType = '' + data.mediaType
+		const trackInFlight = (item: LocalMedia) => {
+			const list = inFlightMedia.value as LocalMedia[]
+			for (let i = 0; i < list.length; i++) {
+				if (list[i] === item) return
+			}
+			list.push(item)
+			inFlightMedia.value = list
+		}
+
+		const untrackInFlight = (item: LocalMedia) => {
+			const list = inFlightMedia.value as LocalMedia[]
+			const next: LocalMedia[] = []
+			for (let i = 0; i < list.length; i++) {
+				if (list[i] !== item) next.push(list[i])
+			}
+			inFlightMedia.value = next
+		}
+
+		const removeMediaFromUi = (item: LocalMedia) => {
+			const photos = photoItems.value as LocalMedia[]
+			const nextPhotos: LocalMedia[] = []
+			for (let i = 0; i < photos.length; i++) {
+				if (photos[i] !== item) nextPhotos.push(photos[i])
+			}
+			photoItems.value = nextPhotos
+			const videos = videoItems.value as LocalMedia[]
+			const nextVideos: LocalMedia[] = []
+			for (let i = 0; i < videos.length; i++) {
+				if (videos[i] !== item) nextVideos.push(videos[i])
+			}
+			videoItems.value = nextVideos
+		}
+
+		const uploadOne = async (item: LocalMedia) => {
+			if (item.cancelled) return
+			item.status = 'uploading'
+			trackInFlight(item)
+			try {
+				const res = await uploadCommunityMedia(item.localPath, 'post')
+				if (item.cancelled) {
+					const mid = res != null && res.success && res.data != null && res.data.id != null
+						? (res.data.id as number)
+						: 0
+					if (mid > 0) {
+						try {
+							await deleteCommunityMedia(mid)
+						} catch (e) {}
+					}
+					item.mediaId = 0
+					item.remoteUrl = ''
+					item.status = 'failed'
+					return
 				}
-				item.status = item.mediaId > 0 ? 'ready' : 'failed'
-			} else {
+				if (res != null && res.success && res.data != null) {
+					const data = res.data as any
+					item.mediaId = data.id != null ? (data.id as number) : 0
+					item.remoteUrl = data.url != null ? ('' + data.url) : ''
+					if (data.mediaType != null && ('' + data.mediaType) != '') {
+						item.mediaType = '' + data.mediaType
+					}
+					item.status = item.mediaId > 0 ? 'ready' : 'failed'
+				} else {
+					item.status = 'failed'
+					item.mediaId = 0
+					item.remoteUrl = ''
+				}
+			} catch (e) {
+				if (item.cancelled) {
+					item.mediaId = 0
+					item.remoteUrl = ''
+					item.status = 'failed'
+					return
+				}
 				item.status = 'failed'
 				item.mediaId = 0
 				item.remoteUrl = ''
+			} finally {
+				untrackInFlight(item)
+				invalidatePendingPublishKey()
 			}
-		} catch (e) {
-			item.status = 'failed'
-			item.mediaId = 0
-			item.remoteUrl = ''
 		}
-		invalidatePendingPublishKey()
-	}
 
-	const cleanupUnboundMedia = async () => {
-		if (publishedOk.value) return
-		const photos = photoItems.value as LocalMedia[]
-		for (let i = 0; i < photos.length; i++) {
-			const m = photos[i]
-			if (m.status == 'ready' && m.mediaId > 0) {
-				try {
-					await deleteCommunityMedia(m.mediaId)
-				} catch (e) {}
+		const cleanupUnboundMedia = async () => {
+			if (publishedOk.value) return
+			const photos = photoItems.value as LocalMedia[]
+			for (let i = 0; i < photos.length; i++) {
+				const m = photos[i]
+				if (m.status == 'uploading' || m.status == 'pending') {
+					m.cancelled = true
+					trackInFlight(m)
+				} else if (m.status == 'ready' && m.mediaId > 0) {
+					try {
+						await deleteCommunityMedia(m.mediaId)
+					} catch (e) {}
+				}
+			}
+			const videos = videoItems.value as LocalMedia[]
+			for (let i = 0; i < videos.length; i++) {
+				const m = videos[i]
+				if (m.status == 'uploading' || m.status == 'pending') {
+					m.cancelled = true
+					trackInFlight(m)
+				} else if (m.status == 'ready' && m.mediaId > 0) {
+					try {
+						await deleteCommunityMedia(m.mediaId)
+					} catch (e) {}
+				}
+			}
+			// 已从 UI 移除但仍在飞行中的项：确保 cancelled，完成后 uploadOne 会 delete
+			const flying = inFlightMedia.value as LocalMedia[]
+			for (let i = 0; i < flying.length; i++) {
+				flying[i].cancelled = true
 			}
 		}
-		const videos = videoItems.value as LocalMedia[]
-		for (let i = 0; i < videos.length; i++) {
-			const m = videos[i]
-			if (m.status == 'ready' && m.mediaId > 0) {
-				try {
-					await deleteCommunityMedia(m.mediaId)
-				} catch (e) {}
-			}
-		}
-	}
 
 const visibilityText = computed(() => {
 	const texts = ['公开', '仅好友可见', '仅自己可见']
@@ -461,31 +543,44 @@ const addPhoto = () => {
 		})
 	}
 
-	const deletePhoto = async (index: number) => {
-		const list = photoItems.value as LocalMedia[]
-		if (index < 0 || index >= list.length) return
-		const item = list[index]
-		if (item.status == 'ready' && item.mediaId > 0) {
-			try {
-				await deleteCommunityMedia(item.mediaId)
-			} catch (e) {}
-		}
-		photoItems.value.splice(index, 1)
-		invalidatePendingPublishKey()
-	}
-
-	const deleteVideo = async () => {
-		const list = videoItems.value as LocalMedia[]
-		for (let i = 0; i < list.length; i++) {
-			if (list[i].status == 'ready' && list[i].mediaId > 0) {
+		const deletePhoto = async (index: number) => {
+			const list = photoItems.value as LocalMedia[]
+			if (index < 0 || index >= list.length) return
+			const item = list[index]
+			if (item.status == 'uploading' || item.status == 'pending') {
+				item.cancelled = true
+				trackInFlight(item)
+				removeMediaFromUi(item)
+				invalidatePendingPublishKey()
+				return
+			}
+			if (item.status == 'ready' && item.mediaId > 0) {
 				try {
-					await deleteCommunityMedia(list[i].mediaId)
+					await deleteCommunityMedia(item.mediaId)
 				} catch (e) {}
 			}
+			photoItems.value.splice(index, 1)
+			invalidatePendingPublishKey()
 		}
-		videoItems.value = []
-		invalidatePendingPublishKey()
-	}
+
+		const deleteVideo = async () => {
+			const list = videoItems.value as LocalMedia[]
+			for (let i = 0; i < list.length; i++) {
+				const item = list[i]
+				if (item.status == 'uploading' || item.status == 'pending') {
+					item.cancelled = true
+					trackInFlight(item)
+					continue
+				}
+				if (item.status == 'ready' && item.mediaId > 0) {
+					try {
+						await deleteCommunityMedia(item.mediaId)
+					} catch (e) {}
+				}
+			}
+			videoItems.value = []
+			invalidatePendingPublishKey()
+		}
 
 	const retryPhoto = async (index: number) => {
 		const list = photoItems.value as LocalMedia[]

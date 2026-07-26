@@ -30,6 +30,43 @@ const PAPER_PLANE_STORAGE_KEY = 'xsa_paper_plane_state_v1'
 let paperPlaneStateLoaded = false
 let paperPlaneStateDateKey = ''
 
+/** mock 媒体 id → { url, mediaType, purpose }，供 publish/send 解析 */
+const mockCommunityMediaById: any = {}
+
+function guessMockMediaType(filePath: string): string {
+  const p = (filePath != null ? ('' + filePath) : '').toLowerCase()
+  if (
+    p.indexOf('.mp4') >= 0 ||
+    p.indexOf('.mov') >= 0 ||
+    p.indexOf('.m4v') >= 0 ||
+    p.indexOf('.webm') >= 0 ||
+    p.indexOf('video') >= 0
+  ) {
+    return 'video'
+  }
+  return 'image'
+}
+
+function resolveMockMediaUrls(mediaIds: number[]): string[] {
+  const urls: string[] = []
+  if (mediaIds == null) return urls
+  for (let i = 0; i < mediaIds.length; i++) {
+    const id = mediaIds[i]
+    if (id == null || id <= 0) continue
+    const entry = mockCommunityMediaById['' + id]
+    if (entry != null && entry.url != null && ('' + entry.url) != '') {
+      urls.push('' + entry.url)
+    }
+  }
+  return urls
+}
+
+function resolveMockMediaEntry(mediaId: number): any {
+  if (mediaId == null || mediaId <= 0) return null
+  const entry = mockCommunityMediaById['' + mediaId]
+  return entry != null ? entry : null
+}
+
 function currentDateKey(): string {
   const now = new Date()
   const month = now.getMonth() + 1
@@ -1326,6 +1363,7 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
     }
     quotas.paperPlaneDaily.used += 1
     quotas.paperPlaneDaily.remain -= 1
+    const planeImages = hasImageMediaIds ? resolveMockMediaUrls(imageMediaIds) : []
     const plane = {
       id: Date.now(),
       content,
@@ -1341,7 +1379,9 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
       replied: false,
       voiceUrl: voiceUrl,
       voiceDurationSec: voiceDurationSec,
-      conversationId: 0
+      conversationId: 0,
+      images: planeImages,
+      photos: planeImages
     }
     ;(mockPaperPlanes as any[]).unshift(plane)
     savePaperPlaneState()
@@ -1861,9 +1901,30 @@ export async function publishDynamic(
         topicTitle = '' + topic.title
       }
     }
-    const mediaType = hasVideos ? 'video' : (hasPhotos ? 'image' : 'none')
-    const finalPhotos: string[] = hasVideos ? [] : (photos != null ? photos : [])
-    const finalVideos: string[] = hasVideos ? videos : []
+    // media ids 优先：从 mock 上传表解析 url，避免发布后 photos/videos 为空
+    let finalPhotos: string[] = hasPhotos ? (photos != null ? photos : []) : []
+    let finalVideos: string[] = hasVideos ? (videos != null ? videos : []) : []
+    let mediaType = hasVideos ? 'video' : (hasPhotos ? 'image' : 'none')
+    if (hasVideoMediaId) {
+      const vEntry = resolveMockMediaEntry(videoMediaId)
+      if (vEntry != null && vEntry.url != null && ('' + vEntry.url) != '') {
+        finalVideos = ['' + vEntry.url]
+        finalPhotos = []
+        mediaType = 'video'
+      }
+    } else if (hasImageMediaIds) {
+      const resolved = resolveMockMediaUrls(imageMediaIds)
+      if (resolved.length > 0) {
+        finalPhotos = resolved
+        finalVideos = []
+        mediaType = 'image'
+      }
+    }
+    if (mediaType == 'video') {
+      finalPhotos = []
+    } else if (mediaType == 'image') {
+      finalVideos = []
+    }
     const dynamicId = Date.now()
     const cityName = location != '' ? ('' + location).split('·')[0].trim() : mockCurrentCity.name
     const item = {
@@ -2692,13 +2753,20 @@ export async function uploadCommunityMedia(filePath: string, purpose: string) {
   }
   const purposeVal = purpose != null ? ('' + purpose) : 'post'
   if (USE_MOCK) {
-    const id = Date.now()
+    const id = Date.now() + Math.floor(Math.random() * 1000)
+    const mediaType = guessMockMediaType(filePath)
+    const url = '' + filePath
+    mockCommunityMediaById['' + id] = {
+      url: url,
+      mediaType: mediaType,
+      purpose: purposeVal
+    }
     return okRes({
       id: id,
       purpose: purposeVal,
-      mediaType: 'image',
-      url: filePath,
-      thumbnailUrl: filePath,
+      mediaType: mediaType,
+      url: url,
+      thumbnailUrl: url,
       fileSize: 0,
       durationSeconds: null,
       status: 'ready'
@@ -2740,6 +2808,9 @@ export async function deleteCommunityMedia(mediaId: number) {
     return failRes('无效的媒体 ID', 'INVALID_MEDIA_ID')
   }
   if (USE_MOCK) {
+    try {
+      delete mockCommunityMediaById['' + mediaId]
+    } catch (e) {}
     return okRes({ success: true })
   }
   return request({

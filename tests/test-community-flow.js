@@ -1025,12 +1025,23 @@ contract('publish page uploads media before publish', () => {
   assert.match(page, /uploadCommunityMedia/)
   assert.match(page, /mediaId|imageMediaIds/)
   assert.match(page, /deleteCommunityMedia/)
+  assert.match(page, /cancelled/)
+  assert.match(page, /inFlightMedia/)
+  assert.match(page, /hasReadyMedia/)
 })
 contract('paper plane supports image pick and upload', () => {
   const page = read('pages/community/paper-plane.uvue')
   assert.match(page, /chooseImage|addPhoto/)
   assert.match(page, /uploadCommunityMedia/)
   assert.match(page, /imageMediaIds|image_media_ids/)
+  assert.match(page, /cancelled/)
+  assert.match(page, /inFlightMedia/)
+})
+contract('mock community media map resolves ids on publish/send', () => {
+  const api = read('api/community.uts')
+  assert.match(api, /mockCommunityMediaById/)
+  assert.match(api, /resolveMockMediaUrls/)
+  assert.match(api, /images:\s*planeImages/)
 })
 contract('like-user scan is bounded by returned data rather than a hard page cap', () => {
   assert.doesNotMatch(liveUserApi, /while \(page <= 20\)/)
