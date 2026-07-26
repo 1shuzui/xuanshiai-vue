@@ -493,20 +493,24 @@ const addPhoto = () => {
 				title: '提示',
 				content: '添加视频将清除已选图片，是否继续？',
 				success: async (res) => {
-					if (res.confirm) {
-						// 清理已上传未绑定图片
-						const old = photoItems.value as LocalMedia[]
-						for (let i = 0; i < old.length; i++) {
-							if (old[i].status == 'ready' && old[i].mediaId > 0) {
-								try {
-									await deleteCommunityMedia(old[i].mediaId)
-								} catch (e) {}
+if (res.confirm) {
+							// 清理已选图片：ready 直接删；上传中标记 cancelled，完成后 uploadOne 会 delete
+							const old = photoItems.value as LocalMedia[]
+							for (let i = 0; i < old.length; i++) {
+								const m = old[i]
+								if (m.status == 'uploading' || m.status == 'pending') {
+									m.cancelled = true
+									trackInFlight(m)
+								} else if (m.status == 'ready' && m.mediaId > 0) {
+									try {
+										await deleteCommunityMedia(m.mediaId)
+									} catch (e) {}
+								}
 							}
+							photoItems.value = []
+							invalidatePendingPublishKey()
+							pickVideo()
 						}
-						photoItems.value = []
-						invalidatePendingPublishKey()
-						pickVideo()
-					}
 				}
 			})
 			return
@@ -524,21 +528,25 @@ const addPhoto = () => {
 			compressed: true,
 			success: async (res) => {
 				const path = res.tempFilePath != null ? ('' + res.tempFilePath) : ''
-				if (path !== '') {
-					// 替换旧视频时清理
-					const old = videoItems.value as LocalMedia[]
-					for (let i = 0; i < old.length; i++) {
-						if (old[i].status == 'ready' && old[i].mediaId > 0) {
-							try {
-								await deleteCommunityMedia(old[i].mediaId)
-							} catch (e) {}
+if (path !== '') {
+						// 替换旧视频：ready 直接删；上传中标记 cancelled，完成后 uploadOne 会 delete
+						const old = videoItems.value as LocalMedia[]
+						for (let i = 0; i < old.length; i++) {
+							const m = old[i]
+							if (m.status == 'uploading' || m.status == 'pending') {
+								m.cancelled = true
+								trackInFlight(m)
+							} else if (m.status == 'ready' && m.mediaId > 0) {
+								try {
+									await deleteCommunityMedia(m.mediaId)
+								} catch (e) {}
+							}
 						}
+						const item = makeLocalMedia(path, 'video')
+						videoItems.value = [item]
+						invalidatePendingPublishKey()
+						await uploadOne(item)
 					}
-					const item = makeLocalMedia(path, 'video')
-					videoItems.value = [item]
-					invalidatePendingPublishKey()
-					await uploadOne(item)
-				}
 			}
 		})
 	}
