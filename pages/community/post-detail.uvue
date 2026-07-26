@@ -54,13 +54,14 @@
 				@close="applyVisible = false"
 				@success="onApplyOk"
 			/>
-			<XsaReportSheet
-				:visible="reportVisible"
-				target-type="post"
-				:target-id="reportTargetId"
-				:user-id="reportUserId"
-				@close="reportVisible = false"
-			/>
+				<XsaReportSheet
+					:visible="reportVisible"
+					target-type="post"
+					:target-id="reportTargetId"
+					:user-id="reportUserId"
+					@close="reportVisible = false"
+					@blocked="onBlocked"
+				/>
 	</view>
 </template>
 
@@ -74,7 +75,9 @@
 		likeDynamic,
 		collectDynamic,
 		followUserFromCommunity,
-		commentDynamic
+		commentDynamic,
+		createCommunityCreateKey,
+		discardCommunityCreateKey
 	} from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
@@ -84,6 +87,8 @@
 	const loading = ref(false)
 	const draft = ref('')
 	const sending = ref(false)
+	const pendingCommentKey = ref('')
+	const pendingCommentFingerprint = ref('')
 	const applyVisible = ref(false)
 	const applyUserId = ref(0)
 	const reportVisible = ref(false)
@@ -123,25 +128,58 @@ const normalize = (item: any) => {
 			}
 		}
 
-	const load = async () => {
-		if (postId.value <= 0) return
-		loading.value = true
-		try {
-			const res = await getDynamicDetail(postId.value)
-			if (res.success) {
-				post.value = res.data
-				comments.value = res.data != null && res.data.comments != null ? res.data.comments : []
+const load = async () => {
+			if (postId.value <= 0) return
+			loading.value = true
+			try {
+				const res = await getDynamicDetail(postId.value)
+				if (res.success) {
+					post.value = res.data
+					comments.value = res.data != null && res.data.comments != null ? res.data.comments : []
+					if (res.data != null && res.data.commentsLoadError == true) {
+						uni.showToast({ title: '评论加载失败', icon: 'none' })
+					}
+				} else {
+					const msg =
+						res.data != null && res.data.message != null
+							? res.data.message
+							: res.message != null
+								? res.message
+								: '加载失败'
+					uni.showToast({ title: msg, icon: 'none' })
+				}
+			} catch (e) {
+				console.error(e)
+				uni.showToast({ title: '加载失败', icon: 'none' })
+			} finally {
+				loading.value = false
 			}
-		} catch (e) {
-			console.error(e)
-		} finally {
-			loading.value = false
 		}
+
+	const commentFingerprint = (text: string) => postId.value + '|' + text + '|0'
+	const discardPendingCommentKey = () => {
+		if (pendingCommentKey.value != '') {
+			discardCommunityCreateKey(pendingCommentKey.value)
+		}
+		pendingCommentKey.value = ''
+		pendingCommentFingerprint.value = ''
+	}
+	const shouldDiscardCommentKey = (res: any): boolean => {
+		if (res == null) return false
+		if (res.success == false) return res.code != null && res.code != -1
+		return res.data != null && res.data.success == false
 	}
 
 	const onDraft = (e: any) => {
 		draft.value = e.detail.value
+		if (pendingCommentFingerprint.value != '' && pendingCommentFingerprint.value != commentFingerprint(draft.value.trim())) {
+			discardPendingCommentKey()
+		}
 	}
+
+	onUnload(() => {
+		discardPendingCommentKey()
+	})
 
 	const focusComment = async () => {
 		// 底部输入即可
@@ -156,11 +194,18 @@ const submitComment = async () => {
 			const ok = await guardRealName('comment')
 			if (!ok) return
 			if (sending.value) return
+			const fingerprint = commentFingerprint(text)
+			if (pendingCommentKey.value == '' || pendingCommentFingerprint.value != fingerprint) {
+				discardPendingCommentKey()
+				pendingCommentKey.value = createCommunityCreateKey('comment')
+				pendingCommentFingerprint.value = fingerprint
+			}
 			sending.value = true
 			try {
 				const res = await commentDynamic({
 					dynamicId: postId.value,
-					content: text
+					content: text,
+					idempotencyKey: pendingCommentKey.value
 				})
 				const data = res != null ? res.data : null
 				const bizOk = res != null && res.success && (data == null || data.success != false)
@@ -169,9 +214,11 @@ const submitComment = async () => {
 					if (post.value != null) {
 						post.value.commentCount = (post.value.commentCount || 0) + 1
 					}
+					discardPendingCommentKey()
 					draft.value = ''
 					uni.showToast({ title: '已发送', icon: 'success' })
 				} else {
+					if (shouldDiscardCommentKey(res)) discardPendingCommentKey()
 					const msg = data != null && data.message != null ? data.message : '发送失败'
 					uni.showToast({ title: msg, icon: 'none' })
 				}
@@ -190,27 +237,43 @@ const submitComment = async () => {
 		uni.navigateTo({ url: `/pages/community/topic-detail?id=${id}` })
 	}
 
-	const onLike = async (id: number) => {
-		const ok = await guardRealName('like')
-		if (!ok) return
-		const res = await likeDynamic(id)
-		if (res.success && post.value != null) {
-			post.value.liked = res.data.liked
-			post.value.likeCount = res.data.likeCount
-		}
-	}
-
-	const onCollect = async (id: number) => {
-		const ok = await guardRealName('collect')
-		if (!ok) return
-		const res = await collectDynamic(id)
-		if (res.success && post.value != null) {
-			post.value.collected = res.data.collected
-			if (res.data.collectCount != null) {
-				post.value.collectCount = res.data.collectCount
+const onLike = async (id: number) => {
+			const ok = await guardRealName('like')
+			if (!ok) return
+			const res = await likeDynamic(id)
+			if (res.success && post.value != null && res.data != null) {
+				post.value.liked = res.data.liked
+				post.value.likeCount = res.data.likeCount
+			} else if (!res.success) {
+				const msg =
+					res.data != null && res.data.message != null
+						? res.data.message
+						: res.message != null
+							? res.message
+							: '点赞失败'
+				uni.showToast({ title: msg, icon: 'none' })
 			}
 		}
-	}
+
+		const onCollect = async (id: number) => {
+			const ok = await guardRealName('collect')
+			if (!ok) return
+			const res = await collectDynamic(id)
+			if (res.success && post.value != null && res.data != null) {
+				post.value.collected = res.data.collected
+				if (res.data.collectCount != null) {
+					post.value.collectCount = res.data.collectCount
+				}
+			} else if (!res.success) {
+				const msg =
+					res.data != null && res.data.message != null
+						? res.data.message
+						: res.message != null
+							? res.message
+							: '收藏失败'
+				uni.showToast({ title: msg, icon: 'none' })
+			}
+		}
 
 	const onFollow = async (userId: number) => {
 		const ok = await guardRealName('follow')
@@ -218,6 +281,14 @@ const submitComment = async () => {
 		const res = await followUserFromCommunity(userId)
 		if (res.success && post.value != null) {
 			post.value.followed = true
+		} else if (!res.success) {
+			const msg =
+				res.data != null && res.data.message != null
+					? res.data.message
+					: res.message != null
+						? res.message
+						: '关注失败'
+			uni.showToast({ title: msg, icon: 'none' })
 		}
 	}
 
@@ -234,12 +305,19 @@ const onApply = (userId: number) => {
 			}
 		}
 
-		const onMore = (dynamicId: number, userId: number) => {
-			reportTargetId.value = dynamicId
-			reportUserId.value = userId
-			reportVisible.value = true
-		}
-	</script>
+			const onMore = (dynamicId: number, userId: number) => {
+				reportTargetId.value = dynamicId
+				reportUserId.value = userId
+				reportVisible.value = true
+			}
+
+			const onBlocked = (_userId: number) => {
+				uni.showToast({ title: '已屏蔽，返回上一页', icon: 'none' })
+				setTimeout(() => {
+					uni.navigateBack()
+				}, 400)
+			}
+		</script>
 
 <style scoped>
 	.page {

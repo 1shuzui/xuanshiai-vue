@@ -23,9 +23,10 @@ const response = await getRecommendUser()
 `api/config.uts` 当前设置 `USE_MOCK = true`：
 
 - `true`：`request()` 返回 API 调用参数中的 `mockData`。
-- `false`：`request()` 调用 `uniCloud.callFunction`。
+- `false` 且 `API_CONFIG.useHttp = true`：HTTP 请求 FastAPI（`API_BASE_URL` + `API_PREFIX`，Bearer token）。
+- `false` 且 `useHttp = false`：回退 `uniCloud.callFunction`（`spaceId` 仍为占位）。
 
-配置中的 `spaceId` 是占位值，现有真实请求分支也没有形成完整的生产接口契约。不要把“关闭 Mock”描述成“一键完成上线”。
+社区联调路径对照与变更时间线见 [`COMMUNITY_HTTP_CHANGELOG.md`](./COMMUNITY_HTTP_CHANGELOG.md)。不要把“关闭 Mock”描述成“一键完成上线”。
 
 ## 4. 新增 API
 
@@ -48,9 +49,9 @@ Mock 与真实接口至少对齐字段名、类型、分页、状态码、错误
 
 | 模块 | 主要能力 |
 |---|---|
-| `user.uts` | 推荐、广场、详情、我的资料、喜欢、申请认识 |
-| `message.uts` | 消息列表、聊天记录、发送消息、认识申请 |
-| `community.uts` | 动态列表（tab/filter 分页 `list+hasMore`）、详情、话题列表分页 `getTopicList`、话题详情排序、话题加入、纸飞机收发、活动报名与我的活动、Banner、通知已读/未读数、配额、发布/评论、点赞/收藏/关注、举报/拉黑、同城城市 |
+| `user.uts` | 推荐、广场、详情、我的资料；`likeUser` / `applyToMeet` 已 Mock+HTTP 双路径（social like / discovery applications） |
+| `message.uts` | 消息列表、聊天记录、发送消息、认识申请（列表/处理仍以 Mock 为主，待接 discovery incoming/accept/reject） |
+| `community.uts` | 动态列表（tab/filter 分页 `list+hasMore`；关注 all 真路径并集）、详情、删帖/删评、话题、纸飞机收发/我的、活动、Banner、通知、配额、发布/评论、点赞/收藏/关注/取关、举报/拉黑、同城城市；`USE_MOCK=false` 时走 FastAPI |
 | `matchmaker.uts` | 服务红娘、志愿红娘、AI 推荐、套餐、预约 |
 
 ### 社区列表约定（Mock）

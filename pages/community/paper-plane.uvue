@@ -41,7 +41,7 @@
 			<view class="pad"></view>
 		</scroll-view>
 
-		<XsaSheet :visible="composerVisible" title="放飞纸飞机" @close="composerVisible = false">
+		<XsaSheet :visible="composerVisible" title="放飞纸飞机" @close="closeComposer">
 			<view class="composer">
 				<textarea
 					class="ta"
@@ -55,7 +55,7 @@
 			</view>
 		</XsaSheet>
 
-		<XsaSheet :visible="replyVisible" title="回复纸飞机" @close="replyVisible = false">
+		<XsaSheet :visible="replyVisible" title="回复纸飞机" @close="closeReply">
 			<view class="composer">
 				<textarea
 					class="ta"
@@ -86,7 +86,7 @@
 	import XsaEmpty from '@/components/XsaEmpty.uvue'
 	import XsaSheet from '@/components/XsaSheet.uvue'
 	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
-	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas } from '@/api'
+	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas, createCommunityCreateKey, discardCommunityCreateKey } from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
 	const planes = ref([])
@@ -104,6 +104,10 @@
 	const reportVisible = ref(false)
 	const reportTargetId = ref(0)
 	const reportUserId = ref(0)
+	const pendingSendKey = ref('')
+	const pendingSendFingerprint = ref('')
+	const pendingReplyKey = ref('')
+	const pendingReplyFingerprint = ref('')
 
 	onMounted(() => {
 		load()
@@ -136,6 +140,24 @@
 		}
 	}
 
+	const sendFingerprint = (text: string) => text + '|city|true'
+	const replyFingerprint = (planeId: number, text: string) => planeId + '|' + text + '|true'
+	const discardPendingSendKey = () => {
+		if (pendingSendKey.value != '') discardCommunityCreateKey(pendingSendKey.value)
+		pendingSendKey.value = ''
+		pendingSendFingerprint.value = ''
+	}
+	const discardPendingReplyKey = () => {
+		if (pendingReplyKey.value != '') discardCommunityCreateKey(pendingReplyKey.value)
+		pendingReplyKey.value = ''
+		pendingReplyFingerprint.value = ''
+	}
+	const shouldDiscardCreateKey = (res: any): boolean => {
+		if (res == null) return false
+		if (res.success == false) return res.code != null && res.code != -1
+		return res.data != null && res.data.success == false
+	}
+
 	const openComposer = async () => {
 		if (remain.value <= 0) {
 			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
@@ -143,58 +165,105 @@
 		}
 		const ok = await guardRealName('paperPlane')
 		if (!ok) return
+		discardPendingSendKey()
 		draft.value = ''
 		composerVisible.value = true
 	}
 
+	const closeComposer = () => {
+		discardPendingSendKey()
+		draft.value = ''
+		composerVisible.value = false
+	}
+
+	const closeReply = () => {
+		discardPendingReplyKey()
+		replyDraft.value = ''
+		replyTarget = null
+		replyVisible.value = false
+	}
+
 	const onDraft = (e: any) => {
 		draft.value = e.detail.value
+		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+			discardPendingSendKey()
+		}
 	}
 
 	const onReplyDraft = (e: any) => {
 		replyDraft.value = e.detail.value
-	}
-
-	const send = async () => {
-			const text = draft.value.trim()
-			if (text.length == 0 || sending.value) return
-			if (remain.value <= 0) {
-				uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
-				return
-			}
-			sending.value = true
-			try {
-				const res = await sendPaperPlane({
-					content: text,
-					scope: 'city',
-					anonymous: true
-				})
-				const data = res != null ? res.data : null
-				const bizOk = res != null && res.success && data != null && data.success != false
-				if (bizOk) {
-					if (data.plane != null) {
-						planes.value.unshift(data.plane)
-					}
-					if (data.quotas != null) {
-						remain.value = data.quotas.remain
-					} else {
-						remain.value = Math.max(0, remain.value - 1)
-					}
-					composerVisible.value = false
-					uni.showToast({ title: '已放飞', icon: 'success' })
-				} else {
-					const msg = data != null && data.message != null ? data.message : '放飞失败'
-					uni.showToast({ title: msg, icon: 'none' })
-					if (data != null && data.remain != null) {
-						remain.value = data.remain
-					}
-				}
-			} catch (e) {
-				uni.showToast({ title: '网络异常', icon: 'none' })
-			} finally {
-				sending.value = false
+		if (replyTarget != null && pendingReplyFingerprint.value != '') {
+			const content = replyDraft.value.trim()
+			if (pendingReplyFingerprint.value != replyFingerprint(replyTarget.id, content)) {
+				discardPendingReplyKey()
 			}
 		}
+	}
+
+	onUnload(() => {
+		discardPendingSendKey()
+		discardPendingReplyKey()
+	})
+
+	const send = async () => {
+		const text = draft.value.trim()
+		if (text.length == 0 || sending.value) return
+		if (remain.value <= 0) {
+			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+			return
+		}
+		const fingerprint = sendFingerprint(text)
+		if (pendingSendKey.value == '' || pendingSendFingerprint.value != fingerprint) {
+			discardPendingSendKey()
+			pendingSendKey.value = createCommunityCreateKey('paper-plane')
+			pendingSendFingerprint.value = fingerprint
+		}
+		sending.value = true
+		try {
+			const res = await sendPaperPlane({
+				content: text,
+				anonymous: true,
+				scope: 'city',
+				idempotencyKey: pendingSendKey.value
+			})
+			const data = res != null ? res.data : null
+			const bizOk = res != null && res.success && data != null && data.success != false
+			if (bizOk) {
+				discardPendingSendKey()
+				if (data.plane != null) {
+					;(planes.value as any[]).unshift(data.plane)
+				} else {
+					await load()
+				}
+				if (data.quotas != null && data.quotas.remain != null) {
+					remain.value = data.quotas.remain
+					if (data.quotas.total != null) total.value = data.quotas.total
+				} else if (data.remain != null) {
+					remain.value = data.remain
+				} else {
+					remain.value = Math.max(0, remain.value - 1)
+				}
+				composerVisible.value = false
+				uni.showToast({ title: '已放飞', icon: 'success' })
+			} else {
+				if (shouldDiscardCreateKey(res)) discardPendingSendKey()
+				const msg =
+					data != null && data.message != null
+						? data.message
+						: res != null && res.message != null
+							? res.message
+							: '放飞失败'
+				uni.showToast({ title: msg, icon: 'none' })
+				if (data != null && data.remain != null) {
+					remain.value = data.remain
+				}
+			}
+		} catch (e) {
+			uni.showToast({ title: '网络异常', icon: 'none' })
+		} finally {
+			sending.value = false
+		}
+	}
 
 	const reply = async (p: any) => {
 		if (p.replied) {
@@ -203,6 +272,7 @@
 		}
 		const ok = await guardRealName('paperPlane')
 		if (!ok) return
+		discardPendingReplyKey()
 		replyTarget = p
 		replyDraft.value = ''
 		replyVisible.value = true
@@ -211,19 +281,36 @@
 	const submitReply = async () => {
 		const content = replyDraft.value.trim()
 		if (replying.value || content.length == 0 || replyTarget == null) return
+		const p = replyTarget
+		const fingerprint = replyFingerprint(p.id, content)
+		if (pendingReplyKey.value == '' || pendingReplyFingerprint.value != fingerprint) {
+			discardPendingReplyKey()
+			pendingReplyKey.value = createCommunityCreateKey('paper-plane-reply')
+			pendingReplyFingerprint.value = fingerprint
+		}
 		replying.value = true
 		try {
-			const res = await replyPaperPlane(replyTarget.id, content)
+			const res = await replyPaperPlane(p.id, content, pendingReplyKey.value)
 			const data = res != null ? res.data : null
-			const bizOk = res != null && res.success && data != null && data.success != false
-			if (bizOk) {
-				replyTarget.replied = true
-				if (data.replyCount != null) replyTarget.replyCount = data.replyCount
+			const replyOk = res != null && res.success && (res.data == null || res.data.success != false)
+			if (replyOk) {
+				discardPendingReplyKey()
+				p.replied = true
+				p.replyCount += 1
+				if (data != null && data.replyCount != null) {
+					p.replyCount = data.replyCount
+				}
 				replyVisible.value = false
 				replyTarget = null
 				uni.showToast({ title: '已回复', icon: 'success' })
 			} else {
-				const message = data != null && data.message != null ? data.message : '回复失败'
+				if (shouldDiscardCreateKey(res)) discardPendingReplyKey()
+				const message =
+					data != null && data.message != null
+						? data.message
+						: res != null && res.message != null
+							? res.message
+							: '回复失败'
 				uni.showToast({ title: message, icon: 'none' })
 			}
 		} catch (e) {

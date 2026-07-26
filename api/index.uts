@@ -55,13 +55,20 @@ export {
   likeDynamic,
   collectDynamic,
   followUserFromCommunity,
+  unfollowUserFromCommunity,
+  deleteDynamic,
+  deleteComment,
   commentDynamic,
   reportContent,
   blockUser,
   getReportReasons,
-  getCurrentCity,
-  setCurrentCity
-} from './community.uts'
+getCurrentCity,
+	  setCurrentCity,
+	  COMMUNITY_CITY_OPTIONS,
+	  getMyPaperPlanes,
+	  createCommunityCreateKey,
+	  discardCommunityCreateKey
+	} from './community.uts'
 
 // 牵线/红娘相关
 export {

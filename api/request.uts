@@ -1,89 +1,57 @@
 /**
  * 统一请求封装
- * 自动根据 USE_MOCK 配置决定返回 Mock 数据还是真实 API
+ * - USE_MOCK=true：返回 mockData
+ * - USE_MOCK=false + useHttp=true：HTTP 调 FastAPI（Bearer）
+ * - USE_MOCK=false + useHttp=false：uniCloud.callFunction
  */
 
-import { USE_MOCK, API_CONFIG, MOCK_DELAY } from './config.uts'
-
-// 兼容项目里旧的 API 调用约定，避免 HBuilderX 增量编译时仍引用历史类型名。
-export class RequestOptions {
-  url : string = ''
-  method ?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
-  data ?: any
-  skipAuth ?: boolean
-  mockData ?: any
-  forceHttp ?: boolean
-  mockFallback ?: boolean
-  cloudFunctionName ?: string
-  action ?: string
-}
-
-export class RequestResult {
-  ok : boolean = false
-  success : boolean = false
-  data ?: any
-  error ?: string
-  message ?: string
-  code ?: number
-}
-
-export function getAccessToken() {
-  const token = uni.getStorageSync('access_token')
-  return token != null ? String(token) : ''
-}
-
-export function getRefreshToken() {
-  const token = uni.getStorageSync('refresh_token')
-  return token != null ? String(token) : ''
-}
-
-export function setTokens(accessToken : string, refreshToken : string) {
-  uni.setStorageSync('access_token', accessToken)
-  uni.setStorageSync('refresh_token', refreshToken)
-}
-
-export function clearTokens() {
-  uni.removeStorageSync('access_token')
-  uni.removeStorageSync('refresh_token')
-}
+import {
+  USE_MOCK,
+  API_CONFIG,
+  MOCK_DELAY,
+  getAccessToken,
+  clearAuthTokens,
+  buildApiUrl
+} from './config.uts'
 
 /**
  * 统一请求方法
- * @param options 请求配置
- * @returns Promise
+ * options:
+ *  - url: string 路径（/community/posts 或完整 http）
+ *  - method: GET|POST|PUT|DELETE
+ *  - data: query 或 body
+ *  - mockData: Mock 模式返回值
+ *  - cloudFunctionName / action: 云函数回退
+ *  - headers: 额外请求头
+ *  - skipAuth: 跳过 Authorization
+ *  - raw: true 时不包 success 层（少用）
  */
 export async function request(options: any) {
-  if (options.forceHttp === true) {
-    try {
-      return await httpRequest(options)
-    } catch (err) {
-      if (options.mockFallback === true && options.mockData !== null && options.mockData !== undefined) {
-        console.warn('⚠️ [HTTP Request Fallback To Mock]', options.url)
-        return mockRequest(options)
-      }
-      throw err
-    }
-  }
-
-  // 开发模式：返回 Mock 数据
   if (USE_MOCK) {
     return mockRequest(options)
   }
-
-  // 生产模式：调用真实 uniCloud 云函数
-  return realRequest(options)
+  if (API_CONFIG.useHttp == true) {
+    return httpRequest(options)
+  }
+  return realCloudRequest(options)
 }
 
-/**
- * Mock 请求（开发阶段）
- */
 async function mockRequest(options: any) {
   console.log('📦 [Mock Request]', options.url, options.data)
-
-  // 模拟网络延迟
   await sleep(MOCK_DELAY)
-
-  // 返回 Mock 数据
+  // 允许 mock 侧直接给出失败包
+  if (
+    options.mockData != null &&
+    typeof options.mockData === 'object' &&
+    options.mockData.success === false
+  ) {
+    return {
+      success: false,
+      data: options.mockData,
+      code: options.mockData.code != null ? options.mockData.code : -1,
+      message: options.mockData.message != null ? options.mockData.message : 'error'
+    }
+  }
   return {
     success: true,
     data: options.mockData,
@@ -92,12 +60,120 @@ async function mockRequest(options: any) {
   }
 }
 
-/**
- * 真实请求（生产阶段）
- */
-async function realRequest(options: any) {
-  console.log('🌐 [Real Request]', options.url, options.data)
+function extractDetail(data: any): string {
+  if (data == null) return '请求失败'
+  if (typeof data === 'string') return data
+  if (data.detail != null) {
+    if (typeof data.detail === 'string') return data.detail
+    if (Array.isArray(data.detail) && data.detail.length > 0) {
+      const first = data.detail[0]
+      if (first != null && first.msg != null) return '' + first.msg
+      return JSON.stringify(data.detail)
+    }
+  }
+  if (data.message != null) return '' + data.message
+  return '请求失败'
+}
 
+async function httpRequest(options: any) {
+  const methodRaw = options.method != null ? ('' + options.method).toUpperCase() : 'GET'
+  const method = methodRaw
+  const urlPath = options.url != null ? ('' + options.url) : ''
+  let url = buildApiUrl(urlPath)
+  const headers: any = {
+    'Content-Type': 'application/json'
+  }
+  if (options.headers != null) {
+    const extra = options.headers
+    const keys = Object.keys(extra)
+    for (let i = 0; i < keys.length; i++) {
+      headers[keys[i]] = extra[keys[i]]
+    }
+  }
+  if (options.skipAuth != true) {
+    const token = getAccessToken()
+    if (token != '') {
+      headers['Authorization'] = 'Bearer ' + token
+    }
+  }
+
+  let body: any = null
+  const data = options.data
+  if (method == 'GET' || method == 'DELETE') {
+    if (data != null && typeof data === 'object') {
+      const parts: string[] = []
+      const keys = Object.keys(data)
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i]
+        const v = data[k]
+        if (v == null) continue
+        if (Array.isArray(v)) {
+          for (let j = 0; j < v.length; j++) {
+            parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v[j]))
+          }
+        } else {
+          parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v))
+        }
+      }
+      if (parts.length > 0) {
+        url = url + (url.indexOf('?') >= 0 ? '&' : '?') + parts.join('&')
+      }
+    }
+  } else {
+    body = data != null ? data : {}
+  }
+
+  console.log('🌐 [HTTP Request]', method, url)
+
+  return new Promise((resolve) => {
+    uni.request({
+      url: url,
+      method: method as any,
+      data: body,
+      header: headers,
+      timeout: API_CONFIG.timeout,
+      success: (res: any) => {
+        const status = res.statusCode != null ? (res.statusCode as number) : 0
+        const raw = res.data
+        if (status == 204) {
+          resolve({ success: true, data: null, code: 0, message: 'success' })
+          return
+        }
+        if (status >= 200 && status < 300) {
+          resolve({
+            success: true,
+            data: raw,
+            code: 0,
+            message: 'success'
+          })
+          return
+        }
+        if (status == 401) {
+          clearAuthTokens()
+        }
+        const message = extractDetail(raw)
+        resolve({
+          success: false,
+          data: raw,
+          code: status,
+          message: message
+        })
+      },
+      fail: (err: any) => {
+        console.error('❌ [HTTP Error]', err)
+        resolve({
+          success: false,
+          data: null,
+          code: -1,
+          message: err != null && err.errMsg != null ? err.errMsg : '网络请求失败'
+        })
+      }
+    })
+  })
+}
+
+async function realCloudRequest(options: any) {
+  console.log('☁️ [Cloud Request]', options.url, options.data)
   return new Promise((resolve, reject) => {
     uniCloud.callFunction({
       name: options.cloudFunctionName,
@@ -126,86 +202,6 @@ async function realRequest(options: any) {
   })
 }
 
-/**
- * 直连 FastAPI HTTP 请求
- */
-async function httpRequest(options: any) {
-  const requestUrl = buildHttpUrl(options.url)
-  const requestHeader: any = {
-    'Content-Type': 'application/json'
-  }
-
-  if (options.skipAuth !== true) {
-    const accessToken = getAccessToken()
-    if (accessToken.length > 0) {
-      requestHeader['Authorization'] = 'Bearer ' + accessToken
-    }
-  }
-
-  console.log('🌐 [HTTP Request]', requestUrl, options.data)
-
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: requestUrl,
-      method: options.method || 'GET',
-      data: options.data,
-      timeout: API_CONFIG.timeout,
-      header: requestHeader,
-      success: (res: any) => {
-        const statusCode = res.statusCode || 0
-        if (statusCode >= 200 && statusCode < 300) {
-          resolve({
-            success: true,
-            data: res.data,
-            code: statusCode,
-            message: extractResponseMessage(res.data, 'success')
-          })
-          return
-        }
-
-        const errorMessage = extractResponseMessage(res.data, '请求失败')
-        console.error('❌ [HTTP Response Error]', statusCode, res.data)
-        reject({
-          success: false,
-          data: res.data,
-          code: statusCode,
-          message: errorMessage
-        })
-      },
-      fail: (err: any) => {
-        console.error('❌ [HTTP Request Error]', err)
-        reject({
-          success: false,
-          data: null,
-          code: err.errCode || -1,
-          message: err.errMsg || err.message || '请求失败'
-        })
-      }
-    })
-  })
-}
-
-function buildHttpUrl(path: string) {
-  const base = API_CONFIG.httpBaseUrl
-  if (base.endsWith('/') && path.startsWith('/')) {
-    return base + path.slice(1)
-  }
-  if (!base.endsWith('/') && !path.startsWith('/')) {
-    return base + '/' + path
-  }
-  return base + path
-}
-
-function extractResponseMessage(data: any, fallback: string) {
-  if (data == null) return fallback
-  if (data.message != null) return String(data.message)
-  if (data.detail != null) return String(data.detail)
-  return fallback
-}
-
-/**
- * 延迟函数
- */
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
