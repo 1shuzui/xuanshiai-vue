@@ -138,6 +138,34 @@
 			}
 		},
 		{
+			"path": "pages/community/dating-plane",
+			"style": {
+				"navigationBarTitleText": "脱单纸飞机",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/community/dating-plane-compose",
+			"style": {
+				"navigationBarTitleText": "脱单纸飞机",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/community/paper-plane-messages",
+			"style": {
+				"navigationBarTitleText": "纸飞机消息",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/community/paper-plane-sent",
+			"style": {
+				"navigationBarTitleText": "我发出的",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/community/notifications",
 			"style": {
 				"navigationBarTitleText": "社区通知"

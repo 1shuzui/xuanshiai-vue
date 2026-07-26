@@ -1,0 +1,91 @@
+<template>
+	<view class="page">
+		<view class="topbar" :style="{ paddingTop: statusBarHeight + 'px' }">
+			<button class="back-button" @click="goBack">‹</button>
+			<text class="topbar-title">我发出的</text>
+			<view class="topbar-placeholder"></view>
+		</view>
+
+		<scroll-view class="content" scroll-y>
+			<view v-if="sentPlanes.length > 0" class="sent-list">
+				<view v-for="item in sentPlanes" :key="item.id" class="sent-card">
+					<view class="sent-card-head">
+						<view class="sent-type"><text>✈</text><text>{{ item.type == 'voice' ? '语音纸飞机' : '文字纸飞机' }}</text></view>
+						<text class="sent-time">{{ item.timeText }}</text>
+					</view>
+					<text class="sent-content">{{ item.type == 'voice' ? '一段语音纸飞机' : item.content }}</text>
+					<view class="sent-card-foot">
+						<text>{{ item.replyCount > 0 ? item.replyCount + ' 人回应了这架纸飞机' : '还没有收到回应' }}</text>
+						<text class="sent-status">{{ item.replyCount > 0 ? '已送达' : '飞行中' }}</text>
+					</view>
+				</view>
+			</view>
+
+			<view v-else class="empty-state">
+				<view class="empty-icon"><text>✈</text></view>
+				<text class="empty-title">还没有发出的纸飞机</text>
+				<text class="empty-desc">写下一句想说的话，让它轻轻飞出去</text>
+			</view>
+		</scroll-view>
+
+		<view class="retention-note"><text>只保留最近五天扔出去的纸飞机</text></view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { getSentPaperPlanes } from '@/api'
+
+	const systemInfo = uni.getSystemInfoSync()
+	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+	const sentPlanes = ref([] as any[])
+
+	onMounted(() => {
+		loadSentPlanes()
+	})
+
+	onShow(() => {
+		loadSentPlanes()
+	})
+
+	const loadSentPlanes = async () => {
+		try {
+			const res = await getSentPaperPlanes()
+			if (res != null && res.success && Array.isArray(res.data)) {
+				sentPlanes.value = res.data as any[]
+			}
+		} catch (e) {
+			console.error(e)
+		}
+	}
+
+	const goBack = () => {
+		uni.navigateBack()
+	}
+</script>
+
+<style scoped>
+	.page { height: 100%; min-height: 0; width: 100vw; overflow: hidden; display: flex; flex-direction: column; background: #F6F2FF; }
+	/* #ifdef H5 */
+	.page { height: 100vh; }
+	/* #endif */
+	.topbar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #E6DDF5; }
+	.back-button, .topbar-placeholder { width: 36px; height: 36px; }
+	.back-button { border-radius: 18px; background: #EEE8FF; color: #5635A1; font-size: 26px; line-height: 29px; }
+	.back-button::after { border: none; }
+	.topbar-title { font-size: 17px; font-weight: 800; color: #24143E; }
+	.content { flex: 1; min-height: 0; padding: 16px 14px 78px; box-sizing: border-box; }
+	.sent-list { display: flex; flex-direction: column; gap: 12px; }
+	.sent-card { padding: 15px; border-radius: 19px; background: #FFFFFF; border: 1px solid #E4D8FA; box-shadow: 0 7px 18px rgba(82, 52, 145, 0.07); }
+	.sent-card-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
+	.sent-type { display: flex; flex-direction: row; align-items: center; gap: 5px; color: #7450C8; font-size: 11px; font-weight: 800; }
+	.sent-type text:first-child { font-size: 17px; }
+	.sent-time { font-size: 10px; color: #A49AAF; }
+	.sent-content { display: block; margin-top: 11px; font-size: 16px; line-height: 1.55; font-family: var(--serif); color: #382B4D; }
+	.sent-card-foot { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 11px; border-top: 1px solid #F0EBF7; color: #968CA3; font-size: 11px; }
+	.sent-status { padding: 3px 7px; border-radius: 7px; background: #F1E9FF; color: #7250BB; font-size: 10px; font-weight: 800; }
+	.empty-state { min-height: 340px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; }
+	.empty-icon { width: 62px; height: 62px; display: flex; align-items: center; justify-content: center; border-radius: 21px; background: #EAE2FF; color: #8260CC; font-size: 28px; }
+	.empty-title { margin-top: 3px; font-size: 16px; font-weight: 800; color: #4B3C62; }
+	.empty-desc { font-size: 12px; color: #A49AAF; }
+	.retention-note { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 15px 12px calc(15px + env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.96); border-top: 1px solid #E8E1F1; color: #AAA1B1; font-size: 11px; }
+</style>

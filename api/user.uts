@@ -54,6 +54,109 @@ function extractHttpMessage(res: any, fallback: string): string {
   return fallback
 }
 
+const CHAT_FEATURE_UNLOCK_STORAGE_KEY = 'xsa_chat_feature_unlocks_v1'
+export const CHAT_FEATURE_UNLOCK_COST = 80
+let chatFeatureUnlocksLoaded = false
+const chatFeatureUnlocks: any = {
+  album: false,
+  camera: false,
+  profile: false
+}
+
+function restoreChatFeatureUnlocks() {
+  if (chatFeatureUnlocksLoaded) return
+  chatFeatureUnlocksLoaded = true
+  try {
+    const saved = uni.getStorageSync(CHAT_FEATURE_UNLOCK_STORAGE_KEY) as any
+    if (saved == null || typeof saved !== 'object') return
+    chatFeatureUnlocks.album = saved.album == true
+    chatFeatureUnlocks.camera = saved.camera == true
+    chatFeatureUnlocks.profile = saved.profile == true
+    if (saved.points != null && Number(saved.points) >= 0) {
+      mockMeProfile.points = Number(saved.points)
+    }
+  } catch (e) {
+    console.error('恢复聊天功能解锁状态失败', e)
+  }
+}
+
+function saveChatFeatureUnlocks() {
+  uni.setStorageSync(CHAT_FEATURE_UNLOCK_STORAGE_KEY, {
+    album: chatFeatureUnlocks.album == true,
+    camera: chatFeatureUnlocks.camera == true,
+    profile: chatFeatureUnlocks.profile == true,
+    points: mockMeProfile.points
+  })
+}
+
+/** 获取聊天页的付费功能解锁状态及当前积分余额。 */
+export async function getChatFeatureUnlocks() {
+  restoreChatFeatureUnlocks()
+  return request({
+    url: '/user/chat-feature-unlocks',
+    cloudFunctionName: 'user',
+    action: 'getChatFeatureUnlocks',
+    method: 'GET',
+    mockData: {
+      album: chatFeatureUnlocks.album == true,
+      camera: chatFeatureUnlocks.camera == true,
+      profile: chatFeatureUnlocks.profile == true,
+      points: mockMeProfile.points,
+      cost: CHAT_FEATURE_UNLOCK_COST
+    }
+  })
+}
+
+/** 首次使用聊天相册、拍摄或查看主页时扣除 80 积分，后续使用不再扣费。 */
+export async function unlockChatFeature(feature: string) {
+  restoreChatFeatureUnlocks()
+  const supported = feature == 'album' || feature == 'camera' || feature == 'profile'
+  if (!supported) {
+    return request({
+      url: '/user/chat-feature-unlocks',
+      cloudFunctionName: 'user',
+      action: 'unlockChatFeature',
+      method: 'POST',
+      data: { feature },
+      mockData: { success: false, message: '暂不支持该解锁功能' }
+    })
+  }
+
+  if (chatFeatureUnlocks[feature] == true) {
+    return request({
+      url: '/user/chat-feature-unlocks',
+      cloudFunctionName: 'user',
+      action: 'unlockChatFeature',
+      method: 'POST',
+      data: { feature },
+      mockData: { success: true, alreadyUnlocked: true, feature, points: mockMeProfile.points }
+    })
+  }
+
+  if (mockMeProfile.points < CHAT_FEATURE_UNLOCK_COST) {
+    return request({
+      url: '/user/chat-feature-unlocks',
+      cloudFunctionName: 'user',
+      action: 'unlockChatFeature',
+      method: 'POST',
+      data: { feature },
+      mockData: { success: false, code: 'INSUFFICIENT_POINTS', message: '积分不足，无法解锁该功能', points: mockMeProfile.points }
+    })
+  }
+
+  mockMeProfile.points -= CHAT_FEATURE_UNLOCK_COST
+  chatFeatureUnlocks[feature] = true
+  saveChatFeatureUnlocks()
+  return request({
+    url: '/user/chat-feature-unlocks',
+    cloudFunctionName: 'user',
+    action: 'unlockChatFeature',
+    method: 'POST',
+    data: { feature },
+    mockData: { success: true, feature, points: mockMeProfile.points, cost: CHAT_FEATURE_UNLOCK_COST }
+  })
+}
+
 /**
  * 获取推荐用户（支持轮换 index）
  */

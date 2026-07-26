@@ -11,7 +11,9 @@ export {
   getUserDetail,
   getMeProfile,
   applyToMeet,
-  likeUser
+  likeUser,
+  getChatFeatureUnlocks,
+  unlockChatFeature
 } from './user.uts'
 
 // 消息相关
@@ -35,6 +37,10 @@ export {
   getPaperPlanes,
   sendPaperPlane,
   replyPaperPlane,
+  getPaperPlaneConversations,
+  getSentPaperPlanes,
+  getPaperPlaneUnreadCount,
+  markPaperPlaneConversationRead,
   getActivities,
   getActivityDetail,
   signupActivity,
@@ -56,22 +62,21 @@ export {
   reportContent,
   blockUser,
   getReportReasons,
-getCurrentCity,
-	  setCurrentCity,
-	  COMMUNITY_CITY_OPTIONS,
-	  getMyPaperPlanes,
-	  likeComment,
+  getCurrentCity,
+  setCurrentCity,
+  COMMUNITY_CITY_OPTIONS,
+  getMyPaperPlanes,
+  likeComment,
   uploadMedia,
   uploadCommunityMedia,
   deleteCommunityMedia,
-  getPaperPlaneConversations,
   getPaperPlaneMessages,
   sendPaperPlaneMessage,
   readPaperPlaneConversation,
   endPaperPlaneConversation,
   createCommunityCreateKey,
-	  discardCommunityCreateKey
-	} from './community.uts'
+  discardCommunityCreateKey
+} from './community.uts'
 
 // 牵线/红娘相关
 export {
