@@ -491,15 +491,13 @@ const submitApplication = async () => {
 		const result = await submitMatchmakerApplication(formData)
 
 		if (result.success) {
-			uni.showModal({
-				title: '申请已提交',
-				content: '平台将在 1-3 个工作日内完成审核，审核结果将通过短信通知你。请保持手机畅通。',
-				showCancel: false,
-				confirmText: '知道了',
-				success: () => {
-					uni.navigateBack()
-				}
+			const applicationId = result.data != null && result.data.id != null ? String(result.data.id) : ''
+			const isMock = result.data != null && result.data.source == 'mock'
+			uni.redirectTo({
+				url: '/pages/matchmaker/application-success?type=service_matchmaker&id=' + applicationId + '&mock=' + (isMock ? '1' : '0')
 			})
+		} else {
+			showToast(result.message != null ? result.message : '提交失败，请稍后重试')
 		}
 	} catch (e) {
 		showToast('提交失败，请稍后重试')

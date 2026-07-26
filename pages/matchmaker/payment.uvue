@@ -1,0 +1,169 @@
+<template>
+	<view class="payment-page">
+		<scroll-view scroll-y class="page-scroller" :show-scrollbar="false">
+			<view class="page-content">
+				<view class="progress-band">
+					<view class="progress-step done"><text class="progress-number">1</text><text class="progress-label">填写资料</text></view>
+					<view class="progress-line done"></view>
+					<view class="progress-step" :class="{ done: paymentSuccess }"><text class="progress-number">2</text><text class="progress-label">确认付款</text></view>
+					<view class="progress-line" :class="{ done: paymentSuccess }"></view>
+					<view class="progress-step" :class="{ done: paymentSuccess }"><text class="progress-number">3</text><text class="progress-label">提交成功</text></view>
+				</view>
+
+				<view v-if="loading" class="state-panel"><text>正在确认申请资料...</text></view>
+
+				<view v-else-if="loadError" class="state-panel">
+					<text class="state-title">未找到待付款申请</text>
+					<text class="state-copy">请从私人定制套餐页重新填写资料后再付款。</text>
+					<view class="state-action" @click="goBackToCustom"><text>返回私人定制</text></view>
+				</view>
+
+				<view v-else-if="paymentSuccess" class="success-panel">
+					<view class="success-mark"><text>OK</text></view>
+					<text class="success-title">提交成功</text>
+					<text class="success-copy">付款已确认，专属红娘会在核对资料后联系你，请保持手机畅通。</text>
+					<view class="success-order"><text>订单号</text><text>{{ application.orderNo }}</text></view>
+					<view class="success-action" @click="goBackToCustom"><text>返回私人定制</text></view>
+				</view>
+
+				<view v-else-if="application != null" class="payment-content">
+					<view class="page-intro">
+						<text class="intro-kicker">私人定制</text>
+						<text class="intro-title">确认服务与付款</text>
+						<text class="intro-copy">付款完成后，牵线申请将提交给专属红娘处理。</text>
+					</view>
+
+					<view class="summary-section">
+						<text class="section-label">服务套餐</text>
+						<view class="summary-row"><view><text class="plan-name">{{ application.planName }}</text><text class="plan-duration">{{ application.planDuration }}</text></view><text class="plan-price">¥{{ application.planPrice }}</text></view>
+					</view>
+
+					<view class="summary-section">
+						<text class="section-label">申请资料</text>
+						<view class="info-row"><text>申请人</text><text>{{ application.realName }}</text></view>
+						<view class="info-row"><text>所在城市</text><text>{{ application.city }}</text></view>
+						<view class="info-row"><text>择偶要求</text><text class="requirements-text">{{ application.requirements }}</text></view>
+					</view>
+
+					<view class="payment-method">
+						<view class="method-icon"><text>微</text></view>
+						<view><text class="method-name">微信支付</text><text class="method-copy">安全支付，完成后立即提交申请</text></view>
+						<view class="method-selected"><text>✓</text></view>
+					</view>
+				</view>
+			</view>
+		</scroll-view>
+
+		<view v-if="application != null && !loading && !loadError && !paymentSuccess" class="footer-safe">
+			<view class="pay-button" :class="{ disabled: paying }" @click="confirmPayment"><text>{{ paying ? '支付确认中…' : '确认支付 ¥' + application.planPrice }}</text></view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+import { getCustomServiceApplicationDraft, payCustomServiceApplication } from '@/api'
+
+const draftId = ref('')
+const application = ref<any>(null)
+const loading = ref(true)
+const loadError = ref(false)
+const paying = ref(false)
+const paymentSuccess = ref(false)
+
+const loadDraft = () => {
+	loading.value = true
+	loadError.value = false
+	const result = getCustomServiceApplicationDraft(draftId.value)
+	if (!result.success || result.data == null) {
+		loadError.value = true
+		application.value = null
+		loading.value = false
+		return
+	}
+	application.value = result.data
+	paymentSuccess.value = result.data.paymentStatus == 'paid' && result.data.applicationStatus == 'submitted'
+	loading.value = false
+}
+
+onMounted(() => {
+	try {
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = currentPage.options
+		draftId.value = options != null && options.draftId != null ? decodeURIComponent(options.draftId) : ''
+	} catch (e) {}
+	if (draftId.value.length == 0) {
+		loading.value = false
+		loadError.value = true
+		return
+	}
+	loadDraft()
+})
+
+const confirmPayment = async () => {
+	if (paying.value || application.value == null) return
+	try {
+		paying.value = true
+		const result = await payCustomServiceApplication(draftId.value)
+		if (!result.success || result.data == null) {
+			uni.showToast({ title: result.message != null ? result.message : '付款确认失败', icon: 'none' })
+			return
+		}
+		application.value = result.data
+		paymentSuccess.value = true
+	} catch (e) {
+		uni.showToast({ title: '付款确认失败，请稍后重试', icon: 'none' })
+	} finally {
+		paying.value = false
+	}
+}
+
+const goBackToCustom = () => {
+	// Fixed flow: matchmaker home -> custom -> application -> payment.
+	// Both payment and application pages leave the stack together.
+	uni.navigateBack({ delta: 2 })
+}
+</script>
+
+<style scoped>
+.payment-page { min-height: 100vh; background: var(--canvas); }
+.page-scroller { height: 100vh; }
+.page-content { padding: 30rpx 32rpx 190rpx; display: flex; flex-direction: column; gap: 28rpx; }
+.progress-band { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; }
+.progress-step { width: 128rpx; display: flex; flex-direction: column; align-items: center; gap: 10rpx; color: var(--muted); }
+.progress-number { width: 42rpx; height: 42rpx; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 22rpx; font-weight: 800; }
+.progress-label { font-size: 20rpx; white-space: nowrap; }
+.progress-step.done { color: var(--accent2); }
+.progress-step.done .progress-number { border-color: var(--accent); background: var(--accent); color: var(--paper); }
+.progress-line { flex: 1; height: 2rpx; margin-top: 20rpx; background: var(--line); }
+.progress-line.done { background: var(--accent); }
+.page-intro { padding: 34rpx 28rpx; border-radius: 24rpx; background: var(--navy); display: flex; flex-direction: column; gap: 12rpx; }
+.intro-kicker { font-size: 20rpx; letter-spacing: .08em; font-weight: 800; color: var(--soft); }
+.intro-title { font-size: 40rpx; font-family: var(--serif); font-weight: 700; color: var(--paper); }
+.intro-copy { font-size: 22rpx; line-height: 1.65; color: rgba(250, 252, 252, .76); }
+.payment-content { display: flex; flex-direction: column; gap: 22rpx; }
+.summary-section { padding: 28rpx; border-radius: 22rpx; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 18rpx; }
+.section-label { font-size: 22rpx; color: var(--muted); }
+.summary-row { display: flex; flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 18rpx; }
+.plan-name { display: block; font-size: 32rpx; font-family: var(--serif); font-weight: 700; color: var(--ink); }
+.plan-duration { display: block; margin-top: 8rpx; font-size: 22rpx; color: var(--ink2); }
+.plan-price { flex-shrink: 0; font-size: 38rpx; font-weight: 800; color: var(--brown); }
+.info-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 24rpx; font-size: 24rpx; color: var(--ink2); }
+.info-row text:first-child { flex-shrink: 0; color: var(--muted); }
+.requirements-text { text-align: right; line-height: 1.5; }
+.payment-method { padding: 26rpx 28rpx; border-radius: 22rpx; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: row; align-items: center; gap: 18rpx; }
+.method-icon { width: 58rpx; height: 58rpx; border-radius: 14rpx; background: var(--sage); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 26rpx; font-weight: 800; flex-shrink: 0; }
+.method-name { display: block; font-size: 27rpx; font-weight: 800; color: var(--ink); }
+.method-copy { display: block; margin-top: 6rpx; font-size: 20rpx; color: var(--muted); }
+.method-selected { margin-left: auto; width: 34rpx; height: 34rpx; border-radius: 50%; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 20rpx; font-weight: 800; }
+.state-panel, .success-panel { margin-top: 44rpx; padding: 48rpx 30rpx; border-radius: 24rpx; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; gap: 18rpx; text-align: center; color: var(--ink2); font-size: 24rpx; }
+.state-title, .success-title { font-size: 38rpx; font-family: var(--serif); font-weight: 700; color: var(--ink); }
+.state-copy, .success-copy { font-size: 23rpx; line-height: 1.65; color: var(--ink2); }
+.state-action, .success-action { width: 100%; height: 82rpx; border-radius: 18rpx; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 26rpx; font-weight: 800; margin-top: 10rpx; }
+.success-mark { width: 96rpx; height: 96rpx; border-radius: 50%; background: var(--sage-soft); border: 2rpx solid var(--sage); color: var(--sage); display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 800; }
+.success-order { width: 100%; padding: 20rpx 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; flex-direction: row; justify-content: space-between; gap: 16rpx; font-size: 22rpx; color: var(--muted); text-align: left; }
+.success-order text:last-child { color: var(--ink2); }
+.footer-safe { position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 32rpx calc(env(safe-area-inset-bottom) + 16rpx); background: rgba(250, 252, 252, .96); border-top: 1px solid var(--line); }
+.pay-button { height: 86rpx; border-radius: 20rpx; background: var(--brown); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 800; }
+.pay-button.disabled { opacity: .56; }
+</style>

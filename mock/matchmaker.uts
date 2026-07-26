@@ -12,6 +12,20 @@ const PORTRAIT = {
   manAlt: '/static/portraits/profile-man-alt.jpg'
 }
 
+/**
+ * 红娘联系方式 Mock：仅用于开发、联调和演示，不对应真实个人。
+ */
+export const mockMatchmakerContact = {
+  name: '林知夏',
+  phone: '17000025001',
+  wechat: 'xsa_matchmaker_linxia',
+  availableHours: '09:00-21:00',
+  note: '测试联系方式，请勿用于真实业务沟通'
+}
+
+/** 角色申请 Mock 记录。提交后会同步写入本地存储，仅用于开发和联调。 */
+export const mockRoleApplications: any[] = []
+
 /** 牵线首页 Banner */
 export const mockMatchmakerBanners = [
   {
@@ -267,6 +281,24 @@ export const mockCustomPlans = [
     description: '资深红娘全程尊享服务',
     isHot: false,
     tag: ''
+  }
+]
+
+/**
+ * 私人定制付款 Mock 订单。
+ * 新支付会同步写入本集合和本地存储，便于联调时识别已付款申请。
+ */
+export const mockCustomServicePaymentOrders: any[] = [
+  {
+    orderNo: 'MOCK-PAY-20260726-0001',
+    draftId: 'demo-paid-custom-service',
+    planId: 2,
+    planName: '高级版',
+    planDuration: '6 个月',
+    amount: 5999,
+    paymentStatus: 'paid',
+    applicationStatus: 'submitted',
+    paidAt: '2026-07-26 14:00:00'
   }
 ]
 

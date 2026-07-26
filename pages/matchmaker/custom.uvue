@@ -206,11 +206,39 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 联系方式仅使用开发联调 Mock 数据 -->
+		<view v-if="contactPanelVisible" class="contact-overlay" @click="closeContactPanel">
+			<view class="contact-modal" @click.stop>
+				<view class="contact-modal-head">
+					<view>
+						<text class="contact-modal-title">联系专属红娘</text>
+						<text class="contact-modal-sub">{{ matchmakerContact.name }} · 在线咨询 {{ matchmakerContact.availableHours }}</text>
+					</view>
+					<view class="contact-modal-close" @click="closeContactPanel"><text>×</text></view>
+				</view>
+				<view class="contact-note"><text>{{ matchmakerContact.note }}</text></view>
+				<view class="contact-info-row">
+					<view class="contact-info-copy">
+						<text class="contact-info-label">电话</text>
+						<text class="contact-info-value">{{ matchmakerContact.phone }}</text>
+					</view>
+					<view class="contact-action phone-action" @click="callMatchmaker"><text>拨打</text></view>
+				</view>
+				<view class="contact-info-row">
+					<view class="contact-info-copy">
+						<text class="contact-info-label">微信</text>
+						<text class="contact-info-value">{{ matchmakerContact.wechat }}</text>
+					</view>
+					<view class="contact-action wechat-action" @click="copyWechatId"><text>复制</text></view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-import { getCustomPlans } from '@/api'
+import { getCustomPlans, getMockMatchmakerContact } from '@/api'
 
 interface PlanItem {
 	id: number
@@ -338,6 +366,14 @@ const processSteps = [
 
 const plans = ref<PlanItem[]>(fallbackPlans)
 const selectedPlanId = ref<number>(2)
+const contactPanelVisible = ref(false)
+const matchmakerContact = ref<any>({
+	name: '',
+	phone: '',
+	wechat: '',
+	availableHours: '',
+	note: ''
+})
 
 const activePlan = computed<PlanItem>(() => {
 	const found = plans.value.find((p: PlanItem) => p.id == selectedPlanId.value)
@@ -437,8 +473,32 @@ const showAllCases = () => {
 		showAllCasesModal.value = false
 	}
 
-const contactMatchmaker = () => {
-	uni.showToast({ title: '专属红娘咨询入口即将开放', icon: 'none' })
+const contactMatchmaker = async () => {
+	const response = await getMockMatchmakerContact()
+	if (!response.success || response.data == null) {
+		uni.showToast({ title: '暂时无法获取红娘联系方式', icon: 'none' })
+		return
+	}
+	matchmakerContact.value = response.data
+	contactPanelVisible.value = true
+}
+
+const closeContactPanel = () => {
+	contactPanelVisible.value = false
+}
+
+const callMatchmaker = () => {
+	uni.makePhoneCall({
+		phoneNumber: String(matchmakerContact.value.phone),
+		fail: () => uni.showToast({ title: '当前环境暂不支持拨号', icon: 'none' })
+	})
+}
+
+const copyWechatId = () => {
+	uni.setClipboardData({
+		data: String(matchmakerContact.value.wechat),
+		success: () => uni.showToast({ title: '微信号已复制', icon: 'none' })
+	})
 }
 
 const applyPlan = () => {
@@ -446,6 +506,9 @@ const applyPlan = () => {
 		url: '/pages/matchmaker/apply?type=custom&matchmakerName='
 			+ encodeURIComponent(activePlan.value.name)
 			+ '&planId=' + activePlan.value.id
+			+ '&planName=' + encodeURIComponent(activePlan.value.name)
+			+ '&planPrice=' + activePlan.value.price
+			+ '&planDuration=' + encodeURIComponent(activePlan.value.duration)
 	})
 }
 </script>
@@ -966,6 +1029,139 @@ const applyPlan = () => {
 	font-size: 30rpx;
 	font-weight: 800;
 	color: var(--paper);
+}
+
+/* ============ 联系红娘 ============ */
+.contact-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 90;
+	background: rgba(17, 23, 24, 0.52);
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+}
+
+.contact-modal {
+	width: 100%;
+	padding: 32rpx 32rpx calc(env(safe-area-inset-bottom) + 32rpx);
+	border-radius: 28rpx 28rpx 0 0;
+	background: var(--surface);
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
+}
+
+.contact-modal-head {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20rpx;
+}
+
+.contact-modal-title {
+	display: block;
+	font-size: 34rpx;
+	font-family: var(--serif);
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.contact-modal-sub {
+	display: block;
+	margin-top: 8rpx;
+	font-size: 22rpx;
+	color: var(--muted);
+}
+
+.contact-modal-close {
+	width: 54rpx;
+	height: 54rpx;
+	border-radius: 50%;
+	background: var(--warm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.contact-modal-close text {
+	font-size: 34rpx;
+	line-height: 1;
+	color: var(--muted);
+}
+
+.contact-note {
+	padding: 14rpx 18rpx;
+	border-radius: 12rpx;
+	background: var(--warm);
+}
+
+.contact-note text {
+	font-size: 21rpx;
+	color: var(--muted);
+}
+
+.contact-info-row {
+	padding: 22rpx;
+	border-radius: 16rpx;
+	background: var(--paper);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+}
+
+.contact-info-copy {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.contact-info-label {
+	font-size: 21rpx;
+	color: var(--muted);
+}
+
+.contact-info-value {
+	font-size: 28rpx;
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.contact-action {
+	width: 112rpx;
+	height: 64rpx;
+	border-radius: 12rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.contact-action text {
+	font-size: 24rpx;
+	font-weight: 800;
+}
+
+.phone-action {
+	background: var(--accent);
+}
+
+.phone-action text {
+	color: var(--paper);
+}
+
+.wechat-action {
+	background: #E5F5EA;
+}
+
+.wechat-action text {
+	color: #237A42;
 }
 
 /* ============ 查看更多案例弹窗 ============ */

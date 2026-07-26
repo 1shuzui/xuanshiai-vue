@@ -3,7 +3,8 @@
  * 优先走 FastAPI，失败时回退到本地演示数据。
  */
 
-import { request, setTokens, clearTokens } from './request.uts'
+import { request } from './request.uts'
+import { setAuthTokens, clearAuthTokens } from './config.uts'
 
 export async function sendSms(phone: string, purpose: string = 'login') {
   return request({
@@ -35,7 +36,7 @@ export async function loginByPhone(phone: string, code: string) {
     }
   })
   if (res.success && res.data != null && res.data.access_token != null) {
-    setTokens(String(res.data.access_token), res.data.refresh_token != null ? String(res.data.refresh_token) : '')
+    setAuthTokens(String(res.data.access_token), res.data.refresh_token != null ? String(res.data.refresh_token) : '')
   }
   return res
 }
@@ -50,6 +51,6 @@ export async function logout() {
       mockData: { success: true }
     })
   } finally {
-    clearTokens()
+    clearAuthTokens()
   }
 }

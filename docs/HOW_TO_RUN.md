@@ -28,6 +28,12 @@ node tests/test-mock-system.js
 
 ### 3.2 HBuilderX 运行（推荐验收入口）
 
+#### Windows 一键入口
+
+- 双击项目根目录的 `open-in-hbuilderx.bat`，HBuilderX 会打开本项目根目录。
+- HBuilderX 编译完成后，双击 `open-wechat-devtools.bat` 可把最新的 `unpackage/dist/dev/mp-weixin` 产物导入微信开发者工具。
+- 不要把 `unpackage/dist/dev/mp-weixin` 当作 HBuilderX 源工程打开；它只用于微信开发者工具运行。
+
 **打开项目时只打开本目录本身：**
 
 ```text
@@ -128,6 +134,10 @@ open editor with no exists file: D:/Users/ASUS/Desktop/前端/xuanshiai-vue/fron
 5. 社区列表能出 Mock 动态（关注/同城/发现可切换）；不应长期停在“网络异常”。
 6. 牵线、消息列表至少有加载态或列表内容。
 7. 控制台无阻断级红错；`USE_MOCK = true` 时不应因未关联 uniCloud 而无法浏览。
+
+#### 本机网络地址
+
+微信开发者工具和 FastAPI 都运行在同一台 Windows 电脑时，`api/config.uts` 使用 `http://127.0.0.1:8001`，不依赖 Windows 的局域网入站规则。需要用真机访问时，把 `API_BASE_URL` 改为 `LAN_API_BASE_URL` 的值，并仅向本地子网放行 TCP 8001。
 
 不在本轮强求：真实登录、真实支付、真实云函数、正式 AppID 发布。
 

@@ -7,24 +7,24 @@
 			</view>
 		</view>
 
-		<scroll-view scroll-x enhanced :enable-flex="true" :show-scrollbar="false">
-			<view class="rank-list">
+		<view class="rank-list">
 				<view class="rank-item" v-for="(item, index) in list" :key="item.id" @click="handleClick(item)">
 					<view class="rank-mark" :class="rankClass(index)">
 						<text>{{ rankLabel(index) }}</text>
 					</view>
-					<image class="rank-avatar" :src="item.avatar" mode="aspectFill"></image>
+					<MatchmakerAvatar :src="item.avatar" :name="item.name" variant="rank" />
 					<text class="rank-name">{{ item.name }}</text>
 					<text class="rank-meta">服务 {{ item.serviceCount }} 人</text>
 					<text class="rank-meta">成功 {{ item.successCount }} 约</text>
-					<text class="rank-rate">★ {{ item.rating }}</text>
+					<text class="rank-rate">★ {{ formatRating(item.rating) }}</text>
 				</view>
-			</view>
-		</scroll-view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
+import MatchmakerAvatar from '@/components/MatchmakerAvatar.uvue';
+
 interface Props {
 	list: any[];
 }
@@ -47,6 +47,11 @@ const rankClass = (index: number) => {
 	if (index == 1) return 'second';
 	if (index == 2) return 'third';
 	return 'normal';
+};
+
+const formatRating = (value: any): string => {
+	const rating = Number(value);
+	return isNaN(rating) ? '0.0' : rating.toFixed(1);
 };
 
 const handleClick = (item: any) => {
@@ -83,17 +88,15 @@ const handleClick = (item: any) => {
 	}
 
 	.rank-list {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: nowrap;
-		align-items: flex-start;
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
 		gap: 18rpx;
-		padding-right: 8rpx;
+		width: 100%;
 	}
 
 	.rank-item {
-		width: 168rpx;
-		flex-shrink: 0;
+		width: 100%;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -133,30 +136,32 @@ const handleClick = (item: any) => {
 		background: rgba(194, 224, 207, 0.64);
 	}
 
-	.rank-avatar {
-		width: 116rpx;
-		height: 116rpx;
-		border-radius: 50%;
-		border: 4rpx solid rgba(56, 152, 141, 0.14);
-	}
-
 	.rank-name {
+		max-width: 100%;
 		margin-top: 14rpx;
 		font-size: 26rpx;
 		line-height: 1.3;
 		font-family: var(--serif);
 		font-weight: 700;
 		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.rank-meta {
+		max-width: 100%;
 		margin-top: 8rpx;
 		font-size: 20rpx;
 		line-height: 1.4;
 		color: var(--muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.rank-rate {
+		max-width: 100%;
 		margin-top: 8rpx;
 		font-size: 20rpx;
 		font-weight: 800;

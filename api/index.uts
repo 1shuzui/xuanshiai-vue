@@ -72,6 +72,7 @@ getCurrentCity,
 
 // 牵线/红娘相关
 export {
+  getMockMatchmakerContact,
   getMatchmakerBanners,
   getMatchmakerDetail,
   getServiceMatchmakers,
@@ -80,6 +81,9 @@ export {
   getVolunteerMatchmakers,
   getAiRecommendations,
   getCustomPackages,
+  saveCustomServiceApplicationDraft,
+  getCustomServiceApplicationDraft,
+  payCustomServiceApplication,
   submitConnectionApplication,
   submitMatchmakerApplication,
   submitPartnerApplication,

@@ -32,6 +32,12 @@
 			}
 		},
 		{
+			"path": "pages/matchmaker/payment",
+			"style": {
+				"navigationBarTitleText": "确认付款"
+			}
+		},
+		{
 			"path": "pages/matchmaker/become-matchmaker",
 			"style": {
 				"navigationBarTitleText": "我要做红娘",
@@ -49,6 +55,13 @@
 			"path": "pages/matchmaker/become-promoter",
 			"style": {
 				"navigationBarTitleText": "申请推广红娘",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/matchmaker/application-success",
+			"style": {
+				"navigationBarTitleText": "申请成功",
 				"navigationStyle": "custom"
 			}
 		},

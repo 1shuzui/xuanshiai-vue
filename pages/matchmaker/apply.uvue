@@ -14,6 +14,15 @@
 					<text class="target-copy">{{ typeLabel }}会在确认需求后与你联系。</text>
 				</view>
 
+				<view class="custom-plan-card" v-if="isCustomService">
+					<text class="target-label">已选服务套餐</text>
+					<view class="custom-plan-row">
+						<view><text class="custom-plan-name">{{ planName }}</text><text class="custom-plan-duration">{{ planDuration }}</text></view>
+						<text class="custom-plan-price">¥{{ planPrice }}</text>
+					</view>
+					<text class="target-copy">资料提交后进入付款，付款成功才会提交牵线申请。</text>
+				</view>
+
 				<view class="form-card">
 					<text class="section-title">基本信息</text>
 					<view class="form-field"><text class="field-label">真实姓名</text><input class="field-input" :value="realName" placeholder="请填写姓名" @input="onNameInput" /></view>
@@ -35,12 +44,12 @@
 			</view>
 		</scroll-view>
 
-		<view class="footer-safe"><view class="submit-button" :class="{ disabled: submitting }" @click="submitApplication"><text>{{ submitting ? '提交中…' : '提交牵线申请' }}</text></view></view>
+		<view class="footer-safe"><view class="submit-button" :class="{ disabled: submitting }" @click="submitApplication"><text>{{ submitting ? '提交中…' : submitLabel }}</text></view></view>
 	</view>
 </template>
 
 <script setup lang="uts">
-import { submitConnectionApplication } from '@/api'
+import { saveCustomServiceApplicationDraft, submitConnectionApplication } from '@/api'
 
 const realName = ref('')
 const phone = ref('')
@@ -52,8 +61,14 @@ const matchmakerId = ref(0)
 const matchmakerName = ref('')
 const type = ref('service')
 const submitting = ref(false)
+const planId = ref(0)
+const planName = ref('')
+const planPrice = ref(0)
+const planDuration = ref('')
 
 const typeLabel = computed(() => type.value == 'custom' ? '专属定制顾问' : (type.value == 'ai' ? 'AI 红娘服务' : '服务红娘'))
+const isCustomService = computed(() => type.value == 'custom')
+const submitLabel = computed(() => isCustomService.value ? '提交资料并去付款' : '提交牵线申请')
 
 onMounted(() => {
 	const pages = getCurrentPages()
@@ -63,6 +78,10 @@ onMounted(() => {
 		matchmakerId.value = options.matchmakerId != null ? parseInt(options.matchmakerId) : 0
 		matchmakerName.value = options.matchmakerName != null ? decodeURIComponent(options.matchmakerName) : ''
 		type.value = options.type != null ? options.type : 'service'
+		planId.value = options.planId != null ? Number(options.planId) : 0
+		planName.value = options.planName != null ? decodeURIComponent(options.planName) : matchmakerName.value
+		planPrice.value = options.planPrice != null ? Number(options.planPrice) : 0
+		planDuration.value = options.planDuration != null ? decodeURIComponent(options.planDuration) : ''
 	}
 })
 
@@ -86,8 +105,36 @@ const submitApplication = async () => {
 		uni.showToast({ title: '请填写择偶要求', icon: 'none' })
 		return
 	}
+	if (description.value.trim().length == 0) {
+		uni.showToast({ title: '请填写自我介绍', icon: 'none' })
+		return
+	}
+	if (isCustomService.value && (planId.value <= 0 || planName.value.length == 0 || !(planPrice.value > 0))) {
+		uni.showToast({ title: '请返回选择有效的服务套餐', icon: 'none' })
+		return
+	}
 	try {
 		submitting.value = true
+		if (isCustomService.value) {
+			const draftResult = saveCustomServiceApplicationDraft({
+				planId: planId.value,
+				planName: planName.value,
+				planPrice: planPrice.value,
+				planDuration: planDuration.value,
+				realName: realName.value.trim(),
+				phone: phone.value,
+				city: city.value.trim(),
+				gender: gender.value,
+				description: description.value.trim(),
+				requirements: requirements.value.trim()
+			})
+			if (!draftResult.success || draftResult.data == null) {
+				uni.showToast({ title: draftResult.message != null ? draftResult.message : '资料暂存失败', icon: 'none' })
+				return
+			}
+			uni.navigateTo({ url: '/pages/matchmaker/payment?draftId=' + encodeURIComponent(draftResult.data.draftId) })
+			return
+		}
 		const result = await submitConnectionApplication({
 			matchmakerId: matchmakerId.value,
 			matchmakerType: type.value,
@@ -120,6 +167,11 @@ const submitApplication = async () => {
 .intro-title { font-size: 42rpx; font-family: var(--serif); font-weight: 700; color: var(--paper); }
 .intro-copy { font-size: 22rpx; line-height: 1.65; color: rgba(250, 252, 252, .76); }
 .target-card, .form-card { padding: 28rpx; border-radius: 22rpx; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 16rpx; }
+.custom-plan-card { padding: 24rpx 28rpx; border-radius: 22rpx; background: var(--accent-bg); border: 1px solid var(--accent); display: flex; flex-direction: column; gap: 14rpx; }
+.custom-plan-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-end; gap: 16rpx; }
+.custom-plan-name { display: block; font-size: 30rpx; font-family: var(--serif); font-weight: 700; color: var(--accent2); }
+.custom-plan-duration { display: block; margin-top: 6rpx; font-size: 21rpx; color: var(--ink2); }
+.custom-plan-price { flex-shrink: 0; font-size: 34rpx; font-weight: 800; color: var(--brown); }
 .target-label, .field-label { font-size: 21rpx; color: var(--muted); }
 .target-name { font-size: 34rpx; font-family: var(--serif); font-weight: 700; color: var(--accent2); }
 .target-copy { font-size: 22rpx; line-height: 1.55; color: var(--ink2); }

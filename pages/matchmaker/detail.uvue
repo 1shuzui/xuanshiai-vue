@@ -6,7 +6,7 @@
 				<view class="profile-card">
 					<view class="profile-main">
 						<view class="avatar-wrap">
-							<image class="avatar" :src="matchmaker.avatar" mode="aspectFill"></image>
+							<MatchmakerAvatar :src="matchmaker.avatar" :name="matchmaker.name" variant="detail" />
 							<view v-if="matchmaker.isOnline" class="online-dot"></view>
 						</view>
 
@@ -24,7 +24,7 @@
 							<view class="rating-row">
 								<text class="stars-text">{{ starText }}</text>
 								<view class="rating-meta">
-									<text class="rating-score">{{ matchmaker.rating || '4.9' }}</text>
+									<text class="rating-score">{{ ratingText }}</text>
 									<text class="rating-count">({{ matchmaker.ratingCount || 0 }}评价)</text>
 								</view>
 							</view>
@@ -178,7 +178,9 @@
 
 <script setup lang="uts">
 import XsaToast from '@/components/XsaToast.uvue'
+import MatchmakerAvatar from '@/components/MatchmakerAvatar.uvue'
 import { getServiceMatchmakers, getCustomMatchmakers, getMatchmakerDetail } from '@/api'
+import { mockMatchmakerContact } from '@/mock'
 
 const fallbackMatchmaker = {
 	id: 1,
@@ -198,8 +200,8 @@ const fallbackMatchmaker = {
 	ratingCount: 156,
 	serviceCount: 320,
 	successCount: 89,
-	phone: '13800138000',
-	wechat: 'shenzhiyi_match',
+	phone: mockMatchmakerContact.phone,
+	wechat: mockMatchmakerContact.wechat,
 	qrCode: '',
 	isOnline: true,
 	status: 'online',
@@ -286,6 +288,11 @@ const starRating = computed(() => {
 const starText = computed(() => {
 	const filledCount = Math.max(0, Math.min(5, starRating.value))
 	return '★'.repeat(filledCount) + '☆'.repeat(5 - filledCount)
+})
+
+const ratingText = computed(() => {
+	const rating = parseFloat(String(matchmaker.value.rating || '4.9'))
+	return isNaN(rating) ? '4.9' : rating.toFixed(1)
 })
 
 const praiseRateText = computed(() => {
@@ -483,14 +490,6 @@ const showToast = (msg: string) => {
 	width: 172rpx;
 	height: 172rpx;
 	flex-shrink: 0;
-}
-
-.avatar {
-	width: 172rpx;
-	height: 172rpx;
-	border-radius: 50%;
-	border: 6rpx solid var(--surface);
-	box-shadow: 0 8rpx 22rpx rgba(198, 31, 88, 0.13);
 }
 
 .online-dot {

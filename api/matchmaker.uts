@@ -4,14 +4,30 @@
  */
 
 import { request } from './request.uts'
+import { ROLE_APPLICATION_USE_MOCK } from './config.uts'
 import {
+  mockMatchmakerContact,
+  mockRoleApplications,
   mockMatchmakerBanners,
   mockServiceMatchmakers,
   mockCustomMatchmakers,
   mockCustomPlans,
+  mockCustomServicePaymentOrders,
   mockVolunteerMatchmakers,
   mockAiRecommendations
 } from '@/mock'
+
+/**
+ * 获取红娘联系信息 Mock。真实联系接口接入前，始终返回测试数据。
+ */
+export async function getMockMatchmakerContact() {
+  return {
+    success: true,
+    data: Object.assign({}, mockMatchmakerContact),
+    code: 0,
+    message: 'success'
+  }
+}
 
 function toMatchmakerCard(item: any) {
   const successCount = item.success_count != null ? Number(item.success_count) : 0
@@ -57,27 +73,231 @@ function toCustomPlan(item: any) {
 }
 
 function toRoleApplication(applicationType: string, data: any) {
-  const images: string[] = []
-  if (data.avatar != null && String(data.avatar).length > 0) images.push(String(data.avatar))
-  if (data.cases != null) {
-    const cases = data.cases as any[]
-    for (let i = 0; i < cases.length; i++) {
-      const caseImages = cases[i].images as string[]
-      if (caseImages != null) {
-        for (let j = 0; j < caseImages.length; j++) {
-          if (images.length >= 6) break
-          images.push(caseImages[j])
-        }
-      }
+  const certImages: string[] = []
+  const specialties: string[] = []
+  const successCases: any[] = []
+  const avatar = data.avatar != null ? String(data.avatar).trim() : ''
+
+  if (avatar.length > 0) certImages.push(avatar)
+  if (data.specialties != null) {
+    const source = data.specialties as any[]
+    for (let i = 0; i < source.length && specialties.length < 5; i++) {
+      const specialty = String(source[i]).trim()
+      if (specialty.length > 0 && specialties.indexOf(specialty) < 0) specialties.push(specialty)
     }
   }
+  if (data.cases != null) {
+    const cases = data.cases as any[]
+    for (let i = 0; i < cases.length && successCases.length < 3; i++) {
+      const description = cases[i].description != null ? String(cases[i].description).trim() : ''
+      if (description.length == 0) continue
+      const images: string[] = []
+      const caseImages = cases[i].images as string[]
+      if (caseImages != null) {
+        for (let j = 0; j < caseImages.length && images.length < 3; j++) {
+          const image = String(caseImages[j]).trim()
+          if (image.length == 0) continue
+          images.push(image)
+          if (certImages.length < 6) certImages.push(image)
+        }
+      }
+      successCases.push({ description: description, images: images })
+    }
+  }
+
+  let expectedPrice: number | null = null
+  if (data.price != null && String(data.price).length > 0) {
+    const price = Number(data.price)
+    if (!isNaN(price) && price >= 0) expectedPrice = price
+  }
+
   return {
     application_type: applicationType,
-    real_name: String(data.realName),
-    phone: String(data.phone),
-    intro: String(data.introduction),
-    cert_images: images
+    real_name: String(data.realName).trim(),
+    phone: String(data.phone).trim(),
+    intro: String(data.introduction).trim(),
+    wechat: data.wechat != null ? String(data.wechat).trim() : '',
+    avatar: avatar.length > 0 ? avatar : null,
+    specialties: specialties,
+    expected_price: expectedPrice,
+    success_cases: successCases,
+    cert_images: certImages
   }
+}
+
+const ROLE_APPLICATION_MOCK_STORAGE_KEY = 'xsa_role_application_mock_records'
+
+function maskMockPhone(phone: string): string {
+  if (phone.length < 7) return phone
+  return phone.substring(0, 3) + '****' + phone.substring(phone.length - 4)
+}
+
+function restoreMockRoleApplications() {
+  try {
+    const saved = uni.getStorageSync(ROLE_APPLICATION_MOCK_STORAGE_KEY)
+    if (saved == null || !Array.isArray(saved)) return
+    mockRoleApplications.splice(0, mockRoleApplications.length)
+    const records = saved as any[]
+    for (let i = 0; i < records.length; i++) mockRoleApplications.push(records[i])
+  } catch (e) {}
+}
+
+function persistMockRoleApplications() {
+  try {
+    uni.setStorageSync(ROLE_APPLICATION_MOCK_STORAGE_KEY, mockRoleApplications)
+  } catch (e) {}
+}
+
+function createMockRoleApplication(applicationType: string, data: any) {
+  restoreMockRoleApplications()
+  const payload = toRoleApplication(applicationType, data)
+  const now = new Date().toISOString()
+  const record = {
+    id: Date.now(),
+    application_type: payload.application_type,
+    status: 0,
+    real_name: payload.real_name,
+    phone_masked: maskMockPhone(payload.phone),
+    intro: payload.intro,
+    cert_images: payload.cert_images,
+    application_details: {
+      wechat: payload.wechat,
+      avatar: payload.avatar,
+      specialties: payload.specialties,
+      expected_price: payload.expected_price,
+      success_cases: payload.success_cases
+    },
+    fail_reason: null,
+    created_at: now,
+    reviewed_at: null,
+    source: 'mock'
+  }
+  mockRoleApplications.unshift(record)
+  persistMockRoleApplications()
+  return {
+    success: true,
+    data: record,
+    code: 0,
+    message: '模拟申请已提交'
+  }
+}
+
+async function submitRoleApplication(applicationType: string, data: any) {
+  if (ROLE_APPLICATION_USE_MOCK) return createMockRoleApplication(applicationType, data)
+  return request({
+    url: '/matchmaker/applications',
+    forceHttp: true,
+    method: 'POST',
+    data: toRoleApplication(applicationType, data)
+  })
+}
+
+const CUSTOM_SERVICE_DRAFT_STORAGE_KEY = 'xsa_custom_service_application_draft'
+const CUSTOM_SERVICE_PAYMENT_STORAGE_KEY = 'xsa_custom_service_payment_order'
+
+function readCustomServiceDraft(): any {
+  try {
+    const draft = uni.getStorageSync(CUSTOM_SERVICE_DRAFT_STORAGE_KEY)
+    return draft != null && typeof draft === 'object' ? draft : null
+  } catch (e) {
+    return null
+  }
+}
+
+function saveCustomServiceDraft(draft: any) {
+  try {
+    uni.setStorageSync(CUSTOM_SERVICE_DRAFT_STORAGE_KEY, draft)
+  } catch (e) {}
+}
+
+function rememberMockPaymentOrder(order: any) {
+  let found = -1
+  for (let i = 0; i < mockCustomServicePaymentOrders.length; i++) {
+    if (mockCustomServicePaymentOrders[i].draftId == order.draftId) {
+      found = i
+      break
+    }
+  }
+  if (found >= 0) {
+    mockCustomServicePaymentOrders[found] = order
+  } else {
+    mockCustomServicePaymentOrders.unshift(order)
+  }
+  try {
+    uni.setStorageSync(CUSTOM_SERVICE_PAYMENT_STORAGE_KEY, order)
+  } catch (e) {}
+}
+
+/** 保存私人定制资料，等待用户完成付款后再正式提交牵线申请。 */
+export function saveCustomServiceApplicationDraft(data: any) {
+  const planId = data != null && data.planId != null ? Number(data.planId) : 0
+  const planName = data != null && data.planName != null ? String(data.planName) : ''
+  const amount = data != null && data.planPrice != null ? Number(data.planPrice) : 0
+  if (planId <= 0 || planName.length == 0 || amount <= 0) {
+    return { success: false, data: null, code: 400, message: '请选择有效的服务套餐' }
+  }
+
+  const draft = {
+    draftId: 'custom-service-' + Date.now(),
+    planId: planId,
+    planName: planName,
+    planDuration: data.planDuration != null ? String(data.planDuration) : '',
+    planPrice: amount,
+    realName: data.realName != null ? String(data.realName) : '',
+    phone: data.phone != null ? String(data.phone) : '',
+    city: data.city != null ? String(data.city) : '',
+    gender: data.gender != null ? String(data.gender) : '',
+    description: data.description != null ? String(data.description) : '',
+    requirements: data.requirements != null ? String(data.requirements) : '',
+    paymentStatus: 'unpaid',
+    applicationStatus: 'pending_payment',
+    createdAt: Date.now()
+  }
+  saveCustomServiceDraft(draft)
+  return { success: true, data: draft, code: 0, message: '资料已保存' }
+}
+
+/** 读取待付款的私人定制申请资料。 */
+export function getCustomServiceApplicationDraft(draftId: string) {
+  const draft = readCustomServiceDraft()
+  if (draft == null || draft.draftId != draftId) {
+    return { success: false, data: null, code: 404, message: '未找到待付款的私人定制申请' }
+  }
+  return { success: true, data: draft, code: 0, message: 'success' }
+}
+
+/**
+ * 支付联调 Mock：写入已付款订单，并将牵线申请状态置为已提交。
+ * 真实支付合同接入前不发起外部扣款。
+ */
+export async function payCustomServiceApplication(draftId: string) {
+  const current = getCustomServiceApplicationDraft(draftId)
+  if (!current.success || current.data == null) return current
+
+  const draft = current.data
+  if (draft.paymentStatus == 'paid' && draft.applicationStatus == 'submitted') {
+    return { success: true, data: draft, code: 0, message: '申请已提交' }
+  }
+
+  const paidAt = new Date().toISOString()
+  const order = {
+    orderNo: 'MOCK-PAY-' + Date.now(),
+    draftId: draft.draftId,
+    planId: draft.planId,
+    planName: draft.planName,
+    planDuration: draft.planDuration,
+    amount: draft.planPrice,
+    paymentStatus: 'paid',
+    applicationStatus: 'submitted',
+    paidAt: paidAt
+  }
+  draft.orderNo = order.orderNo
+  draft.paymentStatus = 'paid'
+  draft.applicationStatus = 'submitted'
+  draft.paidAt = paidAt
+  saveCustomServiceDraft(draft)
+  rememberMockPaymentOrder(order)
+  return { success: true, data: draft, code: 0, message: '支付成功，牵线申请已提交' }
 }
 
 /**
@@ -210,36 +430,21 @@ export async function getCustomPackages() {
  * 提交红娘入驻申请（我要做红娘）
  */
 export async function submitMatchmakerApplication(data: any) {
-  return request({
-    url: '/matchmaker/applications',
-    forceHttp: true,
-    method: 'POST',
-    data: toRoleApplication('service_matchmaker', data)
-  })
+  return submitRoleApplication('service_matchmaker', data)
 }
 
 /**
  * 提交合伙人入驻申请
  */
 export async function submitPartnerApplication(data: any) {
-  return request({
-    url: '/matchmaker/applications',
-    forceHttp: true,
-    method: 'POST',
-    data: toRoleApplication('partner', data)
-  })
+  return submitRoleApplication('partner', data)
 }
 
 /**
  * 提交推广红娘入驻申请
  */
 export async function submitPromoterApplication(data: any) {
-  return request({
-    url: '/matchmaker/applications',
-    forceHttp: true,
-    method: 'POST',
-    data: toRoleApplication('promoter', data)
-  })
+	return submitRoleApplication('promoter', data)
 }
 
 export async function submitConnectionApplication(data: any) {

@@ -37,7 +37,7 @@
 								<text class="section-title">服务红娘</text>
 								<text class="section-desc">专业顾问会先理解你的关系目标，再决定如何帮你更稳地认识一个人。</text>
 							</view>
-							<text class="section-link" @click="showServiceMore">查看更多</text>
+							<text v-if="serviceMatchmakers.length > 3" class="section-link" @click="showServiceMore">{{ showAllServiceMatchmakers ? '收起' : '查看更多' }}</text>
 						</view>
 
 						<XsaEmpty
@@ -47,10 +47,9 @@
 							size="small"
 						/>
 
-						<scroll-view v-else scroll-x enhanced :enable-flex="true" :show-scrollbar="false" class="horizontal-scroll">
-							<view class="horizontal-list">
+						<view v-else class="service-card-grid">
 								<MatchmakerCard
-									v-for="item in serviceMatchmakers"
+									v-for="item in visibleServiceMatchmakers"
 									:key="item.id"
 									:data="item"
 									actionText="联系她"
@@ -58,8 +57,7 @@
 									@detail="handleMatchmakerDetail"
 									@contact="handleMatchmakerContact"
 								/>
-							</view>
-						</scroll-view>
+						</view>
 
 						<MatchmakerRank v-if="rankList.length > 0" :list="rankList" @item-click="handleMatchmakerDetail" />
 					<view class="join-entry-row">
@@ -232,6 +230,7 @@
 	const serviceMatchmakers = ref<any[]>([])
 	const customPlans = ref<any[]>([])
 	const selectedCustomPlanId = ref(0)
+	const showAllServiceMatchmakers = ref(false)
 
 	const currentTabValue = computed(() => {
 		return tabValues[currentTabIndex.value]
@@ -249,7 +248,12 @@
 			const bRate = b.rating != null ? b.rating : 0
 			return bRate - aRate
 		})
-		return list.slice(0, 4)
+		return list.slice(0, 3)
+	})
+
+	const visibleServiceMatchmakers = computed(() => {
+		if (showAllServiceMatchmakers.value) return serviceMatchmakers.value
+		return serviceMatchmakers.value.slice(0, 3)
 	})
 
 	onMounted(() => {
@@ -306,10 +310,7 @@
 	}
 
 	const showServiceMore = () => {
-		uni.showToast({
-			title: '已展示全部服务红娘',
-			icon: 'none'
-		})
+		showAllServiceMatchmakers.value = !showAllServiceMatchmakers.value
 	}
 
 	const handleMatchmakerDetail = (item : any) => {
@@ -342,9 +343,17 @@
 
 	const applyCustomPlan = () => {
 		const plan = customPlans.value.find((p: any) => p.id == selectedCustomPlanId.value)
-		const name = plan != null ? plan.name : '私人定制服务'
+		if (plan == null) {
+			uni.showToast({ title: '请先选择服务套餐', icon: 'none' })
+			return
+		}
+		const name = plan.name
 		uni.navigateTo({
 			url: '/pages/matchmaker/apply?type=custom&matchmakerName=' + encodeURIComponent(name)
+				+ '&planId=' + plan.id
+				+ '&planName=' + encodeURIComponent(name)
+				+ '&planPrice=' + plan.price
+				+ '&planDuration=' + encodeURIComponent(plan.duration)
 		})
 	}
 
@@ -371,9 +380,7 @@
 	}
 
 	const applyCustomService = () => {
-		uni.navigateTo({
-			url: '/pages/matchmaker/apply?type=custom&matchmakerName=' + encodeURIComponent('私人定制服务')
-		})
+		applyCustomPlan()
 	}
 
 	const onAiInput = (event: any) => {
@@ -707,6 +714,14 @@
 		align-items: flex-start;
 		gap: 20rpx;
 		padding-right: 32rpx;
+	}
+
+	.service-card-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 20rpx;
+		width: 100%;
+		align-items: start;
 	}
 
 	.notice-card {

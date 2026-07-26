@@ -1,7 +1,7 @@
 <template>
 	<view class="matchmaker-card" @click="handleDetail">
 		<view class="card-media">
-			<image class="card-avatar" :src="data.avatar" mode="aspectFill"></image>
+			<MatchmakerAvatar :src="data.avatar" :name="data.name" variant="card" />
 		</view>
 
 		<view class="card-body">
@@ -45,6 +45,8 @@
 </template>
 
 <script setup lang="uts">
+import MatchmakerAvatar from '@/components/MatchmakerAvatar.uvue';
+
 interface Props {
 	data: any;
 	actionText?: string;
@@ -63,7 +65,8 @@ const emit = defineEmits<{
 
 const rateText = computed(() => {
 	if (props.data == null || props.data.rating == null) return '4.8';
-	return String(props.data.rating);
+	const rating = Number(props.data.rating);
+	return isNaN(rating) ? '4.8' : rating.toFixed(1);
 });
 
 const priceText = computed(() => {
@@ -93,8 +96,8 @@ const handleContact = () => {
 
 <style scoped>
 	.matchmaker-card {
-		width: 316rpx;
-		flex-shrink: 0;
+		width: 100%;
+		min-width: 0;
 		border-radius: 24rpx;
 		background: var(--surface);
 		overflow: hidden;
@@ -106,11 +109,6 @@ const handleContact = () => {
 		position: relative;
 		height: 262rpx;
 		background: var(--warm);
-	}
-
-	.card-avatar {
-		width: 100%;
-		height: 100%;
 	}
 
 	.card-body {
@@ -129,11 +127,16 @@ const handleContact = () => {
 	}
 
 	.card-name {
+		min-width: 0;
+		flex: 1;
 		font-size: 36rpx;
 		line-height: 1.2;
 		font-family: var(--serif);
 		font-weight: 700;
 		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.card-rate {
@@ -154,6 +157,7 @@ const handleContact = () => {
 		font-size: 22rpx;
 		line-height: 1.55;
 		color: var(--ink2);
+		overflow-wrap: anywhere;
 	}
 
 	.card-meta {
@@ -219,6 +223,8 @@ const handleContact = () => {
 	}
 
 	.card-price {
+		min-width: 0;
+		max-width: 48%;
 		display: flex;
 		flex-direction: row;
 		align-items: baseline;
@@ -233,9 +239,12 @@ const handleContact = () => {
 	}
 
 	.price-value {
-		font-size: 42rpx;
-		line-height: 1;
+		font-size: 26rpx;
+		line-height: 1.2;
 		font-weight: 800;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.price-unit {
