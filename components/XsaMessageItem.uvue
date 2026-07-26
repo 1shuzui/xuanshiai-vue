@@ -1,28 +1,32 @@
 <template>
-	<view class="xsa-message-item" @click="handleClick">
+	<view
+		class="xsa-message-item"
+		:class="{ pinned: message.pinned === true }"
+		@click="handleClick"
+		@longpress.stop="handleLongPress"
+	>
 		<!-- 头像 -->
 		<view class="avatar-wrapper">
 			<image class="avatar" :src="message.avatar" mode="aspectFill"></image>
-			<view class="unread-badge" v-if="message.unreadCount > 0">
-				<text class="badge-text">{{ badgeText }}</text>
-			</view>
 		</view>
 
 		<!-- 消息内容 -->
 		<view class="message-content">
-			<view class="content-top">
-				<text class="name">{{ message.name }}</text>
+			<view class="message-top">
+				<view class="name-row">
+					<text class="name">{{ message.name }}</text>
+				</view>
 				<text class="time text-muted">{{ formatTime }}</text>
 			</view>
-			<view class="content-bottom">
+			<view class="message-bottom">
 				<text class="last-message text-muted" :class="{ unread: message.unreadCount > 0 }">
 					{{ lastMessageText }}
 				</text>
+				<view class="unread-badge" v-if="message.unreadCount > 0">
+					<text class="badge-text">{{ badgeText }}</text>
+				</view>
 			</view>
 		</view>
-
-		<!-- 在线状态 -->
-		<view class="online-dot" v-if="message.online"></view>
 	</view>
 </template>
 
@@ -40,7 +44,9 @@ interface Message {
 	time: string | number; // 时间戳或字符串
 	unreadCount?: number;
 	online?: boolean;
-	messageType?: 'text' | 'image' | 'voice'; // 消息类型
+	type?: string;
+	messageType?: 'text' | 'image' | 'voice' | 'wechat-request' | 'phone-request'; // 消息类型
+	pinned?: boolean;
 }
 
 interface Props {
@@ -51,7 +57,10 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
 	click: [message: Message];
+	longpress: [message: Message];
 }>();
+
+let suppressClick = false;
 
 // 未读数显示文本（超过99显示99+）
 const badgeText = computed(() => {
@@ -68,9 +77,13 @@ const lastMessageText = computed(() => {
 		return '[图片]';
 	} else if (msg.messageType === 'voice') {
 		return '[语音]';
+	} else if (msg.messageType === 'wechat-request') {
+		return '[微信申请]';
+	} else if (msg.messageType === 'phone-request') {
+		return '[电话申请]';
 	}
 
-	return msg.lastMessage;
+	return msg.lastMessage != null ? msg.lastMessage.toString() : '';
 });
 
 // 时间格式化
@@ -82,46 +95,68 @@ const formatTime = computed(() => {
 		return time;
 	}
 
-	// 时间戳格式化
-	const now = Date.now();
-	const diff = now - time;
-	const oneDay = 24 * 60 * 60 * 1000;
+	// 最近一天显示相对时间，更早消息使用紧凑日期
+	const date = new Date(time);
+	const elapsed = Math.max(0, Date.now() - time);
+	const minute = 60 * 1000;
+	const hour = 60 * minute;
+	const day = 24 * hour;
 
-	if (diff < 60 * 1000) {
+	if (elapsed < minute) {
 		return '刚刚';
-	} else if (diff < 60 * 60 * 1000) {
-		return `${Math.floor(diff / (60 * 1000))}分钟前`;
-	} else if (diff < oneDay) {
-		const date = new Date(time);
-		const hours = date.getHours().toString().padStart(2, '0');
-		const minutes = date.getMinutes().toString().padStart(2, '0');
-		return `${hours}:${minutes}`;
-	} else if (diff < 2 * oneDay) {
-		return '昨天';
-	} else {
-		const date = new Date(time);
-		const month = (date.getMonth() + 1).toString();
-		const day = date.getDate().toString();
-		return `${month}月${day}日`;
 	}
+	if (elapsed < hour) {
+		return `${Math.floor(elapsed / minute)}分钟前`;
+	}
+	if (elapsed < day) {
+		return `${Math.floor(elapsed / hour)}小时前`;
+	}
+
+	const now = new Date();
+	const month = (date.getMonth() + 1).toString().padStart(2, '0');
+	const dateDay = date.getDate().toString().padStart(2, '0');
+	if (elapsed < 2 * day) {
+		return '昨天';
+	}
+	if (date.getFullYear() === now.getFullYear()) {
+		return `${month}/${dateDay}`;
+	}
+	return `${date.getFullYear()}/${month}/${dateDay}`;
 });
 
 // 点击消息项
 const handleClick = () => {
+	if (suppressClick) return;
 	emit('click', props.message);
+};
+
+const handleLongPress = () => {
+	suppressClick = true;
+	emit('longpress', props.message);
+	setTimeout(() => {
+		suppressClick = false;
+	}, 500);
 };
 </script>
 
 <style scoped>
 .xsa-message-item {
 	display: flex;
-		flex-direction: row;
+	flex-direction: row;
 	align-items: center;
-	gap: 12px;
-	padding: 12px 16px;
-	background: var(--surface);
+	gap: 10px;
+	width: 100%;
+	height: 60px;
+	margin: 0;
+	padding: 2px 20px 2px 16px;
+	box-sizing: border-box;
 	border-bottom: 1px solid var(--line);
+	background: transparent;
 	transition: background 0.18s;
+}
+
+.xsa-message-item.pinned {
+	background: var(--canvas);
 }
 
 .xsa-message-item:active {
@@ -132,26 +167,23 @@ const handleClick = () => {
 .avatar-wrapper {
 	position: relative;
 	flex-shrink: 0;
+	width: 50px;
+	height: 50px;
 }
 
 .avatar {
-	width: 52px;
-	height: 52px;
+	width: 50px;
+	height: 50px;
 	border-radius: 50%;
 }
 
 .unread-badge {
-	position: absolute;
-	top: -4px;
-	right: -4px;
 	min-width: 18px;
 	height: 18px;
 	padding: 0 5px;
-	background: #FF4444;
-	border: 2px solid var(--surface);
+	background: var(--accent);
 	border-radius: 999px;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 }
@@ -159,7 +191,7 @@ const handleClick = () => {
 .badge-text {
 	font-size: 11px;
 	font-weight: 600;
-	color: #FFFFFF;
+	color: var(--text-invert);
 	line-height: 1;
 }
 
@@ -169,41 +201,64 @@ const handleClick = () => {
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	justify-content: center;
+	gap: 1px;
 }
 
-.content-top {
+.message-top,
+.message-bottom {
 	display: flex;
-		flex-direction: row;
+	flex-direction: row;
 	align-items: center;
+	min-width: 0;
+}
+
+.message-top {
 	justify-content: space-between;
 	gap: 8px;
 }
 
+.message-bottom {
+	gap: 8px;
+}
+
+.name-row {
+	flex: 1;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
 .name {
 	font-size: 15px;
-	font-weight: 500;
+	font-family: var(--sans);
+	font-weight: 700;
 	color: var(--ink);
+	line-height: 20px;
 	flex: 1;
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .time {
-	font-size: 12px;
+	max-width: 82px;
 	flex-shrink: 0;
-}
-
-.content-bottom {
-	display: flex;
-		flex-direction: row;
-	align-items: center;
+	font-size: 11px;
+	line-height: 16px;
+	text-align: right;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .last-message {
-	font-size: 13px;
-	line-height: 1.4;
+	font-size: 12px;
+	line-height: 17px;
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -216,12 +271,4 @@ const handleClick = () => {
 }
 
 /* 在线状态 */
-.online-dot {
-	width: 8px;
-	height: 8px;
-	background: #4CAF50;
-	border-radius: 50%;
-	flex-shrink: 0;
-	margin-left: -4px;
-}
 </style>

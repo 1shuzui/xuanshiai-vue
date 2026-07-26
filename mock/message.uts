@@ -16,42 +16,42 @@ export const mockMessageList = [
     userId: 1,
     avatar: PORTRAIT.main,
     name: '苏晚晴',
-    lastMessage: '你好，谢谢你认真看完我的资料。',
-    time: Date.now() - 2 * 60 * 1000,
-    unreadCount: 1,
+    lastMessage: '已成功交换微信',
+    time: Date.now() - 60 * 1000,
+    unreadCount: 0,
     online: true,
-    messageType: 'text',
+    messageType: 'wechat-request',
     type: 'chat',
     matched: true,
     canChat: true
   },
   {
     id: 2,
-    userId: 8001,
+    userId: 2,
     avatar: PORTRAIT.community,
-    name: '红娘沈知意',
-    lastMessage: '我整理了 3 位与你关系目标接近的用户。',
+    name: '林知夏',
+    lastMessage: '你上次提到的那家书店，我也很喜欢。',
     time: Date.now() - 24 * 60 * 60 * 1000,
     unreadCount: 0,
     online: false,
     messageType: 'text',
-    type: 'matchmaker',
+    type: 'chat',
     matched: true,
     canChat: true
   },
   {
     id: 3,
-    userId: 8002,
+    userId: 3,
     avatar: PORTRAIT.man,
-    name: '安全中心',
-    lastMessage: '首次见面请选择公共场所，请勿发生资金往来。',
+    name: '周予安',
+    lastMessage: '周末天气不错，要不要一起去看展？',
     time: Date.now() - 3 * 24 * 60 * 60 * 1000,
     unreadCount: 0,
     online: false,
     messageType: 'text',
-    type: 'system',
-    matched: false,
-    canChat: false
+    type: 'chat',
+    matched: true,
+    canChat: true
   }
 ]
 
@@ -141,6 +141,32 @@ export const mockChatMessages = [
     type: 'text',
     time: Date.now() - 25 * 60 * 1000,
     isMine: false
+  },
+  {
+    id: 9,
+    senderId: 1,
+    senderName: '苏晚晴',
+    senderAvatar: PORTRAIT.main,
+    content: '对方申请与您交换电话',
+    type: 'phone-request',
+    requestStatus: 'rejected',
+    contactType: 'phone',
+    contactValue: '13812341234',
+    time: Date.now() - 2 * 60 * 1000,
+    isMine: false
+  },
+  {
+    id: 10,
+    senderId: 'me',
+    senderName: '我',
+    senderAvatar: PORTRAIT.man,
+    content: '您已向对方发起交换微信申请，等待对方确认…',
+    type: 'wechat-request',
+    requestStatus: 'accepted',
+    contactType: 'wechat',
+    contactValue: 'wanqing_art',
+    time: Date.now() - 60 * 1000,
+    isMine: true
   }
 ]
 
@@ -163,7 +189,7 @@ export const mockApplications = [
   },
   {
     id: 2,
-    userId: 2,
+    userId: 4,
     avatar: '/static/portraits/profile-woman-alt.jpg',
     name: '林雨桐',
     age: 28,

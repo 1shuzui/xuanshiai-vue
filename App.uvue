@@ -7,11 +7,11 @@
 		console.log('App Launch')
 	})
 
-	onShow(() => {
+	onAppShow(() => {
 		console.log('App Show')
 	})
 
-	onHide(() => {
+	onAppHide(() => {
 		console.log('App Hide')
 	})
 
@@ -75,6 +75,10 @@
 		--accent-bg: #C3DEDA;
 		--accent-glow: rgba(56, 152, 141, 0.15);
 		--text-invert: #FCFCFC;
+		--shortcut-application: #ECEBF8;
+		--shortcut-plane: #DDF1F5;
+		--shortcut-dynamic: #DDF2EC;
+		--shortcut-lab: #F6E8DE;
 
 		/* 纸飞机工作台 */
 		--plane-purple: #7450C8;

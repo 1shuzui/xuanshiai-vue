@@ -27,14 +27,7 @@ export {
   mockPaperPlanes,
   mockPaperPlaneConversations,
   mockActivities,
-  mockCommunityBanners,
-  mockCommunityNotifications,
-  mockCommunityQuotas,
-  mockReportReasons,
-  mockBlockedUserIds,
-  mockApplyStates,
-  mockLikedUserIds,
-  mockCurrentCity
+  mockCommunityBanners
 } from './community.uts'
 
 // 红娘相关

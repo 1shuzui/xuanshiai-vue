@@ -175,7 +175,6 @@
 
 .vip-badge {
 	display: inline-flex;
-		flex-direction: row;
 	align-items: center;
 	gap: 8px;
 	padding: 8px 20px;
@@ -277,7 +276,6 @@
 	border-radius: 12px;
 	padding: 20px;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	transition: all 0.3s;
 }
@@ -302,7 +300,6 @@
 .plan-info {
 	flex: 1;
 	display: flex;
-		flex-direction: row;
 	align-items: baseline;
 	gap: 4px;
 }
@@ -367,7 +364,6 @@
 
 .price-info {
 	display: flex;
-		flex-direction: row;
 	align-items: baseline;
 	justify-content: center;
 	margin-bottom: 12px;

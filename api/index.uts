@@ -28,6 +28,7 @@ export {
   getMessageList,
   getChatMessages,
   sendMessage,
+  handleContactExchangeRequest,
   getApplications,
   handleApplication
 } from './message.uts'

@@ -38,7 +38,7 @@ export async function getChatMessages(userId: number) {
  * 发送消息
  * @param userId 对方用户 ID
  * @param content 消息内容
- * @param type 消息类型（text/image/voice）
+ * @param type 消息类型（text/image/voice/wechat-request/phone-request）
  */
 export async function sendMessage(userId: number, content: string, type: string = 'text') {
   return request({
@@ -48,6 +48,33 @@ export async function sendMessage(userId: number, content: string, type: string 
     method: 'POST',
     data: { userId, content, type },
     mockData: { success: true, messageId: Date.now() } // Mock 数据
+  })
+}
+
+/**
+ * 处理联系方式交换申请
+ * @param requestId 交换申请消息 ID
+ * @param action accept / reject
+ * @param contactType wechat / phone
+ */
+export async function handleContactExchangeRequest(
+  requestId: number,
+  action: string,
+  contactType: string = 'wechat'
+) {
+  return request({
+    url: '/message/contact-exchange/handle',
+    cloudFunctionName: 'message',
+    action: 'handleContactExchangeRequest',
+    method: 'POST',
+    data: { requestId, action, contactType },
+    mockData: {
+      status: action == 'accept' ? 'accepted' : 'rejected',
+      contactType: contactType,
+      contactValue: action == 'accept'
+        ? (contactType == 'phone' ? '13812341234' : 'wanqing_art')
+        : ''
+    }
   })
 }
 

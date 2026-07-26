@@ -95,7 +95,6 @@ const handleClear = () => {
 .input-container {
 	position: relative;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	height: 44px;
 	border: 1px solid var(--line);
@@ -154,7 +153,6 @@ const handleClear = () => {
 	height: 20px;
 	margin-left: 8px;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
