@@ -8,25 +8,23 @@
 // ⚠️ 唯一需要修改的开关：启用/禁用 Mock 数据
 // 关 Mock 联调时改为 false，并确认下方 API_BASE_URL 可达；演示/默认请保持 true
 // 不要只靠关 Mock 宣称生产完成
-// 本机真联调（临时）：false + :8001；勿当作生产完成，联调结束请改回 true / 默认地址
-export const USE_MOCK = true
+// 当前已连接后端 FastAPI 服务
+export const USE_MOCK = false
 
 // FastAPI 服务根地址（不含 /api/v1）
-// 本机联调示例：http://127.0.0.1:8000
-// 真机/模拟器请改为可访问的局域网 IP；BE 需监听 0.0.0.0:8000
-// 本机真联调：8000 被其他服务占用，本会话 BE 在 8001
-export const API_BASE_URL = 'http://127.0.0.1:8001'
+// 后端项目：xuanshiai-backend，默认端口 8000
+export const API_BASE_URL = 'http://127.0.0.1:8000'
 
 // 后端数据库恢复前，角色申请单独使用本地 Mock，避免提交时等待不可达的 API。
 // MySQL 和 FastAPI 恢复后改为 false，即会重新写入后端数据库。
-export const ROLE_APPLICATION_USE_MOCK = true
+export const ROLE_APPLICATION_USE_MOCK = false
 
-// 纸飞机的“获取次数”接口尚未在 FastAPI 中提供，暂使用本地 Mock，避免在小程序中请求超时。
+// 纸飞机的”获取次数”接口尚未在 FastAPI 中提供，暂使用本地 Mock，避免在小程序中请求超时。
 // 后端补齐 POST /community/paper-planes/chances 后改为 false。
-export const PAPER_PLANE_CHANCE_USE_MOCK = true
+export const PAPER_PLANE_CHANCE_USE_MOCK = false
 
-// 真机联调时将 API_BASE_URL 改为此局域网地址，并确认 8001 已向本地子网放行。
-export const LAN_API_BASE_URL = 'http://192.168.112.247:8001'
+// 真机联调时将 API_BASE_URL 改为此局域网地址，并确认 8000 已向本地子网放行。
+export const LAN_API_BASE_URL = 'http://192.168.112.247:8000'
 
 // API 统一前缀
 export const API_PREFIX = '/api/v1'
