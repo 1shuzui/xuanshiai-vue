@@ -28,19 +28,18 @@ export {
   mockPaperPlanes,
   mockPaperPlaneConversations,
   mockActivities,
-  mockCommunityBanners,
-  mockCommunityNotifications,
-  mockCommunityQuotas,
-  mockReportReasons,
-  mockBlockedUserIds,
-  mockApplyStates,
-  mockLikedUserIds,
-  mockCurrentCity
+  mockCommunityBanners
 } from './community.uts'
 
 // 红娘相关
 export {
+  mockMatchmakerContact,
+  mockRoleApplications,
+  mockMatchmakerBanners,
   mockServiceMatchmakers,
+  mockCustomMatchmakers,
+  mockCustomPlans,
+  mockCustomServicePaymentOrders,
   mockVolunteerMatchmakers,
   mockAiRecommendations,
   mockCustomPackages,

@@ -1,0 +1,52 @@
+<template>
+	<view class="success-page">
+		<view class="success-content">
+			<view class="success-mark"><text>OK</text></view>
+			<text class="eyebrow">{{ isMock ? '模拟资料已保存到本设备' : '资料已送达审核队列' }}</text>
+			<text class="title">申请成功</text>
+			<text class="copy">{{ isMock ? '当前为模拟提交，记录不会进入平台审核。后端恢复后关闭 Mock 开关即可改为真实入库。' : '你的' + applicationLabel + '申请已提交。平台会在 1-3 个工作日内完成审核，并通过站内通知告知结果。' }}</text>
+			<view class="status-row">
+				<text class="status-label">当前状态</text>
+				<text class="status-value">待审核</text>
+			</view>
+			<view class="home-button" @click="goMatchmakerHome"><text>返回牵线主页</text></view>
+		</view>
+		<text class="footer-copy">{{ isMock ? '此记录仅用于当前设备的流程演示' : '审核通过后将开通对应的服务权限' }}</text>
+	</view>
+</template>
+
+<script setup lang="uts">
+const applicationLabel = ref('角色')
+const isMock = ref(false)
+
+onMounted(() => {
+	try {
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = currentPage.options
+		const type = options != null && options.type != null ? String(options.type) : ''
+		isMock.value = options != null && options.mock == '1'
+		if (type == 'service_matchmaker') applicationLabel.value = '服务红娘'
+		if (type == 'partner') applicationLabel.value = '合伙人'
+		if (type == 'promoter') applicationLabel.value = '推广红娘'
+	} catch (e) {}
+})
+
+const goMatchmakerHome = () => {
+	uni.switchTab({ url: '/pages/matchmaker/matchmaker' })
+}
+</script>
+
+<style scoped>
+.success-page { min-height: 100vh; padding: 0 48rpx calc(env(safe-area-inset-bottom) + 48rpx); background: var(--canvas); display: flex; flex-direction: column; justify-content: space-between; }
+.success-content { padding-top: 230rpx; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.success-mark { width: 124rpx; height: 124rpx; border-radius: 50%; background: var(--sage-soft); border: 2rpx solid var(--sage); color: var(--sage); display: flex; align-items: center; justify-content: center; font-size: 32rpx; font-weight: 800; }
+.eyebrow { margin-top: 42rpx; font-size: 22rpx; color: var(--accent2); }
+.title { margin-top: 16rpx; font-family: var(--serif); font-size: 52rpx; font-weight: 700; color: var(--ink); }
+.copy { margin-top: 24rpx; font-size: 26rpx; line-height: 1.7; color: var(--ink2); }
+.status-row { width: 100%; margin-top: 54rpx; padding: 26rpx 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; flex-direction: row; justify-content: space-between; font-size: 25rpx; }
+.status-label { color: var(--muted); }
+.status-value { color: var(--accent2); font-weight: 700; }
+.home-button { width: 100%; height: 88rpx; margin-top: 46rpx; border-radius: 12rpx; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 800; }
+.footer-copy { padding-bottom: 24rpx; text-align: center; font-size: 22rpx; color: var(--muted); }
+</style>

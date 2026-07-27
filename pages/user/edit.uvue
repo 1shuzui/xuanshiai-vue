@@ -1,26 +1,39 @@
 <template>
 	<view class="edit-page">
-		<scroll-view class="scroll-content" scroll-y>
-			<!-- 头像 -->
-			<view class="section">
-				<text class="section-title">头像</text>
-				<view class="avatar-upload" @click="chooseAvatar">
-					<image class="avatar" :src="formData.avatar" mode="aspectFill"></image>
-					<view class="upload-mask">
-						<text class="icon">📷</text>
-						<text class="text">更换头像</text>
-					</view>
+		<!-- 导航栏 -->
+		<view class="nav-bar">
+			<text class="nav-title active">编辑资料</text>
+			<text class="nav-title muted" @tap="onPreview">主页预览</text>
+		</view>
+
+		<!-- 滚动内容区 -->
+		<scroll-view class="scroll-content" scroll-y enhanced show-scrollbar="false">
+			<!-- 资料完整度进度条 -->
+			<view class="progress-section">
+				<view class="progress-header">
+					<text class="progress-label">资料完整度</text>
+					<text class="progress-pct">{{ completeness }}%</text>
 				</view>
+				<view class="progress-bar-bg">
+					<view class="progress-bar-fill" :style="{ width: completeness + '%' }"></view>
+				</view>
+				<text class="progress-hint">资料越完整，推荐权重越高，更容易遇见对的人</text>
 			</view>
 
-			<!-- 相册 -->
-			<view class="section">
-				<text class="section-title">我的相册 ({{ formData.photos.length }}/9)</text>
-				<view class="photo-grid">
-					<view class="photo-item" v-for="(photo, index) in formData.photos" :key="index">
-						<image class="photo" :src="photo" mode="aspectFill"></image>
-						<view class="delete-btn" @click="deletePhoto(index)">
-							<text class="icon">✕</text>
+			<!-- 头像区 -->
+			<view class="section-card">
+				<view class="section-card-header">
+					<text class="section-title">头像</text>
+					<view class="change-bg-btn" @tap="changeBackground">
+						<text class="change-bg-text">更换背景</text>
+						<text class="change-bg-arrow">›</text>
+					</view>
+				</view>
+				<view class="avatar-row">
+					<view class="avatar-circle" @tap="chooseAvatar">
+						<image class="avatar-img" :src="formData.avatar" mode="aspectFill"></image>
+						<view class="camera-badge">
+							<text class="camera-icon">📷</text>
 						</view>
 					</view>
 					<view class="photo-item add-btn" @click="addPhoto" v-if="formData.photos.length < 9">
@@ -157,7 +170,115 @@
 			requirement: '愿意把真实想法说清楚，不用猜来猜去。各自有生活，也愿意为共同计划留出时间。把长期关系当作两个人一起完成的作品。'
 		})
 
-	// 选择头像
+	// 表单数据
+	const formData = ref({
+		avatar: '/static/portraits/profile-woman-main.jpg',
+		coverBg: '/static/portraits/profile-woman-alt.jpg',
+		photos: [
+			'/static/portraits/profile-woman-main.jpg',
+			'/static/portraits/profile-woman-alt.jpg'
+		] as string[],
+		nickname: '苏晚晴',
+		gender: 2,
+		genderLabel: '女',
+		birthday: '1998-05-15',
+		height: 165,
+		weight: 48,
+		location: '北京',
+		hometown: '杭州',
+		education: '本科 · 北京大学',
+		occupation: '产品经理',
+		company: '字节跳动',
+		income: '30-50万',
+		maritalStatus: '未婚',
+		mbti: 'ENFJ',
+		goal: '希望在2年内遇到对的人',
+		wechat: '',
+		introduction: '',
+		requirement: ''
+	})
+
+	// 基础信息编辑 sheet 可见性
+	const basicInfoEditVisible = ref(false)
+
+	// 资料完整度
+	const completeness = computed(() => {
+		let score = 0
+		let total = 7
+		if (formData.value.avatar) score++
+		if (formData.value.photos.length >= 1) score++
+		if (formData.value.location) score++
+		if (formData.value.occupation) score++
+		if (formData.value.introduction) score++
+		if (selectedTags.value.length >= 3) score++
+		if (loveQuestions.value.some(q => q.answer)) score++
+		return Math.round((score / total) * 100)
+	})
+
+	// 认证数据
+	const completedCerts = computed(() => certs.value.filter(c => c.done).length)
+	const certs = ref([
+		{ key: 'realname', label: '实名认证', desc: '已通过平台实名认证', icon: '🛡', done: true },
+		{ key: 'education', label: '学历认证', desc: '学历信息已核验', icon: '🎓', done: true },
+		{ key: 'avatar', label: '头像认证', desc: '上传真实本人照片', icon: '📷', done: false },
+		{ key: 'marriage', label: '婚况认证', desc: '提交婚况证明材料', icon: '💍', done: false }
+	])
+
+	// 标签数据
+	const allTags = [
+		'文艺青年', '旅行达人', '美食控', '健身',
+		'摄影', '音乐', '宠物', '户外',
+		'游戏', '宅', '读书', '咖啡控'
+	]
+	const tagRows = computed(() => {
+		const rows: string[][] = []
+		for (let i = 0; i < allTags.length; i += 4) {
+			rows.push(allTags.slice(i, i + 4))
+		}
+		return rows
+	})
+	const selectedTags = ref<string[]>([
+		'旅行达人', '文艺青年', '健身', '摄影', '宠物'
+	])
+
+	const toggleTag = (tag: string) => {
+		const idx = selectedTags.value.indexOf(tag)
+		if (idx >= 0) {
+			selectedTags.value.splice(idx, 1)
+		} else if (selectedTags.value.length < 20) {
+			selectedTags.value.push(tag)
+		}
+	}
+
+	const addCustomTag = () => {
+		uni.showToast({ title: '自定义标签功能开发中', icon: 'none' })
+	}
+
+	// 关于我 问答
+	const loveQuestions = ref([
+		{ id: 1, question: '你理想中的另一半是什么样的', answer: '' },
+		{ id: 2, question: '喜欢什么运动', answer: '' },
+		{ id: 3, question: '你期待的爱情是什么样子的', answer: '' }
+	])
+
+	const editQA = (q: any) => {
+		uni.showToast({ title: '问答编辑功能开发中', icon: 'none' })
+	}
+
+	// 更换背景
+	const changeBackground = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				formData.value.coverBg = res.tempFilePaths[0]
+				uni.showToast({ title: '背景已更换', icon: 'success' })
+			}
+		})
+	}
+
+	// 头像
 	const chooseAvatar = () => {
 		uni.chooseImage({
 			count: 1,
@@ -264,8 +385,42 @@
 }
 
 .section-title {
-	display: block;
-	font-size: 16px;
+	font-size: 32rpx;
+	font-weight: 700;
+	color: var(--ink);
+}
+.section-card-header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 4rpx;
+}
+.change-bg-btn {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4rpx;
+	padding: 8rpx 16rpx;
+	border-radius: 9999rpx;
+	background-color: var(--warm);
+}
+.change-bg-text {
+	font-size: 24rpx;
+	color: var(--muted);
+}
+.change-bg-arrow {
+	font-size: 28rpx;
+	color: var(--muted);
+}
+.card-header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+}
+.card-count {
+	font-size: 26rpx;
 	font-weight: 500;
 	color: var(--ink);
 	margin-bottom: 16px;

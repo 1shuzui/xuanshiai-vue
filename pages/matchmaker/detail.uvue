@@ -1,0 +1,974 @@
+<template>
+	<view class="detail-page">
+		<scroll-view scroll-y class="page-scroller" :show-scrollbar="false">
+			<view class="page-content">
+				<!-- ===== 基本信息卡片 ===== -->
+				<view class="profile-card">
+					<view class="profile-main">
+						<view class="avatar-wrap">
+							<MatchmakerAvatar :src="matchmaker.avatar" :name="matchmaker.name" variant="detail" />
+							<view v-if="matchmaker.isOnline" class="online-dot"></view>
+						</view>
+
+						<view class="profile-info">
+							<view class="name-row">
+								<text class="name">{{ matchmaker.name }}</text>
+								<view v-if="matchmaker.certification !== false" class="cert-badge">
+									<text>平台认证</text>
+								</view>
+							</view>
+
+							<text v-if="sloganText.length > 0" class="signature">{{ sloganText }}</text>
+
+							<!-- 评分 -->
+							<view class="rating-row">
+								<text class="stars-text">{{ starText }}</text>
+								<view class="rating-meta">
+									<text class="rating-score">{{ ratingText }}</text>
+									<text class="rating-count">({{ matchmaker.ratingCount || 0 }}评价)</text>
+								</view>
+							</view>
+
+							<!-- 服务价格 -->
+							<view v-if="matchmaker.price != null" class="price-row">
+								<text class="price-value">¥{{ matchmaker.price || 199 }}</text>
+								<text class="price-unit">/{{ matchmaker.priceUnit || '次' }}</text>
+							</view>
+							<text v-else class="price-pending">服务套餐定价以支付页为准</text>
+						</view>
+					</view>
+
+					<!-- 数据统计 -->
+					<view class="stats-row">
+						<view class="stat-item">
+							<text class="stat-value">{{ matchmaker.successCount || 0 }}</text>
+							<text class="stat-label">牵线成功</text>
+						</view>
+						<view class="stat-item">
+							<text class="stat-value">{{ matchmaker.serviceCount || 0 }}</text>
+							<text class="stat-label">累计服务</text>
+						</view>
+						<view class="stat-item">
+							<text class="stat-value">{{ praiseRateText }}</text>
+							<text class="stat-label">好评率</text>
+						</view>
+					</view>
+
+					<!-- 擅长领域 -->
+					<view v-if="specialtyTags.length > 0" class="specialty-row">
+						<text class="specialty-label">擅长领域</text>
+						<view class="specialty-tags">
+							<view v-for="tag in specialtyTags" :key="tag" class="specialty-tag">
+								<text>{{ tag }}</text>
+							</view>
+						</view>
+					</view>
+				</view>
+
+				<!-- ===== 个人介绍 ===== -->
+				<view class="intro-card">
+					<text class="block-title">个人介绍</text>
+					<text class="intro-copy">{{ visibleIntroduction }}</text>
+					<view v-if="showIntroToggle" class="intro-toggle" @click="toggleIntro">
+						<text>{{ introExpanded ? '收起' : '展开全文' }}</text>
+						<text class="toggle-arrow" :class="{ up: introExpanded }">⌄</text>
+					</view>
+				</view>
+
+				<!-- ===== 成功案例 ===== -->
+				<view class="section-head">
+					<view class="section-title-row">
+						<text class="heart-mark">❤</text>
+						<text class="section-title">成功案例</text>
+					</view>
+					<text class="section-link" @click="showMoreCases">查看更多 ›</text>
+				</view>
+
+				<scroll-view scroll-x enhanced :enable-flex="true" class="case-scroll" :show-scrollbar="false" @scroll="handleCaseScroll">
+					<view class="case-list">
+						<view v-for="(item, caseIdx) in displayCases" :key="item._id || item.title" class="case-card" @click="viewCaseDetail(item)">
+							<image class="case-image" :src="item.image || item.images[0]" mode="aspectFill"></image>
+							<view class="case-body">
+								<text class="case-title">{{ item.title }}</text>
+								<text class="case-meta">{{ item.matchTime || item.meta }}</text>
+								<text class="case-copy">{{ item.matchmakerComment || item.copy }}</text>
+								<view v-if="item.tags && item.tags.length > 0" class="case-tags">
+									<text v-for="tag in (item.tags || []).slice(0, 2)" :key="tag" class="case-tag">{{ tag }}</text>
+								</view>
+							</view>
+						</view>
+					</view>
+				</scroll-view>
+
+				<!-- 滑动指示点 -->
+				<view class="case-dots">
+					<view
+						v-for="(dot, dotIdx) in displayCases"
+						:key="'dot-' + dotIdx"
+						class="case-dot"
+						:class="{ active: currentCaseIndex === dotIdx }"
+					></view>
+				</view>
+
+				<!-- ===== 服务提醒 ===== -->
+				<view class="notice-card">
+					<text class="notice-title">服务提醒</text>
+					<text class="notice-copy">红娘服务只帮助你梳理资料、匹配对象与安排节奏，不替双方自动同意，也不承诺关系结果。联系方式仅用于本次服务沟通，请勿外泄。</text>
+				</view>
+
+				<view class="bottom-spacer"></view>
+			</view>
+		</scroll-view>
+
+		<!-- ===== 底部联系栏 ===== -->
+		<view class="footer-safe">
+			<view class="footer-button phone" @click="callMatchmaker">
+				<text class="footer-icon">☎</text>
+				<view class="footer-copy">
+					<text class="footer-title">电话联系</text>
+					<text class="footer-desc">{{ phoneText }}</text>
+				</view>
+			</view>
+			<view class="footer-button wechat" @click="openWechatPanel">
+				<image class="footer-wechat" src="/static/icons/wechat-bubble.svg" mode="aspectFit"></image>
+				<view class="footer-copy">
+					<text class="footer-title">微信联系</text>
+					<text class="footer-desc">扫码添加微信</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- ===== 微信二维码弹窗 ===== -->
+		<view v-if="wechatPanelVisible" class="wechat-overlay" @click="closeWechatPanel">
+			<view class="wechat-card" @click.stop>
+				<view class="wechat-close" @click="closeWechatPanel">
+					<text>×</text>
+				</view>
+				<text class="wechat-title">微信联系</text>
+				<text class="wechat-subtitle">添加红娘微信，请备注"宣誓爱咨询"</text>
+
+				<view class="qr-placeholder">
+					<view class="qr-corner top-left"></view>
+					<view class="qr-corner top-right"></view>
+					<view class="qr-corner bottom-left"></view>
+					<image v-if="matchmaker.qrCode" class="qr-image-real" :src="matchmaker.qrCode" mode="aspectFit"></image>
+					<image v-else class="qr-wechat" src="/static/icons/wechat-bubble.svg" mode="aspectFit"></image>
+					<text class="qr-text">微信二维码</text>
+				</view>
+
+				<view class="wechat-id-row">
+					<text class="wechat-id-label">微信号</text>
+					<text class="wechat-id">{{ wechatIdText }}</text>
+				</view>
+
+				<view class="wechat-actions">
+					<view class="copy-button" @click="copyWechatId">
+						<text>复制微信号</text>
+					</view>
+					<view class="save-qr-button" @click="saveQrCode">
+						<text>保存二维码</text>
+					</view>
+				</view>
+			</view>
+		</view>
+
+		<XsaToast :visible="toastVisible" :message="toastMessage" @hide="toastVisible = false" />
+	</view>
+</template>
+
+<script setup lang="uts">
+import XsaToast from '@/components/XsaToast.uvue'
+import MatchmakerAvatar from '@/components/MatchmakerAvatar.uvue'
+import { getServiceMatchmakers, getCustomMatchmakers, getMatchmakerDetail } from '@/api'
+import { mockMatchmakerContact } from '@/mock'
+
+const fallbackMatchmaker = {
+	id: 1,
+	name: '沈知意',
+	avatar: '/static/portraits/profile-woman-main.jpg',
+	gender: 'female',
+	age: 35,
+	city: '杭州',
+	title: '金牌红娘',
+	certification: true,
+	slogan: '认真牵线，对每一次遇见负责',
+	specialties: ['高知青年', '关系澄清', '首次见面', '长期关系'],
+	price: 199,
+	priceUnit: '次',
+	introduction: '国家三级婚姻家庭咨询师，6 年婚恋服务经验。擅长帮助第一次认真使用婚恋产品的用户梳理边界、安排见面节奏。重视资料真实性与沟通质量，不追求快速匹配，更关注双方在关系目标和生活节奏上的契合度。',
+	rating: 4.9,
+	ratingCount: 156,
+	serviceCount: 320,
+	successCount: 89,
+	phone: mockMatchmakerContact.phone,
+	wechat: mockMatchmakerContact.wechat,
+	qrCode: '',
+	isOnline: true,
+	status: 'online',
+	caseRecord: '近 3 个月帮助 96 位用户进入稳定了解阶段，其中 32 对已进入深入交往。'
+}
+
+const matchmaker = ref<any>(fallbackMatchmaker)
+const introExpanded = ref(false)
+const wechatPanelVisible = ref(false)
+const toastVisible = ref(false)
+const toastMessage = ref('')
+
+const displayCases = ref<any[]>([
+	{
+		_id: 'case_001',
+		title: '从初次见面到订婚',
+		matchTime: '2025-12',
+		image: '/static/portraits/profile-man-light.jpg',
+		images: ['/static/portraits/profile-man-light.jpg'],
+		story: '两位用户都是高校教师，性格内敛但目标明确。红娘通过深度沟通梳理了双方的核心需求，安排了三次渐进式见面，从咖啡到徒步到家庭聚餐，节奏自然。',
+		feedback: '红娘很耐心，推荐的非常精准',
+		matchmakerComment: '两人生活节奏相似，价值观高度一致',
+		tags: ['高知', '同城']
+	},
+	{
+		_id: 'case_002',
+		title: '跨越城市的双向奔赴',
+		matchTime: '2025-10',
+		image: '/static/portraits/profile-woman-community.jpg',
+		images: ['/static/portraits/profile-woman-community.jpg'],
+		story: '杭州的她与南京的他，经过红娘三个月的节奏推进，最终确定了共同生活的城市。',
+		feedback: '感谢红娘帮我们看清了方向',
+		matchmakerComment: '两人都有迁就的意愿，关键是在对的时间点确认',
+		tags: ['异地', '长期规划']
+	},
+	{
+		_id: 'case_003',
+		title: '慢热型的幸福节奏',
+		matchTime: '2025-08',
+		image: '/static/portraits/profile-woman-alt.jpg',
+		images: ['/static/portraits/profile-woman-alt.jpg'],
+		story: '双方都不是一见钟情的类型，但在红娘的持续跟进与反馈中，逐渐发现了彼此的契合点。',
+		feedback: '不着急反而更稳地走进了彼此的生活',
+		matchmakerComment: '不是所有的遇见都需要火花，更多是日复一日的确定感',
+		tags: ['慢热', '深度沟通']
+	}
+])
+
+// ===== 计算属性 =====
+const specialtyTags = computed(() => {
+	const tags = matchmaker.value.specialties || matchmaker.value.tags
+	if (tags != null && tags.length > 0) {
+		return (tags as string[]).slice(0, 5)
+	}
+	return ['高知青年', '关系澄清', '首次见面']
+})
+
+const sloganText = computed(() => {
+	return matchmaker.value.slogan || matchmaker.value.description || ''
+})
+
+const fullIntroduction = computed(() => {
+	const intro = matchmaker.value.introduction || fallbackMatchmaker.introduction
+	const extra = matchmaker.value.caseRecord || ''
+	if (extra.length > 0 && intro.indexOf(extra) < 0) {
+		return intro + '\n\n' + extra
+	}
+	return intro
+})
+
+const visibleIntroduction = computed(() => {
+	const text = fullIntroduction.value
+	if (introExpanded.value || text.length <= 72) return text
+	return text.slice(0, 72) + '…'
+})
+
+const showIntroToggle = computed(() => fullIntroduction.value.length > 72)
+
+const starRating = computed(() => {
+	const rating = parseFloat(String(matchmaker.value.rating || '4.9'))
+	return Math.round(rating)
+})
+
+const starText = computed(() => {
+	const filledCount = Math.max(0, Math.min(5, starRating.value))
+	return '★'.repeat(filledCount) + '☆'.repeat(5 - filledCount)
+})
+
+const ratingText = computed(() => {
+	const rating = parseFloat(String(matchmaker.value.rating || '4.9'))
+	return isNaN(rating) ? '4.9' : rating.toFixed(1)
+})
+
+const praiseRateText = computed(() => {
+	const rating = parseFloat(String(matchmaker.value.rating || '4.9'))
+	return Math.round(rating / 5 * 100) + '%'
+})
+
+const phoneText = computed(() => {
+	const phone = matchmaker.value.phone
+	if (phone != null && String(phone).length > 0) return String(phone)
+	return fallbackMatchmaker.phone
+})
+
+const wechatIdText = computed(() => {
+	const wechat = matchmaker.value.wechat
+	if (wechat != null && String(wechat).length > 0) return String(wechat)
+	return fallbackMatchmaker.wechat
+})
+
+// ===== 初始化 =====
+onMounted(async () => {
+	uni.setNavigationBarTitle({ title: '红娘个人主页' })
+
+	const pages = getCurrentPages()
+	const currentPage = pages[pages.length - 1]
+	const options = currentPage.options
+	const targetId = options != null && options.id != null ? parseInt(options.id) : 1
+
+	try {
+		// 尝试加载详情
+		const detailRes = await getMatchmakerDetail(targetId)
+		if (detailRes.success && detailRes.data != null) {
+			matchmaker.value = Object.assign({}, fallbackMatchmaker, detailRes.data)
+			if (detailRes.data.cases != null && detailRes.data.cases.length > 0) {
+				displayCases.value = detailRes.data.cases as any[]
+			}
+			return
+		}
+	} catch (e) {
+		// 降级到列表查找
+	}
+
+	// 降级：从列表匹配
+	try {
+		const serviceRes = await getServiceMatchmakers()
+		const customRes = await getCustomMatchmakers()
+		const list = (serviceRes.success ? serviceRes.data as any[] : []).concat(
+			customRes.success ? customRes.data as any[] : []
+		)
+		const item = list.find((entry: any) => entry.id == targetId)
+		if (item != null) {
+			matchmaker.value = Object.assign({}, fallbackMatchmaker, item)
+		}
+	} catch (e) {
+		uni.showToast({ title: '已展示默认红娘资料', icon: 'none' })
+	}
+})
+
+// ===== 介绍展开/收起 =====
+const toggleIntro = () => { introExpanded.value = !introExpanded.value }
+
+
+// ===== 案例滑动追踪 =====
+const currentCaseIndex = ref(0)
+let caseScrollTimer: any = null
+const caseCardStepRpx = 294
+
+const handleCaseScroll = (e: any) => {
+	if (caseScrollTimer != null) return
+	caseScrollTimer = setTimeout(() => {
+		caseScrollTimer = null
+		const scrollLeft = e.detail?.scrollLeft ?? 0
+		// 卡片宽度 276rpx + 间距 18rpx = 294rpx
+		try {
+			const info = uni.getSystemInfoSync()
+			const screenWidth = info.screenWidth ?? 375
+			const cardStep = (caseCardStepRpx / 750) * screenWidth
+			if (cardStep > 0) {
+				const rawIdx = Math.round(scrollLeft / cardStep)
+				const clamped = Math.max(0, Math.min(rawIdx, displayCases.value.length - 1))
+				currentCaseIndex.value = clamped
+			}
+		} catch (_) {
+			// 降级：不更新指示点
+		}
+	}, 120)
+}
+// ===== 成功案例 =====
+const viewCaseDetail = (item: any) => {
+	const id = item._id || item.title || ''
+	uni.showModal({
+		title: item.title || '案例详情',
+		content: (item.story || item.copy || '') + '\n\n—— 红娘评语：' + (item.matchmakerComment || '用心促成每一次遇见'),
+		showCancel: false,
+		confirmText: '知道了'
+	})
+}
+
+const showMoreCases = () => {
+	uni.showToast({ title: '更多案例整理中', icon: 'none' })
+}
+
+// ===== 电话 =====
+const callMatchmaker = () => {
+	uni.showModal({
+		title: '拨打电话',
+		content: '将拨打红娘电话 ' + phoneText.value + '，是否确认？',
+		confirmText: '拨打',
+		success: (res: any) => {
+			if (res.confirm) {
+				uni.makePhoneCall({
+					phoneNumber: phoneText.value,
+					fail: () => {
+						uni.showToast({ title: '当前环境暂不支持拨号', icon: 'none' })
+					}
+				})
+			}
+		}
+	})
+}
+
+// ===== 微信 =====
+const openWechatPanel = () => { wechatPanelVisible.value = true }
+const closeWechatPanel = () => { wechatPanelVisible.value = false }
+
+const copyWechatId = () => {
+	uni.setClipboardData({
+		data: wechatIdText.value,
+		success: () => showToast('微信号已复制')
+	})
+}
+
+const saveQrCode = () => {
+	if (matchmaker.value.qrCode) {
+		uni.showToast({ title: '请长按二维码图片保存', icon: 'none' })
+	} else {
+		uni.showToast({ title: '二维码图片暂未上传', icon: 'none' })
+	}
+}
+
+const showToast = (msg: string) => {
+	toastMessage.value = msg
+	toastVisible.value = true
+}
+</script>
+
+<style scoped>
+.detail-page {
+	--rose: #F33E78;
+	--rose-dark: #C61F58;
+	--rose-soft: #FFE4EE;
+	--rose-faint: #FFF5F9;
+	--rose-line: #FFD2E2;
+	--gold: #F0A332;
+	--gold-soft: #FFF0CF;
+	--violet: #8B58E8;
+	--violet-soft: #EFE2FF;
+	--green: #18B866;
+	--blue: #168AEC;
+	min-height: 100vh;
+	background: linear-gradient(180deg, var(--rose-faint) 0%, var(--paper) 40%, var(--paper) 100%);
+}
+
+.page-scroller { height: 100vh; }
+
+.page-content {
+	padding: 34rpx 28rpx 216rpx;
+	display: flex;
+	flex-direction: column;
+	gap: 24rpx;
+}
+
+.bottom-spacer { height: 8rpx; }
+
+/* ===== 基本信息卡片 ===== */
+.profile-card {
+	padding: 28rpx 24rpx 22rpx;
+	border-radius: 26rpx;
+	background: linear-gradient(180deg, rgba(255, 228, 238, 0.86), rgba(255, 255, 255, 0.96));
+	box-shadow: 0 10rpx 34rpx rgba(198, 31, 88, 0.08);
+	border: 1px solid rgba(255, 210, 226, 0.72);
+	display: flex;
+	flex-direction: column;
+	gap: 22rpx;
+}
+
+.profile-main {
+	display: flex;
+	flex-direction: row;
+	gap: 24rpx;
+}
+
+.avatar-wrap {
+	position: relative;
+	width: 172rpx;
+	height: 172rpx;
+	flex-shrink: 0;
+}
+
+.online-dot {
+	position: absolute;
+	right: 8rpx;
+	bottom: 8rpx;
+	width: 24rpx;
+	height: 24rpx;
+	border-radius: 50%;
+	background: var(--green);
+	border: 4rpx solid var(--surface);
+}
+
+.profile-info {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 10rpx;
+}
+
+.name-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 10rpx;
+	flex-wrap: wrap;
+}
+
+.name {
+	font-size: 40rpx;
+	line-height: 1.18;
+	font-family: var(--serif);
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.cert-badge {
+	min-height: 34rpx;
+	padding: 0 12rpx;
+	border-radius: 999rpx;
+	background: linear-gradient(90deg, var(--rose), #FF7AA3);
+	color: var(--surface);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 19rpx;
+	font-weight: 800;
+}
+
+.signature {
+	font-size: 23rpx;
+	line-height: 1.45;
+	color: var(--rose-dark);
+}
+
+/* 评分 */
+.rating-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8rpx;
+	flex-wrap: nowrap;
+}
+
+.stars-text {
+	flex-shrink: 0;
+	font-size: 26rpx;
+	line-height: 1;
+	letter-spacing: 2rpx;
+	color: var(--gold);
+}
+
+.rating-meta {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 6rpx;
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+
+.rating-score {
+	font-size: 26rpx;
+	font-weight: 900;
+	color: var(--ink);
+}
+
+.rating-count {
+	font-size: 20rpx;
+	color: var(--muted);
+}
+
+/* 价格 */
+.price-row {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 4rpx;
+}
+.price-pending { font-size: 22rpx; color: var(--muted); }
+
+.price-value {
+	font-size: 38rpx;
+	line-height: 1;
+	font-weight: 900;
+	color: var(--rose-dark);
+}
+
+.price-unit {
+	font-size: 22rpx;
+	color: var(--muted);
+}
+
+/* 数据统计 */
+.stats-row {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8rpx;
+	padding: 18rpx 0 0;
+	border-top: 1px solid var(--rose-line);
+}
+
+.stat-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4rpx;
+}
+
+.stat-value {
+	font-size: 30rpx;
+	line-height: 1.2;
+	font-weight: 900;
+	color: var(--rose-dark);
+}
+
+.stat-label {
+	font-size: 20rpx;
+	color: var(--ink2);
+}
+
+/* 擅长领域 */
+.specialty-row {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 10rpx;
+}
+
+.specialty-label {
+	flex-shrink: 0;
+	font-size: 22rpx;
+	line-height: 44rpx;
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.specialty-tags {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10rpx;
+}
+
+.specialty-tag {
+	min-height: 44rpx;
+	padding: 0 18rpx;
+	border-radius: 999rpx;
+	background: var(--rose-soft);
+	color: var(--rose-dark);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 21rpx;
+	font-weight: 800;
+}
+
+/* ===== 个人介绍 ===== */
+.intro-card {
+	position: relative;
+	padding: 26rpx 28rpx;
+	border-radius: 22rpx;
+	background: rgba(255, 255, 255, 0.96);
+	box-shadow: 0 8rpx 26rpx rgba(17, 23, 24, 0.05);
+	border: 1px solid rgba(255, 210, 226, 0.58);
+	display: flex;
+	flex-direction: column;
+	gap: 12rpx;
+}
+
+.block-title {
+	font-size: 31rpx;
+	line-height: 1.25;
+	font-weight: 900;
+	color: var(--ink);
+}
+
+.intro-copy {
+	font-size: 25rpx;
+	line-height: 1.7;
+	color: var(--ink2);
+}
+
+.intro-toggle {
+	align-self: flex-end;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6rpx;
+	font-size: 24rpx;
+	font-weight: 800;
+	color: var(--rose);
+}
+
+.toggle-arrow { font-size: 28rpx; line-height: 1; transition: transform 0.2s; }
+.toggle-arrow.up { transform: rotate(180deg); }
+
+/* ===== 成功案例 ===== */
+.section-head {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16rpx;
+}
+
+.section-title-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8rpx;
+}
+
+.heart-mark { font-size: 28rpx; color: var(--rose); }
+.dot-mark { font-size: 42rpx; line-height: 22rpx; color: var(--rose); font-weight: 900; }
+
+.section-title {
+	font-size: 31rpx;
+	line-height: 1.25;
+	font-weight: 900;
+	color: var(--ink);
+}
+
+.section-link { flex-shrink: 0; font-size: 22rpx; font-weight: 800; color: var(--rose); }
+
+.case-scroll {
+	width: 100%;
+	margin: -8rpx -28rpx 0;
+	padding: 8rpx 28rpx 4rpx;
+}
+
+.case-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	gap: 18rpx;
+	padding-right: 84rpx;
+}
+
+.case-card {
+	width: 276rpx;
+	flex-shrink: 0;
+	min-height: 356rpx;
+	border-radius: 16rpx;
+	background: var(--surface);
+	overflow: hidden;
+	box-shadow: 0 8rpx 26rpx rgba(198, 31, 88, 0.07);
+	display: flex;
+	flex-direction: column;
+}
+
+.case-image {
+	width: 100%;
+	height: 184rpx;
+	background: var(--rose-soft);
+}
+
+.case-body {
+	flex: 1;
+	padding: 16rpx 18rpx 18rpx;
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.case-title {
+	font-size: 25rpx;
+	line-height: 1.25;
+	font-weight: 900;
+	color: var(--ink);
+}
+
+.case-meta {
+	font-size: 20rpx;
+	line-height: 1.35;
+	color: var(--muted);
+}
+
+.case-copy {
+	flex: 1;
+	font-size: 20rpx;
+	line-height: 1.4;
+	color: var(--ink2);
+}
+
+.case-tags {
+	display: flex;
+	flex-direction: row;
+	gap: 6rpx;
+	margin-top: 4rpx;
+}
+
+.case-tag {
+	padding: 2rpx 10rpx;
+	border-radius: 999rpx;
+	background: var(--rose-soft);
+	font-size: 17rpx;
+	color: var(--rose-dark);
+	font-weight: 700;
+}
+
+/* ===== 服务提醒 ===== */
+.notice-card {
+	padding: 22rpx 24rpx;
+	border-radius: 18rpx;
+	background: rgba(255, 228, 238, 0.55);
+	border: 1px solid rgba(255, 210, 226, 0.72);
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.notice-title { font-size: 25rpx; font-weight: 900; color: var(--rose-dark); }
+.notice-copy { font-size: 21rpx; line-height: 1.58; color: var(--ink2); }
+
+/* ===== 底部联系栏 ===== */
+.footer-safe {
+	position: fixed;
+	left: 0; right: 0; bottom: 0;
+	z-index: 20;
+	padding: 16rpx 28rpx calc(env(safe-area-inset-bottom) + 18rpx);
+	background: rgba(255, 255, 255, 0.96);
+	border-top: 1px solid rgba(255, 210, 226, 0.72);
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 18rpx;
+}
+
+.footer-button {
+	min-width: 0; min-height: 94rpx;
+	border-radius: 22rpx;
+	display: flex; flex-direction: row; align-items: center; justify-content: center;
+	gap: 12rpx;
+	color: var(--surface);
+	box-shadow: 0 8rpx 24rpx rgba(17, 23, 24, 0.12);
+}
+
+.footer-button.phone { background: linear-gradient(135deg, var(--green), #12D071); }
+.footer-button.wechat { background: linear-gradient(135deg, var(--blue), #15A3FF); }
+
+.footer-icon { font-size: 34rpx; font-weight: 900; line-height: 1; }
+.footer-wechat { width: 40rpx; height: 40rpx; }
+
+.footer-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 2rpx; }
+.footer-title { font-size: 27rpx; line-height: 1.2; font-weight: 900; }
+.footer-desc { font-size: 19rpx; line-height: 1.35; opacity: 0.88; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== 微信二维码弹窗 ===== */
+.wechat-overlay {
+	position: fixed; inset: 0; z-index: 60;
+	background: rgba(17, 23, 24, 0.48);
+	display: flex; align-items: center; justify-content: center;
+	padding: 32rpx;
+}
+
+.wechat-card {
+	position: relative;
+	width: 560rpx;
+	padding: 44rpx 36rpx 34rpx;
+	border-radius: 28rpx;
+	background: var(--surface);
+	box-shadow: var(--shadow-lg);
+	display: flex; flex-direction: column; align-items: center;
+	gap: 18rpx;
+}
+
+.wechat-close {
+	position: absolute; right: 14rpx; top: 14rpx;
+	width: 54rpx; height: 54rpx;
+	border-radius: 50%;
+	background: var(--rose-faint);
+	color: var(--muted);
+	display: flex; align-items: center; justify-content: center;
+}
+
+.wechat-close text { font-size: 34rpx; line-height: 1; }
+
+.wechat-title { font-size: 36rpx; font-family: var(--serif); font-weight: 900; color: var(--ink); }
+.wechat-subtitle { font-size: 23rpx; line-height: 1.55; color: var(--muted); text-align: center; }
+
+.qr-placeholder {
+	position: relative;
+	width: 320rpx; height: 320rpx;
+	border-radius: 18rpx;
+	background: var(--rose-faint);
+	border: 1px solid var(--rose-line);
+	display: flex; flex-direction: column; align-items: center; justify-content: center;
+	gap: 12rpx;
+}
+
+.qr-corner {
+	position: absolute;
+	width: 72rpx; height: 72rpx;
+	border: 8rpx solid var(--rose);
+}
+
+.qr-corner.top-left { left: 24rpx; top: 24rpx; border-right: 0; border-bottom: 0; }
+.qr-corner.top-right { right: 24rpx; top: 24rpx; border-left: 0; border-bottom: 0; }
+.qr-corner.bottom-left { left: 24rpx; bottom: 24rpx; border-right: 0; border-top: 0; }
+
+.qr-image-real { width: 100%; height: 100%; border-radius: 18rpx; }
+
+.qr-wechat { width: 88rpx; height: 88rpx; }
+.qr-text { font-size: 22rpx; font-weight: 900; color: var(--rose-dark); }
+
+.wechat-id-row {
+	width: 100%; min-height: 68rpx;
+	padding: 0 20rpx;
+	border-radius: 16rpx;
+	background: var(--rose-faint);
+	display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+	gap: 18rpx;
+}
+
+.wechat-id-label { font-size: 22rpx; color: var(--muted); }
+.wechat-id { font-size: 24rpx; font-weight: 900; color: var(--ink); }
+
+.wechat-actions {
+	width: 100%;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 14rpx;
+}
+
+.copy-button, .save-qr-button {
+	height: 78rpx;
+	border-radius: 18rpx;
+	display: flex; align-items: center; justify-content: center;
+	font-size: 26rpx; font-weight: 900;
+}
+
+.copy-button { background: var(--rose); color: var(--surface); }
+.save-qr-button { background: var(--rose-soft); color: var(--rose-dark); }
+
+
+/* ============ 案例滑动指示点 ============ */
+.case-dots {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 12rpx;
+	padding-top: 8rpx;
+}
+
+.case-dot {
+	width: 12rpx;
+	height: 12rpx;
+	border-radius: 50%;
+	background: var(--line);
+	transition: all 0.22s ease;
+}
+
+.case-dot.active {
+	width: 28rpx;
+	border-radius: 6rpx;
+	background: var(--rose);
+}
+</style>

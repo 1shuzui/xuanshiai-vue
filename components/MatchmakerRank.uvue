@@ -1,0 +1,170 @@
+<template>
+	<view class="rank-wrap">
+		<view class="rank-header">
+			<view>
+				<text class="rank-title">红娘排行榜</text>
+				<text class="rank-subtitle">按累计服务与近期反馈综合排序</text>
+			</view>
+		</view>
+
+		<view class="rank-list">
+				<view class="rank-item" v-for="(item, index) in list" :key="item.id" @click="handleClick(item)">
+					<view class="rank-mark" :class="rankClass(index)">
+						<text>{{ rankLabel(index) }}</text>
+					</view>
+					<MatchmakerAvatar :src="item.avatar" :name="item.name" variant="rank" />
+					<text class="rank-name">{{ item.name }}</text>
+					<text class="rank-meta">服务 {{ item.serviceCount }} 人</text>
+					<text class="rank-meta">成功 {{ item.successCount }} 约</text>
+					<text class="rank-rate">★ {{ formatRating(item.rating) }}</text>
+				</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+import MatchmakerAvatar from '@/components/MatchmakerAvatar.uvue';
+
+interface Props {
+	list: any[];
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits<{
+	'item-click': [item: any];
+}>();
+
+const rankLabel = (index: number) => {
+	if (index == 0) return '冠';
+	if (index == 1) return '亚';
+	if (index == 2) return '季';
+	return String(index + 1);
+};
+
+const rankClass = (index: number) => {
+	if (index == 0) return 'first';
+	if (index == 1) return 'second';
+	if (index == 2) return 'third';
+	return 'normal';
+};
+
+const formatRating = (value: any): string => {
+	const rating = Number(value);
+	return isNaN(rating) ? '0.0' : rating.toFixed(1);
+};
+
+const handleClick = (item: any) => {
+	emit('item-click', item);
+};
+</script>
+
+<style scoped>
+	.rank-wrap {
+		padding: 28rpx 24rpx 24rpx;
+		border-radius: 24rpx;
+		background: var(--surface);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.rank-header {
+		margin-bottom: 20rpx;
+	}
+
+	.rank-title {
+		display: block;
+		font-size: 34rpx;
+		line-height: 1.2;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.rank-subtitle {
+		display: block;
+		margin-top: 8rpx;
+		font-size: 22rpx;
+		color: var(--muted);
+	}
+
+	.rank-list {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 18rpx;
+		width: 100%;
+	}
+
+	.rank-item {
+		width: 100%;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		position: relative;
+		padding-top: 28rpx;
+	}
+
+	.rank-mark {
+		position: absolute;
+		top: 0;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 52rpx;
+		height: 52rpx;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 18rpx;
+		font-weight: 800;
+		background: var(--warm);
+		color: var(--accent2);
+		border: 1px solid var(--line);
+	}
+
+	.rank-mark.first {
+		background: rgba(44, 128, 124, 0.18);
+		border-color: rgba(44, 128, 124, 0.22);
+	}
+
+	.rank-mark.second {
+		background: rgba(56, 152, 141, 0.12);
+	}
+
+	.rank-mark.third {
+		background: rgba(194, 224, 207, 0.64);
+	}
+
+	.rank-name {
+		max-width: 100%;
+		margin-top: 14rpx;
+		font-size: 26rpx;
+		line-height: 1.3;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.rank-meta {
+		max-width: 100%;
+		margin-top: 8rpx;
+		font-size: 20rpx;
+		line-height: 1.4;
+		color: var(--muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.rank-rate {
+		max-width: 100%;
+		margin-top: 8rpx;
+		font-size: 20rpx;
+		font-weight: 800;
+		color: var(--brown);
+	}
+</style>

@@ -63,7 +63,6 @@ const handleClick = () => {
 .xsa-avatar {
 	position: relative;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	background: var(--warm);
@@ -106,7 +105,6 @@ const handleClick = () => {
 	width: 100%;
 	height: 100%;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	background: var(--soft);
@@ -137,7 +135,6 @@ const handleClick = () => {
 	border-radius: 50%;
 	border: 2px solid var(--paper);
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 }

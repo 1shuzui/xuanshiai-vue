@@ -1,0 +1,268 @@
+<template>
+	<view class="matchmaker-card" @click="handleDetail">
+		<view class="card-media">
+			<MatchmakerAvatar :src="data.avatar" :name="data.name" variant="card" />
+		</view>
+
+		<view class="card-body">
+			<view class="card-name-row">
+				<text class="card-name">{{ data.name }}</text>
+				<view class="card-rate">
+					<text>★ {{ rateText }}</text>
+				</view>
+			</view>
+			<text class="card-copy">{{ cardCopy }}</text>
+
+			<view class="card-meta">
+				<view class="meta-item">
+					<text class="meta-value">{{ data.successCount }}</text>
+					<text class="meta-label">牵线成功</text>
+				</view>
+				<view class="meta-item">
+					<text class="meta-value">{{ data.serviceCount }}</text>
+					<text class="meta-label">累计服务</text>
+				</view>
+			</view>
+
+			<view class="card-tags" v-if="data.tags != null && data.tags.length > 0">
+				<view v-for="(tag, index) in data.tags.slice(0, 2)" :key="index" class="card-tag">
+					<text>{{ tag }}</text>
+				</view>
+			</view>
+
+			<view class="card-footer">
+				<view class="card-price">
+					<text v-if="hasPrice" class="price-symbol">¥</text>
+					<text class="price-value">{{ priceText }}</text>
+					<text v-if="hasPrice" class="price-unit">{{ unitText }}</text>
+				</view>
+				<view class="card-button" @click.stop="handleContact">
+					<text>{{ actionText }}</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+import MatchmakerAvatar from '@/components/MatchmakerAvatar.uvue';
+
+interface Props {
+	data: any;
+	actionText?: string;
+	unitText?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	actionText: '联系她',
+	unitText: '/次'
+});
+
+const emit = defineEmits<{
+	detail: [item: any];
+	contact: [item: any];
+}>();
+
+const rateText = computed(() => {
+	if (props.data == null || props.data.rating == null) return '4.8';
+	const rating = Number(props.data.rating);
+	return isNaN(rating) ? '4.8' : rating.toFixed(1);
+});
+
+const priceText = computed(() => {
+	if (props.data == null || props.data.price == null) return '套餐定价';
+	return String(props.data.price);
+});
+
+const hasPrice = computed(() => {
+	return props.data != null && props.data.price != null;
+});
+
+const cardCopy = computed(() => {
+	if (props.data == null) return '';
+	if (props.data.caseRecord != null && props.data.caseRecord.length > 0) return props.data.caseRecord;
+	if (props.data.introduction != null && props.data.introduction.length > 0) return props.data.introduction;
+	return props.data.description != null ? props.data.description : '';
+});
+
+const handleDetail = () => {
+	emit('detail', props.data);
+};
+
+const handleContact = () => {
+	emit('contact', props.data);
+};
+</script>
+
+<style scoped>
+	.matchmaker-card {
+		width: 100%;
+		min-width: 0;
+		border-radius: 24rpx;
+		background: var(--surface);
+		overflow: hidden;
+		box-shadow: var(--shadow-sm);
+		border: 1px solid rgba(211, 217, 216, 0.65);
+	}
+
+	.card-media {
+		position: relative;
+		height: 262rpx;
+		background: var(--warm);
+	}
+
+	.card-body {
+		padding: 22rpx 22rpx 24rpx;
+		display: flex;
+		flex-direction: column;
+		gap: 10rpx;
+	}
+
+	.card-name-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12rpx;
+	}
+
+	.card-name {
+		min-width: 0;
+		flex: 1;
+		font-size: 36rpx;
+		line-height: 1.2;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.card-rate {
+		height: 38rpx;
+		padding: 0 10rpx;
+		border-radius: 999rpx;
+		background: var(--warm);
+		color: var(--brown);
+		display: flex;
+		align-items: center;
+		font-size: 18rpx;
+		font-weight: 800;
+		flex-shrink: 0;
+	}
+
+	.card-copy {
+		min-height: 64rpx;
+		font-size: 22rpx;
+		line-height: 1.55;
+		color: var(--ink2);
+		overflow-wrap: anywhere;
+	}
+
+	.card-meta {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12rpx;
+		padding: 16rpx 0 4rpx;
+		border-top: 1px solid var(--line);
+	}
+
+	.meta-item {
+		display: flex;
+		flex-direction: column;
+		gap: 4rpx;
+	}
+
+	.meta-value {
+		font-size: 30rpx;
+		line-height: 1;
+		font-weight: 800;
+		color: var(--ink);
+	}
+
+	.meta-label {
+		font-size: 18rpx;
+		color: var(--muted);
+	}
+
+	.card-tags {
+		display: flex;
+		flex-direction: row;
+		gap: 8rpx;
+		flex-wrap: wrap;
+	}
+
+	.card-tag {
+		min-height: 40rpx;
+		padding: 0 10rpx;
+		border-radius: 10rpx;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		max-width: 100%;
+	}
+
+	.card-tag text {
+		font-size: 17rpx;
+		line-height: 1.25;
+		font-weight: 700;
+		color: var(--ink2);
+		white-space: nowrap;
+	}
+
+	.card-footer {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12rpx;
+		margin-top: 6rpx;
+	}
+
+	.card-price {
+		min-width: 0;
+		max-width: 48%;
+		display: flex;
+		flex-direction: row;
+		align-items: baseline;
+		gap: 4rpx;
+		color: var(--brown);
+		flex-shrink: 0;
+	}
+
+	.price-symbol {
+		font-size: 22rpx;
+		font-weight: 800;
+	}
+
+	.price-value {
+		font-size: 26rpx;
+		line-height: 1.2;
+		font-weight: 800;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.price-unit {
+		font-size: 20rpx;
+		color: var(--muted);
+	}
+
+	.card-button {
+		height: 56rpx;
+		padding: 0 22rpx;
+		border-radius: 18rpx;
+		background: linear-gradient(135deg, rgba(44, 128, 124, 0.16), rgba(56, 152, 141, 0.24));
+		border: 1px solid rgba(44, 128, 124, 0.18);
+		color: var(--accent2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 22rpx;
+		font-weight: 800;
+	}
+</style>

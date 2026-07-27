@@ -21,6 +21,6 @@
     "include": []
   },
   "appid": "touristappid",
-  "miniprogramRoot": "unpackage/dist/dev/mp-weixin/",
+  "miniprogramRoot": "",
   "editorSetting": {}
 }

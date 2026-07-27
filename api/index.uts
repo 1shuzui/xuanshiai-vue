@@ -3,6 +3,13 @@
  * import { getRecommendUser, getMessageList } from '@/api'
  */
 
+// 认证相关
+export {
+  sendSms,
+  loginByPhone,
+  logout
+} from './auth.uts'
+
 // 用户相关
 export {
   getRecommendUser,
@@ -23,6 +30,7 @@ export {
   getMessageList,
   getChatMessages,
   sendMessage,
+  handleContactExchangeRequest,
   getApplications,
   handleApplication
 } from './message.uts'
@@ -35,6 +43,7 @@ export {
   getTopicList,
   getTopicDetail,
   joinTopic,
+  leaveTopic,
   getPaperPlanes,
   sendPaperPlane,
   replyPaperPlane,
@@ -61,15 +70,31 @@ export {
   reportContent,
   blockUser,
   getReportReasons,
-  getCurrentCity,
-  setCurrentCity
-} from './community.uts'
+getCurrentCity,
+	  setCurrentCity,
+	  COMMUNITY_CITY_OPTIONS,
+	  getMyPaperPlanes,
+	  createCommunityCreateKey,
+	  discardCommunityCreateKey
+	} from './community.uts'
 
 // 牵线/红娘相关
 export {
+  getMockMatchmakerContact,
+  getMatchmakerBanners,
+  getMatchmakerDetail,
   getServiceMatchmakers,
+  getCustomMatchmakers,
+  getCustomPlans,
   getVolunteerMatchmakers,
   getAiRecommendations,
   getCustomPackages,
+  saveCustomServiceApplicationDraft,
+  getCustomServiceApplicationDraft,
+  payCustomServiceApplication,
+  submitConnectionApplication,
+  submitMatchmakerApplication,
+  submitPartnerApplication,
+  submitPromoterApplication,
   bookMatchmaker
 } from './matchmaker.uts'

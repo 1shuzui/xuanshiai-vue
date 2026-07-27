@@ -12,8 +12,8 @@ import { mockMessageList, mockChatMessages, mockApplications } from '@/mock'
 export async function getMessageList() {
   return request({
     url: '/message/list',
-    cloudFunctionName: 'message',
-    action: 'getList',
+    forceHttp: true,
+    mockFallback: true,
     method: 'GET',
     mockData: mockMessageList // Mock 数据
   })
@@ -26,8 +26,8 @@ export async function getMessageList() {
 export async function getChatMessages(userId: number) {
   return request({
     url: '/message/chat',
-    cloudFunctionName: 'message',
-    action: 'getChatMessages',
+    forceHttp: true,
+    mockFallback: true,
     method: 'GET',
     data: { userId },
     mockData: mockChatMessages // Mock 数据
@@ -38,16 +38,43 @@ export async function getChatMessages(userId: number) {
  * 发送消息
  * @param userId 对方用户 ID
  * @param content 消息内容
- * @param type 消息类型（text/image/voice）
+ * @param type 消息类型（text/image/voice/wechat-request/phone-request）
  */
 export async function sendMessage(userId: number, content: string, type: string = 'text') {
   return request({
     url: '/message/send',
-    cloudFunctionName: 'message',
-    action: 'send',
+    forceHttp: true,
+    mockFallback: true,
     method: 'POST',
     data: { userId, content, type },
     mockData: { success: true, messageId: Date.now() } // Mock 数据
+  })
+}
+
+/**
+ * 处理联系方式交换申请
+ * @param requestId 交换申请消息 ID
+ * @param action accept / reject
+ * @param contactType wechat / phone
+ */
+export async function handleContactExchangeRequest(
+  requestId: number,
+  action: string,
+  contactType: string = 'wechat'
+) {
+  return request({
+    url: '/message/contact-exchange/handle',
+    cloudFunctionName: 'message',
+    action: 'handleContactExchangeRequest',
+    method: 'POST',
+    data: { requestId, action, contactType },
+    mockData: {
+      status: action == 'accept' ? 'accepted' : 'rejected',
+      contactType: contactType,
+      contactValue: action == 'accept'
+        ? (contactType == 'phone' ? '13812341234' : 'wanqing_art')
+        : ''
+    }
   })
 }
 
@@ -57,8 +84,8 @@ export async function sendMessage(userId: number, content: string, type: string 
 export async function getApplications() {
   return request({
     url: '/message/applications',
-    cloudFunctionName: 'message',
-    action: 'getApplications',
+    forceHttp: true,
+    mockFallback: true,
     method: 'GET',
     mockData: mockApplications // Mock 数据
   })
@@ -72,8 +99,8 @@ export async function getApplications() {
 export async function handleApplication(applicationId: number, action: string) {
   return request({
     url: '/message/application/handle',
-    cloudFunctionName: 'message',
-    action: 'handleApplication',
+    forceHttp: true,
+    mockFallback: true,
     method: 'POST',
     data: { applicationId, action },
     mockData: { success: true } // Mock 数据

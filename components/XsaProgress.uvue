@@ -44,7 +44,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 .progress-label {
 	display: flex;
-		flex-direction: row;
 	justify-content: space-between;
 	align-items: center;
 }

@@ -1,0 +1,373 @@
+<template>
+	<view class="apply-page">
+		<scroll-view class="scroller" scroll-y>
+			<view class="page-pad">
+				<!-- Banner -->
+				<view class="banner">
+					<text class="banner-kicker">BECOME A MATCHMAKER</text>
+					<text class="banner-title">红娘招募</text>
+					<text class="banner-desc">平台认证 · 官方审核 · 帮助更多人认真找到幸福</text>
+				</view>
+
+				<!-- 基本信息 -->
+				<view class="form-section">
+					<text class="form-section-title">基本信息</text>
+					<view class="form-card">
+						<XsaInput
+							label="真实姓名"
+							placeholder="请输入真实姓名"
+							:value="formData.name"
+							@input="(e: any) => formData.name = e.detail.value"
+						/>
+						<XsaInput
+							label="手机号"
+							placeholder="请输入手机号"
+							type="number"
+							:value="formData.phone"
+							@input="(e: any) => formData.phone = e.detail.value"
+						/>
+						<XsaInput
+							label="微信号"
+							placeholder="请输入微信号"
+							:value="formData.wechat"
+							@input="(e: any) => formData.wechat = e.detail.value"
+						/>
+					</view>
+				</view>
+
+				<!-- 红娘资料 -->
+				<view class="form-section">
+					<text class="form-section-title">红娘资料</text>
+					<view class="form-card">
+						<!-- 上传头像 -->
+						<view class="avatar-upload" @click="handleUploadAvatar">
+							<image
+								v-if="formData.avatar"
+								class="avatar-preview"
+								:src="formData.avatar"
+								mode="aspectFill"
+							></image>
+							<view v-else class="avatar-placeholder">
+								<text class="avatar-plus">+</text>
+								<text class="avatar-hint">上传头像</text>
+							</view>
+						</view>
+
+						<view class="form-divider"></view>
+
+						<view class="textarea-field">
+							<text class="field-label">个人简介</text>
+							<textarea
+								class="field-textarea"
+								:value="formData.bio"
+								placeholder="介绍你的经历和做红娘的初衷…"
+								maxlength="200"
+								@input="(e: any) => formData.bio = e.detail.value"
+							/>
+							<text class="field-counter">{{ (formData.bio || '').length }}/200</text>
+						</view>
+
+						<view class="form-divider"></view>
+
+						<view class="textarea-field">
+							<text class="field-label">擅长领域</text>
+							<textarea
+								class="field-textarea"
+								:value="formData.expertise"
+								placeholder="如：高知青年、首次见面安排、关系澄清…"
+								maxlength="100"
+								@input="(e: any) => formData.expertise = e.detail.value"
+							/>
+						</view>
+
+						<view class="form-divider"></view>
+
+						<XsaInput
+							label="服务价格（选填）"
+							placeholder="如不填则默认平台统一标准"
+							:value="formData.price"
+							@input="(e: any) => formData.price = e.detail.value"
+						/>
+					</view>
+				</view>
+
+				<!-- 审核流程 -->
+				<view class="flow-section">
+					<text class="form-section-title">审核流程</text>
+					<view class="flow-steps">
+						<view class="flow-step">
+							<view class="flow-dot active"></view>
+							<text class="flow-label">填写申请</text>
+						</view>
+						<view class="flow-line"></view>
+						<view class="flow-step">
+							<view class="flow-dot"></view>
+							<text class="flow-label">平台审核</text>
+						</view>
+						<view class="flow-line"></view>
+						<view class="flow-step">
+							<view class="flow-dot"></view>
+							<text class="flow-label">审核通过</text>
+						</view>
+						<view class="flow-line"></view>
+						<view class="flow-step">
+							<view class="flow-dot"></view>
+							<text class="flow-label">成为服务红娘</text>
+						</view>
+					</view>
+				</view>
+
+				<!-- 提交按钮 -->
+				<view class="submit-area">
+					<XsaButton variant="primary" block @click="handleSubmit">提交申请</XsaButton>
+					<text class="submit-notice text-muted">提交后平台将在 3 个工作日内完成审核，请保持手机畅通。</text>
+				</view>
+			</view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaInput from '@/components/XsaInput.uvue'
+	import XsaButton from '@/components/XsaButton.uvue'
+
+	const formData = reactive({
+		name: '',
+		phone: '',
+		wechat: '',
+		avatar: '',
+		bio: '',
+		expertise: '',
+		price: ''
+	})
+
+	const handleUploadAvatar = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res: any) => {
+				formData.avatar = res.tempFilePaths[0]
+			}
+		})
+	}
+
+	const handleSubmit = () => {
+		if (!formData.name.trim()) {
+			uni.showToast({ title: '请填写真实姓名', icon: 'none' })
+			return
+		}
+		if (!formData.phone.trim()) {
+			uni.showToast({ title: '请填写手机号', icon: 'none' })
+			return
+		}
+		if (!formData.wechat.trim()) {
+			uni.showToast({ title: '请填写微信号', icon: 'none' })
+			return
+		}
+		if (!formData.bio.trim()) {
+			uni.showToast({ title: '请填写个人简介', icon: 'none' })
+			return
+		}
+
+		// Mock 提交
+		uni.showToast({ title: '申请已提交，请等待审核', icon: 'success' })
+		setTimeout(() => {
+			uni.navigateBack()
+		}, 1500)
+	}
+</script>
+
+<style scoped>
+	.apply-page {
+		min-height: 100vh;
+		background: var(--canvas);
+	}
+
+	.scroller {
+		height: 100vh;
+	}
+
+	.page-pad {
+		padding: 14px 14px 40px;
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+	}
+
+	/* Banner */
+	.banner {
+		padding: 20px 18px;
+		background: var(--warm);
+		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.banner-kicker {
+		font-size: 10px;
+		color: var(--accent2);
+		font-weight: 800;
+		letter-spacing: 0.08em;
+	}
+
+	.banner-title {
+		font-size: 24px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.banner-desc {
+		font-size: 12px;
+		color: var(--ink2);
+		line-height: 1.6;
+	}
+
+	/* 表单区块 */
+	.form-section-title {
+		font-size: 15px;
+		font-weight: 700;
+		color: var(--ink);
+		margin-bottom: 8px;
+		display: block;
+	}
+
+	.form-card {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		padding: 14px;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.form-divider {
+		height: 1px;
+		background: var(--line);
+		margin: 10px 0;
+	}
+
+	/* 头像上传 */
+	.avatar-upload {
+		align-self: center;
+		margin-bottom: 4px;
+	}
+
+	.avatar-preview {
+		width: 88px;
+		height: 88px;
+		border-radius: 50%;
+	}
+
+	.avatar-placeholder {
+		width: 88px;
+		height: 88px;
+		border-radius: 50%;
+		border: 2px dashed var(--line);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.avatar-plus {
+		font-size: 28px;
+		color: var(--muted);
+		line-height: 1;
+	}
+
+	.avatar-hint {
+		font-size: 10px;
+		color: var(--muted);
+	}
+
+	/* 文本域 */
+	.textarea-field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.field-label {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--ink);
+	}
+
+	.field-textarea {
+		width: 100%;
+		min-height: 80px;
+		border: 1px solid var(--line);
+		background: var(--canvas);
+		border-radius: 8px;
+		padding: 10px 12px;
+		font-size: 12px;
+		line-height: 1.6;
+		box-sizing: border-box;
+	}
+
+	.field-counter {
+		font-size: 10px;
+		color: var(--muted);
+		text-align: right;
+	}
+
+	/* 审核流程 */
+	.flow-steps {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0;
+		padding: 14px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+	}
+
+	.flow-step {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.flow-dot {
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background: var(--line);
+	}
+
+	.flow-dot.active {
+		background: var(--accent);
+	}
+
+	.flow-label {
+		font-size: 10px;
+		color: var(--ink2);
+	}
+
+	.flow-line {
+		width: 24px;
+		height: 2px;
+		background: var(--line);
+		margin-bottom: 14px;
+	}
+
+	/* 提交 */
+	.submit-area {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		align-items: center;
+	}
+
+	.submit-notice {
+		font-size: 11px;
+		text-align: center;
+		line-height: 1.5;
+	}
+</style>

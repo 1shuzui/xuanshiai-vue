@@ -1,0 +1,120 @@
+<template>
+	<view class="matchmaker-avatar" :class="variant">
+		<image
+			v-if="hasAvatar"
+			class="avatar-image"
+			:src="avatarSource"
+			mode="aspectFill"
+			@error="handleImageError"
+		></image>
+		<view v-else class="avatar-placeholder">
+			<text class="avatar-initials">{{ initials }}</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+interface Props {
+	src?: string | null;
+	name?: string | null;
+	variant?: 'card' | 'rank' | 'detail';
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	variant: 'card'
+});
+
+const imageFailed = ref(false);
+
+const avatarSource = computed(() => {
+	return props.src != null ? String(props.src).trim() : '';
+});
+
+const hasAvatar = computed(() => avatarSource.value.length > 0 && !imageFailed.value);
+
+const initials = computed(() => {
+	const name = props.name != null ? String(props.name).trim().replace(/\s+/g, '') : '';
+	if (name.length === 0) return '?';
+
+	// 三字中文名去掉姓氏；两字中文名保留全名。
+	if (/^[\u4e00-\u9fff]+$/.test(name)) {
+		if (name.length === 3) return name.slice(1);
+		if (name.length === 2) return name;
+		return name.slice(-2);
+	}
+
+	const words = name.split(' ');
+	if (words.length > 1) return words[0].slice(0, 1) + words[words.length - 1].slice(0, 1);
+	return name.slice(0, 2).toUpperCase();
+});
+
+watch(avatarSource, () => {
+	imageFailed.value = false;
+});
+
+const handleImageError = () => {
+	imageFailed.value = true;
+};
+</script>
+
+<style scoped>
+.matchmaker-avatar {
+	overflow: hidden;
+	background: var(--warm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.avatar-image,
+.avatar-placeholder {
+	width: 100%;
+	height: 100%;
+}
+
+.avatar-placeholder {
+	background: var(--soft);
+	color: var(--accent2);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.avatar-initials {
+	font-family: var(--serif);
+	font-weight: 800;
+	line-height: 1;
+}
+
+.matchmaker-avatar.card {
+	width: 100%;
+	height: 100%;
+}
+
+.matchmaker-avatar.card .avatar-initials {
+	font-size: 58rpx;
+}
+
+.matchmaker-avatar.rank {
+	width: 116rpx;
+	height: 116rpx;
+	border-radius: 50%;
+	border: 4rpx solid rgba(56, 152, 141, 0.14);
+}
+
+.matchmaker-avatar.rank .avatar-initials {
+	font-size: 32rpx;
+}
+
+.matchmaker-avatar.detail {
+	width: 172rpx;
+	height: 172rpx;
+	border-radius: 50%;
+	border: 6rpx solid var(--surface);
+	box-shadow: 0 8rpx 22rpx rgba(198, 31, 88, 0.13);
+}
+
+.matchmaker-avatar.detail .avatar-initials {
+	font-size: 48rpx;
+}
+</style>

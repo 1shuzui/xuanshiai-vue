@@ -47,7 +47,6 @@ const handleClick = () => {
 /* 基础样式 - 遵循 DESIGN.md */
 .xsa-button {
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	gap: 6px;
