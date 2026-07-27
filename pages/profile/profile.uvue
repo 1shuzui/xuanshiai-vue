@@ -144,7 +144,7 @@ const onMyTasks = () => {
 }
 
 const onMyMoments = () => {
-	uni.showToast({ title: '我的动态', icon: 'none' })
+	uni.navigateTo({ url: '/pages/profile/my-moments' })
 }
 
 const onMyPoster = () => {

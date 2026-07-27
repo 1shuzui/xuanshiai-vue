@@ -17,13 +17,13 @@ import {
   mockActivities,
   mockCommunityBanners,
   mockCommunityNotifications,
-  mockCommunityQuotas,
   mockReportReasons,
   mockBlockedUserIds,
   mockApplyStates,
   mockLikedUserIds,
   mockCurrentCity,
-  mockMeProfile
+  mockMeProfile,
+  
 } from '@/mock'
 
 
@@ -3251,4 +3251,68 @@ export function __syncApplyStatus(userId: number, status: string) {
   const map = mockApplyStates as any
   map['' + userId] = status
   syncApplyOnDynamics(userId, status)
+}
+
+// ─── 我的动态 ─────────────────────────────────────────────────
+
+/**
+ * 获取当前用户发布的动态列表（"我的动态"页面）
+ * getMyPosts({ page, pageSize })
+ * 返回 { list, page, pageSize, total, hasMore }
+ */
+export async function getMyPosts(query: any = null) {
+  const page = query != null && query.page != null && (query.page as number) > 0 ? (query.page as number) : 1
+  const pageSize = query != null && query.pageSize != null && (query.pageSize as number) > 0 ? (query.pageSize as number) : 10
+
+  if (USE_MOCK) {
+    // mock：取当前用户（meProfile.id == 1 即苏晚晴）发表的动态
+    const meId = meProfile() != null ? (meProfile().id as number) : 1
+    const all = (mockDynamicList as any[]).filter((d: any) => {
+      return d.user != null && d.user.id == meId && !isBlocked(d.user.id as number)
+    })
+    // 按时间倒序
+    all.sort((a: any, b: any) => {
+      return ((b.time as number) || 0) - ((a.time as number) || 0)
+    })
+    const start = (page - 1) * pageSize
+    const end = start + pageSize
+    const slice = all.slice(start, end)
+    const total = all.length
+    const hasMore = end < total
+    return request({
+      url: '/community/posts/mine',
+      cloudFunctionName: 'community',
+      action: 'getMyPosts',
+      method: 'GET',
+      data: { page, pageSize },
+      mockData: {
+        list: cloneList(slice),
+        page,
+        pageSize,
+        total,
+        hasMore
+      }
+    })
+  }
+
+  const res = await request({
+    url: '/community/posts/mine',
+    method: 'GET',
+    data: { page, page_size: pageSize }
+  })
+  if (!res.success) return res
+  const raw = res.data
+  const items = raw != null && raw.items != null ? (raw.items as any[]) : []
+  const list: any[] = []
+  for (let i = 0; i < items.length; i++) {
+    list.push(mapPost(items[i]))
+  }
+  const total = raw != null && raw.total != null ? (raw.total as number) : list.length
+  return okRes({
+    list: list,
+    page: page,
+    pageSize: pageSize,
+    total: total,
+    hasMore: page * pageSize < total
+  })
 }
