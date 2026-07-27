@@ -1,5 +1,5 @@
 <template>
-	<view class="xsa-sheet-overlay" :class="{ open: visible }" @click="handleOverlayClick">
+		<view class="xsa-sheet-overlay" :class="{ open: visible, 'large-text': largeText }" @click="handleOverlayClick">
 		<view class="xsa-sheet" :class="{ tall: tall }" @click.stop>
 			<view class="handle"></view>
 			<view class="sheet-header" v-if="title">
@@ -25,13 +25,15 @@ interface Props {
 	visible: boolean;
 	title?: string;
 	tall?: boolean;
-	closeOnOverlay?: boolean;
+		closeOnOverlay?: boolean;
+		largeText?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
 	visible: false,
 	tall: false,
-	closeOnOverlay: true
+		closeOnOverlay: true,
+		largeText: false
 });
 
 const emit = defineEmits<{
@@ -140,5 +142,14 @@ const handleOverlayClick = () => {
 
 .sheet-body::-webkit-scrollbar {
 	display: none;
+}
+
+.xsa-sheet-overlay.large-text .sheet-title {
+	font-size: 20px;
+}
+
+.xsa-sheet-overlay.large-text .close-btn {
+	width: 48px;
+	height: 48px;
 }
 </style>

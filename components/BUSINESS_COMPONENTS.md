@@ -1,8 +1,8 @@
 # 宣誓爱业务组件库文档
 
-> **版本：** 1.0.0  
-> **更新日期：** 2026-07-21  
-> **组件总数：** 5 个
+> **版本：** 1.1.1
+> **更新日期：** 2026-07-26
+> **组件目录：** 29 个 `.uvue`；本文重点记录 12 个业务组件
 
 ---
 
@@ -388,6 +388,70 @@ interface Dynamic {
 
 ---
 
+### 6. XsaMessageCenter — 统一消息中心
+
+**使用场景**：普通用户消息 Tab、父母端消息面板。
+
+- `mode="standard"` 展示认识申请、纸飞机、Ta 的动态、情感实验室四个入口；`mode="parent"` 只展示申请与聊天。
+- 内部统一管理会话分页、收到/发出申请、待处理计数、全部已读、失败重试和聊天权限复查。
+- 父母模式在加载与业务动作前重新获取父母上下文并校验访问门禁，同时向外发出 `parent-context-change`；全部消息调用都使用关联子女的 `MessageSubject`，不能落回父母账号或普通用户默认主体。
+- 接受 / 拒绝使用稳定 `clientCommandId`。业务响应不明确时保留原状态，并重新拉取收到列表回补服务端最终状态。
+- 401 或父母授权失效时立即清除组件内已加载的会话和申请数据。
+- Props：`mode?: 'standard' | 'parent'`、`parentContext?: ParentContext`。
+
+### 7. XsaApplicationTabs — 申请双 Tab
+
+**使用场景**：认识申请 Sheet。
+
+- Props：`visible`、`activeTab`、`tabs`、`applications`、`loading`、`error`、`actionId`、`hasMore`、`largeText?`、`protectPhotos?`。
+- Events：`close`、`change`、`retry`、`load-more`、`accept`、`reject`。
+- “收到的 / 发出的”数据由调用方分开分页；仅收到且 `pending` 的记录计入待处理数量。
+- 业务失败时保留原状态，并通过错误态或 Toast 提供重试；组件不得本地伪造接受或拒绝成功。
+
+### 8. XsaConversationList — 会话列表
+
+**使用场景**：统一消息中心的最近聊天列表。
+
+- Props：`conversations`、`loading`、`loadingMore`、`error`、`hasMore`、`largeText?`、`protectPhotos?`、`retryReset?`。
+- Events：`open`、`retry`、`retry-more`、`load-more`。
+- `protectPhotos` 用于父母端头像保护；真正的清晰照片授权必须由数据层决定，不能只依赖 CSS 模糊。
+
+### 9. ParentBottomNav — 父母端四面板导航
+
+**使用场景**：父母角色单页壳层。
+
+- `active` 为 `home | matchmaker | message | profile`，切换时发出 `change`。
+- 固定底部并预留安全区，四个触控目标均不小于 48px。
+- 该组件不修改普通用户原生五 Tab。
+
+### 10. ParentCandidateCard — 父母端候选卡
+
+**使用场景**：父母端推荐与我的喜欢。
+
+- Props：`candidate`；Events：`open`、`like`、`apply`。
+- 列表头像始终按保护态展示；卡片使用父母端 16px 正文、20px 以上姓名层级和 48px 操作按钮。
+- 对外文案统一为“喜欢 / 申请认识”；“牵线”只用于红娘服务。
+
+### 11. ParentGateNotice — 双主体门禁提示
+
+**使用场景**：父母端首页和申请动作前的认证说明。
+
+- Props：`gate`；未通过时发出 `action`。
+- 分别展示父母实名认证与子女授权，不能把两者合并成一个模糊的“已认证”状态。
+- 授权过期、撤销或上下文获取失败时按无权限处理，不允许沿用缓存成功状态。
+
+### 12. ParentApplySheet — 父母端申请确认
+
+**使用场景**：父母端候选列表和候选详情的“申请认识”确认。
+
+- Props：`visible`、`candidateId`、`parentContext`；剩余次数和双主体门禁均从同一 `ParentContext` 读取。
+- Events：`close`、`success`；组件内部收集附言并经统一 API 提交，只有业务成功后才发出 `success` 并关闭。
+- Sheet 同时展示安全说明与剩余申请次数，不直接交换微信、电话或照片。
+- 申请动作仍由 API 层执行父母实名与子女授权双门禁；Sheet 只负责收集明确确认，不替代权限校验。
+- 剩余次数为 0 时确认按钮禁用；成功响应中的剩余次数同步到当前上下文和父母模块 Mock 上下文，刷新后不得回跳。
+
+---
+
 ## 组件总览
 
 | 组件 | 说明 | 使用场景 | 状态 |
@@ -397,6 +461,13 @@ interface Dynamic {
 | **XsaEmpty** | 空状态 | 所有列表页面 | ✅ |
 | **XsaMessageItem** | 消息列表项 | 消息列表 | ✅ |
 | **XsaDynamicCard** | 动态卡片 | 社区动态列表 | ✅ |
+| **XsaMessageCenter** | 统一消息中心 | 普通用户消息、父母端消息 | ✅ Mock 契约 |
+| **XsaApplicationTabs** | 收到/发出申请 | 认识申请 Sheet | ✅ Mock 契约 |
+| **XsaConversationList** | 会话分页列表 | 消息中心 | ✅ Mock 契约 |
+| **ParentBottomNav** | 四面板导航 | 父母端 | ✅ 前端 |
+| **ParentCandidateCard** | 隐私候选卡 | 父母端推荐/喜欢 | ✅ Mock 契约 |
+| **ParentGateNotice** | 双主体门禁提示 | 父母端认证/授权 | ✅ Mock 契约 |
+| **ParentApplySheet** | 申请附言与明确确认 | 父母端推荐/详情 | ✅ Mock 契约 |
 
 ---
 
@@ -412,5 +483,5 @@ interface Dynamic {
 ---
 
 **文档维护者：** 宣誓爱前端团队  
-**最后更新：** 2026-07-21 00:34  
-**组件总数：** 5 个
+**最后更新：** 2026-07-26
+**本文重点业务组件：** 12 个

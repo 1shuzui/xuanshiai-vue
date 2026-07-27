@@ -19,6 +19,7 @@ export {
   getMeProfile,
   applyToMeet,
   likeUser,
+  getLikedUsers,
   getChatFeatureUnlocks,
   unlockChatFeature
 } from './user.uts'
@@ -29,8 +30,64 @@ export {
   getChatMessages,
   sendMessage,
   getApplications,
-  handleApplication
+  handleApplication,
+  getConversationPage,
+  getApplicationPage,
+  getChatPermission,
+  markAllMessagesRead
 } from './message.uts'
+
+export type {
+  MessageSubject
+} from './message.uts'
+
+// 父母端相关
+export {
+  getParentContext,
+  getParentAuthenticationGate,
+  updateParentChildProfile,
+  getParentAccessGate,
+  getParentCandidates,
+  getParentLikedCandidates,
+  getParentCandidateDetail,
+  getParentApplications,
+  getParentMessages,
+  getParentMatchmakers,
+  getParentCustomMatchmakers,
+  canParentViewClearPhoto,
+  toggleParentLike,
+  applyParentIntroduction,
+  reportParentCandidate,
+  blockParentCandidate
+} from './parent.uts'
+
+export type {
+  ParentContext
+} from './parent.uts'
+
+// 情感实验室相关
+export {
+  getEmotionLabSummary,
+  startMbtiAssessment,
+  saveMbtiAnswer,
+  submitMbtiAssessment,
+  setMyMbtiType,
+  discardMbtiDraft
+} from './emotionLab.uts'
+
+export type {
+  AssessmentDefinition,
+  AssessmentQuestionSnapshot,
+  AssessmentSessionSnapshot,
+  MbtiAnswer,
+  MbtiDimensionKey,
+  MbtiDimensions,
+  SessionSnapshot,
+  MbtiResult,
+  ResultCopy,
+  ProfileMbtiSource,
+  SetMyMbtiTypePayload
+} from './emotionLab.uts'
 
 // 社区相关
 export {

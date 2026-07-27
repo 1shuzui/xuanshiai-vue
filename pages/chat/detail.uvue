@@ -1,109 +1,139 @@
 <template>
-	<view class="chat-page">
-		<!-- 消息列表 -->
-		<scroll-view
-			class="message-list"
-			scroll-y
-			:scroll-into-view="scrollToView"
-			scroll-with-animation
-		>
-			<view class="message-item" v-for="(msg, index) in messages" :key="index" :id="'msg-' + index">
-				<!-- 时间线 -->
-				<view class="time-divider" v-if="msg.showTime">
-					<text class="time-text">{{ msg.time }}</text>
+	<view class="chat-page" :class="{ 'parent-mode': isParentMode }">
+		<view class="permission-state" v-if="permissionLoading">
+			<text class="state-title">正在确认聊天权限...</text>
+		</view>
+		<view class="permission-state" v-else-if="!chatAllowed">
+			<text class="state-title">暂时无法进入聊天</text>
+			<text class="state-desc text-muted">{{ permissionError }}</text>
+			<XsaButton
+				variant="secondary"
+				:size="isParentMode ? 'large' : 'small'"
+				:large-text="isParentMode"
+				@click="retryPermission"
+			>重新确认</XsaButton>
+		</view>
+
+		<template v-else>
+			<scroll-view
+				class="message-list"
+				scroll-y
+				:scroll-into-view="scrollToView"
+				scroll-with-animation
+			>
+				<view class="chat-loading" v-if="loading">
+					<text class="text-muted">正在加载聊天记录...</text>
 				</view>
+				<view class="chat-error" v-else-if="chatError !== '' && messages.length === 0">
+					<text class="state-desc text-muted">{{ chatError }}</text>
+						<XsaButton
+							variant="secondary"
+							:size="isParentMode ? 'large' : 'small'"
+							:large-text="isParentMode"
+							@click="loadChatMessages"
+						>重试</XsaButton>
+				</view>
+				<view
+					class="message-item"
+					v-for="(message, index) in messages"
+					:key="message.clientMessageId != null ? message.clientMessageId : message.id"
+					:id="'msg-' + index"
+				>
+					<view class="time-divider" v-if="message.showTime">
+						<text class="time-text">{{ message.time }}</text>
+					</view>
 
-				<!-- 消息内容 -->
-				<view class="message-wrapper" :class="msg.isMine ? 'mine' : 'other'">
-					<!-- 对方头像 -->
-					<image
-						class="avatar"
-						:src="msg.avatar"
-						mode="aspectFill"
-						v-if="!msg.isMine"
-						@click="openPeerProfile"
-					></image>
-
-					<!-- 消息气泡 -->
-					<view class="message-bubble" :class="msg.type">
-						<!-- 文本消息 -->
-						<text class="text-content" v-if="msg.type === 'text'">{{ msg.content }}</text>
-
-						<!-- 图片消息 -->
+					<view class="message-wrapper" :class="message.isMine ? 'mine' : 'other'">
+						<view
+							class="avatar protected-avatar"
+							v-if="!message.isMine && isParentMode"
+							@click="openPeerProfile"
+						>
+							<text class="protected-avatar-text">隐私</text>
+						</view>
 						<image
-							class="image-content"
-							:src="msg.content"
+							class="avatar"
+							:src="message.avatar"
 							mode="aspectFill"
-							@click="previewImage(msg.content)"
-							v-if="msg.type === 'image'"
+							v-else-if="!message.isMine"
+							@click="openPeerProfile"
 						></image>
 
-						<!-- 语音消息 -->
-						<view class="voice-content" v-if="msg.type === 'voice'">
-							<text class="icon">🔊</text>
-							<text class="duration">{{ msg.duration }}''</text>
+						<view class="bubble-column" :class="{ mine: message.isMine }">
+							<view class="message-bubble" :class="message.type">
+								<view class="protected-content" v-if="isParentMode && message.protectedContent">
+									<text class="protected-content-text">内容已保护</text>
+								</view>
+								<text class="text-content" v-else-if="message.type === 'text'">{{ message.content }}</text>
+								<image
+									class="image-content"
+									:src="message.content"
+									mode="aspectFill"
+									@click="previewImage(message.content)"
+									v-else-if="message.type === 'image'"
+								></image>
+								<view class="voice-content" v-else-if="message.type === 'voice'">
+									<text class="icon">🔊</text>
+									<text class="duration">{{ message.duration }}''</text>
+								</view>
+							</view>
+							<text class="message-status text-muted" v-if="message.isMine && message.status === 'sending'">发送中...</text>
+							<text
+								class="message-status failed"
+								v-else-if="message.isMine && message.status === 'failed'"
+								@click="retryFailedMessage(message)"
+							>{{ message.errorMessage != null && message.errorMessage != '' ? message.errorMessage + '，点击重试' : '发送失败，点击重试' }}</text>
+						</view>
+
+						<view class="avatar protected-avatar" v-if="message.isMine && isParentMode">
+							<text class="protected-avatar-text">子女</text>
+						</view>
+						<image
+							class="avatar"
+							:src="message.avatar"
+							mode="aspectFill"
+							v-else-if="message.isMine"
+						></image>
+					</view>
+				</view>
+			</scroll-view>
+
+			<view class="input-bar" :class="{ expanded: showMore }">
+				<view class="input-wrapper">
+					<input
+						class="input"
+						type="text"
+						:value="inputText"
+						@input="onInput"
+						placeholder="说点什么..."
+						confirm-type="send"
+						@confirm="sendMessage"
+					/>
+					<button class="send-btn" @click="sendMessage" :disabled="sendingText || inputText.trim() == ''">发送</button>
+					<button class="tool-btn more-toggle" @click="toggleMoreMenu">
+						<text class="icon">{{ showMore ? '×' : '+' }}</text>
+					</button>
+				</view>
+
+				<view class="more-actions" v-if="showMore">
+					<view class="menu-grid">
+						<view class="menu-item" @click="openChatReport">
+							<view class="menu-icon">⚑</view>
+							<text class="menu-text">举报</text>
 						</view>
 					</view>
-
-					<!-- 我的头像 -->
-					<image
-						class="avatar"
-						:src="msg.avatar"
-						mode="aspectFill"
-						v-if="msg.isMine"
-					></image>
 				</view>
 			</view>
-		</scroll-view>
-
-		<!-- 输入栏与展开功能区：展开后输入栏上移，功能区显示在其下方。 -->
-		<view class="input-bar" :class="{ expanded: showMore }">
-			<view class="input-wrapper">
-				<button class="tool-btn" @click="sendVoice" v-if="!inputText">
-					<text class="icon">🎤</text>
-				</button>
-				<button class="send-btn" @click="sendMessage" v-else>发送</button>
-				<input
-					class="input"
-					type="text"
-					:value="inputText"
-					@input="onInput"
-					placeholder="说点什么..."
-					confirm-type="send"
-					@confirm="sendMessage"
-				/>
-				<button class="tool-btn more-toggle" @click="toggleMoreMenu">
-					<text class="icon">{{ showMore ? '×' : '+' }}</text>
-				</button>
-			</view>
-
-			<view class="more-actions" v-if="showMore">
-				<view class="menu-grid">
-					<view class="menu-item" @click="chooseImage">
-						<view class="menu-icon">📷</view>
-						<text class="menu-text">相册</text>
-					</view>
-					<view class="menu-item" @click="takePhoto">
-						<view class="menu-icon">📸</view>
-						<text class="menu-text">拍摄</text>
-					</view>
-					<view class="menu-item" @click="sendGift">
-						<view class="menu-icon">🎁</view>
-						<text class="menu-text">礼物</text>
-					</view>
-					<view class="menu-item" @click="openChatReport">
-						<view class="menu-icon">⚑</view>
-						<text class="menu-text">举报</text>
-					</view>
-				</view>
-			</view>
-		</view>
+		</template>
 
 		<XsaReportSheet
 			:visible="reportVisible"
 			target-type="chatUser"
 			:target-id="userId"
 			:user-id="userId"
+			:large-text="isParentMode"
+			:parent-mode="isParentMode"
+			:parent-context="activeParentContext"
 			@close="reportVisible = false"
 			@reported="reportVisible = false"
 		/>
@@ -111,38 +141,134 @@
 </template>
 
 <script setup lang="uts">
-	// 导入 API
+	import XsaButton from '@/components/XsaButton.uvue'
 	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
-	import { getChatMessages, sendMessage as sendMessageApi, getChatFeatureUnlocks, unlockChatFeature } from '@/api';
+	import type { MessageSubject, ParentContext } from '@/api'
+	import {
+		getChatMessages,
+		getChatPermission,
+		getParentAccessGate,
+		getParentContext,
+		sendMessage as sendMessageApi,
+		getChatFeatureUnlocks,
+		unlockChatFeature
+	} from '@/api'
 
-	// 消息列表（改为空数组）
-		let messages = ref([])
+	const messages = ref([] as any[])
+	const inputText = ref('')
+	const showMore = ref(false)
+	const scrollToView = ref('')
+	const loading = ref(false)
+	const chatError = ref('')
+	const userId = ref(0)
+	const reportVisible = ref(false)
+	const chatFeatureUnlocks = ref({ profile: false } as any)
+	const chatAllowed = ref(false)
+	const initialMode = uni.getStorageSync('xsa_onboarding_mode')
+	const roleMode = ref(initialMode != null && String(initialMode) == 'parent' ? 'parent' : 'self')
+	const isParentMode = computed(() => roleMode.value == 'parent')
+	const activeMessageSubject = ref(null as MessageSubject | null)
+	const activeParentContext = ref(null as ParentContext | null)
+	const chatMutationVersion = ref(0)
+	const permissionLoading = ref(true)
+	const permissionError = ref('双方同意后才能开始聊天')
+	const sendingText = ref(false)
+	let clientMessageSequence = 0
+	let permissionRequestSequence = 0
+	let historyRequestSequence = 0
+	let roleAccessEpoch = 0
+	let roleAccessRequest: Promise<boolean> | null = null
+	let roleAccessRequestEpoch = -1
+	let deliveryAttemptSequence = 0
+	let textSendAttemptSequence = 0
+	let activeTextSendAttempt = 0
 
-		let inputText = ref('')
-		let showMore = ref(false)
-		let scrollToView = ref('')
-		let loading = ref(false)
-		let userId = ref(0)
-		let peerAvatar = ref('/static/portraits/profile-woman-main.jpg')
-		let reportVisible = ref(false)
-		let chatFeatureUnlocks = ref({ album: false, camera: false, profile: false } as any)
-
-	// 页面加载时获取数据
 	onMounted(() => {
-		loadChatFeatureUnlocks()
-		// 获取 URL 参数中的 userId
+		if (!isParentMode.value) loadChatFeatureUnlocks()
 		const pages = getCurrentPages()
 		const currentPage = pages[pages.length - 1]
 		const options = currentPage.options
-		if (options && options.userId) {
-			userId.value = parseInt(options.userId)
-			loadChatMessages()
+		if (options != null && options.userId != null) {
+			const parsedUserId = Number(options.userId)
+			if (Number.isFinite(parsedUserId) && Math.floor(parsedUserId) == parsedUserId && parsedUserId > 0) {
+				userId.value = parsedUserId
+			}
 		}
+		verifyChatPermission()
 	})
+
+	onShow(() => {
+		if (userId.value > 0) verifyChatPermission()
+	})
+
+	const responseMessage = (res: any, fallback: string): string => {
+		if (res != null && res.message != null && res.message != 'success') return '' + res.message
+		if (res != null && res.data != null && res.data.message != null) return '' + res.data.message
+		return fallback
+	}
+
+	const subjectKey = (subject: MessageSubject | null): string => {
+		if (subject == null) return ''
+		if (subject.mode == 'parent') return 'parent-' + (subject.childId != null ? subject.childId : 0)
+		return 'self'
+	}
+
+	const clearChatSensitiveState = (
+		message: string = '',
+		clearSubject: boolean = true,
+		preservePermissionRequest: boolean = false
+	) => {
+		roleAccessEpoch += 1
+		roleAccessRequest = null
+		roleAccessRequestEpoch = -1
+		chatMutationVersion.value += 1
+		historyRequestSequence += 1
+		if (!preservePermissionRequest) permissionRequestSequence += 1
+		messages.value = []
+		inputText.value = ''
+		showMore.value = false
+		scrollToView.value = ''
+		loading.value = false
+		chatError.value = ''
+		chatAllowed.value = false
+		reportVisible.value = false
+		sendingText.value = false
+		activeTextSendAttempt = 0
+		permissionLoading.value = false
+		if (clearSubject) {
+			activeMessageSubject.value = null
+			activeParentContext.value = null
+		}
+		if (message != '') permissionError.value = message
+	}
+
+	const activateMessageSubject = (subject: MessageSubject) => {
+		const previousKey = subjectKey(activeMessageSubject.value)
+		const nextKey = subjectKey(subject)
+		if (previousKey != '' && previousKey != nextKey) clearChatSensitiveState('', true, true)
+		activeMessageSubject.value = subject
+	}
+
+	const isUnauthorizedResponse = (res: any): boolean => {
+		if (res == null) return false
+		if (res.code != null && String(res.code) == '401') return true
+		return res.data != null && res.data.code != null && String(res.data.code) == '401'
+	}
+
+	const handleSubjectUnauthorizedResponse = (res: any, requestSubjectKey: string): boolean => {
+		if (!isUnauthorizedResponse(res)) return false
+		if (requestSubjectKey != subjectKey(activeMessageSubject.value)) return false
+		clearChatSensitiveState(responseMessage(res, '登录状态已失效，请重新登录'), true)
+		return true
+	}
 
 	const loadChatFeatureUnlocks = async () => {
 		try {
 			const res = await getChatFeatureUnlocks()
+			if (isUnauthorizedResponse(res)) {
+				clearChatSensitiveState(responseMessage(res, '登录状态已失效，请重新登录'), true)
+				return
+			}
 			if (res != null && res.success && res.data != null) {
 				chatFeatureUnlocks.value = res.data as any
 			}
@@ -151,38 +277,265 @@
 		}
 	}
 
-		// 加载聊天记录
-		const loadChatMessages = async () => {
-			try {
-				loading.value = true
-				const res = await getChatMessages(userId.value)
-				if (res.success) {
-					const list = res.data as any[]
-					if (list.length > 0) {
-						const firstOther = list.find((m: any) => m.isMine != true)
-						if (firstOther != null && firstOther.senderAvatar != null) {
-							peerAvatar.value = firstOther.senderAvatar
-						}
-					}
-					messages.value = list.map((msg: any, idx: number) => ({
-						id: msg.id,
-						type: msg.type,
-						content: msg.content,
-						time: msg.timeLabel != null ? msg.timeLabel : formatTime(msg.time),
-						showTime: msg.showTime == true || idx == 0,
-						isMine: msg.isMine,
-						avatar: msg.senderAvatar
-					}))
-					scrollToBottom()
-				}
-			} catch (error) {
-				console.error('获取聊天记录失败', error)
-			} finally {
-				loading.value = false
+	const fetchParentRoleAccess = async (requestEpoch: number): Promise<boolean> => {
+		try {
+			const contextRes = await getParentContext()
+			if (requestEpoch != roleAccessEpoch) return false
+			const latestStoredMode = uni.getStorageSync('xsa_onboarding_mode')
+			if (latestStoredMode == null || String(latestStoredMode) != 'parent') {
+				clearChatSensitiveState('当前账号已切换身份，请重新进入会话', true)
+				return false
+			}
+			if (contextRes == null || contextRes.success != true || contextRes.data == null) {
+				clearChatSensitiveState(responseMessage(contextRes, '暂时无法确认父母端访问权限'), true)
+				return false
+			}
+			const context = contextRes.data as ParentContext
+			const gate = getParentAccessGate(context)
+			if (gate == null || gate.allowed != true) {
+				const message = gate != null && gate.message != null
+					? '' + gate.message
+					: '父母端访问条件已失效'
+				clearChatSensitiveState(message, true)
+				return false
+			}
+			if (context.child == null) {
+				clearChatSensitiveState('请先取得子女授权', true)
+				return false
+			}
+			const childId = Number(context.child.id)
+			if (!Number.isFinite(childId) || Math.floor(childId) != childId || childId <= 0) {
+				clearChatSensitiveState('授权子女主体无效', true)
+				return false
+			}
+			activateMessageSubject({ mode: 'parent', childId: childId } as MessageSubject)
+			activeParentContext.value = context
+			return true
+		} catch (error) {
+			if (requestEpoch != roleAccessEpoch) return false
+			clearChatSensitiveState('暂时无法确认父母端访问权限', true)
+			return false
+		}
+	}
+
+	const confirmRoleAccess = async (): Promise<boolean> => {
+		const storedMode = uni.getStorageSync('xsa_onboarding_mode')
+		if (storedMode == null || String(storedMode) != 'parent') {
+			roleMode.value = 'self'
+			activateMessageSubject({ mode: 'self' } as MessageSubject)
+			activeParentContext.value = null
+			return true
+		}
+		roleMode.value = 'parent'
+		const requestEpoch = roleAccessEpoch
+		const existingRequest = roleAccessRequest
+		if (existingRequest != null && roleAccessRequestEpoch == requestEpoch) {
+			return await existingRequest
+		}
+		const request = fetchParentRoleAccess(requestEpoch)
+		roleAccessRequest = request
+		roleAccessRequestEpoch = requestEpoch
+		try {
+			return await request
+		} finally {
+			if (roleAccessRequest == request) {
+				roleAccessRequest = null
+				roleAccessRequestEpoch = -1
 			}
 		}
+	}
 
-	// 格式化时间
+	const isPermissionRequestCurrent = (
+		requestId: number,
+		requestVersion: number,
+		requestSubjectKey: string
+	): boolean => {
+		return requestId == permissionRequestSequence &&
+			requestVersion == chatMutationVersion.value &&
+			requestSubjectKey == subjectKey(activeMessageSubject.value)
+	}
+
+	const verifyChatPermission = async () => {
+		const requestId = permissionRequestSequence + 1
+		permissionRequestSequence = requestId
+		chatAllowed.value = false
+		permissionLoading.value = true
+		permissionError.value = '双方同意后才能开始聊天'
+		try {
+			if (!Number.isFinite(userId.value) || Math.floor(userId.value) != userId.value || userId.value <= 0) {
+				clearChatSensitiveState('无效的聊天对象', true)
+				return
+			}
+			if (!await confirmRoleAccess()) return
+			if (requestId != permissionRequestSequence) return
+			const subject = activeMessageSubject.value
+			if (subject == null) {
+				clearChatSensitiveState('暂时无法确认聊天主体', true)
+				return
+			}
+			const requestVersion = chatMutationVersion.value
+			const requestSubjectKey = subjectKey(subject)
+			const res = await getChatPermission(userId.value, subject)
+			if (handleSubjectUnauthorizedResponse(res, requestSubjectKey)) return
+			if (!isPermissionRequestCurrent(requestId, requestVersion, requestSubjectKey)) return
+			const permission = res != null ? res.data : null
+			if (res != null && res.success == true && permission != null && permission.canChat == true) {
+				chatAllowed.value = true
+				permissionError.value = ''
+				await loadChatMessages(true)
+				return
+			}
+			const message = permission != null && permission.reason != null
+				? '' + permission.reason
+				: responseMessage(res, '暂时无法确认聊天权限')
+			clearChatSensitiveState(message, false)
+		} catch (error) {
+			if (requestId == permissionRequestSequence) {
+				chatAllowed.value = false
+				permissionError.value = '暂时无法确认聊天权限，请稍后重试'
+			}
+		} finally {
+			if (requestId == permissionRequestSequence) permissionLoading.value = false
+		}
+	}
+
+	const retryPermission = () => {
+		verifyChatPermission()
+	}
+
+	const isProtectedMediaMessage = (message: any): boolean => {
+		if (!isParentMode.value || message == null) return false
+		if (message.protectedContent == true) return true
+		const type = message.type != null ? String(message.type).toLowerCase() : ''
+		if (type != '' && type != 'text') return true
+		if (message.content != null && typeof message.content != 'string') return true
+		if (typeof message.content == 'string') {
+			const content = message.content.trim().toLowerCase()
+			if (
+				content.indexOf('://') >= 0 ||
+				content.indexOf('data:') == 0 ||
+				content.indexOf('blob:') == 0 ||
+				content.indexOf('file:') == 0 ||
+				content.indexOf('wxfile:') == 0 ||
+				content.indexOf('/') == 0 ||
+				content.indexOf('./') == 0 ||
+				content.indexOf('../') == 0 ||
+				content.indexOf('private/') == 0 ||
+				content.indexOf('media/') == 0 ||
+				content.indexOf('images/') == 0 ||
+				content.indexOf('photos/') == 0 ||
+				content.indexOf('uploads/') == 0 ||
+				content.indexOf('assets/') == 0 ||
+				content.indexOf('static/') == 0
+			) return true
+		}
+		return message.imageUrl != null ||
+			message.fileUrl != null ||
+			message.attachmentUrl != null ||
+			message.mediaUrl != null ||
+			message.preview != null ||
+			message.previewUrl != null ||
+			message.cover != null ||
+			message.coverUrl != null ||
+			message.poster != null ||
+			message.posterUrl != null ||
+			message.attachment != null ||
+			message.attachments != null ||
+			message.media != null
+	}
+
+	const isHistoryRequestCurrent = (
+		requestId: number,
+		requestVersion: number,
+		requestSubjectKey: string
+	): boolean => {
+		return requestId == historyRequestSequence &&
+			requestVersion == chatMutationVersion.value &&
+			requestSubjectKey == subjectKey(activeMessageSubject.value)
+	}
+
+	const loadChatMessages = async (force: boolean = false): Promise<boolean> => {
+		if (!chatAllowed.value || (!force && loading.value)) return false
+		if (force) loading.value = false
+		const requestId = historyRequestSequence + 1
+		historyRequestSequence = requestId
+		if (!await confirmRoleAccess()) {
+			if (requestId == historyRequestSequence) chatAllowed.value = false
+			return false
+		}
+		if (requestId != historyRequestSequence || !chatAllowed.value) return false
+		const subject = activeMessageSubject.value
+		if (subject == null) {
+			clearChatSensitiveState('暂时无法确认聊天主体', true)
+			return false
+		}
+		const requestVersion = chatMutationVersion.value
+		const requestSubjectKey = subjectKey(subject)
+		loading.value = true
+		chatError.value = ''
+		try {
+			const res = await getChatMessages(
+				userId.value,
+				isParentMode.value ? 'protected' : 'standard',
+				subject
+			)
+			if (handleSubjectUnauthorizedResponse(res, requestSubjectKey)) return false
+			if (!isHistoryRequestCurrent(requestId, requestVersion, requestSubjectKey)) return false
+			if (res == null || res.success != true || res.data == null) {
+				const message = responseMessage(res, '聊天记录加载失败')
+				if (res != null && res.code == 'CHAT_NOT_ALLOWED') {
+					clearChatSensitiveState(message, false)
+					return false
+				}
+				throw new Error(message)
+			}
+			const list = res.data as any[]
+			const serverMessages = list.map((message: any, index: number) => {
+				const protectedContent = isProtectedMediaMessage(message)
+				return {
+					id: message.id,
+					clientMessageId: message.clientMessageId,
+					type: message.type,
+					content: protectedContent ? '' : message.content,
+					time: message.timeLabel != null ? message.timeLabel : formatTime(message.time),
+					showTime: message.showTime == true || index == 0,
+					isMine: message.isMine,
+					avatar: isParentMode.value ? '' : (message.senderAvatar != null ? message.senderAvatar : message.avatar),
+					protectedContent: protectedContent,
+					status: message.isMine == true ? 'sent' : '',
+					subjectKey: requestSubjectKey
+				}
+			})
+			const unsentLocal = messages.value.filter((message: any) => {
+				return message.isMine == true &&
+					message.clientMessageId != null &&
+					message.clientMessageId != '' &&
+					message.status != 'sent' &&
+					message.subjectKey == requestSubjectKey
+			})
+			unsentLocal.forEach((message: any) => {
+				const exists = serverMessages.some((serverMessage: any) => {
+					return serverMessage.clientMessageId == message.clientMessageId
+				})
+				if (!exists) {
+					serverMessages.push(isParentMode.value
+						? { ...message, avatar: '', protectedAvatar: true }
+						: message)
+				}
+			})
+			messages.value = serverMessages
+			scrollToBottom()
+			return true
+		} catch (error: any) {
+			if (isHistoryRequestCurrent(requestId, requestVersion, requestSubjectKey)) {
+				chatError.value = error != null && error.message != null ? '' + error.message : '聊天记录加载失败，请重试'
+			}
+			return false
+		} finally {
+			if (isHistoryRequestCurrent(requestId, requestVersion, requestSubjectKey)) loading.value = false
+		}
+	}
+
 	const formatTime = (timestamp: number): string => {
 		const date = new Date(timestamp)
 		const hours = date.getHours().toString().padStart(2, '0')
@@ -190,110 +543,183 @@
 		return `${hours}:${minutes}`
 	}
 
-	// 输入事件
-	const onInput = (e: InputEvent) => {
-		inputText.value = e.detail.value
+	const onInput = (event: InputEvent) => {
+		inputText.value = event.detail.value
 	}
 
-	// 发送消息
-	const sendMessage = async () => {
-		if (!inputText.value.trim()) {
+	const createClientMessageId = (): string => {
+		clientMessageSequence += 1
+		return 'chat-' + userId.value + '-' + Date.now() + '-' + clientMessageSequence
+	}
+
+	const isDeliveryAttemptCurrent = (
+		message: any,
+		attemptId: number,
+		expectedVersion: number,
+		expectedSubjectKey: string
+	): boolean => {
+		return message.deliveryAttemptId == attemptId &&
+			expectedVersion == chatMutationVersion.value &&
+			expectedSubjectKey == subjectKey(activeMessageSubject.value)
+	}
+
+	const confirmPermissionForSend = async (
+		message: any,
+		attemptId: number,
+		expectedVersion: number,
+		expectedSubjectKey: string
+	): Promise<boolean> => {
+		try {
+			if (!await confirmRoleAccess()) {
+				if (isDeliveryAttemptCurrent(message, attemptId, expectedVersion, expectedSubjectKey)) {
+					chatAllowed.value = false
+				}
+				return false
+			}
+			if (!isDeliveryAttemptCurrent(message, attemptId, expectedVersion, expectedSubjectKey)) return false
+			const subject = activeMessageSubject.value
+			if (subject == null || subjectKey(subject) != expectedSubjectKey) {
+				chatAllowed.value = false
+				permissionError.value = '聊天主体已变更，请重新进入会话'
+				return false
+			}
+			const res = await getChatPermission(userId.value, subject)
+			if (handleSubjectUnauthorizedResponse(res, expectedSubjectKey)) return false
+			if (!isDeliveryAttemptCurrent(message, attemptId, expectedVersion, expectedSubjectKey)) return false
+			const permission = res != null ? res.data : null
+			if (res != null && res.success == true && permission != null && permission.canChat == true) {
+				return true
+			}
+			chatAllowed.value = false
+			permissionError.value = permission != null && permission.reason != null
+				? '' + permission.reason
+				: '聊天权限已变更，请重新确认'
+			clearChatSensitiveState(permissionError.value, false)
+			return false
+		} catch (error) {
+			if (isDeliveryAttemptCurrent(message, attemptId, expectedVersion, expectedSubjectKey)) {
+				clearChatSensitiveState('暂时无法确认聊天权限，请重新确认', false)
+			}
+			return false
+		}
+	}
+
+	const deliverMessage = async (message: any) => {
+		if (message.status === 'sending') return
+		const expectedSubjectKey = message.subjectKey != null ? String(message.subjectKey) : ''
+		const expectedVersion = chatMutationVersion.value
+		const attemptId = deliveryAttemptSequence + 1
+		deliveryAttemptSequence = attemptId
+		message.deliveryAttemptId = attemptId
+		message.status = 'sending'
+		message.errorMessage = ''
+		const stillAllowed = await confirmPermissionForSend(
+			message,
+			attemptId,
+			expectedVersion,
+			expectedSubjectKey
+		)
+		if (!isDeliveryAttemptCurrent(message, attemptId, expectedVersion, expectedSubjectKey)) return
+		if (!stillAllowed) {
+			message.status = 'failed'
+			message.errorMessage = '聊天权限确认失败'
 			return
 		}
-
-		const content = inputText.value
-			const newMsg = {
-				id: Date.now(),
-				type: 'text',
-				content: content,
-				time: getCurrentTime(),
-				showTime: false,
-				isMine: true,
-				avatar: '/static/portraits/profile-man-light.jpg'
-			}
-
-			// 立即添加到界面
-			messages.value.push(newMsg)
-			inputText.value = ''
-			scrollToBottom()
-
-			// 调用发送消息接口
-			try {
-				const res = await sendMessageApi(userId.value, content, 'text')
-				if (res.success) {
-					if (res.data != null && res.data.messageId != null) {
-						newMsg.id = res.data.messageId
-					}
-					// 高保真演示：自动回复
-					setTimeout(() => {
-						const replies = ['听起来不错！', '我也这么觉得。', '有道理，我们可以约个时间详细聊聊。', '好的，期待和你见面。', '这个想法很棒！']
-						const i = Math.floor(Math.random() * replies.length)
-						messages.value.push({
-							id: Date.now() + 1,
-							type: 'text',
-							content: replies[i],
-							time: getCurrentTime(),
-							showTime: false,
-							isMine: false,
-							avatar: peerAvatar.value
-						})
-						scrollToBottom()
-					}, 1600)
+		const subject = activeMessageSubject.value
+		if (subject == null || subjectKey(subject) != expectedSubjectKey) {
+			message.status = 'failed'
+			message.errorMessage = '聊天主体已变更'
+			return
+		}
+		try {
+			const res = await sendMessageApi(
+				userId.value,
+				message.content,
+				message.type,
+				message.clientMessageId,
+				subject
+			)
+			if (handleSubjectUnauthorizedResponse(res, expectedSubjectKey)) return
+			if (!isDeliveryAttemptCurrent(message, attemptId, expectedVersion, expectedSubjectKey)) return
+			const result = res != null ? res.data : null
+			if (res == null || res.success != true || result == null || result.success != true) {
+				message.status = 'failed'
+				message.errorMessage = responseMessage(res, '发送失败')
+				if (res != null && res.code == 'CHAT_NOT_ALLOWED') {
+					clearChatSensitiveState(message.errorMessage, false)
 				}
-			} catch (error) {
-				console.error('发送消息失败', error)
-				uni.showToast({
-					title: '发送失败',
-					icon: 'none'
-				})
+				return
+			}
+			if (result.messageId != null) message.id = result.messageId
+			message.status = 'sent'
+		} catch (error) {
+			if (isDeliveryAttemptCurrent(message, attemptId, expectedVersion, expectedSubjectKey)) {
+				message.status = 'failed'
+				message.errorMessage = '网络异常，发送失败'
 			}
 		}
-
-	// 预览图片
-	const previewImage = (url: string) => {
-		const images = messages.value
-			.filter(msg => msg.type === 'image')
-			.map(msg => msg.content)
-
-		uni.previewImage({
-			current: url,
-			urls: images
-		})
 	}
 
-	// 展开/收起输入栏下方的功能区
+	const sendMessage = async () => {
+		const content = inputText.value.trim()
+		if (content == '' || sendingText.value || !chatAllowed.value) return
+		const subject = activeMessageSubject.value
+		if (subject == null) return
+		const textAttemptId = textSendAttemptSequence + 1
+		textSendAttemptSequence = textAttemptId
+		activeTextSendAttempt = textAttemptId
+		sendingText.value = true
+		const message = {
+			id: 0,
+			clientMessageId: createClientMessageId(),
+			type: 'text',
+			content: content,
+			time: getCurrentTime(),
+			showTime: false,
+			isMine: true,
+			avatar: isParentMode.value ? '' : '/static/portraits/profile-man-light.jpg',
+			status: 'queued',
+			errorMessage: '',
+			subjectKey: subjectKey(subject)
+		}
+		messages.value.push(message)
+		inputText.value = ''
+		scrollToBottom()
+		try {
+			await deliverMessage(message)
+		} finally {
+			if (activeTextSendAttempt == textAttemptId) {
+				activeTextSendAttempt = 0
+				sendingText.value = false
+			}
+		}
+	}
+
+	const retryFailedMessage = async (message: any) => {
+		if (message.status !== 'failed' || !chatAllowed.value) return
+		await deliverMessage(message)
+	}
+
+	const previewImage = (url: string) => {
+		const images = messages.value
+			.filter((message: any) => message.type === 'image')
+			.map((message: any) => message.content)
+		uni.previewImage({ current: url, urls: images })
+	}
+
 	const toggleMoreMenu = () => {
 		showMore.value = !showMore.value
 	}
 
-	// 关闭更多菜单
 	const closeMoreMenu = () => {
 		showMore.value = false
 	}
 
-	const openImagePicker = (sourceType: string) => {
-		uni.chooseImage({
-			count: 1,
-			sizeType: ['compressed'],
-			sourceType: [sourceType],
-			success: (res) => {
-				const newMsg = {
-					id: messages.value.length + 1,
-					type: 'image',
-					content: res.tempFilePaths[0],
-					time: getCurrentTime(),
-					showTime: false,
-					isMine: true,
-					avatar: '/static/portraits/profile-man-light.jpg'
-				}
-				messages.value.push(newMsg)
-				scrollToBottom()
-				closeMoreMenu()
-			}
-		})
-	}
-
-	const ensureChatFeatureUnlocked = (feature: string, label: string, action: () => void) => {
+	const ensureChatFeatureUnlocked = (
+		feature: string,
+		label: string,
+		action: () => void
+	) => {
 		if (chatFeatureUnlocks.value[feature] == true) {
 			action()
 			return
@@ -302,11 +728,15 @@
 			title: '解锁' + label,
 			content: '使用' + label + '需要消耗80积分，确认解锁吗？',
 			confirmText: '80积分解锁',
-			success: async (modalRes: any) => {
+				success: async (modalRes: any) => {
 				if (modalRes == null || modalRes.confirm != true) return
-				try {
-					const res = await unlockChatFeature(feature)
-					const data = res != null ? res.data : null
+					try {
+						const res = await unlockChatFeature(feature)
+						if (isUnauthorizedResponse(res)) {
+							clearChatSensitiveState(responseMessage(res, '登录状态已失效，请重新登录'), true)
+							return
+						}
+						const data = res != null ? res.data : null
 					if (res != null && res.success && data != null && data.success == true) {
 						chatFeatureUnlocks.value[feature] = true
 						uni.showToast({ title: '已消耗80积分解锁', icon: 'success' })
@@ -322,43 +752,17 @@
 		})
 	}
 
-	// 选择图片：首次使用需消耗 80 积分解锁。
-	const chooseImage = () => {
-		ensureChatFeatureUnlocked('album', '相册', () => openImagePicker('album'))
-	}
-
-	// 拍摄：首次使用需消耗 80 积分解锁。
-	const takePhoto = () => {
-		ensureChatFeatureUnlocked('camera', '拍摄', () => openImagePicker('camera'))
-	}
-
-	// 发送语音
-	const sendVoice = () => {
-		uni.showToast({
-			title: '长按录音',
-			icon: 'none'
-		})
-	}
-
-	// 发送礼物
-	const sendGift = () => {
-		uni.showToast({
-			title: '礼物功能开发中',
-			icon: 'none'
-		})
-		closeMoreMenu()
-	}
-
-	// 点击对方头像：首次查看主页需消耗 80 积分解锁。
 	const openPeerProfile = () => {
 		if (userId.value <= 0) {
 			uni.showToast({ title: '暂时无法获取对方资料', icon: 'none' })
 			return
 		}
+		if (isParentMode.value) {
+			uni.navigateTo({ url: '/pages/parent/user-detail?id=' + userId.value })
+			return
+		}
 		ensureChatFeatureUnlocked('profile', '查看对方主页', () => {
-			uni.navigateTo({
-				url: '/pages/user/detail?userId=' + userId.value
-			})
+			uni.navigateTo({ url: '/pages/user/detail?userId=' + userId.value })
 		})
 	}
 
@@ -367,14 +771,13 @@
 		reportVisible.value = true
 	}
 
-	// 滚动到底部
 	const scrollToBottom = () => {
+		if (messages.value.length === 0) return
 		setTimeout(() => {
 			scrollToView.value = 'msg-' + (messages.value.length - 1)
 		}, 100)
 	}
 
-	// 获取当前时间
 	const getCurrentTime = (): string => {
 		const now = new Date()
 		const hours = now.getHours().toString().padStart(2, '0')
@@ -384,201 +787,226 @@
 </script>
 
 <style scoped>
-.chat-page {
-	height: 100vh;
-	display: flex;
-	flex-direction: column;
-	background: var(--canvas);
-}
+	.chat-page {
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
+		background: var(--canvas);
+	}
 
-.message-list {
-	flex: 1;
-	padding: 16px;
-	overflow-y: auto;
-}
+	.permission-state, .chat-loading, .chat-error {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 32px 24px;
+		text-align: center;
+	}
 
-.message-item {
-	margin-bottom: 16px;
-}
+	.state-title { font-size: 17px; font-weight: 700; color: var(--ink); }
+	.state-desc { max-width: 280px; font-size: 13px; line-height: 1.6; }
 
-.time-divider {
-	text-align: center;
-	margin-bottom: 16px;
-}
+	.message-list {
+		flex: 1;
+		box-sizing: border-box;
+		padding: 16px;
+		overflow-y: auto;
+	}
 
-.time-text {
-	display: inline-block;
-	padding: 4px 12px;
-	background: var(--line);
-	color: var(--muted);
-	border-radius: 999px;
-	font-size: 12px;
-}
+	.message-item { margin-bottom: 16px; }
+	.time-divider { text-align: center; margin-bottom: 16px; }
 
-.message-wrapper {
-	display: flex;
+	.time-text {
+		display: inline-block;
+		padding: 4px 12px;
+		background: var(--line);
+		color: var(--muted);
+		border-radius: 999px;
+		font-size: 12px;
+	}
+
+	.message-wrapper { display: flex; flex-direction: row; gap: 8px; }
+
+	.message-wrapper.mine {
+		justify-content: flex-end;
+	}
+
+	.avatar {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		cursor: pointer;
+	}
+
+	.protected-avatar {
+		background: var(--warm);
+		border: 1px solid var(--line);
+		display: flex;
 		flex-direction: row;
-	gap: 8px;
-}
+		align-items: center;
+		justify-content: center;
+	}
 
-.message-wrapper.mine {
-	justify-content: flex-end;
-}
+	.protected-avatar-text {
+		color: var(--muted);
+		font-size: 11px;
+		font-weight: 700;
+	}
 
-.avatar {
-	width: 40px;
-	height: 40px;
-	border-radius: 50%;
-	flex-shrink: 0;
-	cursor: pointer;
-}
+	.bubble-column {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		max-width: 240px;
+	}
 
-.message-bubble {
-	max-width: 240px;
-	padding: 12px 16px;
-	border-radius: 12px;
-	word-break: break-all;
-}
+	.bubble-column.mine { align-items: flex-end; }
 
-.message-wrapper.other .message-bubble {
-	background: var(--surface);
-	color: var(--ink);
-}
+	.message-bubble {
+		max-width: 240px;
+		box-sizing: border-box;
+		padding: 12px 16px;
+		border-radius: 12px;
+		word-break: break-all;
+	}
 
-.message-wrapper.mine .message-bubble {
-	background: var(--accent);
-	color: var(--text-invert);
-}
+		.message-wrapper.other .message-bubble { background: var(--surface); color: var(--ink); }
+		.message-wrapper.mine .message-bubble { background: var(--accent); color: var(--text-invert); }
+		.text-content { font-size: 15px; line-height: 1.4; }
+		.protected-content-text { color: var(--muted); font-size: 13px; line-height: 1.5; }
 
-.text-content {
-	font-size: 15px;
-	line-height: 1.4;
-}
+	.message-status { margin-top: 4px; font-size: 11px; }
+	.message-status.failed { color: var(--accent2); }
 
-.image-content {
-	display: block;
-	max-width: 200px;
-	max-height: 200px;
-	border-radius: 8px;
-}
+	.image-content {
+		display: block;
+		max-width: 200px;
+		max-height: 200px;
+		border-radius: 8px;
+	}
 
-.voice-content {
-	display: flex;
+	.voice-content { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 80px; }
+	.voice-content .icon { font-size: 18px; }
+	.voice-content .duration { font-size: 14px; }
+
+	.input-bar {
+		background: var(--surface);
+		border-top: 1px solid var(--line);
+		padding: 8px 16px;
+		padding-bottom: calc(8px + env(safe-area-inset-bottom));
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.input-bar.expanded { padding-top: 12px; }
+	.input-wrapper { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+
+	.tool-btn {
+		width: 36px;
+		height: 36px;
+		background: var(--paper);
+		border-radius: 50%;
+		display: flex;
 		flex-direction: row;
-	align-items: center;
-	gap: 8px;
-	min-width: 80px;
-}
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
 
-.voice-content .icon {
-	font-size: 18px;
-}
+	.tool-btn .icon { font-size: 20px; color: var(--ink2); }
+	.more-toggle { background: var(--accent); }
+	.more-toggle .icon { color: var(--text-invert); font-size: 24px; line-height: 1; }
 
-.voice-content .duration {
-	font-size: 14px;
-}
+	.input {
+		flex: 1;
+		height: 36px;
+		background: var(--paper);
+		border-radius: 18px;
+		padding: 0 16px;
+		font-size: 14px;
+		color: var(--ink);
+	}
 
-.input-bar {
-	background: var(--surface);
-	border-top: 1px solid var(--line);
-	padding: 8px 16px;
-	padding-bottom: calc(8px + env(safe-area-inset-bottom));
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
+	.send-btn {
+		padding: 0 20px;
+		height: 36px;
+		background: var(--accent);
+		color: var(--text-invert);
+		border-radius: 18px;
+		font-size: 14px;
+		flex-shrink: 0;
+	}
 
-.input-bar.expanded {
-	padding-top: 12px;
-}
+	.send-btn[disabled] { opacity: 0.5; }
+	.more-actions { width: 100%; padding: 4px 0 2px; }
+	.menu-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+	.menu-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 4px 0; }
 
-.input-wrapper {
-	display: flex;
+	.menu-icon {
+		width: 56px;
+		height: 56px;
+		background: var(--paper);
+		border-radius: 8px;
+		display: flex;
 		flex-direction: row;
-	align-items: center;
-	gap: 8px;
-}
+		align-items: center;
+		justify-content: center;
+		font-size: 28px;
+	}
 
-.tool-btn {
-	width: 36px;
-	height: 36px;
-	background: var(--paper);
-	border-radius: 50%;
-	display: flex;
-		flex-direction: row;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-}
+		.menu-text { font-size: 12px; color: var(--ink2); }
 
-.tool-btn .icon {
-	font-size: 20px;
-	color: var(--ink2);
-}
+		.chat-page.parent-mode .state-title { font-size: 20px; }
 
-.more-toggle {
-	background: var(--accent);
-}
+		.chat-page.parent-mode .state-desc,
+		.chat-page.parent-mode .time-text,
+		.chat-page.parent-mode .message-status,
+		.chat-page.parent-mode .protected-avatar-text,
+		.chat-page.parent-mode .protected-content-text,
+		.chat-page.parent-mode .menu-text {
+			font-size: 14px;
+			line-height: 1.5;
+		}
 
-.more-toggle .icon {
-	color: var(--text-invert);
-	font-size: 24px;
-	line-height: 1;
-}
+		.chat-page.parent-mode .chat-loading > text,
+		.chat-page.parent-mode .text-content,
+		.chat-page.parent-mode .input,
+		.chat-page.parent-mode .send-btn {
+			font-size: 16px;
+			line-height: 1.5;
+		}
 
-.input {
-	flex: 1;
-	height: 36px;
-	background: var(--paper);
-	border-radius: 18px;
-	padding: 0 16px;
-	font-size: 14px;
-	color: var(--ink);
-}
+		.chat-page.parent-mode .avatar,
+		.chat-page.parent-mode .tool-btn {
+			width: 48px;
+			height: 48px;
+			min-width: 48px;
+			min-height: 48px;
+		}
 
-.send-btn {
-	padding: 0 20px;
-	height: 36px;
-	background: var(--accent);
-	color: var(--text-invert);
-	border-radius: 18px;
-	font-size: 14px;
-	flex-shrink: 0;
-}
+		.chat-page.parent-mode .input,
+		.chat-page.parent-mode .send-btn,
+		.chat-page.parent-mode .menu-item,
+		.chat-page.parent-mode .message-status.failed {
+			min-height: 48px;
+		}
 
-.more-actions {
-	width: 100%;
-	padding: 4px 0 2px;
-}
+		.chat-page.parent-mode .input {
+			height: 48px;
+			border-radius: 24px;
+		}
 
-.menu-grid {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 10px;
-}
+		.chat-page.parent-mode .send-btn {
+			height: 48px;
+			border-radius: 24px;
+		}
 
-.menu-item {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 8px;
-	padding: 4px 0;
-}
-
-.menu-icon {
-	width: 56px;
-	height: 56px;
-	background: var(--paper);
-	border-radius: 12px;
-	display: flex;
-		flex-direction: row;
-	align-items: center;
-	justify-content: center;
-	font-size: 28px;
-}
-
-.menu-text {
-	font-size: 12px;
-	color: var(--ink2);
-}
-</style>
+		.chat-page.parent-mode .message-status.failed {
+			display: flex;
+			align-items: center;
+		}
+	</style>

@@ -59,7 +59,7 @@ static/
 #### 运行步骤
 
 1. 菜单：**文件 → 打开目录**，选择 `xuanshiai-vue`。
-2. 若提示“是否转换为 uni-app 项目 / 关联云服务空间”，开发期可跳过或取消关联；当前 `USE_MOCK = true`，不依赖 uniCloud。
+2. 若提示“是否转换为 uni-app 项目 / 关联云服务空间”，开发期可跳过或取消关联；当前全局走 FastAPI HTTP，显式模块 Mock 也不依赖 uniCloud。
 3. **H5 冒烟**：运行 → 运行到浏览器 → Chrome（或默认浏览器）。
 4. **微信小程序冒烟**：运行 → 运行到小程序模拟器 → 微信开发者工具。
 5. 微信开发者工具需先安装，并在 **设置 → 安全设置 → 服务端口** 中开启。
@@ -165,7 +165,7 @@ npm run build:mp-weixin
 
 ## 5. 基础业务验证
 
-当前 Mock 开关位于 `api/config.uts`：`export const USE_MOCK = true`。
+全局开关位于 `api/config.uts`，当前为 `export const USE_MOCK = false`。消息、父母端和情感实验室另有显式模块开关，回归时必须记录实际开关组合，不能把全局关 Mock 等同于所有模块已联调。
 
 检查首页推荐与申请认识、社区动态、牵线服务、消息申请和我的页面入口。Mock 数据数量和示例姓名会随开发调整，不把具体条数作为稳定验收标准。
 
@@ -177,5 +177,5 @@ HBuilderX 产物通常位于 `unpackage/`。该目录是构建结果，不作为
 
 - npm 提示缺少 `src/manifest.json`：见 `TROUBLESHOOTING.md` 的“npm CLI 与根目录式工程”章节。
 - 页面空白：检查终端、浏览器或微信开发者工具控制台的第一条错误。
-- Mock 不生效：确认 `USE_MOCK = true`，并检查页面是否通过 `@/api` 调用。
+- Mock 不生效：确认目标能力使用的是全局 `USE_MOCK` 还是模块开关，并检查页面是否通过 `@/api` 调用。
 - uniCloud 关联提示：见 `TROUBLESHOOTING.md`，不要擅自删除或重命名云函数目录。

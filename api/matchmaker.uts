@@ -17,6 +17,15 @@ import {
   mockAiRecommendations
 } from '@/mock'
 
+function internalMockListResponse(list: any[]): any {
+  return {
+    success: true,
+    data: list.slice(),
+    code: 0,
+    message: 'success'
+  }
+}
+
 /**
  * 获取红娘联系信息 Mock。真实联系接口接入前，始终返回测试数据。
  */
@@ -334,7 +343,8 @@ export async function getMatchmakerDetail(id: number) {
 /**
  * 获取服务红娘列表
  */
-export async function getServiceMatchmakers() {
+export async function getServiceMatchmakers(internalMock: boolean = false) {
+  if (internalMock) return internalMockListResponse(mockServiceMatchmakers as any[])
   const result = await request({
     url: '/matchmakers',
     forceHttp: true,
@@ -352,7 +362,8 @@ export async function getServiceMatchmakers() {
 /**
  * 获取私人定制专属红娘列表
  */
-export async function getCustomMatchmakers() {
+export async function getCustomMatchmakers(internalMock: boolean = false) {
+  if (internalMock) return internalMockListResponse(mockCustomMatchmakers as any[])
   const result = await request({
     url: '/matchmakers',
     forceHttp: true,

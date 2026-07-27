@@ -26,7 +26,7 @@
 			</button>
 			<!-- #endif -->
 
-			<button class="debug-login-button" @click="handleDebugLogin">调试登录，直接进入首页</button>
+			<button class="debug-login-button" @click="handleDebugLogin">调试登录</button>
 			<button class="first-login-button" @click="handleFirstLogin">首次登录</button>
 
 			<view class="login-note">
@@ -53,11 +53,25 @@
 		})
 	}
 
+	const routeAfterLogin = (requireProfile: boolean = false) => {
+		const storedMode = uni.getStorageSync('xsa_onboarding_mode')
+		if (storedMode != null && String(storedMode) == 'parent') {
+			uni.reLaunch({ url: '/pages/parent/parent' })
+			return
+		}
+		const completed = uni.getStorageSync('xsa_onboarding_completed') == true
+		if (requireProfile && !completed) {
+			uni.navigateTo({ url: '/pages/onboarding/profile' })
+			return
+		}
+		goHome()
+	}
+
 	const finishLogin = () => {
 		uni.setStorageSync('xsa_login_agreed', true)
 		uni.showToast({ title: '登录成功', icon: 'success' })
 		setTimeout(() => {
-			uni.navigateTo({ url: '/pages/onboarding/profile' })
+			routeAfterLogin(true)
 		}, 700)
 	}
 
@@ -152,13 +166,13 @@
 				uni.showToast({ title: '联调登录失败，请确认后端', icon: 'none' })
 				return
 			}
-			uni.showToast({ title: '已写入联调 token', icon: 'success' })
-			setTimeout(() => {
-				goHome()
-			}, 400)
+				uni.showToast({ title: '已写入联调 token', icon: 'success' })
+				setTimeout(() => {
+					routeAfterLogin(true)
+				}, 400)
 			return
 		}
-		goHome()
+		routeAfterLogin()
 	}
 
 	const handleFirstLogin = () => {

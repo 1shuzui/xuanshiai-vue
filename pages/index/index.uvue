@@ -576,11 +576,6 @@
 		<!-- ====== Sheets & Modals ====== -->
 		<XsaSheet :visible="aiVisible" title="AI 合拍度解读" @close="aiVisible = false">
 			<view class="ai-sheet">
-				<view class="ai-mbti-row">
-					<view class="ai-mbti-card"><text class="ai-mbti-label">你的 MBTI</text><text class="ai-mbti-type">INFP</text></view>
-					<text class="ai-mbti-x">×</text>
-					<view class="ai-mbti-card you"><text class="ai-mbti-label">TA 的 MBTI</text><text class="ai-mbti-type">ENFJ</text></view>
-				</view>
 				<view class="ai-score-big"><text>92%</text></view>
 				<view class="ai-bars"><view v-for="b in aiBars" :key="b.label" class="ai-bar"><view class="ai-bar-head"><text>{{ b.label }}</text><text>{{ b.value }}%</text></view><view class="ai-bar-trk"><view class="ai-bar-fill" :style="{ width: b.value + '%' }"></view></view></view></view>
 				<view class="ai-tip"><text>基于公开资料与兴趣交集生成，不代表平台承诺结果。建议从共同兴趣或城市周末安排开始聊。</text></view>
@@ -620,7 +615,25 @@
 	import XsaToast from '@/components/XsaToast.uvue'
 	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
 	import { guardRealName } from '@/utils/realNameGate.uts'
-	import { likeUser } from '@/api'
+	import { getChatPermission, likeUser } from '@/api'
+
+	const parentRouting = ref(false)
+	const routeParentMode = (): boolean => {
+		const storedMode = uni.getStorageSync('xsa_onboarding_mode')
+		if (storedMode == null || String(storedMode) != 'parent') {
+			parentRouting.value = false
+			return false
+		}
+		if (parentRouting.value) return true
+		parentRouting.value = true
+		uni.reLaunch({
+			url: '/pages/parent/parent',
+			fail: () => {
+				parentRouting.value = false
+			}
+		})
+		return true
+	}
 
 	// ========== 欢迎页 ==========
 	const welcomeVisible = ref(true)
@@ -733,7 +746,21 @@
 
 	const goMessages = () => { successVisible.value = false; uni.switchTab({ url: '/pages/message/message' }) }
 	const simulateMatch = () => { successVisible.value = false; matchedVisible.value = true }
-	const startChat = () => { matchedVisible.value = false; uni.navigateTo({ url: '/pages/chat/detail?userId=user_001&userName=林悦' }) }
+	const startChat = async () => {
+		matchedVisible.value = false
+		const targetUserId = recommendUserId.value
+		try {
+			const res = await getChatPermission(targetUserId)
+			const permission = res != null ? res.data : null
+			if (res != null && res.success == true && permission != null && permission.canChat == true) {
+				uni.navigateTo({ url: '/pages/chat/detail?userId=' + targetUserId + '&userName=林悦' })
+				return
+			}
+			showToast(permission != null && permission.reason != null ? '' + permission.reason : '双方同意后才能开始聊天')
+		} catch (error) {
+			showToast('暂时无法确认聊天权限，请稍后重试')
+		}
+	}
 
 	// ========== 通用操作 ==========
 	// 推荐卡默认嘉宾 id（与 mock 动态作者对齐，便于验证关注·喜欢）
@@ -762,7 +789,12 @@
 	}
 
 	// ========== 生命周期 ==========
+	onShow(() => {
+		routeParentMode()
+	})
+
 	onMounted(() => {
+		if (routeParentMode()) return
 		welcomeVisible.value = true
 		uni.hideTabBar({ animation: false })
 	})
@@ -1084,12 +1116,6 @@
    AI Sheet
    ============================================================ */
 .ai-sheet { display: flex; flex-direction: column; gap: 16px; }
-.ai-mbti-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
-.ai-mbti-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 20px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
-.ai-mbti-card.you { background: var(--accent-bg); border-color: var(--accent); }
-.ai-mbti-label { font-size: 10px; color: var(--muted); }
-.ai-mbti-type { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--accent2); }
-.ai-mbti-x { font-size: 18px; color: var(--ink2); }
 .ai-score-big text { font-size: 48px; font-weight: 900; color: var(--accent2); font-family: var(--serif); }
 .ai-score-big { text-align: center; }
 .ai-bars { display: flex; flex-direction: column; gap: 10px; }

@@ -1,5 +1,5 @@
 <template>
-	<view class="matchmaker-card" @click="handleDetail">
+		<view class="matchmaker-card" :class="{ 'large-text': largeText }" @click="handleDetail">
 		<view class="card-media">
 			<MatchmakerAvatar :src="data.avatar" :name="data.name" variant="card" />
 		</view>
@@ -31,7 +31,7 @@
 			</view>
 
 			<view class="card-footer">
-				<view class="card-price">
+					<view class="card-price" v-if="showPrice">
 					<text v-if="hasPrice" class="price-symbol">¥</text>
 					<text class="price-value">{{ priceText }}</text>
 					<text v-if="hasPrice" class="price-unit">{{ unitText }}</text>
@@ -48,14 +48,18 @@
 import MatchmakerAvatar from '@/components/MatchmakerAvatar.uvue';
 
 interface Props {
-	data: any;
-	actionText?: string;
-	unitText?: string;
+		data: any;
+		actionText?: string;
+		unitText?: string;
+		showPrice?: boolean;
+		largeText?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-	actionText: '联系她',
-	unitText: '/次'
+		actionText: '联系她',
+		unitText: '/次',
+		showPrice: true,
+		largeText: false
 });
 
 const emit = defineEmits<{
@@ -264,5 +268,40 @@ const handleContact = () => {
 		justify-content: center;
 		font-size: 22rpx;
 		font-weight: 800;
+	}
+
+	.matchmaker-card.large-text {
+		border-radius: 8px;
+	}
+
+	.matchmaker-card.large-text .card-name {
+		font-size: 20px;
+	}
+
+	.matchmaker-card.large-text .card-copy {
+		font-size: 16px;
+		min-height: 0;
+	}
+
+	.matchmaker-card.large-text .card-rate,
+	.matchmaker-card.large-text .card-tag text,
+	.matchmaker-card.large-text .meta-label,
+	.matchmaker-card.large-text .price-unit,
+	.matchmaker-card.large-text .price-symbol {
+		font-size: 14px;
+	}
+
+	.matchmaker-card.large-text .meta-value,
+	.matchmaker-card.large-text .price-value {
+		font-size: 16px;
+	}
+
+	.matchmaker-card.large-text .card-button {
+		min-height: 48px;
+		height: auto;
+		border-radius: 8px;
+		background: var(--accent-bg);
+		border-color: var(--accent);
+		font-size: 16px;
 	}
 </style>

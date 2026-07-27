@@ -5,7 +5,7 @@
  */
 
 import { request } from './request.uts'
-import { USE_MOCK } from './config.uts'
+import { CURRENT_USER_ID_KEY, USE_MOCK } from './config.uts'
 import {
   mockRecommendUsers,
   mockSquareUsers,
@@ -15,6 +15,7 @@ import {
   mockApplyStates,
   mockLikedUserIds
 } from '@/mock'
+import { getMockMeMbtiProfileData } from '@/mock/user.uts'
 import { __syncApplyStatus, getCommunityQuotas } from './community.uts'
 
 function okRes(data: any): any {
@@ -40,6 +41,42 @@ function failRes(message: string, code: any = -1, extra: any = null): any {
     code: code,
     message: message
   }
+}
+
+type InternalUserMockState = {
+  likedUserIds: number[]
+  applyStates: any
+  remainingApplications: number
+}
+
+const internalUserMockStates: any = {}
+
+function getInternalUserMockState(scope: string): InternalUserMockState {
+  const key = scope != null ? scope.trim() : ''
+  const existing = internalUserMockStates[key]
+  if (existing != null) return existing as InternalUserMockState
+  const state = {
+    likedUserIds: (mockLikedUserIds as number[]).slice(),
+    applyStates: { ...mockApplyStates },
+    remainingApplications: 2
+  } as InternalUserMockState
+  internalUserMockStates[key] = state
+  return state
+}
+
+function userIsLiked(userId: number, ids: number[]): boolean {
+  for (let i = 0; i < ids.length; i++) {
+    if (ids[i] == userId) return true
+  }
+  return false
+}
+
+function mockUserListWithLikes(source: any[], ids: number[]): any[] {
+  const output: any[] = []
+  for (let i = 0; i < source.length; i++) {
+    output.push({ ...source[i], liked: userIsLiked(Number(source[i].id), ids) })
+  }
+  return output
 }
 
 function extractHttpMessage(res: any, fallback: string): string {
@@ -117,7 +154,7 @@ export async function unlockChatFeature(feature: string) {
       cloudFunctionName: 'user',
       action: 'unlockChatFeature',
       method: 'POST',
-      data: { feature },
+      data: { feature: feature },
       mockData: { success: false, message: '暂不支持该解锁功能' }
     })
   }
@@ -128,8 +165,8 @@ export async function unlockChatFeature(feature: string) {
       cloudFunctionName: 'user',
       action: 'unlockChatFeature',
       method: 'POST',
-      data: { feature },
-      mockData: { success: true, alreadyUnlocked: true, feature, points: mockMeProfile.points }
+      data: { feature: feature },
+      mockData: { success: true, alreadyUnlocked: true, feature: feature, points: mockMeProfile.points }
     })
   }
 
@@ -139,7 +176,7 @@ export async function unlockChatFeature(feature: string) {
       cloudFunctionName: 'user',
       action: 'unlockChatFeature',
       method: 'POST',
-      data: { feature },
+      data: { feature: feature },
       mockData: { success: false, code: 'INSUFFICIENT_POINTS', message: '积分不足，无法解锁该功能', points: mockMeProfile.points }
     })
   }
@@ -152,8 +189,8 @@ export async function unlockChatFeature(feature: string) {
     cloudFunctionName: 'user',
     action: 'unlockChatFeature',
     method: 'POST',
-    data: { feature },
-    mockData: { success: true, feature, points: mockMeProfile.points, cost: CHAT_FEATURE_UNLOCK_COST }
+    data: { feature: feature },
+    mockData: { success: true, feature: feature, points: mockMeProfile.points, cost: CHAT_FEATURE_UNLOCK_COST }
   })
 }
 
@@ -177,7 +214,11 @@ export async function getRecommendUser(index: number = 0) {
 /**
  * 获取推荐用户列表（全量）
  */
-export async function getRecommendUsers() {
+export async function getRecommendUsers(internalMockScope: string = '') {
+  if (internalMockScope != '') {
+    const state = getInternalUserMockState(internalMockScope)
+    return okRes(mockUserListWithLikes(mockRecommendUsers as any[], state.likedUserIds))
+  }
   return request({
     url: '/user/recommend/list',
     cloudFunctionName: 'user',
@@ -204,8 +245,8 @@ export async function getSquareUsers(params: any) {
 /**
  * 获取用户详情（优先从高保真嘉宾列表查找）
  */
-export async function getUserDetail(userId: number) {
-  const list = mockRecommendUsers as any[]
+export async function getUserDetail(userId: number, internalMockScope: string = '') {
+	const list = (mockRecommendUsers as any[]).concat(mockSquareUsers as any[])
   let found: any = null
   for (let i = 0; i < list.length; i++) {
     if (list[i].id == userId) {
@@ -223,12 +264,17 @@ export async function getUserDetail(userId: number) {
       }
     : mockUserDetail
 
-  return request({
+	if (internalMockScope != '') {
+		const state = getInternalUserMockState(internalMockScope)
+		return okRes({ ...detail, liked: userIsLiked(userId, state.likedUserIds) })
+	}
+
+	return request({
     url: '/user/detail',
     cloudFunctionName: 'user',
     action: 'getDetail',
     method: 'GET',
-    data: { userId },
+	    data: { userId: userId },
     mockData: detail
   })
 }
@@ -238,12 +284,18 @@ export async function getUserDetail(userId: number) {
  */
 export async function getMeProfile() {
   if (USE_MOCK) {
+    let subjectId = ''
+    try {
+      const storedUserId = uni.getStorageSync(CURRENT_USER_ID_KEY)
+      const userId = storedUserId != null ? String(storedUserId).trim() : ''
+      if (userId != '') subjectId = 'user:' + userId
+    } catch (error) {}
     return request({
       url: '/user/me',
       cloudFunctionName: 'user',
       action: 'getMe',
       method: 'GET',
-      mockData: mockMeProfile
+      mockData: getMockMeMbtiProfileData(subjectId)
     })
   }
 
@@ -277,7 +329,39 @@ export async function getMeProfile() {
  * 真路径：POST /discovery/applications/{userId}，不写 mock 状态
  * 注意：request 外层 success 恒为 true 时，业务成败看 data.success / data.code
  */
-export async function applyToMeet(userId: number, message: string) {
+export async function applyToMeet(userId: number, message: string, internalMockScope: string = '') {
+  if (internalMockScope != '') {
+    const state = getInternalUserMockState(internalMockScope)
+    const key = '' + userId
+    const current = state.applyStates[key] != null ? String(state.applyStates[key]) : 'none'
+    if (current == 'pending') {
+      return failRes('申请已发送，请等待对方回应', 'ALREADY_PENDING', {
+        applyStatus: 'pending',
+        remain: state.remainingApplications
+      })
+    }
+    if (current == 'accepted') {
+      return failRes('对方已同意，可在消息中继续沟通', 'ALREADY_ACCEPTED', {
+        applyStatus: 'accepted',
+        remain: state.remainingApplications
+      })
+    }
+    if (state.remainingApplications <= 0) {
+      return failRes('今日免费申请次数已用完，可用积分加次', 'QUOTA_EXCEEDED', {
+        applyStatus: current,
+        remain: 0
+      })
+    }
+    state.applyStates[key] = 'pending'
+    state.remainingApplications -= 1
+    return okRes({
+      success: true,
+      internalDemo: true,
+      remain: state.remainingApplications,
+      applyStatus: 'pending',
+      message: '内部演示申请已记录，对方同意后才能开始聊天'
+    })
+  }
   if (USE_MOCK) {
     const key = '' + userId
     const states = mockApplyStates as any
@@ -289,7 +373,7 @@ export async function applyToMeet(userId: number, message: string) {
         cloudFunctionName: 'user',
         action: 'apply',
         method: 'POST',
-        data: { userId, message },
+        data: { userId: userId, message: message },
         mockData: {
           success: false,
           code: 'ALREADY_PENDING',
@@ -306,7 +390,7 @@ export async function applyToMeet(userId: number, message: string) {
         cloudFunctionName: 'user',
         action: 'apply',
         method: 'POST',
-        data: { userId, message },
+        data: { userId: userId, message: message },
         mockData: {
           success: false,
           code: 'ALREADY_ACCEPTED',
@@ -337,7 +421,7 @@ export async function applyToMeet(userId: number, message: string) {
         cloudFunctionName: 'user',
         action: 'apply',
         method: 'POST',
-        data: { userId, message },
+        data: { userId: userId, message: message },
         mockData: {
           success: false,
           code: 'QUOTA_EXCEEDED',
@@ -362,7 +446,7 @@ export async function applyToMeet(userId: number, message: string) {
       cloudFunctionName: 'user',
       action: 'apply',
       method: 'POST',
-      data: { userId, message },
+      data: { userId: userId, message: message },
       mockData: {
         success: true,
         remain: applyQ.remain,
@@ -440,7 +524,25 @@ export async function applyToMeet(userId: number, message: string) {
  * Mock：toggle mockLikedUserIds
  * 真路径：PUT 喜欢 / DELETE 取消；先查 relations/likes 判断当前状态
  */
-export async function likeUser(userId: number) {
+export async function likeUser(userId: number, internalMockScope: string = '') {
+  if (internalMockScope != '') {
+    const state = getInternalUserMockState(internalMockScope)
+    const ids = state.likedUserIds
+    let found = -1
+    for (let i = 0; i < ids.length; i++) {
+      if (ids[i] == userId) {
+        found = i
+        break
+      }
+    }
+    let liked = false
+    if (found >= 0) ids.splice(found, 1)
+    else {
+      ids.push(userId)
+      liked = true
+    }
+    return okRes({ success: true, liked: liked, userId: userId, internalDemo: true })
+  }
   if (USE_MOCK) {
     const ids = mockLikedUserIds as number[]
     let liked = false
@@ -463,8 +565,8 @@ export async function likeUser(userId: number) {
       cloudFunctionName: 'user',
       action: 'like',
       method: 'POST',
-      data: { userId },
-      mockData: { success: true, liked, userId }
+      data: { userId: userId },
+      mockData: { success: true, liked: liked, userId: userId }
     })
   }
 
@@ -538,4 +640,72 @@ export async function likeUser(userId: number) {
     userId: userId,
     matched: res.data != null && res.data.matched == true
   })
+}
+
+/** 获取用户级喜欢列表；父母内部审校通过 scope 与普通用户状态隔离。 */
+export async function getLikedUsers(internalMockScope: string = '') {
+  if (internalMockScope != '') {
+    const state = getInternalUserMockState(internalMockScope)
+    const source = (mockRecommendUsers as any[]).concat(mockSquareUsers as any[])
+    const output: any[] = []
+    const seen: number[] = []
+    for (let i = 0; i < source.length; i++) {
+      const id = Number(source[i].id)
+      if (!userIsLiked(id, state.likedUserIds) || seen.indexOf(id) >= 0) continue
+      seen.push(id)
+      output.push({ ...source[i], liked: true })
+    }
+    return okRes(output)
+  }
+
+  if (USE_MOCK) {
+    const source = (mockRecommendUsers as any[]).concat(mockSquareUsers as any[])
+    const output: any[] = []
+    const seen: number[] = []
+    for (let i = 0; i < source.length; i++) {
+      const id = Number(source[i].id)
+      if (!userIsLiked(id, mockLikedUserIds as number[]) || seen.indexOf(id) >= 0) continue
+      seen.push(id)
+      output.push({ ...source[i], liked: true })
+    }
+    return okRes(output)
+  }
+
+  const output: any[] = []
+  const seen: number[] = []
+  let page = 1
+  const pageSize = 50
+  while (true) {
+    const res = await request({
+      url: '/relations/likes',
+      method: 'GET',
+      data: { page: page, page_size: pageSize }
+    })
+    if (res == null || res.success != true || res.data == null) return res
+    const items = res.data.items != null
+      ? res.data.items as any[]
+      : res.data.list != null
+        ? res.data.list as any[]
+        : [] as any[]
+    for (let i = 0; i < items.length; i++) {
+      const raw = items[i] != null && items[i].user != null
+        ? items[i].user
+        : items[i] != null && items[i].target_user != null
+          ? items[i].target_user
+          : items[i]
+      const id = raw != null && raw.id != null
+        ? Number(raw.id)
+        : items[i] != null && items[i].user_id != null
+          ? Number(items[i].user_id)
+          : 0
+      if (id <= 0 || seen.indexOf(id) >= 0) continue
+      seen.push(id)
+      output.push({ ...raw, id: id, liked: true })
+    }
+    const hasMore = res.data.has_more == true || res.data.hasMore == true
+    if (!hasMore && items.length < pageSize) break
+    if (items.length == 0 || page >= 100) break
+    page += 1
+  }
+  return okRes(output)
 }

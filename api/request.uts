@@ -172,6 +172,35 @@ async function httpRequest(options: any) {
   })
 }
 
+function normalizeCloudFailure(err: any): any {
+  const data = err != null && err.data != null ? err.data : null
+  let code: any = -1
+  if (err != null && err.code != null) code = err.code
+  else if (data != null && data.code != null) code = data.code
+  else if (err != null && err.errCode != null) code = err.errCode
+
+  let message = '请求失败'
+  if (err != null && err.message != null && String(err.message) != '') {
+    message = String(err.message)
+  } else if (data != null && data.message != null && String(data.message) != '') {
+    message = String(data.message)
+  } else if (err != null && err.errMsg != null && String(err.errMsg) != '') {
+    message = String(err.errMsg)
+  }
+
+  const nestedCode = data != null && data.code != null ? data.code : null
+  const cloudCode = err != null && err.errCode != null ? err.errCode : null
+  if (String(code) == '401' || String(nestedCode) == '401' || String(cloudCode) == '401') {
+    clearAuthTokens()
+  }
+  return {
+    success: false,
+    data: data,
+    code: code,
+    message: message
+  }
+}
+
 async function realCloudRequest(options: any) {
   console.log('☁️ [Cloud Request]', options.url, options.data)
   return new Promise((resolve, reject) => {
@@ -191,12 +220,7 @@ async function realCloudRequest(options: any) {
       },
       fail: (err: any) => {
         console.error('❌ [Request Error]', err)
-        reject({
-          success: false,
-          data: null,
-          code: err.code || -1,
-          message: err.message || '请求失败'
-        })
+        reject(normalizeCloudFailure(err))
       }
     })
   })

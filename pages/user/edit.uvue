@@ -321,10 +321,13 @@
 						<view class="form-divider"></view>
 
 						<!-- MBTI -->
-						<view class="form-row" @tap="showFieldEditor('mbti')">
+						<view class="form-row" @tap="openEmotionLab">
 							<text class="form-label">MBTI</text>
 							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.mbti }">{{ formData.mbti || 'ENFJ' }}</text>
+								<view class="mbti-value-wrap">
+									<text class="form-value" :class="{ 'placeholder': !formData.mbti }">{{ formData.mbti || '未设置' }}</text>
+									<text v-if="mbtiSourceLabel.length > 0" class="field-source">{{ mbtiSourceLabel }}</text>
+								</view>
 								<text class="form-arrow">›</text>
 							</view>
 						</view>
@@ -351,6 +354,7 @@
 
 <script setup lang="uts">
 	import { ref, computed } from 'vue'
+	import { getEmotionLabSummary } from '@/api'
 
 	// 表单数据
 	const formData = ref({
@@ -372,7 +376,7 @@
 		company: '字节跳动',
 		income: '30-50万',
 		maritalStatus: '未婚',
-		mbti: 'ENFJ',
+		mbti: '',
 		goal: '希望在2年内遇到对的人',
 		wechat: '',
 		introduction: '',
@@ -381,6 +385,31 @@
 
 	// 基础信息编辑 sheet 可见性
 	const basicInfoEditVisible = ref(false)
+	const mbtiProfileSource = ref('')
+	const mbtiSourceLabel = computed(() => {
+		if (mbtiProfileSource.value == 'assessment') return '来自测试结果'
+		if (mbtiProfileSource.value == 'self_reported') return '手动设置'
+		return ''
+	})
+
+	const loadConfirmedMbti = async () => {
+		try {
+			const result = await getEmotionLabSummary()
+			if (result == null || result.success != true || result.data == null) return
+			const source = result.data.profileSource
+			if (source == null || source.mbtiType == null) return
+			const sourceType = source.source != null ? String(source.source) : ''
+			if (sourceType != 'assessment' && sourceType != 'self_reported') return
+			formData.value.mbti = String(source.mbtiType)
+			mbtiProfileSource.value = sourceType
+		} catch (error) {
+			// Keep the existing profile value when the optional lab summary is unavailable.
+		}
+	}
+
+	onShow(() => {
+		loadConfirmedMbti()
+	})
 
 	// 资料完整度
 	const completeness = computed(() => {
@@ -495,6 +524,11 @@
 	// 字段编辑
 	const showFieldEditor = (field: string) => {
 		uni.showToast({ title: '选择器开发中', icon: 'none' })
+	}
+
+	const openEmotionLab = () => {
+		basicInfoEditVisible.value = false
+		uni.navigateTo({ url: '/pages/emotion-lab/emotion-lab' })
 	}
 
 	// 认证跳转
@@ -1103,10 +1137,20 @@
 	align-items: center;
 	gap: 12rpx;
 }
+.mbti-value-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 2rpx;
+}
 .form-value {
 	font-size: 28rpx;
 	color: var(--muted);
 	text-align: right;
+}
+.field-source {
+	font-size: 22rpx;
+	color: var(--muted);
 }
 .form-value.placeholder {
 	color: var(--muted);

@@ -4,7 +4,7 @@
  */
 
 import { request } from './request.uts'
-import { setAuthTokens, clearAuthTokens } from './config.uts'
+import { CURRENT_USER_ID_KEY, setAuthTokens, clearAuthTokens } from './config.uts'
 
 export async function sendSms(phone: string, purpose: string = 'login') {
   return request({
@@ -37,6 +37,9 @@ export async function loginByPhone(phone: string, code: string) {
   })
   if (res.success && res.data != null && res.data.access_token != null) {
     setAuthTokens(String(res.data.access_token), res.data.refresh_token != null ? String(res.data.refresh_token) : '')
+    if (res.data.user_id != null) {
+      uni.setStorageSync(CURRENT_USER_ID_KEY, res.data.user_id)
+    }
   }
   return res
 }

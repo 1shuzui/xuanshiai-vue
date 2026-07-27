@@ -1,8 +1,11 @@
 <template>
-	<view class="xsa-message-item" @click="handleClick">
+		<view class="xsa-message-item" :class="{ 'large-text': largeText, 'protected-photo': protectPhoto }" @click="handleClick">
 		<!-- 头像 -->
 		<view class="avatar-wrapper">
-			<image class="avatar" :src="message.avatar" mode="aspectFill"></image>
+			<view class="avatar protected-avatar" v-if="protectPhoto">
+				<view class="protected-avatar-mark"></view>
+			</view>
+			<image class="avatar" v-else :src="message.avatar" mode="aspectFill"></image>
 			<view class="unread-badge" v-if="message.unreadCount > 0">
 				<text class="badge-text">{{ badgeText }}</text>
 			</view>
@@ -44,10 +47,15 @@ interface Message {
 }
 
 interface Props {
-	message: Message;
+		message: Message;
+		largeText?: boolean;
+		protectPhoto?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+	largeText: false,
+	protectPhoto: false
+});
 
 const emit = defineEmits<{
 	click: [message: Message];
@@ -138,6 +146,22 @@ const handleClick = () => {
 	width: 52px;
 	height: 52px;
 	border-radius: 50%;
+	overflow: hidden;
+}
+
+.protected-avatar {
+	background: var(--warm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.protected-avatar-mark {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: var(--accent-bg);
+	filter: blur(5px);
 }
 
 .unread-badge {
@@ -147,7 +171,7 @@ const handleClick = () => {
 	min-width: 18px;
 	height: 18px;
 	padding: 0 5px;
-	background: #FF4444;
+	background: var(--accent2);
 	border: 2px solid var(--surface);
 	border-radius: 999px;
 	display: flex;
@@ -159,7 +183,7 @@ const handleClick = () => {
 .badge-text {
 	font-size: 11px;
 	font-weight: 600;
-	color: #FFFFFF;
+	color: var(--text-invert);
 	line-height: 1;
 }
 
@@ -215,11 +239,20 @@ const handleClick = () => {
 	font-weight: 500;
 }
 
+.xsa-message-item.large-text .name {
+	font-size: 16px;
+}
+
+.xsa-message-item.large-text .time,
+.xsa-message-item.large-text .last-message {
+	font-size: 14px;
+}
+
 /* 在线状态 */
 .online-dot {
 	width: 8px;
 	height: 8px;
-	background: #4CAF50;
+	background: var(--sage);
 	border-radius: 50%;
 	flex-shrink: 0;
 	margin-left: -4px;

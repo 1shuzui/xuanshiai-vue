@@ -1,0 +1,698 @@
+import { request } from './request.uts'
+import { CURRENT_USER_ID_KEY, USE_MOCK, clearAuthTokens, getAccessToken } from './config.uts'
+import {
+	applyToMeet,
+	getLikedUsers,
+	getRecommendUsers,
+	getUserDetail,
+	likeUser
+} from './user.uts'
+import { getApplications, getMessageList } from './message.uts'
+import type { MessageSubject } from './message.uts'
+import { getCustomMatchmakers, getServiceMatchmakers } from './matchmaker.uts'
+import { blockUser, reportContent } from './community.uts'
+import {
+		getMockParentContextData,
+		syncMockParentRemainingApplicationsData,
+		updateMockParentChildProfileData
+} from '@/mock/parent.uts'
+
+/**
+ * The first parent slice is an internal-review adapter. Do not turn this off
+ * until the relationship-aware parent backend has been implemented and tested.
+ */
+export const PARENT_USE_MOCK = true
+export const PARENT_RELATIONSHIP_BACKEND_READY = false
+export const PARENT_SERVER_PRIVACY_FILTER_READY = false
+
+export type ParentRealNameStatus = 'missing' | 'reviewing' | 'passed' | 'rejected'
+export type ChildAuthorizationStatus = 'pending' | 'granted' | 'revoked' | 'expired'
+export type ParentDataMode = 'mock' | 'http'
+
+export type ParentIdentity = {
+	id: number
+	name: string
+	avatar: string
+	realNameStatus: ParentRealNameStatus
+}
+
+export type ParentChildProfile = {
+	id: number
+	displayName: string
+	birthYear: number
+	city: string
+	job: string
+	introduction: string
+	authorizationStatus: ChildAuthorizationStatus
+	authorizationExpiresAt: string
+	profileProgress: number
+}
+
+export type ParentQuota = {
+	dailyTotal: number
+	remainingApplications: number
+}
+
+export type ParentReleaseGate = {
+	productionReady: boolean
+	code: string
+	message: string
+}
+
+export type ParentContext = {
+	id: string
+	mode: 'parent'
+	dataMode?: ParentDataMode
+	parent: ParentIdentity
+	child: ParentChildProfile | null
+	quota: ParentQuota
+	releaseGate?: ParentReleaseGate
+}
+
+export type ParentAccessGate = {
+	allowed: boolean
+	parentVerified: boolean
+	childAuthorized: boolean
+	isDemo: boolean
+	releaseReady: boolean
+	code: string
+	message: string
+}
+
+export type ParentCandidate = {
+	id: number
+	displayName: string
+	genderText: string
+	birthYear: number
+	city: string
+	height: string
+	education: string
+	job: string
+	income: string
+	certificationText: string
+	avatar: string
+	clearAvatar: string
+	introduction: string
+	datingNotes: string
+	expectations: string[]
+	liked: boolean
+	canViewClearPhoto: boolean
+}
+
+export type ParentChildProfileInput = {
+	displayName: string
+	birthYear: number
+	city: string
+	job: string
+	introduction: string
+}
+
+function okResponse(data: any): any {
+	return {
+		success: true,
+		data: data,
+		code: 0,
+		message: 'success'
+	}
+}
+
+function failureResponse(message: string, code: any, data: any = null): any {
+	return {
+		success: false,
+		data: data,
+		code: code,
+		message: message
+	}
+}
+
+function relationshipBackendFailure(): any {
+	return failureResponse(
+		'真实父母与子女关系服务尚未接入，父母端仅可用于内部演示。',
+		'PARENT_RELATIONSHIP_BACKEND_REQUIRED'
+	)
+}
+
+/** Local parent Mock data is still account-bound and must never be readable anonymously. */
+export function getParentAuthenticationGate(): any {
+	const token = getAccessToken()
+	let currentUserId = ''
+	try {
+		const storedUserId = uni.getStorageSync(CURRENT_USER_ID_KEY)
+		if (storedUserId != null) currentUserId = String(storedUserId).trim()
+	} catch (e) {}
+
+	if (token == null || String(token).trim().length == 0 || currentUserId.length == 0) {
+		clearAuthTokens()
+		return {
+			allowed: false,
+			code: 'PARENT_AUTH_REQUIRED',
+			message: '登录状态已失效，请重新登录后进入父母端。'
+		}
+	}
+	return {
+		allowed: true,
+		code: 'OK',
+		message: '父母端账号主体可用'
+	}
+}
+
+function authenticationGated(): any {
+	const gate = getParentAuthenticationGate()
+	return gate.allowed == true ? null : failureResponse(gate.message, gate.code, gate)
+}
+
+/** Prevent an internal parent identity from acting as the logged-in ordinary user. */
+export function getParentSubjectApiGate(
+	context: ParentContext | null,
+	isolatedMockScope: string = ''
+): any {
+	if (
+		context != null &&
+		context.dataMode == 'mock' &&
+		USE_MOCK != true &&
+		isolatedMockScope == ''
+	) {
+		return {
+			allowed: false,
+			code: 'PARENT_MOCK_SUBJECT_REAL_API_BLOCKED',
+			message: '内部父母关系数据不能调用普通用户真实接口，请先完成父母与子女主体联调。'
+		}
+	}
+	return {
+		allowed: true,
+		code: 'OK',
+		message: '业务接口主体可用'
+	}
+}
+
+function parentInternalMockScope(context: ParentContext | null): string {
+	if (
+		PARENT_USE_MOCK &&
+		context != null &&
+		context.dataMode == 'mock' &&
+		context.child != null &&
+		context.child.id > 0
+	) return 'parent:' + context.child.id
+	return ''
+}
+
+function subjectGated(context: ParentContext | null): any {
+	const gate = getParentSubjectApiGate(context, parentInternalMockScope(context))
+	return gate.allowed == true ? null : failureResponse(gate.message, gate.code, gate)
+}
+
+export function getParentAccessGate(context: ParentContext | null): ParentAccessGate {
+	const roleValid = context != null && context.mode == 'parent'
+	const parentVerified =
+		context != null &&
+		context.parent != null &&
+		context.parent.realNameStatus == 'passed'
+
+	let childAuthorized = false
+	let authorizationExpired = false
+	if (
+		context != null &&
+		context.child != null &&
+		context.child.authorizationStatus == 'granted' &&
+		context.child.authorizationExpiresAt != null
+	) {
+		const expiresAt = new Date(String(context.child.authorizationExpiresAt)).getTime()
+		authorizationExpired = !isNaN(expiresAt) && expiresAt <= Date.now()
+		childAuthorized = !isNaN(expiresAt) && expiresAt > Date.now()
+	}
+
+	const isDemo = context != null && context.dataMode == 'mock'
+	const releaseReady =
+		PARENT_RELATIONSHIP_BACKEND_READY &&
+		PARENT_SERVER_PRIVACY_FILTER_READY &&
+		context != null &&
+		context.releaseGate != null &&
+		context.releaseGate.productionReady == true
+
+	if (!roleValid) {
+		return {
+			allowed: false,
+			parentVerified: parentVerified,
+			childAuthorized: childAuthorized,
+			isDemo: isDemo,
+			releaseReady: releaseReady,
+			code: 'PARENT_ROLE_REQUIRED',
+			message: '当前账号不是父母身份'
+		}
+	}
+
+	if (!parentVerified) {
+		return {
+			allowed: false,
+			parentVerified: false,
+			childAuthorized: childAuthorized,
+			isDemo: isDemo,
+			releaseReady: releaseReady,
+			code: 'PARENT_REALNAME_REQUIRED',
+			message: '请先完成父母实名认证'
+		}
+	}
+
+	if (!childAuthorized) {
+		return {
+			allowed: false,
+			parentVerified: true,
+			childAuthorized: false,
+			isDemo: isDemo,
+			releaseReady: releaseReady,
+			code: authorizationExpired ? 'CHILD_AUTHORIZATION_EXPIRED' : 'CHILD_AUTHORIZATION_REQUIRED',
+			message: authorizationExpired ? '子女授权已过期，请重新取得授权' : '请先取得子女授权'
+		}
+	}
+
+	if (context != null && context.dataMode == 'http' && !releaseReady) {
+		return {
+			allowed: false,
+			parentVerified: true,
+			childAuthorized: true,
+			isDemo: false,
+			releaseReady: false,
+			code: 'PARENT_RELEASE_BLOCKED',
+			message: '父母与子女关系服务尚未达到发布条件'
+		}
+	}
+
+	return {
+		allowed: true,
+		parentVerified: true,
+		childAuthorized: true,
+		isDemo: isDemo,
+		releaseReady: releaseReady,
+		code: 'OK',
+		message: isDemo ? '内部演示访问条件已满足' : '父母端访问条件已满足'
+	}
+}
+
+function clearPhotoUrl(candidate: any): string {
+	if (candidate == null) return ''
+	if (candidate.clearAvatar != null && String(candidate.clearAvatar).length > 0) {
+		return String(candidate.clearAvatar)
+	}
+	if (candidate.avatar != null && String(candidate.avatar).length > 0) {
+		return String(candidate.avatar)
+	}
+	return ''
+}
+
+/** Missing consent, viewer eligibility, or a scoped clear URL always fails closed. */
+export function canParentViewClearPhoto(context: ParentContext | null, candidate: any): boolean {
+	const gate = getParentAccessGate(context)
+	const scopedClearUrl = candidate != null && candidate.clearAvatar != null && String(candidate.clearAvatar).length > 0
+		? String(candidate.clearAvatar)
+		: candidate != null && candidate.avatar != null && String(candidate.avatar).length > 0
+			? String(candidate.avatar)
+			: ''
+	return gate.allowed == true &&
+		candidate != null &&
+		candidate.photoVisibility != null &&
+		candidate.photoVisibility.parentViewAllowed == true &&
+		scopedClearUrl.length > 0
+}
+
+function gateFailure(gate: ParentAccessGate): any {
+	return failureResponse(gate.message, gate.code, gate)
+}
+
+function gated(context: ParentContext | null): any {
+	const authBlocked = authenticationGated()
+	if (authBlocked != null) return authBlocked
+	const gate = getParentAccessGate(context)
+	return gate.allowed ? null : gateFailure(gate)
+}
+
+function parentRoleGated(context: ParentContext | null): any {
+	const authBlocked = authenticationGated()
+	if (authBlocked != null) return authBlocked
+	if (context != null && context.mode == 'parent') return null
+	return failureResponse('当前账号不是父母身份', 'PARENT_ROLE_REQUIRED')
+}
+
+function validCandidateId(candidateId: number): boolean {
+	return Number.isFinite(candidateId) && Math.floor(candidateId) == candidateId && candidateId > 0
+}
+
+function candidateIdFailure(): any {
+	return failureResponse('候选资料编号无效', 'INVALID_CANDIDATE_ID')
+}
+
+function genderText(raw: any): string {
+	if (raw != null && raw.genderText != null && String(raw.genderText).length > 0) {
+		return String(raw.genderText)
+	}
+	if (raw != null && (raw.gender == 1 || raw.gender == '1')) return '男'
+	if (raw != null && (raw.gender == 2 || raw.gender == '2')) return '女'
+	return '未公开'
+}
+
+function birthYear(raw: any): number {
+	if (raw != null && raw.birthYear != null) {
+		const year = Number(raw.birthYear)
+		if (!isNaN(year) && year > 0) return year
+	}
+	if (raw != null && raw.age != null) {
+		const age = Number(raw.age)
+		if (!isNaN(age) && age > 0) return new Date().getFullYear() - age
+	}
+	return 0
+}
+
+function certificationText(raw: any): string {
+	const certifications = raw != null ? raw.certifications : null
+	if (certifications != null && certifications.realName == true && certifications.education == true) {
+		return '实名与学历已核验'
+	}
+	if (
+		(certifications != null && certifications.realName == true) ||
+		(raw != null && raw.realNameStatus == 'passed')
+	) {
+		return '实名已核验'
+	}
+	return '资料核验状态以平台为准'
+}
+
+function expectationList(raw: any): string[] {
+	const output: string[] = []
+	if (raw == null) return output
+	const source = Array.isArray(raw.expect)
+		? raw.expect as any[]
+		: Array.isArray(raw.expectations)
+			? raw.expectations as any[]
+			: [] as any[]
+	for (let i = 0; i < source.length; i++) {
+		const value = String(source[i]).trim()
+		if (value.length > 0) output.push(value)
+	}
+	return output
+}
+
+function candidateLiked(raw: any): boolean {
+	if (raw == null) return false
+	if (raw.liked == true || raw.isLiked == true) return true
+	return raw.likeStatus != null && String(raw.likeStatus) == 'liked'
+}
+
+/** Select only the fields allowed in the privacy-safe parent candidate view. */
+function toParentCandidate(raw: any): ParentCandidate | null {
+	if (raw == null) return null
+	const gender = genderText(raw)
+	const city = raw.city != null && String(raw.city).trim().length > 0
+		? String(raw.city).trim()
+		: '异地'
+	const displayName = gender == '男'
+		? city + '男士'
+		: gender == '女'
+			? city + '女士'
+			: city + '用户'
+	const introduction = raw.introduction != null && String(raw.introduction).length > 0
+		? String(raw.introduction)
+		: raw.intro != null
+			? String(raw.intro)
+			: '资料由本人提交，平台仅协助展示。'
+	const protectedAvatar = raw.protectedAvatar != null && String(raw.protectedAvatar).length > 0
+		? String(raw.protectedAvatar)
+		: '/static/logo.png'
+
+	return {
+		id: raw.id != null ? Number(raw.id) : 0,
+		displayName: displayName,
+		genderText: gender,
+		birthYear: birthYear(raw),
+		city: city,
+		height: raw.height != null ? String(raw.height) : '未公开',
+		education: raw.education != null ? String(raw.education) : '未公开',
+		job: raw.job != null ? String(raw.job) : '未公开',
+		income: raw.income != null
+			? String(raw.income)
+			: raw.salary != null
+				? String(raw.salary)
+				: '未公开',
+		certificationText: certificationText(raw),
+		avatar: protectedAvatar,
+		clearAvatar: '',
+		introduction: introduction,
+		datingNotes: '平台仅协助呈现资料，是否继续由双方本人决定。',
+		expectations: expectationList(raw),
+		liked: candidateLiked(raw),
+		canViewClearPhoto: false
+	}
+}
+
+function responseList(data: any): any[] {
+	if (Array.isArray(data)) return data as any[]
+	if (data != null && Array.isArray(data.items)) return data.items as any[]
+	if (data != null && Array.isArray(data.list)) return data.list as any[]
+	return [] as any[]
+}
+
+export async function getParentContext() {
+	const authBlocked = authenticationGated()
+	if (authBlocked != null) return authBlocked
+	if (PARENT_USE_MOCK) return okResponse(getMockParentContextData() as ParentContext)
+	if (!PARENT_RELATIONSHIP_BACKEND_READY) return relationshipBackendFailure()
+	return request({
+		url: '/parent/context',
+		method: 'GET'
+	})
+}
+
+export async function updateParentChildProfile(
+	context: ParentContext | null,
+	profile: ParentChildProfileInput
+) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+
+	const displayName = profile != null && profile.displayName != null
+		? String(profile.displayName).trim()
+		: ''
+	const city = profile != null && profile.city != null ? String(profile.city).trim() : ''
+	const year = profile != null && profile.birthYear != null ? Number(profile.birthYear) : 0
+	const job = profile != null && profile.job != null ? String(profile.job).trim() : ''
+	const introduction = profile != null && profile.introduction != null
+		? String(profile.introduction).trim()
+		: ''
+	const currentYear = new Date().getFullYear()
+
+	if (displayName.length == 0 || city.length == 0) {
+		return failureResponse('请完整填写称呼和所在城市', 'INVALID_CHILD_PROFILE')
+	}
+	if (isNaN(year) || year < 1940 || year > currentYear - 18) {
+		return failureResponse('请填写有效的出生年份', 'INVALID_BIRTH_YEAR')
+	}
+
+	const payload: ParentChildProfileInput = {
+		displayName: displayName,
+		birthYear: year,
+		city: city,
+		job: job,
+		introduction: introduction
+	}
+
+	if (PARENT_USE_MOCK) return okResponse(updateMockParentChildProfileData(payload))
+	if (!PARENT_RELATIONSHIP_BACKEND_READY) return relationshipBackendFailure()
+	if (context == null || context.child == null) {
+		return failureResponse('尚未关联已授权子女', 'CHILD_RELATIONSHIP_REQUIRED')
+	}
+
+	const result = await request({
+		url: '/parent/children/' + context.child.id,
+		method: 'PUT',
+		data: payload
+	})
+	if (result.success && result.data != null && result.data.child != null) {
+		result.data = result.data.child
+	}
+	return result
+}
+
+export async function getParentCandidates(context: ParentContext | null) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	const subjectBlocked = subjectGated(context)
+	if (subjectBlocked != null) return subjectBlocked
+	const result = await getRecommendUsers(parentInternalMockScope(context))
+	if (result == null || result.success != true) return result
+	const source = responseList(result.data)
+
+	const candidates: ParentCandidate[] = []
+	for (let i = 0; i < source.length; i++) {
+		const candidate = toParentCandidate(source[i])
+		if (candidate != null && candidate.id > 0) candidates.push(candidate)
+	}
+	return okResponse(candidates)
+}
+
+export async function getParentLikedCandidates(context: ParentContext | null) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	const subjectBlocked = subjectGated(context)
+	if (subjectBlocked != null) return subjectBlocked
+	const result = await getLikedUsers(parentInternalMockScope(context))
+	if (result == null || result.success != true) return result
+	const source = responseList(result.data)
+	const candidates: ParentCandidate[] = []
+	for (let i = 0; i < source.length; i++) {
+		const candidate = toParentCandidate({ ...source[i], liked: true })
+		if (candidate != null && candidate.id > 0) candidates.push(candidate)
+	}
+	return okResponse(candidates)
+}
+
+export async function getParentCandidateDetail(context: ParentContext | null, candidateId: number) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	if (!validCandidateId(candidateId)) return candidateIdFailure()
+	const subjectBlocked = subjectGated(context)
+	if (subjectBlocked != null) return subjectBlocked
+	const result = await getUserDetail(candidateId, parentInternalMockScope(context))
+	if (result == null || result.success != true || result.data == null) return result
+	const source = result.data
+	const candidate = toParentCandidate(source)
+	if (candidate == null) return failureResponse('候选资料格式无效', 'INVALID_CANDIDATE_RESPONSE')
+	if (canParentViewClearPhoto(context, source)) {
+		candidate.canViewClearPhoto = true
+		candidate.clearAvatar = clearPhotoUrl(source)
+	}
+	return okResponse(candidate)
+}
+
+export async function getParentApplications(context: ParentContext | null) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	if (context == null || context.child == null || !validCandidateId(context.child.id)) {
+		return failureResponse('尚未关联有效的授权子女', 'ACTING_CHILD_REQUIRED')
+	}
+	const subject = { mode: 'parent', childId: context.child.id } as MessageSubject
+	return getApplications('protected', subject)
+}
+
+export async function getParentMessages(context: ParentContext | null) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	if (context == null || context.child == null || !validCandidateId(context.child.id)) {
+		return failureResponse('尚未关联有效的授权子女', 'ACTING_CHILD_REQUIRED')
+	}
+	const subject = { mode: 'parent', childId: context.child.id } as MessageSubject
+	return getMessageList('protected', subject)
+}
+
+export async function getParentMatchmakers(context: ParentContext | null) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	return getServiceMatchmakers(parentInternalMockScope(context) != '')
+}
+
+export async function getParentCustomMatchmakers(context: ParentContext | null) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	return getCustomMatchmakers(parentInternalMockScope(context) != '')
+}
+
+export async function toggleParentLike(context: ParentContext | null, candidateId: number) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	if (!validCandidateId(candidateId)) return candidateIdFailure()
+	const subjectBlocked = subjectGated(context)
+	if (subjectBlocked != null) return subjectBlocked
+	return likeUser(candidateId, parentInternalMockScope(context))
+}
+
+export async function applyParentIntroduction(
+	context: ParentContext | null,
+	candidateId: number,
+	note: string
+) {
+	const blocked = gated(context)
+	if (blocked != null) return blocked
+	if (!validCandidateId(candidateId)) return candidateIdFailure()
+	if (note == null || String(note).trim().length == 0) {
+		return failureResponse('请填写申请说明', 'APPLICATION_NOTE_REQUIRED')
+	}
+	const subjectBlocked = subjectGated(context)
+	if (subjectBlocked != null) return subjectBlocked
+
+	const result = await applyToMeet(candidateId, String(note).trim(), parentInternalMockScope(context))
+	syncRemainingApplications(context, result)
+	return result
+}
+
+function syncRemainingApplications(context: ParentContext | null, result: any) {
+	if (
+		context == null ||
+		context.quota == null ||
+		result == null ||
+		result.success != true ||
+		result.data == null ||
+		result.data.success != true
+	) return
+
+	const total = Math.max(0, Number(context.quota.dailyTotal))
+	const current = Number(context.quota.remainingApplications)
+	const rawReported = result.data.remainingApplications != null
+		? result.data.remainingApplications
+		: result.data.remain
+	const reported = rawReported != null ? Number(rawReported) : NaN
+	if (!isNaN(reported)) {
+		const remaining = Math.min(total, Math.max(0, reported))
+		context.quota.remainingApplications = remaining
+		if (PARENT_USE_MOCK && context.dataMode == 'mock') {
+			syncMockParentRemainingApplicationsData(remaining)
+		}
+		return
+	}
+	if (result.data.quotaRefreshFailed == true || result.data.quotaSyncFailed == true) return
+	const remaining = Math.min(
+		total,
+		Math.max(0, isNaN(current) ? 0 : current - 1)
+	)
+	context.quota.remainingApplications = remaining
+	if (PARENT_USE_MOCK && context.dataMode == 'mock') {
+		syncMockParentRemainingApplicationsData(remaining)
+	}
+}
+
+export async function reportParentCandidate(
+	context: ParentContext | null,
+	candidateId: number,
+	reasonId: string,
+	detail: string = ''
+) {
+	const blocked = parentRoleGated(context)
+	if (blocked != null) return blocked
+	if (!validCandidateId(candidateId)) return candidateIdFailure()
+	if (reasonId == null || String(reasonId).trim().length == 0) {
+		return failureResponse('请选择举报原因', 'REPORT_REASON_REQUIRED')
+	}
+	if (PARENT_USE_MOCK && context != null && context.dataMode == 'mock') {
+		return okResponse({
+			success: true,
+			internalDemo: true,
+			message: '内部演示举报已记录，不会提交到真实用户。'
+		})
+	}
+	return reportContent(
+		'user',
+		candidateId,
+		String(reasonId).trim(),
+		detail != null ? String(detail).trim() : ''
+	)
+}
+
+export async function blockParentCandidate(context: ParentContext | null, candidateId: number) {
+	const blocked = parentRoleGated(context)
+	if (blocked != null) return blocked
+	if (!validCandidateId(candidateId)) return candidateIdFailure()
+	if (PARENT_USE_MOCK && context != null && context.dataMode == 'mock') {
+		return okResponse({
+			success: true,
+			internalDemo: true,
+			message: '内部演示屏蔽已记录，不会修改真实用户关系。'
+		})
+	}
+	return blockUser(candidateId)
+}

@@ -1,0 +1,109 @@
+<template>
+	<view class="conversation-list" :class="{ 'large-text': largeText }">
+		<view class="loading-state" v-if="loading">
+			<text class="load-text text-muted">正在加载消息...</text>
+		</view>
+		<XsaEmpty
+			v-else-if="error != '' && conversations.length == 0"
+			type="noNetwork"
+			:text="error"
+			description="请检查网络后重试"
+			:show-action="true"
+				action-text="重新加载"
+				size="large"
+				:large-text="largeText"
+			@action="emitRetry"
+		/>
+		<XsaEmpty
+			v-else-if="conversations.length == 0"
+			text="暂无消息"
+				description="申请通过后，对话会出现在这里"
+				size="large"
+				:large-text="largeText"
+		/>
+		<view v-else class="list">
+			<XsaMessageItem
+				v-for="message in conversations"
+				:key="message.id"
+					:message="message"
+					:large-text="largeText"
+					:protect-photo="protectPhotos"
+				@click="emitOpen"
+			/>
+		</view>
+
+		<view class="load-more" v-if="conversations.length > 0">
+			<text class="load-text text-muted" v-if="loadingMore">加载中...</text>
+				<text class="retry-text text-accent" v-else-if="error != ''" @click="emitErrorRetry">加载失败，点击重试</text>
+			<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
+			<text class="retry-text text-accent" v-else @click="emitLoadMore">加载更多</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaMessageItem from '@/components/XsaMessageItem.uvue'
+
+	interface Props {
+		conversations: any[]
+		loading: boolean
+		loadingMore: boolean
+		error: string
+		hasMore: boolean
+		largeText?: boolean
+		protectPhotos?: boolean
+		retryReset?: boolean
+	}
+
+	const props = withDefaults(defineProps<Props>(), {
+		largeText: false,
+		protectPhotos: false,
+		retryReset: false
+	})
+
+	const emit = defineEmits<{
+		open: [message: any]
+		retry: []
+		'retry-more': []
+		'load-more': []
+	}>()
+
+	const emitOpen = (message: any) => emit('open', message)
+	const emitRetry = () => emit('retry')
+	const emitRetryMore = () => emit('retry-more')
+	const emitLoadMore = () => emit('load-more')
+	const emitErrorRetry = () => {
+		if (props.retryReset) emitRetry()
+		else emitRetryMore()
+	}
+</script>
+
+<style scoped>
+	.list {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.loading-state {
+		min-height: 180px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.load-more {
+		padding: 20px 0;
+		text-align: center;
+	}
+
+	.load-text,
+	.retry-text {
+		font-size: 13px;
+	}
+
+	.large-text .load-text,
+	.large-text .retry-text {
+		font-size: 14px;
+	}
+</style>

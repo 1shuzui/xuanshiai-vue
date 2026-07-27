@@ -1,5 +1,5 @@
 <template>
-	<view class="xsa-toast" :class="{ show: visible }">
+		<view class="xsa-toast" :class="{ show: visible, 'large-text': largeText }">
 		<text class="toast-text">{{ message }}</text>
 	</view>
 </template>
@@ -14,10 +14,12 @@ interface Props {
 	message: string;
 	visible: boolean;
 	duration?: number;
+	largeText?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-	duration: 1900
+	duration: 1900,
+	largeText: false
 });
 
 const emit = defineEmits<{
@@ -38,7 +40,7 @@ watch(() => props.visible, (newVal) => {
 /* Toast 提示 - 遵循 DESIGN.md */
 .xsa-toast {
 	position: fixed;
-	z-index: 100;
+	z-index: 10100;
 	left: 50%;
 	top: 86px;
 	transform: translate(-50%, -12px);
@@ -47,12 +49,12 @@ watch(() => props.visible, (newVal) => {
 	border-radius: 8px;
 	background: var(--ink);
 	color: var(--paper);
-	font-size: 11px;
+	font-size: 12px;
 	white-space: nowrap;
 	opacity: 0;
 	pointer-events: none;
 	transition: 0.22s;
-	box-shadow: 0 8px 20px rgba(17, 23, 24, 0.20);
+	box-shadow: var(--shadow-lg);
 }
 
 .xsa-toast.show {
@@ -63,5 +65,12 @@ watch(() => props.visible, (newVal) => {
 .toast-text {
 	display: block;
 	color: var(--paper);
+}
+
+.xsa-toast.large-text {
+	max-width: calc(100vw - 32px);
+	font-size: 16px;
+	white-space: normal;
+	line-height: 1.5;
 }
 </style>

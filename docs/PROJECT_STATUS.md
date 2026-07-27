@@ -1,7 +1,20 @@
 ﻿# 当前工程状态与已知差异
 
-> 更新日期：2026-07-25
+> 更新日期：2026-07-26
 > 用途：防止文档把占位实现、Mock 或历史配置描述成已完成生产能力。
+
+## 父母端、消息与情感实验室首期（2026-07-26）
+
+- `pages.json` 按本次明确授权只新增 `pages/parent/parent`、`pages/parent/user-detail`、`pages/emotion-lab/emotion-lab` 三个路由；普通用户原生五 Tab、`manifest.json`、`uniCloud-aliyun/` 未因本切片调整。
+- 父母身份使用独立单页四面板：**首页 / 牵线 / 消息 / 我的**。首期仅一名已授权子女，申请认识同时校验父母实名、子女授权及授权有效期；父母端不展示社区、情感实验室、联系人交换、多人子女、会员支付或未落地购买入口。
+- 父母 Mock 上下文也要求 access token 与 `xsa_user_id` 同时存在；退出登录或 401 会一并清除 token、账号 ID、`xsa_onboarding_mode` 与 `xsa_onboarding_completed`，避免下一账号继承父母身份。父母页面失去会话后清空敏感状态并回到登录页，旧的异步请求不能在页面隐藏或身份失效后写回。
+- 父母候选列表使用受保护头像；详情只有在子女允许且访问门槛有效时才可获得清晰照片。照片隐私必须由 API 数据裁剪保证，CSS 模糊只负责呈现。
+- 普通用户消息页与父母端共用 `XsaMessageCenter`、`XsaApplicationTabs`、`XsaConversationList`。申请分收到/发出分页，待处理数只统计收到且 `pending`；会话入口和聊天详情均重新检查双方同意权限，失败时保持原状态并提供重试。父母模式所有消息调用显式绑定关联子女主体，Mock 状态按主体隔离；申请处理使用命令幂等键，protected 数据递归脱敏，云函数 reject 归一保留 `code/message/data`，401 或授权失效时清除登录凭据和页面旧数据。
+- 父母候选详情、喜欢和申请在真实关系接口完成前固定使用 `parent:<childId>` 内部 Mock scope，红娘列表也显式选择内部 Mock；全局 `USE_MOCK=false` 时不会误调用普通用户真实业务接口，不同子女主体的可变状态互不共享。
+- 父母申请成功后的剩余次数会写回当前上下文与模块 Mock 上下文，页面刷新不重置；父母 Mock 聊天中的举报/屏蔽走父母安全适配器并显示“内部演示”，不会误作用于普通用户真实关系。
+- 情感实验室首期仅 MBTI：介绍、答题、结果、手动设置在单页内切换；结果只含四维、类型、版本化说明和非心理诊断声明。Mock 草稿、结果及“我的资料”MBTI 来源按账号分区持久化，明确确认后才同步；资料编辑页通过统一摘要接口读取确认值并从 MBTI 行进入实验室。外部 demo 题库尚未确认商用授权，生产题库保持 `unverified` 且不打包外部题文，手动设置仍可用。
+- `MESSAGE_USE_MOCK=true`、`PARENT_USE_MOCK=true`、`EMOTION_LAB_USE_MOCK=true` 是显式模块边界。客户端 `MessageSubject.childId` 只表达业务主体，不构成授权；真实服务端必须从登录会话校验父母关系、子女授权和资源所有权。真实父母/子女关系主体、消息后端和获授权题库未联调前，不得把本切片描述为生产闭环。
+- 本切片源码尚未用 HBuilderX 重新编译 `mp-weixin`，也未完成微信开发者工具和 320/375/390/428px 端侧回归；旧 `unpackage` 产物不能作为验收证据。
 
 ## 媒体与互动扩展（2026-07-26）
 
@@ -12,7 +25,7 @@
 
 - 技术栈：UniApp / Vue 3，页面和组件以 `.uvue` 为主，逻辑以 `.uts` 为主。
 - 主目标端：微信小程序；H5 用于快速调试。
-- 已注册 22 个页面，其中 5 个 Tab：首页、社区、牵线、消息、我的。
+- 已注册 38 个页面，其中 5 个原生 Tab 保持：首页、社区、牵线、消息、我的；父母端四面板不是原生 Tab。
 - 社区闭环子路由（`pages.json` 已登记）：话题列表/详情、动态详情、活动列表/详情/我的活动、纸飞机、社区通知、发布。
 - 社区主 Tab：**关注 / 同城 / 发现**；二级筛选随主 Tab 切换：
   - 关注：`全部 / 关注 / 喜欢`（喜欢 = 用户级喜欢关系，不是帖子点赞）
@@ -20,7 +33,7 @@
   - 发现：`全部 / MBTI / 校友 / 同乡`（TOPIC 面板仅在「发现·全部」）
 - 已有 `Xsa*` 组件含 `XsaDynamicCard`、`XsaApplySheet`、`XsaReportSheet` 等；实名门槛见 `utils/realNameGate.uts`（`passed|missing|reviewing|rejected`，兼容 pending/failed）。
 - 认证门槛：常规社区互动、申请认识、参与话题 / 带话题发布均仅要求实名通过；双重认证仅作展示加分。
-- 已有 `api/` 与 `mock/` 分层；**社区 API 已支持 Mock / FastAPI 双路径**（`config.uts` + `request.uts` HTTP Bearer + `community.uts` map*）；**仓库默认 `USE_MOCK = true`**（关 Mock 联调时本地改为 `false` 并配置可达 `API_BASE_URL`）。
+- 已有 `api/` 与 `mock/` 分层；**社区 API 已支持 Mock / FastAPI 双路径**（`config.uts` + `request.uts` HTTP Bearer + `community.uts` map*）；当前工作树全局 `USE_MOCK = false` 用于 HTTP 联调，但消息、父母端、情感实验室仍由各自模块开关走 Mock。
 - 申请认识：`applyToMeet` Mock 幂等（重复申请 `success:false`）；**真路径** `POST /discovery/applications/{id}` + 刷新 quotas；409 → failRes。喜欢用户：`likeUser` 真路径 `PUT|DELETE /users/{id}/like`，likes 列表 `page_size≤50` 分页预检。
 - 社区 API 另导出：删帖/删评/取关/我的纸飞机；关注 Tab「全部」真路径 **`mode=following_and_liked`**（关注∪用户级喜欢，BE 分页；原客户端假并集已撤）。
 - **联调总账：** [`COMMUNITY_HTTP_CHANGELOG.md`](./COMMUNITY_HTTP_CHANGELOG.md)；**对抗审查：** [`COMMUNITY_ADVERSARIAL_REVIEW.md`](./COMMUNITY_ADVERSARIAL_REVIEW.md)。
@@ -47,16 +60,17 @@
 
 ## 4. 当前后端 / 联调状态
 
-- `api/request.uts`：`USE_MOCK=true` 走 mock；`false` 且 `API_CONFIG.useHttp=true` 走 FastAPI HTTP（Bearer）；`useHttp=false` 才回退 `uniCloud.callFunction`。
+- `api/request.uts`：当 `USE_MOCK=true` 时走 mock；当前 `false` 且 `API_CONFIG.useHttp=true`，走 FastAPI HTTP（Bearer）；`useHttp=false` 才回退 `uniCloud.callFunction`。
 - 仓库默认 `API_BASE_URL=http://127.0.0.1:8000`（真机/同网段联调请本地改为局域网 IP）；token 存 `xsa_access_token`。
 - 社区模块主链路与旁路（like/apply）**适配器 + 审查 P0 缺陷已修**。
 - **2026-07-25 本地 HTTP 冒烟（A1–A4/B1 核心）已过：** quotas 200、like 可取消、`page_size` 50/100 契约、互喜欢无 `chat_session`、apply remain−1 + 409、accept 才建会话；记录见 changelog「实际测试」。环境：MySQL + Docker Redis + `SMS_PROVIDER=mock`。
-- **关 Mock 端侧联调（进行中，非物理真机完成）：** 本地将 `USE_MOCK=false` 并配置可达 `API_BASE_URL`；BE 监听 `0.0.0.0:8000`；登录页**仅「调试登录」**写 mock 短信 token（`13800001001`/`123456`），正式一键登录不绑联调账号；HBuilderX 5.15 编译成功；微信开发者工具已打开产物；`auto-preview` 因 IDE `access_token expired` 失败。详见 changelog「关 Mock 端侧联调」。
+- **关 Mock 端侧联调（进行中，非物理真机完成）：** 本地将 `USE_MOCK=false` 并配置可达 `API_BASE_URL`；BE 监听 `0.0.0.0:8000`；登录页**仅「调试登录」**写 mock 短信 token（`13800001001`/`123456`），新账号随后进入身份选择，正式一键登录不绑联调账号；HBuilderX 5.15 编译成功；微信开发者工具已打开产物；`auto-preview` 因 IDE `access_token expired` 失败。详见 changelog「关 Mock 端侧联调」。
 - 实测顺带修：BE `discovery._viewer_context` 缺 `user_auth` JOIN（R-T1）；社区 feed `up.school` → `ua.school`（R-T2）。
 - 物理手机扫码预览、开发者工具内手点全路径、阶段 C 仍开放；**不能**只把 `USE_MOCK` 改为 `false` 就宣称生产完成。
 - BE：`set_like` 不再互喜欢建会话（对齐先申请再聊）；quotas VIP 用 `end_at`；额度 Redis 键 UTC 统一。
 - **同城城市（2026-07-25 续）：** 独立偏好 `community_city_*`（**不写** residence）；一周限改 429；`mode=city` **只按** 帖子 `p.location`；锚点请求→偏好→现居回落；未设城 FE CTA「选择城市」。Live：`tests/live/test_community_city_http.py`。详见 changelog「同城偏好独立 + location-only + 一周限改」。
-- Mock 应按模块逐步退役，不删除作为契约样例的有效数据；默认保持 `USE_MOCK = true`，联调结束后勿把个人局域网 IP 提交回仓库。
+- Mock 应按模块逐步退役，不删除作为契约样例的有效数据；当前全局开关为 HTTP 联调态，联调结束后应恢复项目约定默认值，且勿把个人局域网 IP 当生产配置提交。
+- 消息、父母端与情感实验室不能随全局开关自动宣称已联调；关闭各自模块开关前，必须完成真实接口、鉴权、失败状态、主体语义和隐私字段联调。
 - 仍后置：媒体上传、消息页 applications 真路径、聊天 sessions FE、纸飞机 reply 幂等、区级筛选/完整 regions 选择器、自动化 E2E 入库；见 changelog / 审查台账 deferred。
 
 ## 5. 配置与产品边界差异
@@ -89,7 +103,7 @@
 
 ## 8. 当前需求依据
 
-定版 PRD 已于 2026-07-22 在仓库登记，冲突时以决策层为准：
+现有文档声明定版 PRD 应位于上级路径，但当前工作区未找到该权威文件；本次用户明确实施计划优先，项目内镜像只用于避免冲突，未修改 XMind 或 PRD 镜像。预期需求顺序为：
 
 1. **决策层：** `../最终版的文字需求/定版决策收口记录.md`（本期/二期、认证、次数、付费与隐藏能力）。
 2. **文字层：** `../最终版的文字需求/`（大纲与 `pages/`；与决策冲突时以决策为准）。
@@ -102,8 +116,3 @@
 - 最终版页面/大纲正文可能仍含导图残留（VIP 锁定、爆灯存疑、会员开通等），**不得按残留旧句实现**。
 - 根目录过渡文档、`ref-*`、历史 XMind 源文件与已废弃路径（`xmind-*`、`design-demos`）不作为生产需求源。
 - 当前代码中的会员开通页、认证项列表等可能与决策层不一致；验收以决策层 + 实际代码对照为准，并逐步收敛。
-
-
-
-
-
