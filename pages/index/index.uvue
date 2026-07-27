@@ -27,17 +27,7 @@
 
 		<view v-else class="page">
 			<!-- 固定头部 -->
-			<view class="sticky-header">
-			<!-- 状态栏 -->
-			<view class="status-bar">
-				<text class="time-text">9:41</text>
-				<view class="status-icons">
-					<text class="signal-icon">●●●●</text>
-					<text class="wifi-icon">◉</text>
-					<text class="battery-icon">●●●</text>
-				</view>
-			</view>
-
+			<view class="sticky-header" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<!-- 导航栏 -->
 			<view class="nav-bar">
 				<view class="nav-tabs">
@@ -201,7 +191,7 @@
 
 <text class="section-title">Ta的动态</text>
 
-<text class="feed-more" @click="viewAllFeed">查看全部 ></text>
+<text class="feed-more" @click="viewAllFeed">查看全部 ›</text>
 
 </view>
 
@@ -343,7 +333,7 @@
 								<text class="sq-section-title">会员专区</text>
 								<text class="sq-section-count">128位</text>
 							</view>
-							<text class="sq-section-more">查看全部 <text class="ic ic-sys ic-jiantou-you sq-arrow"></text></text>
+							<text class="sq-section-more">查看全部 ›</text>
 						</view>
 						<view class="sq-vip-row">
 							<view class="sq-vip-mini" @tap="goUserDetail">
@@ -420,7 +410,7 @@
 								<text class="sq-section-title">高收入专区</text>
 								<text class="sq-section-count">56位</text>
 							</view>
-							<text class="sq-section-more">查看全部 <text class="ic ic-sys ic-jiantou-you sq-arrow"></text></text>
+							<text class="sq-section-more">查看全部 ›</text>
 						</view>
 						<view class="sq-vip-row">
 							<view class="sq-vip-mini" @tap="goUserDetail">
@@ -588,7 +578,7 @@
 							<text class="vip-spot-title">人气爆灯嘉宾</text>
 							<text class="vip-spot-count">32人</text>
 						</view>
-						<text class="vip-spot-more">查看全部 <text class="ic ic-sys ic-jiantou-you sq-arrow"></text></text>
+						<text class="vip-spot-more">查看全部 ›</text>
 					</view>
 					<text class="vip-spot-desc">爆灯后系统将短信通知对方，头像将显示在对方爆灯栏中</text>
 					<view class="vip-spot-row">
@@ -726,6 +716,9 @@
 </template>
 
 <script setup lang="uts">
+	const systemInfo = uni.getSystemInfoSync()
+	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+
 	import XsaSheet from '@/components/XsaSheet.uvue'
 	import XsaModal from '@/components/XsaModal.uvue'
 	import XsaToast from '@/components/XsaToast.uvue'
@@ -1009,13 +1002,6 @@
 	--radius-full: 9999rpx;
 }
 
-/* ==================== 状态栏 ==================== */
-.status-bar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; height: 124rpx; padding: 32rpx 40rpx 16rpx 40rpx; box-sizing: border-box; }
-.time-text { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
-.status-icons { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
-.signal-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
-.wifi-icon { font-size: 24rpx; color: var(--text-primary); }
-.battery-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
 
 /* ==================== 导航栏 ==================== */
 .nav-bar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0 40rpx 24rpx 40rpx; margin-right: -4rpx; }
@@ -1293,7 +1279,7 @@
 
 /* 固定头部 */
 .sticky-header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; max-width: 750rpx; margin: 0 auto; background-color: var(--bg-primary); }
-.content-scroll { flex: 1; padding: 290rpx 32rpx 0 32rpx; }
+.content-scroll { flex: 1; padding: 254rpx 32rpx 0 32rpx; }
 /* 屏蔽/举报行 */
 .block-row { display: flex; justify-content: center; align-items: center; width: 100%; padding: 16rpx 0 8rpx 0; }
 .block-text { font-size: 24rpx; color: var(--text-muted); }
