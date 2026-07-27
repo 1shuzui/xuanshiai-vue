@@ -284,7 +284,6 @@
 
 .code-input-wrapper {
 	display: flex;
-		flex-direction: row;
 	gap: 12px;
 }
 
@@ -309,7 +308,6 @@
 
 .gender-selector {
 	display: flex;
-		flex-direction: row;
 	gap: 16px;
 }
 

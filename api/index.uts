@@ -29,6 +29,7 @@ export {
   getMessageList,
   getChatMessages,
   sendMessage,
+  handleContactExchangeRequest,
   getApplications,
   handleApplication,
   getConversationPage,
@@ -93,6 +94,7 @@ export type {
 export {
   getDynamicList,
   getDynamicDetail,
+  getMyPosts,
   getTopics,
   getTopicList,
   getTopicDetail,

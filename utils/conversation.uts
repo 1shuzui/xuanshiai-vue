@@ -1,0 +1,129 @@
+export const MATCHED_CONVERSATIONS_KEY = 'xsa-matched-conversations'
+export const CONVERSATION_PREVIEWS_KEY = 'xsa-conversation-previews'
+export const MATCH_GREETING = '我们可以开始聊天啦~'
+
+export function getMatchedConversations(): any[] {
+	try {
+		const stored = uni.getStorageSync(MATCHED_CONVERSATIONS_KEY)
+		if (Array.isArray(stored)) return stored as any[]
+	} catch (error) {
+		console.error(error)
+	}
+	return [] as any[]
+}
+
+export function getMatchedConversation(userId: number): any {
+	const conversations = getMatchedConversations()
+	return conversations.find((conversation: any) => conversation.userId == userId)
+}
+
+export function getConversationPreviews(): any[] {
+	try {
+		const stored = uni.getStorageSync(CONVERSATION_PREVIEWS_KEY)
+		if (Array.isArray(stored)) return stored as any[]
+	} catch (error) {
+		console.error(error)
+	}
+	return [] as any[]
+}
+
+export function updateConversationPreview(
+	userId: number,
+	lastMessage: string,
+	time: number,
+	messageType: string = 'text'
+): void {
+	const previews = getConversationPreviews()
+	let preview = previews.find((item: any) => item.userId == userId)
+	if (preview == null) {
+		preview = { userId: userId }
+		previews.push(preview)
+	}
+	preview.lastMessage = lastMessage
+	preview.time = time
+	preview.messageType = messageType
+	try {
+		uni.setStorageSync(CONVERSATION_PREVIEWS_KEY, previews)
+	} catch (error) {
+		console.error(error)
+	}
+
+	const conversations = getMatchedConversations()
+	const conversation = conversations.find((item: any) => item.userId == userId)
+	if (conversation == null) return
+	conversation.lastMessage = lastMessage
+	conversation.time = time
+	conversation.messageType = messageType
+	try {
+		uni.setStorageSync(MATCHED_CONVERSATIONS_KEY, conversations)
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+export function createMatchedConversation(
+	userId: number,
+	name: string,
+	avatar: string,
+	source: string = 'application',
+	greetingIsMine: boolean = false,
+	greetingAvatar: string = ''
+): any {
+	const conversations = getMatchedConversations()
+	const existing = conversations.find((conversation: any) => conversation.userId == userId)
+	if (existing != null) {
+		if (source === 'application' && existing.source === 'application' && existing.greetingMessage != null) {
+			const resolvedGreetingAvatar = greetingAvatar.length > 0
+				? greetingAvatar
+				: (greetingIsMine ? '/static/portraits/profile-man-light.jpg' : avatar)
+			existing.greetingMessage.type = 'text'
+			existing.greetingMessage.content = MATCH_GREETING
+			existing.greetingMessage.isMine = greetingIsMine
+			existing.greetingMessage.avatar = resolvedGreetingAvatar
+			existing.lastMessage = MATCH_GREETING
+			existing.messageType = 'text'
+			try {
+				uni.setStorageSync(MATCHED_CONVERSATIONS_KEY, conversations)
+			} catch (error) {
+				console.error(error)
+			}
+		}
+		return { created: false, conversation: existing }
+	}
+
+	const now = Date.now()
+	const greetingMessage = {
+		id: now + 1,
+		type: 'text',
+		content: MATCH_GREETING,
+		time: now,
+		showTime: false,
+		isMine: greetingIsMine,
+		avatar: greetingAvatar.length > 0
+			? greetingAvatar
+			: (greetingIsMine ? '/static/portraits/profile-man-light.jpg' : avatar)
+	}
+	const conversation = {
+		id: now,
+		userId: userId,
+		avatar: avatar,
+		name: name,
+		lastMessage: MATCH_GREETING,
+		time: now,
+		unreadCount: 0,
+		online: false,
+		messageType: 'text',
+		type: 'chat',
+		matched: true,
+		canChat: true,
+		source: source,
+		greetingMessage: greetingMessage
+	}
+	conversations.unshift(conversation)
+	try {
+		uni.setStorageSync(MATCHED_CONVERSATIONS_KEY, conversations)
+	} catch (error) {
+		console.error(error)
+	}
+	return { created: true, conversation: conversation }
+}

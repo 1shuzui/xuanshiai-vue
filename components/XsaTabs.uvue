@@ -56,7 +56,6 @@ const handleTabClick = (index: number) => {
 /* 默认变体（底部线条） */
 .tabs-header.default {
 	display: flex;
-		flex-direction: row;
 	align-items: flex-end;
 	gap: 22px;
 	padding: 0 18px;
@@ -70,7 +69,6 @@ const handleTabClick = (index: number) => {
 .tabs-header.default .tab-item {
 	height: 48px;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	background: transparent;
@@ -100,7 +98,6 @@ const handleTabClick = (index: number) => {
 /* 胶囊变体 */
 .tabs-header.pill {
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
@@ -114,7 +111,6 @@ const handleTabClick = (index: number) => {
 	flex: 1;
 	height: 40px;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	border-radius: 999px;

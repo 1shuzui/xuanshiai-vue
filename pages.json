@@ -16,19 +16,19 @@
 		{
 			"path": "pages/matchmaker/matchmaker",
 			"style": {
-				"navigationBarTitleText": "牵线"
+				"navigationBarTitleText": "红娘服务"
+			}
+		},
+		{
+			"path": "pages/matchmaker/apply",
+			"style": {
+				"navigationBarTitleText": "我要做红娘"
 			}
 		},
 		{
 			"path": "pages/matchmaker/detail",
 			"style": {
 				"navigationBarTitleText": "红娘详情"
-			}
-		},
-		{
-			"path": "pages/matchmaker/apply",
-			"style": {
-				"navigationBarTitleText": "申请牵线"
 			}
 		},
 		{
@@ -92,16 +92,16 @@
 			}
 		},
 		{
-			"path": "pages/onboarding/profile",
+			"path": "pages/auth/register",
 			"style": {
-				"navigationBarTitleText": "完善资料",
+				"navigationBarTitleText": "注册",
 				"navigationStyle": "custom"
 			}
 		},
 		{
-			"path": "pages/auth/register",
+			"path": "pages/onboarding/profile",
 			"style": {
-				"navigationBarTitleText": "注册",
+				"navigationBarTitleText": "完善资料",
 				"navigationStyle": "custom"
 			}
 		},
@@ -159,6 +159,13 @@
 			"path": "pages/profile/vip",
 			"style": {
 				"navigationBarTitleText": "会员中心"
+			}
+		},
+		{
+			"path": "pages/profile/my-moments",
+			"style": {
+				"navigationBarTitleText": "我的动态",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -242,6 +249,13 @@
 			"style": {
 				"navigationBarTitleText": "社区通知"
 			}
+		},
+		{
+			"path": "pages/mytags/edit",
+			"style": {
+				"navigationBarTitleText": "编辑标签",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {
@@ -251,6 +265,7 @@
 		"backgroundColor": "#F9F9F9"
 	},
 	"tabBar": {
+		"custom": true,
 		"color": "#666666",
 		"selectedColor": "#5A9D8E",
 		"backgroundColor": "#FCFCFC",
@@ -266,7 +281,7 @@
 			},
 			{
 				"pagePath": "pages/matchmaker/matchmaker",
-				"text": "牵线"
+				"text": "红娘服务"
 			},
 			{
 				"pagePath": "pages/message/message",

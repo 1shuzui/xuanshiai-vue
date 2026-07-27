@@ -1,0 +1,1281 @@
+{
+  "version": "2.14",
+  "children": [
+    {
+      "type": "frame",
+      "id": "ruDVy",
+      "x": 0,
+      "y": 0,
+      "name": "VIP会员开通页面",
+      "clip": true,
+      "width": 375,
+      "fill": "$cream-bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "rKws5",
+          "name": "顶部导航栏",
+          "width": "fill_container",
+          "height": 44,
+          "fill": "$cream-bg",
+          "padding": [
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "US35K",
+              "name": "返回箭头",
+              "fill": "#1A1A1A",
+              "content": "←",
+              "fontFamily": "Inter",
+              "fontSize": 20,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "lIdqH",
+              "name": "页面标题",
+              "fill": "#1A1A1A",
+              "content": "开通会员",
+              "fontFamily": "Inter",
+              "fontSize": 17,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "mALmV",
+              "name": "右侧图标区",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZIKIz",
+                  "name": "三点菜单",
+                  "fill": "#1A1A1A",
+                  "content": "⋯",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "ellipse",
+                  "id": "C9GdE",
+                  "name": "收藏按钮",
+                  "fill": "#1A1A1A",
+                  "width": 26,
+                  "height": 26
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "xIZ2n",
+          "name": "VIP状态横幅",
+          "width": "fill_container",
+          "height": 100,
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 135,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#E8EDE4",
+                "position": 0
+              },
+              {
+                "color": "#DCE5D6",
+                "position": 0.5
+              },
+              {
+                "color": "#F0EBE0",
+                "position": 1
+              }
+            ]
+          },
+          "padding": 20,
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "oCSkU",
+              "name": "横幅文字区",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZO3b8",
+                  "name": "VIP未开通标题",
+                  "fill": "#1A1A1A",
+                  "content": "VIP会员未开通",
+                  "fontFamily": "Playfair Display",
+                  "fontSize": 22,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "cr0n8",
+                  "name": "VIP未开通副标题",
+                  "fill": "#4B5563",
+                  "content": "开通VIP会员可享受尊贵服务哦",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "XfkVw",
+              "name": "皇冠图标区",
+              "width": 56,
+              "height": 56,
+              "fill": "$warm-cream",
+              "cornerRadius": 9999,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "w5ksc",
+                  "name": "皇冠图标",
+                  "width": 30,
+                  "height": 30,
+                  "icon": "crown",
+                  "library": "lucide",
+                  "weight": 500,
+                  "fill": "$gold-accent"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "AQsVW",
+          "name": "套餐区域",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            20,
+            16
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "NCqMZ",
+              "name": "选择VIP会员类型",
+              "fill": "#1A1A1A",
+              "content": "选择VIP会员类型",
+              "fontFamily": "Inter",
+              "fontSize": 17,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "xxj8r",
+              "name": "套餐卡片行",
+              "width": "fill_container",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "UCKU7",
+                  "name": "新人专享",
+                  "width": "fill_container",
+                  "fill": "$bg-card",
+                  "cornerRadius": 12,
+                  "stroke": "$border-green",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    10,
+                    10,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "bW9n3",
+                      "name": "牵线标签",
+                      "fill": "$gold-accent",
+                      "cornerRadius": 9999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "uMQ3S",
+                          "name": "标签文字",
+                          "fill": "#FFFFFF",
+                          "content": "含3次申请",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "SDICo",
+                      "name": "套餐名称",
+                      "fill": "#1A1A1A",
+                      "content": "新人专享",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "R6W5sn",
+                      "name": "价格",
+                      "fill": "#1A1A1A",
+                      "content": "¥299",
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NPQzM",
+                      "name": "有效期条",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$warm-cream",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "KtS4R",
+                          "name": "有效期文字",
+                          "fill": "#000000",
+                          "content": "90天",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kC0cL",
+                  "name": "心动专享",
+                  "width": "fill_container",
+                  "fill": "$bg-card",
+                  "cornerRadius": 12,
+                  "stroke": "$border-green",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    10,
+                    10,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "aU05G",
+                      "name": "牵线标签",
+                      "fill": "$gold-accent",
+                      "cornerRadius": 9999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JK9tC",
+                          "name": "标签文字",
+                          "fill": "#FFFFFF",
+                          "content": "含5次申请",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "X6JbC3",
+                      "name": "套餐名称",
+                      "fill": "#1A1A1A",
+                      "content": "心动专享",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "CyKLd",
+                      "name": "价格",
+                      "fill": "#1A1A1A",
+                      "content": "¥520",
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BbeiN",
+                      "name": "有效期条",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$warm-cream",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Q3I2VT",
+                          "name": "有效期文字",
+                          "fill": "#000000",
+                          "content": "150天",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "f7sNtg",
+                  "name": "臻爱专享",
+                  "width": "fill_container",
+                  "fill": "$bg-card",
+                  "cornerRadius": 12,
+                  "stroke": "$border-green",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    10,
+                    10,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "KZiH0",
+                      "name": "牵线标签",
+                      "fill": "$gold-accent",
+                      "cornerRadius": 9999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "X6gqD",
+                          "name": "标签文字",
+                          "fill": "#FFFFFF",
+                          "content": "含20次申请",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "V9L95",
+                      "name": "套餐名称",
+                      "fill": "#1A1A1A",
+                      "content": "臻爱专享",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "WTueb",
+                      "name": "价格",
+                      "fill": "#1A1A1A",
+                      "content": "¥999",
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pxE7v",
+                      "name": "有效期条",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$warm-cream",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "kGYQ0",
+                          "name": "有效期文字",
+                          "fill": "#000000",
+                          "content": "365天",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Q0Ktp",
+          "name": "会员权益区域",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            8,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ZJkKn",
+              "name": "权益标题行",
+              "width": "fill_container",
+              "gap": 12,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "J5zRrS",
+                  "name": "左装饰点",
+                  "fill": "$gold-accent",
+                  "width": 6,
+                  "height": 6
+                },
+                {
+                  "type": "text",
+                  "id": "HnxgT",
+                  "name": "会员权益标题",
+                  "fill": "#1A1A1A",
+                  "content": "会员权益",
+                  "fontFamily": "Inter",
+                  "fontSize": 17,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "ellipse",
+                  "id": "j7aKm",
+                  "name": "右装饰点",
+                  "fill": "$gold-accent",
+                  "width": 6,
+                  "height": 6
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "q6DGBF",
+              "name": "功能图标行",
+              "width": "fill_container",
+              "justifyContent": "space_around",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "I0vCeU",
+                  "name": "牵线服务",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Zek6c",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZuRTm",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "🤝",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "lKVED",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "申请次数",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lLPGH",
+                  "name": "尊贵标识",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "So15d",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "whFRx",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "👑",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "LYkDc",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "尊贵标识",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "M2rh1",
+                  "name": "靠前展示",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "u5ho1b",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "M3T6tB",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "📌",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "vH218",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "靠前展示",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "FeR8n",
+                  "name": "解锁功能",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rReIn",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "exGlb",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "🔓",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "V3pp7h",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "解锁功能",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "i5ers",
+                  "name": "专属服务",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "tYP2w",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "k42C2s",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "⭐",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "lISv7",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "专属服务",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "dOuPZ",
+          "name": "权益文字说明框",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "cornerRadius": 16,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            20,
+            16
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "K4TMST",
+              "name": "权益说明标题",
+              "fill": "#1A1A1A",
+              "content": "会员权益：",
+              "fontFamily": "Inter",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "sPrIj",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "1. 头像附带VIP尊贵标识；",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "jL4yp",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "2. 平台首页会员专区优先展示、搜索/匹配结果加权靠前曝光；",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "a5yBu",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "3. 解锁会员专区语音介绍、图片视频等深度信息浏览限制；",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "LRi5I",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "4. 套餐附赠对应牵线次数；",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "KlrQO",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "5. 申请认识次数升级：普通用户每日仅3次免费「申请认识」，会员可提升至7次；每日次数定时刷新，剩余次数不累计叠加，操作时页面会展示当日剩余次数。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "AQVSr",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "6. 无痕浏览：仅会员可在隐私设置开启无痕浏览，消除访客记录；普通用户点击开关会弹窗引导开通会员。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "ticXh",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "7. 高级筛选匹配：首页筛选区分基础筛选（城市、年龄、学历）与VIP专属高级筛选（收入、MBTI、兴趣、择偶要求），开放MBTI匹配功能。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "pyNz1",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "8. 访客完整查看：可查看「谁看过我」完整详细访客列表。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "K9pP2",
+              "name": "权益条目",
+              "fill": "#4b5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "9. 会员专享每日20次免费查看他人资料，免费额度耗尽仅可通过积分兑换浏览次数，浏览上限大幅提升，使用限制更少。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "s1yHL",
+          "name": "底部按钮区",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "layout": "vertical",
+          "padding": [
+            16,
+            16,
+            24,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "jWpIQ",
+              "name": "立即开通按钮",
+              "width": "fill_container",
+              "height": 50,
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 90,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#E6EBD8",
+                    "position": 0
+                  },
+                  {
+                    "color": "$warm-amber",
+                    "position": 1
+                  }
+                ]
+              },
+              "cornerRadius": 20,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "P6ECn",
+                  "name": "按钮文字",
+                  "fill": "#1A1A1A",
+                  "content": "立即开通",
+                  "fontFamily": "Inter",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "e9iAoA",
+      "x": 432,
+      "y": 0,
+      "name": "支付弹窗-遮罩",
+      "width": 375,
+      "height": 812,
+      "fill": "#0000004D",
+      "justifyContent": "end",
+      "alignItems": "end",
+      "children": [
+        {
+          "type": "frame",
+          "id": "sjkjW",
+          "name": "支付弹窗",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "cornerRadius": [
+            20,
+            20,
+            0,
+            0
+          ],
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            24,
+            20,
+            32,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "pFUMa",
+              "name": "拖拽条",
+              "width": 40,
+              "height": 4,
+              "fill": "#E0DDD6",
+              "cornerRadius": 2
+            },
+            {
+              "type": "text",
+              "id": "gxsdq",
+              "name": "弹窗标题",
+              "fill": "#000000",
+              "content": "选择支付方式",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "Q5IG3",
+              "name": "微信支付选项",
+              "width": "fill_container",
+              "height": 64,
+              "fill": "#FFFFFF",
+              "stroke": "$border-green",
+              "strokeWidth": 1.5,
+              "padding": [
+                0,
+                16
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ehCfB",
+                  "name": "支付方式左区",
+                  "gap": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rQuTn",
+                      "name": "微信图标圆底",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$sage-mist",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "L1sbU4",
+                          "name": "微信图标",
+                          "fill": "$accent-green-deep",
+                          "content": "💬",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QgVQR",
+                      "name": "支付方式文字",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Wuovq",
+                          "name": "支付方式名称",
+                          "fill": "#000000",
+                          "content": "微信支付",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ub5n0",
+                          "name": "支付方式描述",
+                          "fill": "#000000",
+                          "content": "推荐使用，安全快捷",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OEfJ9",
+                  "name": "选中勾",
+                  "width": 22,
+                  "height": 22,
+                  "fill": "$accent-green-deep",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "l44PV",
+                      "name": "勾号",
+                      "fill": "#FFFFFF",
+                      "content": "✓",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "cPJvU",
+              "name": "金额行",
+              "width": "fill_container",
+              "padding": [
+                8,
+                0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NL8tU",
+                  "name": "合计文字",
+                  "fill": "#000000",
+                  "content": "合计",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "lzRGb",
+                  "name": "合计金额",
+                  "fill": "#000000",
+                  "content": "¥520",
+                  "fontFamily": "Inter",
+                  "fontSize": 28,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Lg2B6",
+              "name": "确认支付按钮",
+              "width": "fill_container",
+              "height": 50,
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 90,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "$gradient-btn-start",
+                    "position": 0
+                  },
+                  {
+                    "color": "$gradient-btn-end",
+                    "position": 1
+                  }
+                ]
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "fFX4a",
+                  "name": "确认支付文字",
+                  "fill": "#000000",
+                  "content": "确认支付",
+                  "fontFamily": "Inter",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "bg-green-light": {
+      "type": "color",
+      "value": "#EDF4EC"
+    },
+    "bg-green-soft": {
+      "type": "color",
+      "value": "#F4F8F3"
+    },
+    "bg-card": {
+      "type": "color",
+      "value": "#F8F9F6"
+    },
+    "accent-green": {
+      "type": "color",
+      "value": "#A8C0A5"
+    },
+    "accent-green-dark": {
+      "type": "color",
+      "value": "#849D81"
+    },
+    "accent-green-deep": {
+      "type": "color",
+      "value": "#627A5F"
+    },
+    "gradient-green-start": {
+      "type": "color",
+      "value": "#DCE9D9"
+    },
+    "gradient-green-end": {
+      "type": "color",
+      "value": "#C8DCC4"
+    },
+    "gradient-btn-start": {
+      "type": "color",
+      "value": "#D4E4D0"
+    },
+    "gradient-btn-end": {
+      "type": "color",
+      "value": "#BCD4B6"
+    },
+    "border-green": {
+      "type": "color",
+      "value": "#DCE8D8"
+    },
+    "icon-green": {
+      "type": "color",
+      "value": "#8BA889"
+    },
+    "gold-accent": {
+      "type": "color",
+      "value": "#C9A96E"
+    },
+    "gold-light": {
+      "type": "color",
+      "value": "#F7F1E5"
+    },
+    "gold-text": {
+      "type": "color",
+      "value": "#B8944A"
+    },
+    "warm-cream": {
+      "type": "color",
+      "value": "#FBF6EF"
+    },
+    "warm-peach": {
+      "type": "color",
+      "value": "#F2E0D5"
+    },
+    "warm-coral": {
+      "type": "color",
+      "value": "#E8B4A2"
+    },
+    "warm-amber": {
+      "type": "color",
+      "value": "#E8CFA5"
+    },
+    "warm-rose": {
+      "type": "color",
+      "value": "#E8C8BF"
+    },
+    "sage-mist": {
+      "type": "color",
+      "value": "#E2EBE0"
+    },
+    "cream-bg": {
+      "type": "color",
+      "value": "#FAF7F0"
+    }
+  },
+  "fileToken": "7a47bd8d-89d5-4868-8ba2-6df08b20742e"
+}

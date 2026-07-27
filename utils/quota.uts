@@ -1,0 +1,168 @@
+/**
+ * 每日免费查看次数管理
+ *
+ * 普通用户每日 8 次免费查看，VIP 每日 20 次。
+ * 日期切换自动重置；持久化到本地 Storage。
+ * 参考纸飞机每日重置模式（api/community.uts）。
+ */
+
+import { mockMeProfile } from '@/mock/user.uts'
+
+// ========== 常量 ==========
+export const DAILY_FREE_VIEWS_REGULAR = 8
+export const DAILY_FREE_VIEWS_VIP = 20
+const STORAGE_KEY = 'xsa_daily_view_state_v1'
+
+// ========== 类型 ==========
+type DailyViewState = {
+	dateKey: string
+	used: number
+}
+
+// ========== 工具函数 ==========
+
+/** 获取今日日期标识（格式：YYYY-MM-DD） */
+function currentDateKey(): string {
+	const now = new Date()
+	const y = now.getFullYear()
+	const m = String(now.getMonth() + 1).padStart(2, '0')
+	const d = String(now.getDate()).padStart(2, '0')
+	return y + '-' + m + '-' + d
+}
+
+/** 获取当日查看次数上限 */
+export function getDailyViewLimit(isVip: boolean): number {
+	return isVip ? DAILY_FREE_VIEWS_VIP : DAILY_FREE_VIEWS_REGULAR
+}
+
+/** 读取持久化的每日查看状态 */
+function loadViewState(): DailyViewState {
+	try {
+		const raw = uni.getStorageSync(STORAGE_KEY)
+		if (raw != null && typeof raw === 'object') {
+			return {
+				dateKey: raw.dateKey != null ? String(raw.dateKey) : '',
+				used: typeof raw.used === 'number' ? (raw.used as number) : 0
+			}
+		}
+	} catch (e) {
+		// Storage 不可用，返回默认
+	}
+	return { dateKey: '', used: 0 }
+}
+
+/** 保存每日查看状态 */
+function saveViewState(state: DailyViewState): void {
+	try {
+		uni.setStorageSync(STORAGE_KEY, {
+			dateKey: state.dateKey,
+			used: state.used
+		})
+	} catch (e) {
+		// Storage 不可用，忽略
+	}
+}
+
+/** 检查并重置每日配额（如日期已变更） */
+export function resetDailyIfNeeded(): void {
+	const today = currentDateKey()
+	const state = loadViewState()
+	if (state.dateKey !== today) {
+		saveViewState({ dateKey: today, used: 0 })
+	}
+}
+
+/**
+ * 获取当前用户的 VIP 状态
+ * 优先从 Storage 读取，其次从 mockMeProfile
+ */
+export function getCurrentUserVipStatus(): boolean {
+	try {
+		const stored = uni.getStorageSync('xsa_user_vip_status')
+		if (stored != null && typeof stored === 'object') {
+			return stored.isVip === true
+		}
+	} catch (e) {
+		// fall through
+	}
+	// Mock 模式下从 mockMeProfile 读取
+	return mockMeProfile.isVip === true
+}
+
+/**
+ * 设置当前用户的 VIP 状态（调试/测试用）
+ */
+export function setCurrentUserVipStatus(isVip: boolean): void {
+	try {
+		uni.setStorageSync('xsa_user_vip_status', { isVip: isVip })
+		// 同步更新 mockMeProfile
+		mockMeProfile.isVip = isVip
+		mockMeProfile.membershipLevel = isVip ? 'vip' : 'free'
+	} catch (e) {
+		// ignore
+	}
+}
+
+/**
+ * 获取剩余可查看次数
+ */
+export function getDailyViewRemaining(): number {
+	const isVip = getCurrentUserVipStatus()
+	const limit = getDailyViewLimit(isVip)
+	const state = loadViewState()
+	// 日期变更时自动刷新
+	const today = currentDateKey()
+	if (state.dateKey !== today) {
+		resetDailyIfNeeded()
+		return limit
+	}
+	return Math.max(0, limit - state.used)
+}
+
+/**
+ * 获取剩余次数详情（用于 UI 提示）
+ */
+export function getDailyViewQuota(): { remain: number, total: number, used: number, isVip: boolean } {
+	const isVip = getCurrentUserVipStatus()
+	const total = getDailyViewLimit(isVip)
+	resetDailyIfNeeded()
+	const state = loadViewState()
+	const today = currentDateKey()
+	if (state.dateKey !== today) {
+		return { remain: total, total: total, used: 0, isVip: isVip }
+	}
+	const used = state.used
+	return {
+		remain: Math.max(0, total - used),
+		total: total,
+		used: used,
+		isVip: isVip
+	}
+}
+
+/**
+ * 记录一次资料查看，返回是否成功（剩余次数 > 0）
+ * 如果返回 false，表示今日配额已用完
+ */
+export function recordProfileView(): boolean {
+	const isVip = getCurrentUserVipStatus()
+	resetDailyIfNeeded()
+	const state = loadViewState()
+	const today = currentDateKey()
+	const limit = getDailyViewLimit(isVip)
+
+	let used: number
+	if (state.dateKey === today) {
+		used = state.used
+	} else {
+		used = 0
+	}
+
+	if (used >= limit) {
+		return false // 配额用尽
+	}
+
+	used = used + 1
+	saveViewState({ dateKey: today, used: used })
+	return true
+}

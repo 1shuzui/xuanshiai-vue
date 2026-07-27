@@ -1,420 +1,149 @@
 <template>
 	<view class="vip-page">
-		<!-- 顶部背景 -->
-		<view class="header-bg">
-			<view class="vip-badge">
-				<text class="badge-icon">👑</text>
-				<text class="badge-text">{{ isVip ? 'VIP会员' : '开通VIP' }}</text>
+		<scroll-view class="vip-scroll vip-scroll-full" scroll-y>
+			<view class="status-banner">
+				<view class="status-copy"><text class="status-title">VIP会员未开通</text><text class="status-desc">开通VIP会员可享受尊贵服务哦</text></view>
+				<view class="crown-circle"><text class="ic ic-vip ic-huiyuan crown-icon"></text></view>
 			</view>
-			<text class="header-title" v-if="!isVip">解锁更多高级功能</text>
-			<text class="header-desc text-muted" v-if="!isVip">提升匹配成功率，找到更合适的TA</text>
-			<view class="expire-info" v-else>
-				<text class="expire-text">到期时间：{{ expireDate }}</text>
-			</view>
-		</view>
 
-		<!-- 会员特权 -->
-		<view class="privileges-section">
-			<text class="section-title">会员特权</text>
-			<view class="privilege-grid">
-				<view class="privilege-item" v-for="(item, index) in privileges" :key="index">
-					<text class="privilege-icon">{{ item.icon }}</text>
-					<text class="privilege-title">{{ item.title }}</text>
-					<text class="privilege-desc text-muted">{{ item.desc }}</text>
-				</view>
-			</view>
-		</view>
-
-		<!-- 套餐选择 -->
-		<view class="plans-section" v-if="!isVip">
-			<text class="section-title">选择套餐</text>
-			<view class="plan-list">
-				<view
-					class="plan-item"
-					:class="selectedPlan === index ? 'selected' : ''"
-					v-for="(plan, index) in plans"
-					:key="index"
-					@click="selectPlan(index)"
-				>
-					<view class="plan-badge" v-if="plan.badge">{{ plan.badge }}</view>
-					<view class="plan-info">
-						<text class="plan-duration">{{ plan.duration }}</text>
+			<view class="plans-section">
+				<text class="section-title">选择VIP会员类型</text>
+				<view class="plans-row">
+						<view v-for="(plan, index) in plans" :key="index" class="plan-card" :class="{ selected: selectedPlan === index }" @tap="selectPlan(index)">
+						<text class="plan-tag">{{ plan.tag }}</text>
+						<text class="plan-name">{{ plan.name }}</text>
 						<text class="plan-price">¥{{ plan.price }}</text>
-						<text class="plan-unit">/{{ plan.unit }}</text>
+						<text class="plan-days">{{ plan.days }}</text>
 					</view>
-					<view class="plan-original" v-if="plan.originalPrice">
-						<text class="original-price">原价¥{{ plan.originalPrice }}</text>
-						<text class="discount">省¥{{ plan.originalPrice - plan.price }}</text>
-					</view>
-					<text class="check-icon" v-if="selectedPlan === index">✓</text>
 				</view>
 			</view>
-		</view>
 
-		<!-- 续费按钮 -->
-		<view class="footer" v-if="!isVip">
-			<view class="price-info">
-				<text class="total-label">合计：</text>
-				<text class="total-price">¥{{ selectedPlanPrice }}</text>
+			<view class="benefits-section">
+				<view class="benefit-heading"><text class="heading-dot"></text><text>会员权益</text><text class="heading-dot"></text></view>
+				<view class="benefit-icons">
+						<view class="benefit-icon-item" v-for="(item, index) in benefits" :key="index"><view class="benefit-icon-circle"><text :class="item.iconClass + ' benefit-icon-text'"></text></view><text>{{ item.title }}</text></view>
+				</view>
 			</view>
-			<button class="buy-btn" @click="handleBuy">立即开通</button>
-		</view>
 
-		<!-- 已是会员的续费按钮 -->
-		<view class="footer" v-else>
-			<button class="renew-btn" @click="handleRenew">续费会员</button>
-		</view>
+			<view class="details-section">
+				<text class="details-title">会员权益：</text>
+				<text class="detail-line">1. 头像附带VIP尊贵标识；</text>
+				<text class="detail-line">2. 平台首页会员专区优先展示、搜索/匹配结果加权靠前曝光；</text>
+				<text class="detail-line">3. 解锁会员专区语音介绍、图片视频等深度信息浏览限制；</text>
+				<text class="detail-line">4. 套餐附赠对应牵线次数；</text>
+				<text class="detail-line">5. 申请认识次数升级：普通用户每日仅3次免费「申请认识」，会员可提升至7次；每日次数定时刷新，剩余次数不累计叠加，操作时页面会展示当日剩余次数。</text>
+				<text class="detail-line">6. 无痕浏览：仅会员可在隐私设置开启无痕浏览，消除访客记录；普通用户点击开关会弹窗引导开通会员。</text>
+				<text class="detail-line">7. 高级筛选匹配：首页筛选区分基础筛选与VIP专属高级筛选，开放MBTI匹配功能。</text>
+				<text class="detail-line">8. 访客完整查看：可查看「谁看过我」完整详细访客列表。</text>
+				<text class="detail-line">9. 会员专享每日20次免费查看他人资料，免费额度耗尽仅可通过积分兑换浏览次数。</text>
+			</view>
 
-		<!-- 用户协议 -->
-		<view class="agreement">
-			<text class="agreement-text text-muted">开通即表示同意</text>
-			<text class="agreement-link">《会员服务协议》</text>
+			<view class="vip-footer">
+				<button class="open-button" @click="handleBuy">立即开通</button>
+			</view>
+		</scroll-view>
+
+		<view v-if="paymentVisible" class="payment-mask" @tap="closePayment">
+			<view class="payment-sheet" @tap.stop="noop">
+				<view class="payment-handle"></view>
+				<text class="payment-title">选择支付方式</text>
+				<view class="payment-option" :class="{ selected: paymentSelected }" @tap.stop="togglePayment">
+					<view class="payment-option-left">
+						<view class="wechat-icon"><text class="ic ic-home ic-hello payment-icon"></text></view>
+						<view class="payment-copy"><text class="payment-name">微信支付</text><text class="payment-desc">推荐使用，安全快捷</text></view>
+					</view>
+					<view class="payment-check" :class="{ checked: paymentSelected }"><text v-if="paymentSelected" class="ic ic-sys ic-tijiaoqueren payment-check-icon"></text></view>
+				</view>
+				<view class="payment-total"><text>合计</text><text class="payment-total-price">¥{{ selectedPlanPrice }}</text></view>
+				<button class="payment-confirm" @tap="confirmPayment">确认支付</button>
+			</view>
 		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	// 会员状态
-	let isVip = ref(false)
-	let expireDate = ref('2024-12-31')
-
-	// 特权列表
-	const privileges = [
-		{ icon: '👁️', title: '谁看过我', desc: '查看访客记录' },
-		{ icon: '💕', title: '无限喜欢', desc: '不限次数表达心动' },
-		{ icon: '💬', title: '优先推荐', desc: '获得更多曝光机会' },
-		{ icon: '🎯', title: '高级筛选', desc: '更精准的匹配条件' },
-		{ icon: '👤', title: '隐身访问', desc: '查看资料不留痕迹' },
-		{ icon: '⚡', title: '超级曝光', desc: '置顶推荐位展示' },
-	]
-
-	// 套餐列表
-	const plans = [
-		{
-			duration: '1个月',
-			price: 88,
-			unit: '月',
-			originalPrice: 0,
-			badge: ''
-		},
-		{
-			duration: '3个月',
-			price: 198,
-			unit: '季',
-			originalPrice: 264,
-			badge: '推荐'
-		},
-		{
-			duration: '12个月',
-			price: 588,
-			unit: '年',
-			originalPrice: 1056,
-			badge: '最划算'
-		},
-	]
-
-	// 选中的套餐
-	let selectedPlan = ref(1) // 默认选中第二个（推荐）
-
-	// 计算选中套餐的价格
-	const selectedPlanPrice = computed(() => {
-		return plans[selectedPlan.value].price
-	})
-
-	// 选择套餐
-	const selectPlan = (index: number) => {
-		selectedPlan.value = index
+const isVip = ref(false)
+const paymentVisible = ref(false)
+const paymentSelected = ref(true)
+const selectedPlan = ref(1)
+const plans = [
+	{ tag: '含3次申请', name: '新人专享', price: 299, days: '90天' },
+	{ tag: '含5次申请', name: '心动专享', price: 520, days: '150天' },
+	{ tag: '含20次申请', name: '臻爱专享', price: 999, days: '365天' }
+]
+const benefits = [
+	{ iconClass: 'ic ic-vip ic-renwu', title: '申请次数' },
+	{ iconClass: 'ic ic-vip ic-huiyuan', title: '尊贵标识' },
+	{ iconClass: 'ic ic-home ic-star', title: '靠前展示' },
+	{ iconClass: 'ic ic-vip ic-huiyuanquanyi', title: '解锁功能' },
+	{ iconClass: 'ic ic-vip ic-huiyuanfuwu', title: '专属服务' }
+]
+const selectedPlanPrice = computed(() => plans[selectedPlan.value].price)
+const selectPlan = (index: number) => { selectedPlan.value = index }
+const goBack = () => { uni.navigateBack({}) }
+const noop = () => {}
+const handleBuy = () => { paymentVisible.value = true }
+const closePayment = () => { paymentVisible.value = false }
+const togglePayment = () => { paymentSelected.value = !paymentSelected.value }
+const confirmPayment = () => {
+	if (!paymentSelected.value) {
+		uni.showToast({ title: '请选择支付方式', icon: 'none' })
+		return
 	}
-
-	// 立即开通
-	const handleBuy = () => {
-		const plan = plans[selectedPlan.value]
-		uni.showModal({
-			title: '确认开通',
-			content: `确定开通${plan.duration}VIP会员吗？\n需支付¥${plan.price}`,
-			confirmText: '确认支付',
-			success: (res) => {
-				if (res.confirm) {
-					// TODO: 调用支付接口
-					uni.showLoading({
-						title: '支付中...'
-					})
-
-					setTimeout(() => {
-						uni.hideLoading()
-						uni.showToast({
-							title: '开通成功',
-							icon: 'success'
-						})
-						// 更新会员状态
-						isVip.value = true
-					}, 2000)
-				}
-			}
-		})
-	}
-
-	// 续费
-	const handleRenew = () => {
-		isVip.value = false // 切换到选择套餐界面
-	}
+	paymentVisible.value = false
+	isVip.value = true
+	uni.showToast({ title: '开通成功', icon: 'success' })
+}
 </script>
 
 <style scoped>
 .vip-page {
+	--cream-bg: #FAF7F0;
+	--green-light: #EDF4EC;
+	--green-soft: #F4F8F3;
+	--card: #F8F9F6;
+	--green: #A8C0A5;
+	--green-deep: #627A5F;
+	--gold: #C9A96E;
+	--gold-light: #F7F1E5;
+	--line: #DCE8D8;
 	min-height: 100vh;
-	background: var(--canvas);
-	padding-bottom: 120px;
+	background: var(--cream-bg);
+	color: #1A1A1A;
 }
-
-.header-bg {
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-	padding: 48px 24px 32px;
-	text-align: center;
-}
-
-.vip-badge {
-	display: inline-flex;
-		flex-direction: row;
-	align-items: center;
-	gap: 8px;
-	padding: 8px 20px;
-	background: rgba(255, 255, 255, 0.3);
-	border-radius: 999px;
-	margin-bottom: 16px;
-}
-
-.badge-icon {
-	font-size: 20px;
-}
-
-.badge-text {
-	font-size: 16px;
-	font-weight: 500;
-	color: var(--text-invert);
-}
-
-.header-title {
-	display: block;
-	font-size: 24px;
-	font-weight: 500;
-	color: var(--text-invert);
-	margin-bottom: 8px;
-}
-
-.header-desc {
-	display: block;
-	font-size: 14px;
-	color: var(--text-invert);
-}
-
-.expire-info {
-	margin-top: 8px;
-}
-
-.expire-text {
-	font-size: 14px;
-	color: var(--text-invert);
-}
-
-.privileges-section {
-	padding: 24px;
-}
-
-.section-title {
-	display: block;
-	font-size: 18px;
-	font-weight: 500;
-	color: var(--ink);
-	margin-bottom: 16px;
-}
-
-.privilege-grid {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 16px;
-}
-
-.privilege-item {
-	background: var(--surface);
-	border-radius: 12px;
-	padding: 16px;
-	text-align: center;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 8px;
-}
-
-.privilege-icon {
-	font-size: 32px;
-}
-
-.privilege-title {
-	font-size: 14px;
-	font-weight: 500;
-	color: var(--ink);
-}
-
-.privilege-desc {
-	font-size: 12px;
-}
-
-.plans-section {
-	padding: 0 24px 24px;
-}
-
-.plan-list {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.plan-item {
-	position: relative;
-	background: var(--surface);
-	border: 2px solid var(--line);
-	border-radius: 12px;
-	padding: 20px;
-	display: flex;
-		flex-direction: row;
-	align-items: center;
-	transition: all 0.3s;
-}
-
-.plan-item.selected {
-	border-color: var(--accent);
-	background: linear-gradient(135deg, rgba(56, 152, 141, 0.1) 0%, rgba(56, 152, 141, 0.06) 100%);
-}
-
-.plan-badge {
-	position: absolute;
-	top: -8px;
-	left: 16px;
-	padding: 4px 12px;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-	color: var(--text-invert);
-	border-radius: 999px;
-	font-size: 12px;
-	font-weight: 500;
-}
-
-.plan-info {
-	flex: 1;
-	display: flex;
-		flex-direction: row;
-	align-items: baseline;
-	gap: 4px;
-}
-
-.plan-duration {
-	font-size: 16px;
-	font-weight: 500;
-	color: var(--ink);
-	margin-right: 8px;
-}
-
-.plan-price {
-	font-size: 24px;
-	font-weight: 600;
-	color: var(--accent);
-}
-
-.plan-unit {
-	font-size: 14px;
-	color: var(--muted);
-}
-
-.plan-original {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	gap: 4px;
-	margin-right: 32px;
-}
-
-.original-price {
-	font-size: 12px;
-	color: var(--muted);
-	text-decoration: line-through;
-}
-
-.discount {
-	padding: 2px 8px;
-	background: var(--accent);
-	color: var(--text-invert);
-	border-radius: 999px;
-	font-size: 11px;
-}
-
-.check-icon {
-	position: absolute;
-	right: 20px;
-	font-size: 24px;
-	color: var(--accent);
-}
-
-.footer {
-	position: fixed;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	background: var(--surface);
-	border-top: 1px solid var(--line);
-	padding: 12px 24px;
-	padding-bottom: calc(12px + env(safe-area-inset-bottom));
-}
-
-.price-info {
-	display: flex;
-		flex-direction: row;
-	align-items: baseline;
-	justify-content: center;
-	margin-bottom: 12px;
-}
-
-.total-label {
-	font-size: 14px;
-	color: var(--ink2);
-}
-
-.total-price {
-	font-size: 28px;
-	font-weight: 600;
-	color: var(--accent);
-}
-
-.buy-btn {
-	width: 100%;
-	height: 48px;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-	color: var(--text-invert);
-	border-radius: 999px;
-	font-size: 16px;
-	font-weight: 500;
-}
-
-.renew-btn {
-	width: 100%;
-	height: 48px;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-	color: var(--text-invert);
-	border-radius: 999px;
-	font-size: 16px;
-	font-weight: 500;
-}
-
-.agreement {
-	text-align: center;
-	padding: 16px 24px;
-}
-
-.agreement-text {
-	font-size: 12px;
-}
-
-.agreement-link {
-	font-size: 12px;
-	color: var(--accent2);
-}
+.vip-nav { height: calc(44px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 16px 0; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: space-between; background: var(--cream-bg); }
+.nav-back { width: 34px; font-size: 22px; color: var(--green-deep); line-height: 34px; }.nav-title { font-size: 17px; font-weight: 500; }.nav-actions { display: flex; align-items: center; justify-content: center; gap: 12px; width: 72px; height: 36px; border: 1px solid #E8E4DD; border-radius: 20px; }.nav-action-icon { font-size: 17px; color: var(--green-deep); }
+.vip-scroll { height: calc(100vh - 44px - env(safe-area-inset-top)); }.vip-scroll-full { height: 100vh; }
+.status-banner { display: flex; flex-direction: row; align-items: center; justify-content: space-between; height: 100px; padding: 20px; box-sizing: border-box; background: linear-gradient(135deg, #E8EDE4, #DCE5D6 50%, #F0EBE0); }.status-copy { display: flex; flex-direction: column; gap: 4px; }.status-title { font-size: 22px; font-weight: 700; }.status-desc { color: #4B5563; font-size: 13px; }.crown-circle { display: flex; flex-direction: row; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: var(--gold-light); color: var(--gold); }.crown-icon { font-size: 30px; }.benefit-icon-text { font-size: 23px; }
+.plans-section { padding: 20px 16px 14px; }.section-title { display: block; margin-bottom: 14px; font-size: 17px; font-weight: 600; }.plans-row { display: flex; flex-direction: row; gap: 8px; }.plan-card { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; padding: 12px 10px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); text-align: center; }.plan-card.selected { border: 2px solid var(--green); background-color: #F4F8F1; }.plan-tag { display: inline-block; padding: 3px 8px; border-radius: 999px; background: var(--gold); color: #FFFFFF; font-size: 10px; font-weight: 600; }.plan-name { display: block; margin-top: 8px; font-size: 14px; font-weight: 600; }.plan-price { display: block; margin-top: 5px; font-size: 26px; font-weight: 700; }.plan-days { display: flex; flex-direction: row; align-items: center; justify-content: center; height: 28px; margin-top: 8px; border-radius: 6px; background: var(--gold-light); font-size: 11px; }
+.benefits-section { padding: 8px 16px 16px; }.benefit-heading { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 12px; font-size: 17px; font-weight: 600; }.heading-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }.benefit-icons { display: flex; flex-direction: row; justify-content: space-around; margin-top: 16px; }.benefit-icon-item { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 56px; color: #4B5563; font-size: 11px; text-align: center; }.benefit-icon-circle { display: flex; flex-direction: row; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: #E2EBE0; color: var(--green-deep); font-size: 23px; }
+.details-section { margin: 0 16px; padding: 20px 16px; border-radius: 16px; background: var(--cream-bg); }.details-title { display: block; margin-bottom: 10px; font-size: 15px; font-weight: 600; }.detail-line { display: block; margin-top: 7px; color: #4B5563; font-size: 13px; line-height: 1.6; }
+.vip-footer { padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); background: var(--cream-bg); }.open-button { width: 100%; height: 50px; border-radius: 20px; background: linear-gradient(90deg, #E6EBD8, #C9A96E); color: #1A1A1A; font-size: 17px; font-weight: 700; }
+.payment-mask { position: fixed; z-index: 100; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; justify-content: flex-end; background-color: rgba(0, 0, 0, 0.7); }
+.payment-sheet { display: flex; flex-direction: column; gap: 20px; padding: 24px 20px calc(32px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; background-color: var(--cream-bg); }
+.payment-handle { align-self: flex-start; width: 40px; height: 4px; margin-bottom: 4px; border-radius: 2px; background-color: #E0DDD6; }
+.payment-title { font-size: 18px; font-weight: 600; color: #000000; }
+.payment-option { display: flex; flex-direction: row; align-items: center; justify-content: space-between; height: 64px; padding: 0 16px; border: 2rpx solid var(--line); background-color: #FFFFFF; }.payment-option.selected { border-color: #C7DDC1; }
+.payment-option-left { display: flex; flex-direction: row; align-items: center; gap: 14px; }
+.wechat-icon { display: flex; flex-direction: row; align-items: center; justify-content: center; width: 40px; height: 40px; background-color: #E2EBE0; }
+.payment-icon { font-size: 24px; color: var(--green-deep); }
+.payment-copy { display: flex; flex-direction: column; gap: 4px; }.payment-name { font-size: 15px; color: #1A1A1A; }.payment-desc { font-size: 12px; color: #4B5563; }
+.payment-check { display: flex; flex-direction: row; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid #B8C9B4; background-color: #FFFFFF; }.payment-check.checked { border-color: var(--green-deep); background-color: var(--green-deep); }.payment-check-icon { font-size: 14px; color: #FFFFFF; }
+.payment-total { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; font-size: 15px; color: #1A1A1A; }.payment-total-price { font-size: 28px; font-weight: 700; color: #000000; }
+.payment-confirm { width: 100%; height: 50px; border: 0; border-radius: 0; background-color: #C7DDC1; color: #1A1A1A; font-size: 17px; font-weight: 700; }
+@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/系统通用/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-vip"; src: url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff') format('woff'); }
+.ic { font-style: normal; -webkit-font-smoothing: antialiased; }
+.ic-home { font-family: "iconfont-home" !important; }
+.ic-sys { font-family: "iconfont-sys" !important; }
+.ic-vip { font-family: "iconfont-vip" !important; }
+.ic-star:before { content: "\e60e"; }
+.ic-fanhui:before { content: "\e606"; }
+.ic-gengduo:before { content: "\e63f"; }
+.ic-tijiaoqueren:before { content: "\e627"; }
+.ic-huiyuan:before { content: "\e65d"; }
+.ic-renwu:before { content: "\e69f"; }
+.ic-huiyuanquanyi:before { content: "\e739"; }
+.ic-huiyuanfuwu:before { content: "\e674"; }
 </style>

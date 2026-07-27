@@ -1,0 +1,234 @@
+<template>
+	<view class="tag-edit-page">
+		<!-- Nav Bar -->
+		<view class="nav-bar" :style="{ paddingTop: (statusBarHeight + 8) + 'px', paddingRight: menuButtonSpacing + 'px' }">
+			<view class="nav-back" @click="goBack">
+				<text class="back-icon">←</text>
+			</view>
+			<text class="nav-title">编辑标签</text>
+			<view class="nav-save" @click="saveTags">
+				<text class="save-text">保存</text>
+			</view>
+		</view>
+
+		<!-- 标签编辑内容 -->
+		<scroll-view scroll-y class="tag-content" enhanced show-scrollbar="false">
+			<!-- 已选标签 -->
+			<view class="selected-section">
+				<text class="section-label">已选标签（{{ selectedTags.length }}/6）</text>
+				<view class="tag-row">
+					<view class="tag-item selected" v-for="(tag, i) in selectedTags" :key="i" @click="removeTag(i)">
+						<text class="tag-text">{{ tag }}</text>
+						<text class="tag-remove">×</text>
+					</view>
+					<text v-if="selectedTags.length === 0" class="empty-hint">请从下方选择你的个性标签</text>
+				</view>
+			</view>
+
+			<!-- 标签分类 -->
+			<view class="categories-section">
+				<view class="category" v-for="(cat, ci) in tagCategories" :key="ci">
+					<text class="category-title">{{ cat.name }}</text>
+					<view class="tag-row">
+						<view
+							class="tag-item"
+							:class="{ selected: isTagSelected(t) }"
+							v-for="(t, ti) in cat.tags"
+							:key="ti"
+							@click="toggleTag(t)"
+						>
+							<text class="tag-text">{{ t }}</text>
+						</view>
+					</view>
+				</view>
+			</view>
+
+			<view class="tag-bottom-spacer"></view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	const systemInfo = uni.getSystemInfoSync()
+	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+	const menuButtonInfo = uni.getMenuButtonBoundingClientRect()
+	const menuButtonSpacing = menuButtonInfo != null ? (systemInfo.windowWidth - menuButtonInfo.left) : 8
+
+	const selectedTags = ref<string[]>([])
+	const maxTags = 6
+
+	// 从 storage 加载已有标签
+	onMounted(() => {
+		try {
+			const saved = uni.getStorageSync('xsa_my_tags')
+			if (saved != null && Array.isArray(saved)) {
+				const arr = saved as any[]
+				for (let i = 0; i < arr.length && i < maxTags; i++) {
+					if (typeof arr[i] === 'string') {
+						selectedTags.value.push(arr[i] as string)
+					}
+				}
+			}
+		} catch (e) {
+			// 忽略，使用空列表
+		}
+	})
+
+	// 标签分类数据
+	const tagCategories = [
+		{
+			name: '个性特征',
+			tags: ['文艺青年', '阳光开朗', '内向安静', '幽默风趣', '温柔体贴', '独立自主', '成熟稳重', '粘人可爱', '理性冷静']
+		},
+		{
+			name: '经历背景',
+			tags: ['有海外经历', '985/211', '海归', '创业中', '体制内', '大厂']
+		},
+		{
+			name: '游戏偏好',
+			tags: ['不玩游戏', '休闲手游', '主机游戏', 'PC游戏', '桌游']
+		},
+		{
+			name: '书影音',
+			tags: ['读书', '电影', '追剧', '音乐', '看展']
+		},
+		{
+			name: '运动健身',
+			tags: ['跑步', '瑜伽', '游泳', '篮球', '健身', '不运动']
+		},
+		{
+			name: '恋爱经历',
+			tags: ['母单', '1-2段', '3段以上']
+		},
+		{
+			name: '旅行方式',
+			tags: ['自由行', '跟团游', '自驾游', '背包客', '不爱旅行']
+		},
+		{
+			name: '美食偏好',
+			tags: ['中餐', '日料', '西餐', '火锅', '素食', '自己做']
+		},
+		{
+			name: '宠物态度',
+			tags: ['养宠', '喜欢但不养', '不感兴趣', '害怕']
+		}
+	]
+
+	const isTagSelected = (tag: string): boolean => {
+		const list = selectedTags.value
+		for (let i = 0; i < list.length; i++) {
+			if (list[i] === tag) return true
+		}
+		return false
+	}
+
+	const toggleTag = (tag: string) => {
+		const list = selectedTags.value
+		const idx = list.indexOf(tag)
+		if (idx >= 0) {
+			list.splice(idx, 1)
+		} else if (list.length < maxTags) {
+			list.push(tag)
+		} else {
+			uni.showToast({ title: '最多选择' + maxTags + '个标签', icon: 'none' })
+		}
+		selectedTags.value = list
+	}
+
+	const removeTag = (index: number) => {
+		const list = selectedTags.value
+		list.splice(index, 1)
+		selectedTags.value = list
+	}
+
+	const saveTags = () => {
+		try {
+			const list = selectedTags.value
+			const arr: string[] = []
+			for (let i = 0; i < list.length; i++) {
+				arr.push(list[i])
+			}
+			uni.setStorageSync('xsa_my_tags', arr)
+		} catch (e) {
+			// ignore
+		}
+		uni.showToast({ title: '标签已保存', icon: 'success' })
+		setTimeout(() => {
+			goBack()
+		}, 600)
+	}
+
+	const goBack = () => {
+		uni.navigateBack({ delta: 1 })
+	}
+</script>
+
+<style scoped>
+.tag-edit-page {
+	position: relative;
+	width: 100%;
+	max-width: 750rpx;
+	min-height: 100vh;
+	margin: 0 auto;
+	background-color: #FAF8F5;
+	display: flex;
+	flex-direction: column;
+	--accent: #7EC8A0;
+	--accent-dark: #5BAF80;
+	--accent-soft: #E8F5EE;
+	--bg-card: #FFFFFF;
+	--bg-card-soft: #F5F9F2;
+	--text-primary: #1A1A1A;
+	--text-secondary: #5A6B5C;
+	--text-muted: #A0B0A2;
+	--text-inverse: #FFFFFF;
+	--border-soft: #E8EDE6;
+	--radius-sm: 12rpx;
+	--radius-md: 24rpx;
+	--radius-full: 9999rpx;
+}
+
+
+/* Nav Bar */
+.nav-bar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0 30rpx 24rpx 30rpx; position: relative; }
+.nav-back { width: 72rpx; height: 72rpx; border-radius: 50%; background-color: var(--bg-card); display: flex; align-items: center; justify-content: center; }
+.back-icon { font-size: 36rpx; color: var(--text-primary); font-weight: 700; }
+.nav-title { font-size: 34rpx; font-weight: 700; color: var(--text-primary); }
+.nav-save { padding: 16rpx 32rpx; border-radius: var(--radius-full); background-color: var(--accent); box-shadow: 0 8rpx 24rpx rgba(126, 200, 160, 0.25); }
+.save-text { font-size: 24rpx; font-weight: 700; color: var(--text-inverse); }
+
+/* Content */
+.tag-content { flex: 1; padding: 24rpx 32rpx; }
+
+/* Selected section */
+.selected-section { display: flex; flex-direction: column; gap: 16rpx; margin-bottom: 32rpx; padding: 24rpx; background-color: var(--bg-card); border-radius: var(--radius-md); }
+.section-label { font-size: 26rpx; font-weight: 600; color: var(--text-primary); }
+.empty-hint { font-size: 24rpx; color: var(--text-muted); padding: 16rpx 0; }
+
+/* Categories */
+.categories-section { display: flex; flex-direction: column; gap: 28rpx; }
+.category { display: flex; flex-direction: column; gap: 16rpx; }
+.category-title { font-size: 26rpx; font-weight: 700; color: var(--text-primary); padding-left: 8rpx; }
+
+/* Tag Row */
+.tag-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: 16rpx; }
+.tag-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6rpx;
+	padding: 12rpx 24rpx;
+	border-radius: var(--radius-full);
+	background-color: var(--bg-card-soft);
+	border: 2rpx solid transparent;
+}
+.tag-item.selected {
+	background-color: var(--accent-soft);
+	border-color: var(--accent);
+}
+.tag-text { font-size: 24rpx; color: var(--text-secondary); }
+.tag-item.selected .tag-text { color: var(--accent-dark); font-weight: 600; }
+.tag-remove { font-size: 28rpx; color: var(--accent-dark); font-weight: 700; margin-left: 4rpx; }
+
+.tag-bottom-spacer { height: 100rpx; }
+</style>

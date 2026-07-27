@@ -13,17 +13,19 @@
 		<!--preload-links-->
 		<!--app-context-->
 		<style>
-			/* H5 预览保持完整页面布局，具体页面自行限制内容宽度。 */
+			/* H5 浏览器中显示手机视图 */
 			@media screen and (min-width: 768px) {
 				body {
 					background: #e0e0e0 !important;
+					padding: 20px 0;
 				}
 				#app {
-					width: 100% !important;
-					max-width: none !important;
-					margin: 0 !important;
-					min-height: 100%;
-					overflow: visible;
+					max-width: 375px !important;
+					margin: 0 auto !important;
+					box-shadow: 0 0 30px rgba(0, 0, 0, 0.15) !important;
+					min-height: 667px;
+					border-radius: 12px;
+					overflow: hidden;
 				}
 			}
 		</style>

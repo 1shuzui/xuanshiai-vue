@@ -22,7 +22,13 @@
 
 			<!-- 头像区 -->
 			<view class="section-card">
-				<text class="section-title">头像</text>
+				<view class="section-card-header">
+					<text class="section-title">头像</text>
+					<view class="change-bg-btn" @tap="changeBackground">
+						<text class="change-bg-text">更换背景</text>
+						<text class="change-bg-arrow">›</text>
+					</view>
+				</view>
 				<view class="avatar-row">
 					<view class="avatar-circle" @tap="chooseAvatar">
 						<image class="avatar-img" :src="formData.avatar" mode="aspectFill"></image>
@@ -359,6 +365,7 @@
 	// 表单数据
 	const formData = ref({
 		avatar: '/static/portraits/profile-woman-main.jpg',
+		coverBg: '/static/portraits/profile-woman-alt.jpg',
 		photos: [
 			'/static/portraits/profile-woman-main.jpg',
 			'/static/portraits/profile-woman-alt.jpg'
@@ -473,6 +480,19 @@
 
 	const editQA = (q: any) => {
 		uni.showToast({ title: '问答编辑功能开发中', icon: 'none' })
+	}
+
+	// 更换背景
+	const changeBackground = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				formData.value.coverBg = res.tempFilePaths[0]
+				uni.showToast({ title: '背景已更换', icon: 'success' })
+			}
+		})
 	}
 
 	// 头像
@@ -660,6 +680,30 @@
 	font-size: 32rpx;
 	font-weight: 700;
 	color: var(--ink);
+}
+.section-card-header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 4rpx;
+}
+.change-bg-btn {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4rpx;
+	padding: 8rpx 16rpx;
+	border-radius: 9999rpx;
+	background-color: var(--warm);
+}
+.change-bg-text {
+	font-size: 24rpx;
+	color: var(--muted);
+}
+.change-bg-arrow {
+	font-size: 28rpx;
+	color: var(--muted);
 }
 .card-header {
 	display: flex;

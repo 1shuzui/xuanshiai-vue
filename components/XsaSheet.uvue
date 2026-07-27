@@ -1,7 +1,7 @@
 <template>
 		<view class="xsa-sheet-overlay" :class="{ open: visible, 'large-text': largeText }" @click="handleOverlayClick">
 		<view class="xsa-sheet" :class="{ tall: tall }" @click.stop>
-			<view class="handle"></view>
+			<view class="handle" v-if="showHandle"></view>
 			<view class="sheet-header" v-if="title">
 				<text class="sheet-title">{{ title }}</text>
 				<view class="close-btn" @click="handleClose">
@@ -25,15 +25,17 @@ interface Props {
 	visible: boolean;
 	title?: string;
 	tall?: boolean;
-		closeOnOverlay?: boolean;
-		largeText?: boolean;
+	closeOnOverlay?: boolean;
+	largeText?: boolean;
+	showHandle?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
 	visible: false,
 	tall: false,
-		closeOnOverlay: true,
-		largeText: false
+	closeOnOverlay: true,
+	largeText: false,
+	showHandle: true
 });
 
 const emit = defineEmits<{
@@ -118,8 +120,9 @@ const handleOverlayClick = () => {
 	color: var(--ink);
 }
 
-	.close-btn {
-		width: 40px;
+
+.close-btn {
+	width: 40px;
 	height: 40px;
 	border-radius: 50%;
 	background: transparent;
@@ -127,9 +130,12 @@ const handleOverlayClick = () => {
 	flex-direction: row;
 	align-items: center;
 	justify-content: center;
-		cursor: pointer;
-		font-size: 20px;
-		color: var(--muted);
+	cursor: pointer;
+}
+
+.close-btn text {
+	font-size: 20px;
+	color: var(--muted);
 }
 
 /* Sheet 内容区域 */

@@ -1,0 +1,96 @@
+<template>
+	<view class="custom-tab-bar">
+		<view
+			class="tab-item"
+			v-for="(item, i) in tabs"
+			:key="i"
+			@click="switchTab(i)"
+		>
+			<text :class="[item.iconClass, currentIndex === i ? 'tab-icon-active' : 'tab-icon']"></text>
+			<text :class="['tab-text', currentIndex === i ? 'active' : '']">{{ item.text }}</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	const currentIndex = ref(0)
+
+	const tabs = [
+		{ text: '首页', iconClass: 'iconfont icon-shouye tab-ic', pagePath: '/pages/index/index' },
+		{ text: '社区', iconClass: 'iconfont icon-shequ tab-ic', pagePath: '/pages/community/community' },
+		{ text: '牵线', iconClass: 'iconfont icon-qianxian tab-ic', pagePath: '/pages/matchmaker/matchmaker' },
+		{ text: '消息', iconClass: 'iconfont icon-xiaoxi tab-ic', pagePath: '/pages/message/message' },
+		{ text: '我的', iconClass: 'iconfont icon-a-wodedefuben2 tab-ic', pagePath: '/pages/profile/profile' }
+	]
+
+	// 通过当前页面路径确定选中项
+	const pageMap: Map<string, number> = new Map()
+	pageMap.set('pages/index/index', 0)
+	pageMap.set('pages/community/community', 1)
+	pageMap.set('pages/matchmaker/matchmaker', 2)
+	pageMap.set('pages/message/message', 3)
+	pageMap.set('pages/profile/profile', 4)
+
+	// 获取当前页面路由
+	const pages = getCurrentPages()
+	if (pages.length > 0) {
+		const currentPage = pages[pages.length - 1]
+		if (currentPage != null) {
+			const route = currentPage.route != null ? String(currentPage.route) : ''
+			const normalizedRoute = route.indexOf('/') === 0 ? route.substring(1) : route
+			const idx = pageMap.get(normalizedRoute)
+			if (idx != null) {
+				currentIndex.value = idx
+			}
+		}
+	}
+
+	const switchTab = (index: number) => {
+		if (index === currentIndex.value) return
+		const item = tabs[index]
+		if (item != null) {
+			uni.switchTab({ url: item.pagePath })
+		}
+	}
+</script>
+
+<style>
+.custom-tab-bar {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: flex-end;
+	justify-content: space-around;
+	padding: 8px 0;
+	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+	background-color: #FCFCFC;
+	border-top: 1px solid #E8EDE6;
+	z-index: 50;
+}
+.tab-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	padding: 4px 0;
+}
+.tab-ic { font-size: 24px; }
+.tab-icon { color: #B4BAB6; transition: color 0.18s ease-out; }
+.tab-icon-active { color: #3F8C5A; transition: color 0.18s ease-out; }
+.tab-text { font-size: 10px; color: #9FA6A1; transition: color 0.18s ease-out; }
+.tab-text.active { color: #3F8C5A; font-weight: 800; }
+
+/* iconfont — 底部导航栏 */
+@font-face { font-family: "iconfont"; src: url('/static/底部导航栏/iconfont.woff2') format('woff2'), url('/static/底部导航栏/iconfont.woff') format('woff'), url('/static/底部导航栏/iconfont.ttf') format('truetype'); }
+
+.iconfont { font-family: "iconfont" !important; font-style: normal; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+.icon-shouye:before { content: "\e602"; }
+.icon-shequ:before { content: "\e627"; }
+.icon-qianxian:before { content: "\e703"; }
+.icon-xiaoxi:before { content: "\e614"; }
+.icon-a-wodedefuben2:before { content: "\e620"; }
+</style>

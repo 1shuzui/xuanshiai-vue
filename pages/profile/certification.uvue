@@ -269,7 +269,6 @@
 	background: rgba(255, 255, 255, 0.2);
 	border-radius: 50%;
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	margin: 0 auto 16px;
@@ -303,7 +302,6 @@
 
 .cert-item {
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
 	padding: 16px;
@@ -316,7 +314,6 @@
 
 .cert-left {
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	gap: 12px;
 	flex: 1;
@@ -344,7 +341,6 @@
 
 .cert-right {
 	display: flex;
-		flex-direction: row;
 	align-items: center;
 	gap: 8px;
 }
