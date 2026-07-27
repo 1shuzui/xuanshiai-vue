@@ -26,8 +26,17 @@ export {
   mockTopics,
   mockPaperPlanes,
   mockPaperPlaneConversations,
+
   mockActivities,
-  mockCommunityBanners
+  mockCommunityBanners,
+  mockCommunityNotifications,
+  mockReportReasons,
+  mockBlockedUserIds,
+  mockApplyStates,
+  mockLikedUserIds,
+  mockCurrentCity,
+
+ 
 } from './community.uts'
 
 // 红娘相关
@@ -44,3 +53,7 @@ export {
   mockCustomPackages,
   mockAiChatSeed
 } from './matchmaker.uts'
+// 在 mock/index.uts 中添加
+export const mockCommunityQuotas = [
+  // 这里填入你需要的模拟数据
+];

@@ -142,6 +142,13 @@
 			}
 		},
 		{
+			"path": "pages/profile/my-moments",
+			"style": {
+				"navigationBarTitleText": "我的动态",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/community/publish",
 			"style": {
 				"navigationBarTitleText": "发布动态"
