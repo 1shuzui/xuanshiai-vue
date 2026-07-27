@@ -207,7 +207,7 @@
 
 <view class="feed-list">
 
-<view class="feed-card" v-for="(feed, fi) in feedDynamics" :key="fi">
+<view class="feed-card" v-for="(feed, fi) in feedDynamics" :key="fi" @tap="goPostDetail(feed.id)">
 
 <view class="feed-card-header">
 
@@ -837,9 +837,9 @@
 		const quota = getDailyViewQuota()
 		if (quota.isVip) {
 			quotaExhaustedMessage.value = '今日免费查看次数已用完（' + quota.total + '/' + quota.total + '），可使用积分兑换'
-		} else {
+} else {
 			quotaExhaustedMessage.value = '今日免费查看次数已用完（' + quota.total + '/' + quota.total + '），升级VIP享每日20次查看，或积分兑换'
-		}
+}
 		quotaExhaustedVisible.value = true
 	}
 	const handleQuotaUpgrade = () => { quotaExhaustedVisible.value = false; uni.navigateTo({ url: '/pages/profile/vip' }) }
@@ -878,7 +878,10 @@
 		{ id: 101, avatar: '/static/portraits/profile-woman-main.jpg', name: '苏晚晴', timeText: '2小时前', location: '大理', content: '周末和朋友去了趟大理，洱海边的风真的好舒服！租了一辆小电驴环了半个岛，停下来拍照的时候，感觉整个世界都慢下来了。', photos: ['/static/portraits/profile-woman-alt.jpg', '/static/portraits/profile-woman-community.jpg'], tags: ['#旅行'], likeCount: 89, commentCount: 12 },
 		{ id: 102, avatar: '/static/portraits/profile-woman-main.jpg', name: '苏晚晴', timeText: '1天前', location: '杭州', content: '在画室泡了一整天，终于把新系列的第一幅完成了！这次尝试了新的水彩技法，颜色层次比之前丰富了很多。', photos: ['/static/portraits/profile-man-light.jpg', '/static/portraits/profile-man-sea.jpg'], tags: ['#画画', '#日常'], likeCount: 56, commentCount: 8 }
 	]
-	const viewAllFeed = () => { showToast('查看全部动态') }
+		const viewAllFeed = () => { showToast('查看全部动态') }
+		const goPostDetail = (postId: number) => {
+			uni.navigateTo({ url: '/pages/community/post-detail?id=' + postId })
+		}
 
 	// ========== AI 合拍度 ==========
 	const aiVisible = ref(false)
@@ -909,7 +912,7 @@
 		successVisible.value = true
 		if (payload != null && payload.code == 'ALREADY_PENDING') {
 			showToast('申请已发送，请等待对方回应')
-		}
+}
 	}
 
 	const goMessages = () => { successVisible.value = false; uni.switchTab({ url: '/pages/message/message' }) }
@@ -937,9 +940,9 @@
 			} else {
 				showToast('操作失败，请重试')
 			}
-		} catch (e) {
+} catch (e) {
 			showToast('操作失败，请重试')
-		}
+}
 	}
 
 	// ========== 生命周期 ==========

@@ -14,3 +14,4 @@ graphify-out/
 # Agent / local tooling (do not publish)
 .serena/
 docs/superpowers/
+.claude
