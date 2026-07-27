@@ -30,6 +30,7 @@ export {
   mockActivities,
   mockCommunityBanners,
   mockCommunityNotifications,
+  mockCommunityQuotas,
   mockReportReasons,
   mockBlockedUserIds,
   mockApplyStates,
@@ -37,6 +38,7 @@ export {
   mockCurrentCity,
 
  
+  mockCurrentCity
 } from './community.uts'
 
 // 红娘相关
