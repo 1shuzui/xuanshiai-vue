@@ -35,9 +35,6 @@ export {
   mockBlockedUserIds,
   mockApplyStates,
   mockLikedUserIds,
-  mockCurrentCity,
-
- 
   mockCurrentCity
 } from './community.uts'
 
@@ -55,7 +52,3 @@ export {
   mockCustomPackages,
   mockAiChatSeed
 } from './matchmaker.uts'
-// 在 mock/index.uts 中添加
-export const mockCommunityQuotas = [
-  // 这里填入你需要的模拟数据
-];
