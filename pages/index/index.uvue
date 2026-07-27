@@ -71,7 +71,7 @@
 
 			</view>
 			<!-- 推荐 Tab -->
-			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll" enhanced show-scrollbar="false">
+			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll" enhanced show-scrollbar="false" @touchstart="onTouchStart" @touchend="onTouchEnd">
 				<view class="profile-card">
 					<view class="cover-wrap">
 						<image class="cover-img" :src="currentRecommendUser.photos != null && currentRecommendUser.photos.length > 0 ? currentRecommendUser.photos[0] : '/static/portraits/profile-woman-alt.jpg'" mode="aspectFill"></image>
@@ -636,9 +636,6 @@
 				<view class="share-btn" @click="shareProfile">
 					<text class="ic ic-sys ic-fenxiang share-icon"></text>
 				</view>
-				<view class="skip-btn" @click="switchToNextRecommend">
-					<text class="skip-text">换一个</text>
-				</view>
 				<view class="chat-btn" @click="openApplyModal">
 					<text class="ic ic-home ic-hello chat-icon"></text>
 					<text class="chat-text">申请牵线</text>
@@ -853,6 +850,28 @@
 		currentRecommendIndex.value = (currentRecommendIndex.value + 1) % list.length
 	}
 	const showBlockReport = () => { showToast('屏蔽/举报功能') }
+
+	// 左滑换一个
+	const touchStartX = ref(0)
+	const touchStartY = ref(0)
+	const onTouchStart = (e: any) => {
+		const touch = e.touches != null && e.touches.length > 0 ? e.touches[0] : null
+		if (touch != null) {
+			touchStartX.value = touch.clientX
+			touchStartY.value = touch.clientY
+		}
+	}
+	const onTouchEnd = (e: any) => {
+		const touch = e.changedTouches != null && e.changedTouches.length > 0 ? e.changedTouches[0] : null
+		if (touch != null) {
+			const deltaX = touchStartX.value - touch.clientX
+			const deltaY = touchStartY.value - touch.clientY
+			// 左滑（deltaX > 60）且水平位移大于垂直位移
+			if (deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY)) {
+				switchToNextRecommend()
+			}
+		}
+	}
 
 	// Ta的动态
 	const feedDynamics = [
@@ -1275,9 +1294,6 @@
 /* 屏蔽/举报行 */
 .block-row { display: flex; justify-content: center; align-items: center; width: 100%; padding: 16rpx 0 8rpx 0; }
 .block-text { font-size: 24rpx; color: var(--text-muted); }
-/* 换一个按钮 */
-.skip-btn { height: 88rpx; padding: 0 28rpx; border-radius: 44rpx; background-color: var(--bg-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04); }
-.skip-text { font-size: 24rpx; font-weight: 600; color: var(--text-secondary); }
 /* 底部操作栏 */
 
 .ai-float-btn { z-index: 55; bottom: 360rpx; }
