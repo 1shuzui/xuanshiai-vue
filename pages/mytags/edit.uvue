@@ -1,17 +1,7 @@
 <template>
 	<view class="tag-edit-page">
-		<!-- Status Bar -->
-		<view class="status-bar">
-			<text class="time-text">9:41</text>
-			<view class="status-icons">
-				<text class="signal-icon">●●●●</text>
-				<text class="wifi-icon">WiFi</text>
-				<text class="battery-icon">●●●</text>
-			</view>
-		</view>
-
 		<!-- Nav Bar -->
-		<view class="nav-bar">
+		<view class="nav-bar" :style="{ paddingTop: (statusBarHeight + 8) + 'px', paddingRight: menuButtonSpacing + 'px' }">
 			<view class="nav-back" @click="goBack">
 				<text class="back-icon">←</text>
 			</view>
@@ -59,6 +49,11 @@
 </template>
 
 <script setup lang="uts">
+	const systemInfo = uni.getSystemInfoSync()
+	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+	const menuButtonInfo = uni.getMenuButtonBoundingClientRect()
+	const menuButtonSpacing = menuButtonInfo != null ? (systemInfo.windowWidth - menuButtonInfo.left) : 8
+
 	const selectedTags = ref<string[]>([])
 	const maxTags = 6
 
@@ -193,13 +188,6 @@
 	--radius-full: 9999rpx;
 }
 
-/* Status Bar */
-.status-bar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; height: 124rpx; padding: 32rpx 40rpx 16rpx 40rpx; box-sizing: border-box; }
-.time-text { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
-.status-icons { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
-.signal-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
-.wifi-icon { font-size: 24rpx; color: var(--text-primary); }
-.battery-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
 
 /* Nav Bar */
 .nav-bar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0 30rpx 24rpx 30rpx; position: relative; }

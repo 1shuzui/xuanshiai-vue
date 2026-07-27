@@ -1,17 +1,10 @@
 <template>
 	<view class="page">
-		<!-- 状态栏 -->
-		<view class="status-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-			<text class="time-text">9:41</text>
-			<view class="status-icons">
-				<text class="battery-icon">●●●</text>
-			</view>
-		</view>
 
 		<!-- 导航栏 -->
 		<view class="nav-bar">
 			<view class="nav-back" @tap="goBack">
-				<text class="ic ic-sys ic-fanhui nav-back-icon"></text>
+				<text class="nav-back-symbol">‹</text>
 			</view>
 			<text class="nav-title">我的动态</text>
 			<view class="nav-spacer"></view>
@@ -166,9 +159,6 @@
 <script setup lang="uts">
 import { getMyPosts, likeDynamic, deleteDynamic } from '@/api'
 
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
-
 // 个人资料数据
 const profile = ref({
 	nickname: '苏晚晴',
@@ -316,44 +306,13 @@ onMounted(() => {
 	flex-direction: column;
 }
 
-/* ==================== 状态栏 ==================== */
-.status-bar {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	height: 44px;
-	padding-left: 16px;
-	padding-right: 16px;
-	box-sizing: border-box;
-	background-color: #F7F4F0;
-}
-
-.time-text {
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--text-primary, #1A1A1A);
-}
-
-.status-icons {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-}
-
-.battery-icon {
-	font-size: 12px;
-	color: var(--text-primary, #1A1A1A);
-	letter-spacing: 1px;
-}
-
 /* ==================== 导航栏 ==================== */
 .nav-bar {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	padding: 12px 16px 12px 16px;
+	padding: 44px 16px 12px 16px;
 	position: relative;
 	background-color: #F7F4F0;
 }
@@ -368,8 +327,10 @@ onMounted(() => {
 	flex-shrink: 0;
 }
 
-.nav-back-icon {
-	font-size: 18px;
+.nav-back-symbol {
+	font-size: 34px;
+	font-weight: 300;
+	line-height: 36px;
 	color: var(--text-primary, #1A1A1A);
 }
 
