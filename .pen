@@ -2713,7 +2713,7 @@
                   "id": "w07upa",
                   "name": "Chat Text",
                   "fill": "$text-inverse",
-                  "content": "申请牵线",
+                  "content": "申请认识",
                   "fontFamily": "$font-body",
                   "fontSize": 15,
                   "fontWeight": "700"
@@ -10318,7 +10318,7 @@
             {
               "type": "frame",
               "id": "JdYUW",
-              "x": 0,
+              "x": 7,
               "y": 0,
               "name": "Back Button",
               "width": 36,
@@ -15554,8 +15554,8 @@
               "type": "frame",
               "id": "IEH8G",
               "layoutPosition": "absolute",
-              "x": 0,
-              "y": 0,
+              "x": 8,
+              "y": 7,
               "name": "Back Button",
               "width": 36,
               "height": 36,
@@ -15585,16 +15585,6 @@
               "fontFamily": "$font-body",
               "fontSize": 17,
               "fontWeight": "600"
-            },
-            {
-              "type": "frame",
-              "id": "uVjKc",
-              "layoutPosition": "absolute",
-              "x": 0,
-              "y": 0,
-              "name": "Nav Spacer",
-              "width": 36,
-              "height": 36
             }
           ]
         },
@@ -15617,7 +15607,7 @@
               "id": "zStbt",
               "name": "Profile Header",
               "width": "fill_container",
-              "height": 352,
+              "height": 267,
               "layout": "vertical",
               "children": [
                 {
@@ -15631,7 +15621,7 @@
                     "author": "Fareed Akhyear Chowdhury"
                   },
                   "width": "fill_container",
-                  "height": 160,
+                  "height": 107,
                   "fill": {
                     "type": "image",
                     "enabled": true,
@@ -15649,13 +15639,13 @@
                   "type": "frame",
                   "id": "IQ2uf",
                   "layoutPosition": "absolute",
-                  "x": 143,
-                  "y": 124,
+                  "x": 155,
+                  "y": 83,
                   "name": "Avatar Circle",
-                  "width": 72,
-                  "height": 72,
+                  "width": 48,
+                  "height": 48,
                   "fill": "#FFFFFF",
-                  "cornerRadius": 36,
+                  "cornerRadius": 24,
                   "layout": "vertical",
                   "justifyContent": "center",
                   "alignItems": "center",
@@ -15667,7 +15657,7 @@
                       "fill": "$accent-rose",
                       "content": "👤",
                       "fontFamily": "$font-body",
-                      "fontSize": 32,
+                      "fontSize": 24,
                       "fontWeight": "normal"
                     }
                   ]
@@ -15677,7 +15667,7 @@
                   "id": "uJogg",
                   "name": "Info Section",
                   "width": "fill_container",
-                  "height": 191,
+                  "height": 156,
                   "fill": "$bg-card",
                   "cornerRadius": [
                     0,
@@ -15685,15 +15675,20 @@
                     16,
                     16
                   ],
-                  "layout": "none",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": [
+                    30,
+                    16,
+                    14,
+                    16
+                  ],
                   "children": [
                     {
                       "type": "frame",
                       "id": "nSSkz",
-                      "x": 16,
-                      "y": 32,
                       "name": "Name Row",
-                      "width": "fill_container(326)",
+                      "width": "fill_container",
                       "justifyContent": "center",
                       "alignItems": "center",
                       "children": [
@@ -15704,7 +15699,7 @@
                           "fill": "$text-primary",
                           "content": "苏晚晴",
                           "fontFamily": "$font-body",
-                          "fontSize": 18,
+                          "fontSize": 15,
                           "fontWeight": "700"
                         }
                       ]
@@ -15712,11 +15707,9 @@
                     {
                       "type": "frame",
                       "id": "CNWjx",
-                      "x": 16,
-                      "y": 66,
                       "name": "Stats Row",
-                      "width": "fill_container(326)",
-                      "gap": 32,
+                      "width": "fill_container",
+                      "gap": 28,
                       "justifyContent": "center",
                       "children": [
                         {
@@ -15724,7 +15717,7 @@
                           "id": "KKGwF",
                           "name": "Stat Posts",
                           "layout": "vertical",
-                          "gap": 4,
+                          "gap": 2,
                           "alignItems": "center",
                           "children": [
                             {
@@ -15734,7 +15727,7 @@
                               "fill": "$text-primary",
                               "content": "3",
                               "fontFamily": "$font-body",
-                              "fontSize": 18,
+                              "fontSize": 15,
                               "fontWeight": "700"
                             },
                             {
@@ -15744,7 +15737,7 @@
                               "fill": "$text-muted",
                               "content": "动态",
                               "fontFamily": "$font-body",
-                              "fontSize": 12,
+                              "fontSize": 11,
                               "fontWeight": "normal"
                             }
                           ]
@@ -15754,7 +15747,7 @@
                           "id": "zRJ1q",
                           "name": "Stat Likes",
                           "layout": "vertical",
-                          "gap": 4,
+                          "gap": 2,
                           "alignItems": "center",
                           "children": [
                             {
@@ -15764,7 +15757,7 @@
                               "fill": "$text-primary",
                               "content": "168",
                               "fontFamily": "$font-body",
-                              "fontSize": 18,
+                              "fontSize": 15,
                               "fontWeight": "700"
                             },
                             {
@@ -15774,7 +15767,7 @@
                               "fill": "$text-muted",
                               "content": "获赞",
                               "fontFamily": "$font-body",
-                              "fontSize": 12,
+                              "fontSize": 11,
                               "fontWeight": "normal"
                             }
                           ]
@@ -15784,7 +15777,7 @@
                           "id": "B2cpeZ",
                           "name": "Stat Following",
                           "layout": "vertical",
-                          "gap": 4,
+                          "gap": 2,
                           "alignItems": "center",
                           "children": [
                             {
@@ -15794,7 +15787,7 @@
                               "fill": "$text-primary",
                               "content": "42",
                               "fontFamily": "$font-body",
-                              "fontSize": 18,
+                              "fontSize": 15,
                               "fontWeight": "700"
                             },
                             {
@@ -15804,7 +15797,7 @@
                               "fill": "$text-muted",
                               "content": "关注",
                               "fontFamily": "$font-body",
-                              "fontSize": 12,
+                              "fontSize": 11,
                               "fontWeight": "normal"
                             }
                           ]
@@ -15814,16 +15807,14 @@
                     {
                       "type": "frame",
                       "id": "dGZCy",
-                      "x": 16,
-                      "y": 119,
                       "name": "Publish Prompt",
-                      "width": "fill_container(326)",
+                      "width": "fill_container",
                       "fill": "$bg-card-soft",
-                      "cornerRadius": "$radius-md",
-                      "gap": 10,
+                      "cornerRadius": 10,
+                      "gap": 8,
                       "padding": [
-                        12,
-                        14
+                        10,
+                        12
                       ],
                       "alignItems": "center",
                       "children": [
@@ -15834,7 +15825,7 @@
                           "fill": "$accent-dark",
                           "content": "✏️",
                           "fontFamily": "$font-body",
-                          "fontSize": 20,
+                          "fontSize": 16,
                           "fontWeight": "normal"
                         },
                         {
@@ -15844,7 +15835,7 @@
                           "fill": "$text-secondary",
                           "content": "分享你的生活点滴…",
                           "fontFamily": "$font-body",
-                          "fontSize": 14,
+                          "fontSize": 13,
                           "fontWeight": "500"
                         },
                         {
@@ -15852,11 +15843,11 @@
                           "id": "louu8",
                           "name": "Publish Btn",
                           "fill": "$accent",
-                          "cornerRadius": 16,
+                          "cornerRadius": 14,
                           "layout": "vertical",
                           "padding": [
-                            6,
-                            16
+                            5,
+                            14
                           ],
                           "children": [
                             {
@@ -15866,7 +15857,7 @@
                               "fill": "#FFFFFF",
                               "content": "发布",
                               "fontFamily": "$font-body",
-                              "fontSize": 12,
+                              "fontSize": 11,
                               "fontWeight": "600"
                             }
                           ]
@@ -16672,6 +16663,2461 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "vTjCT",
+      "x": 1679,
+      "y": 2321,
+      "name": "支付弹窗-遮罩",
+      "width": 375,
+      "height": 812,
+      "fill": "#0000004D",
+      "justifyContent": "end",
+      "alignItems": "end",
+      "children": [
+        {
+          "type": "frame",
+          "id": "S1E4x3",
+          "name": "支付弹窗",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "cornerRadius": [
+            20,
+            20,
+            0,
+            0
+          ],
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            24,
+            20,
+            32,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "yw349",
+              "name": "拖拽条",
+              "width": 40,
+              "height": 4,
+              "fill": "#E0DDD6",
+              "cornerRadius": 2
+            },
+            {
+              "type": "text",
+              "id": "HiXS6",
+              "name": "弹窗标题",
+              "fill": "#000000",
+              "content": "选择支付方式",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "ZXmvT",
+              "name": "微信支付选项",
+              "width": "fill_container",
+              "height": 64,
+              "fill": "#FFFFFF",
+              "stroke": "$border-green",
+              "strokeWidth": 1.5,
+              "padding": [
+                0,
+                16
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "XIhGI",
+                  "name": "支付方式左区",
+                  "gap": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "QQfSk",
+                      "name": "微信图标圆底",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$sage-mist",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "t1QklU",
+                          "name": "微信图标",
+                          "fill": "$accent-green-deep",
+                          "content": "💬",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "e8dH1",
+                      "name": "支付方式文字",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "dPXjq",
+                          "name": "支付方式名称",
+                          "fill": "#000000",
+                          "content": "微信支付",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "QSTLy",
+                          "name": "支付方式描述",
+                          "fill": "#000000",
+                          "content": "推荐使用，安全快捷",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rbyCk",
+                  "name": "选中勾",
+                  "width": 22,
+                  "height": 22,
+                  "fill": "$accent-green-deep",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "M7gdt",
+                      "name": "勾号",
+                      "fill": "#FFFFFF",
+                      "content": "✓",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GXKFU",
+              "name": "金额行",
+              "width": "fill_container",
+              "padding": [
+                8,
+                0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "e7liIm",
+                  "name": "合计文字",
+                  "fill": "#000000",
+                  "content": "合计",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "Z43Owr",
+                  "name": "合计金额",
+                  "fill": "#000000",
+                  "content": "¥520",
+                  "fontFamily": "Inter",
+                  "fontSize": 28,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "cj0Ru",
+              "name": "确认支付按钮",
+              "width": "fill_container",
+              "height": 50,
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 90,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "$gradient-btn-start",
+                    "position": 0
+                  },
+                  {
+                    "color": "$gradient-btn-end",
+                    "position": 1
+                  }
+                ]
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "W2OUN",
+                  "name": "确认支付文字",
+                  "fill": "#000000",
+                  "content": "确认支付",
+                  "fontFamily": "Inter",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "CugGy",
+      "x": 1247,
+      "y": 2321,
+      "name": "VIP会员开通页面",
+      "clip": true,
+      "width": 375,
+      "fill": "$cream-bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "CgsoS",
+          "name": "顶部导航栏",
+          "width": "fill_container",
+          "height": 44,
+          "fill": "$cream-bg",
+          "padding": [
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "ii0Q0",
+              "name": "返回箭头",
+              "fill": "#1A1A1A",
+              "content": "←",
+              "fontFamily": "Inter",
+              "fontSize": 20,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "ynsco",
+              "name": "页面标题",
+              "fill": "#1A1A1A",
+              "content": "开通会员",
+              "fontFamily": "Inter",
+              "fontSize": 17,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "XH1X4",
+              "name": "右侧图标区",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "LE7KZ",
+                  "name": "三点菜单",
+                  "fill": "#1A1A1A",
+                  "content": "⋯",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "ellipse",
+                  "id": "s1KT2",
+                  "name": "收藏按钮",
+                  "fill": "#1A1A1A",
+                  "width": 26,
+                  "height": 26
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "M1ulq",
+          "name": "VIP状态横幅",
+          "width": "fill_container",
+          "height": 100,
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 135,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#E8EDE4",
+                "position": 0
+              },
+              {
+                "color": "#DCE5D6",
+                "position": 0.5
+              },
+              {
+                "color": "#F0EBE0",
+                "position": 1
+              }
+            ]
+          },
+          "padding": 20,
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "cNXN4",
+              "name": "横幅文字区",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "QKlZ6",
+                  "name": "VIP未开通标题",
+                  "fill": "#1A1A1A",
+                  "content": "VIP会员未开通",
+                  "fontFamily": "Playfair Display",
+                  "fontSize": 22,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "uSt1N",
+                  "name": "VIP未开通副标题",
+                  "fill": "#4B5563",
+                  "content": "开通VIP会员可享受尊贵服务哦",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "C1dvj",
+              "name": "皇冠图标区",
+              "width": 56,
+              "height": 56,
+              "fill": "$warm-cream",
+              "cornerRadius": 9999,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "cDGzG",
+                  "name": "皇冠图标",
+                  "width": 30,
+                  "height": 30,
+                  "icon": "crown",
+                  "library": "lucide",
+                  "weight": 500,
+                  "fill": "$gold-accent"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "IJq9n",
+          "name": "套餐区域",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            20,
+            16
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "tYVgQ",
+              "name": "选择VIP会员类型",
+              "fill": "#1A1A1A",
+              "content": "选择VIP会员类型",
+              "fontFamily": "Inter",
+              "fontSize": 17,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "hmKy6",
+              "name": "套餐卡片行",
+              "width": "fill_container",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "tjpdU",
+                  "name": "新人专享",
+                  "width": "fill_container",
+                  "fill": "$bg-card-2",
+                  "cornerRadius": 12,
+                  "stroke": "$border-green",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    10,
+                    10,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "oJWS5",
+                      "name": "牵线标签",
+                      "fill": "$gold-accent",
+                      "cornerRadius": 9999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "AP25T",
+                          "name": "标签文字",
+                          "fill": "#FFFFFF",
+                          "content": "含3次申请",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "NHHIb",
+                      "name": "套餐名称",
+                      "fill": "#1A1A1A",
+                      "content": "新人专享",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "VjPp2",
+                      "name": "价格",
+                      "fill": "#1A1A1A",
+                      "content": "¥299",
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "C7Vn8y",
+                      "name": "有效期条",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$warm-cream",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "H9XKL",
+                          "name": "有效期文字",
+                          "fill": "#000000",
+                          "content": "90天",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NDx6y",
+                  "name": "心动专享",
+                  "width": "fill_container",
+                  "fill": "$bg-card-2",
+                  "cornerRadius": 12,
+                  "stroke": "$border-green",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    10,
+                    10,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "i43Xg",
+                      "name": "牵线标签",
+                      "fill": "$gold-accent",
+                      "cornerRadius": 9999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LE5Ca",
+                          "name": "标签文字",
+                          "fill": "#FFFFFF",
+                          "content": "含5次申请",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n8L5S",
+                      "name": "套餐名称",
+                      "fill": "#1A1A1A",
+                      "content": "心动专享",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "m5Kkdr",
+                      "name": "价格",
+                      "fill": "#1A1A1A",
+                      "content": "¥520",
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uL3zO",
+                      "name": "有效期条",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$warm-cream",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MDYjV",
+                          "name": "有效期文字",
+                          "fill": "#000000",
+                          "content": "150天",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "B2e4Nu",
+                  "name": "臻爱专享",
+                  "width": "fill_container",
+                  "fill": "$bg-card-2",
+                  "cornerRadius": 12,
+                  "stroke": "$border-green",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    10,
+                    10,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "aFm6K",
+                      "name": "牵线标签",
+                      "fill": "$gold-accent",
+                      "cornerRadius": 9999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "OmlnA",
+                          "name": "标签文字",
+                          "fill": "#FFFFFF",
+                          "content": "含20次申请",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "sCDRL",
+                      "name": "套餐名称",
+                      "fill": "#1A1A1A",
+                      "content": "臻爱专享",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AMxN4",
+                      "name": "价格",
+                      "fill": "#1A1A1A",
+                      "content": "¥999",
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NQuT4",
+                      "name": "有效期条",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$warm-cream",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "E9l8j",
+                          "name": "有效期文字",
+                          "fill": "#000000",
+                          "content": "365天",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "G7M3a",
+          "name": "会员权益区域",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            8,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Ux08E",
+              "name": "权益标题行",
+              "width": "fill_container",
+              "gap": 12,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "NLxwU",
+                  "name": "左装饰点",
+                  "fill": "$gold-accent",
+                  "width": 6,
+                  "height": 6
+                },
+                {
+                  "type": "text",
+                  "id": "J6BJX",
+                  "name": "会员权益标题",
+                  "fill": "#1A1A1A",
+                  "content": "会员权益",
+                  "fontFamily": "Inter",
+                  "fontSize": 17,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "ellipse",
+                  "id": "WZGpV",
+                  "name": "右装饰点",
+                  "fill": "$gold-accent",
+                  "width": 6,
+                  "height": 6
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "K1E1R",
+              "name": "功能图标行",
+              "width": "fill_container",
+              "justifyContent": "space_around",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "s3cKRD",
+                  "name": "牵线服务",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "lRpwZ",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "k2cvHg",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "🤝",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "RBfPm",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "申请次数",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dnxzM",
+                  "name": "尊贵标识",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Agcof",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "w7oVb",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "👑",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "esLCz",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "尊贵标识",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "InoOh",
+                  "name": "靠前展示",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "g02z5u",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "egLcg",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "📌",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "O2r7l",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "靠前展示",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wSLdV",
+                  "name": "解锁功能",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uspIX",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Gu5vu",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "🔓",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "TrOAx",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "解锁功能",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "xYH05",
+                  "name": "专属服务",
+                  "width": 56,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "PDqFf",
+                      "name": "图标圆底",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "$sage-mist",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "FSMwK",
+                          "name": "图标",
+                          "fill": "$accent-green-deep",
+                          "content": "⭐",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "T1XgvL",
+                      "name": "图标名称",
+                      "fill": "#4B5563",
+                      "textGrowth": "fixed-width",
+                      "width": 56,
+                      "content": "专属服务",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cLrcN",
+          "name": "权益文字说明框",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "cornerRadius": 16,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            20,
+            16
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "ujBD7",
+              "name": "权益说明标题",
+              "fill": "#1A1A1A",
+              "content": "会员权益：",
+              "fontFamily": "Inter",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "W4rXZp",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "1. 头像附带VIP尊贵标识；",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "ZW5Kf",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "2. 平台首页会员专区优先展示、搜索/匹配结果加权靠前曝光；",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "zrdE5",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "3. 解锁会员专区语音介绍、图片视频等深度信息浏览限制；",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "dauvA",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "4. 套餐附赠对应牵线次数；",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "I5YVv",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "5. 申请认识次数升级：普通用户每日仅3次免费「申请认识」，会员可提升至7次；每日次数定时刷新，剩余次数不累计叠加，操作时页面会展示当日剩余次数。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "Ad7fk",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "6. 无痕浏览：仅会员可在隐私设置开启无痕浏览，消除访客记录；普通用户点击开关会弹窗引导开通会员。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "MnSrq",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "7. 高级筛选匹配：首页筛选区分基础筛选（城市、年龄、学历）与VIP专属高级筛选（收入、MBTI、兴趣、择偶要求），开放MBTI匹配功能。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "vQ8vj",
+              "name": "权益条目",
+              "fill": "#4B5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "8. 访客完整查看：可查看「谁看过我」完整详细访客列表。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "ejQpN",
+              "name": "权益条目",
+              "fill": "#4b5563",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "9. 会员专享每日20次免费查看他人资料，免费额度耗尽仅可通过积分兑换浏览次数，浏览上限大幅提升，使用限制更少。",
+              "lineHeight": 1.6,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "b8IaC1",
+          "name": "底部按钮区",
+          "width": "fill_container",
+          "fill": "$cream-bg",
+          "layout": "vertical",
+          "padding": [
+            16,
+            16,
+            24,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ikJ4m",
+              "name": "立即开通按钮",
+              "width": "fill_container",
+              "height": 50,
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 90,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#E6EBD8",
+                    "position": 0
+                  },
+                  {
+                    "color": "$warm-amber",
+                    "position": 1
+                  }
+                ]
+              },
+              "cornerRadius": 20,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "O7WcD",
+                  "name": "按钮文字",
+                  "fill": "#1A1A1A",
+                  "content": "立即开通",
+                  "fontFamily": "Inter",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "bdtLZ",
+      "x": 3888,
+      "y": 0,
+      "name": "我的认证页面",
+      "clip": true,
+      "width": 375,
+      "fill": "$bg-primary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "lLyr6",
+          "name": "Status Bar",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            16,
+            20,
+            8,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "bR0x9",
+              "name": "Time",
+              "fill": "$text-primary",
+              "content": "9:41",
+              "fontFamily": "$font-body",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "uLwZd",
+              "name": "Status Icons",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cPk1D",
+                  "name": "Battery",
+                  "fill": "$text-primary",
+                  "content": "📶 🔋 92%",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "k8pwQZ",
+          "name": "Nav Bar",
+          "width": "fill_container",
+          "height": 48,
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "F5NHN",
+              "x": 15,
+              "y": 6,
+              "name": "Back Button",
+              "width": 36,
+              "height": 36,
+              "fill": "$bg-card",
+              "cornerRadius": 18,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "RTzIo",
+                  "name": "Back Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "arrow-left",
+                  "library": "lucide",
+                  "fill": "$text-primary"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "pmuVY",
+              "x": 171.5,
+              "y": 11.5,
+              "name": "Title",
+              "fill": "$text-primary",
+              "content": "我的认证",
+              "fontFamily": "$font-body",
+              "fontSize": 17,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "tmwYq",
+          "name": "Scroll Content",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "padding": [
+            4,
+            16,
+            30,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Vl7wq",
+              "name": "四重认证 Section",
+              "width": "fill_container",
+              "fill": "$bg-card",
+              "cornerRadius": "$radius-xl",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000008",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 18,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "UYgZb",
+                  "name": "Section Header",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Hox8O",
+                      "name": "四重认证 Title",
+                      "fill": "$text-primary",
+                      "content": "四重认证",
+                      "fontFamily": "$font-body",
+                      "fontSize": 16,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oXapA",
+                      "name": "认证进度",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Ds6PK",
+                          "name": "Progress Text",
+                          "fill": "$accent",
+                          "content": "已完成 2/4",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "KpwJv",
+                          "name": "Progress Dots",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "j4epW",
+                              "name": "Dot Done",
+                              "width": 6,
+                              "height": 6,
+                              "fill": "$accent",
+                              "cornerRadius": 3
+                            },
+                            {
+                              "type": "frame",
+                              "id": "HXva0",
+                              "name": "Dot Done",
+                              "width": 6,
+                              "height": 6,
+                              "fill": "$accent",
+                              "cornerRadius": 3
+                            },
+                            {
+                              "type": "frame",
+                              "id": "fMfM2",
+                              "name": "Dot Pending",
+                              "width": 6,
+                              "height": 6,
+                              "fill": "#E0DFD8",
+                              "cornerRadius": 3
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Igjpi",
+                              "name": "Dot Pending",
+                              "width": 6,
+                              "height": 6,
+                              "fill": "#E0DFD8",
+                              "cornerRadius": 3
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LUnUC",
+                  "name": "实名认证 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uJLVh",
+                      "name": "实名认证 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$accent-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "r2YWZ",
+                          "name": "实名认证 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "shield-check",
+                          "library": "lucide",
+                          "fill": "$accent-dark"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bRBDa",
+                      "name": "实名认证 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pYqno",
+                          "name": "实名认证 Label",
+                          "fill": "$text-primary",
+                          "content": "实名认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "C77GMc",
+                          "name": "实名认证 Desc",
+                          "fill": "$text-muted",
+                          "content": "已通过平台实名认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "IRJhl",
+                      "name": "实名认证 Check",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "badge-check",
+                      "library": "lucide",
+                      "fill": "$accent"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "iTIEb",
+                  "name": "学历认证 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "FtMdZ",
+                      "name": "学历认证 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$accent-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Y1tRDP",
+                          "name": "学历认证 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "graduation-cap",
+                          "library": "lucide",
+                          "fill": "$accent-dark"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tJiJU",
+                      "name": "学历认证 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "UAKyy",
+                          "name": "学历认证 Label",
+                          "fill": "$text-primary",
+                          "content": "学历认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "w0auO3",
+                          "name": "学历认证 Desc",
+                          "fill": "$text-muted",
+                          "content": "学历信息已核验",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "aWVeX",
+                      "name": "学历认证 Check",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "badge-check",
+                      "library": "lucide",
+                      "fill": "$accent"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Lsaym",
+                  "name": "头像认证 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "S6L0zJ",
+                      "name": "头像认证 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "nHdB1",
+                          "name": "头像认证 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "camera",
+                          "library": "lucide",
+                          "fill": "$text-muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QKrqx",
+                      "name": "头像认证 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JQmzn",
+                          "name": "头像认证 Label",
+                          "fill": "$text-primary",
+                          "content": "头像认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "eigmL",
+                          "name": "头像认证 Desc",
+                          "fill": "$text-muted",
+                          "content": "上传真实本人照片",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "fj0tZ",
+                      "name": "头像认证 Button",
+                      "fill": "$accent-soft",
+                      "cornerRadius": 12,
+                      "padding": [
+                        5,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "CrX5x",
+                          "name": "头像认证 Btn Text",
+                          "fill": "$accent-dark",
+                          "content": "去认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BIxbQ",
+                  "name": "婚况认证 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "L7ibT",
+                      "name": "婚况认证 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "OJmel",
+                          "name": "婚况认证 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "heart-handshake",
+                          "library": "lucide",
+                          "fill": "$text-muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IUzZE",
+                      "name": "婚况认证 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "XwYKN",
+                          "name": "婚况认证 Label",
+                          "fill": "$text-primary",
+                          "content": "婚况认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "hHQUI",
+                          "name": "婚况认证 Desc",
+                          "fill": "$text-muted",
+                          "content": "提交婚况证明材料",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jKYZJ",
+                      "name": "婚况认证 Button",
+                      "fill": "$accent-soft",
+                      "cornerRadius": 12,
+                      "padding": [
+                        5,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "zblUf",
+                          "name": "婚况认证 Btn Text",
+                          "fill": "$accent-dark",
+                          "content": "去认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "o2mFB",
+              "name": "更多认证 Section",
+              "width": "fill_container",
+              "fill": "$bg-card",
+              "cornerRadius": "$radius-xl",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000008",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 18,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "HfdGL",
+                  "name": "更多认证 Title",
+                  "fill": "$text-primary",
+                  "content": "更多认证",
+                  "fontFamily": "$font-body",
+                  "fontSize": 16,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "g8etf",
+                  "name": "职业认证 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "FKiMq",
+                      "name": "职业认证 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "QcMgV",
+                          "name": "职业认证 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "building-2",
+                          "library": "lucide",
+                          "fill": "$text-muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iHPt5",
+                      "name": "职业认证 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JIrbP",
+                          "name": "职业认证 Label",
+                          "fill": "$text-primary",
+                          "content": "职业认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "MTYM3",
+                          "name": "职业认证 Desc",
+                          "fill": "$text-muted",
+                          "content": "上传工牌/在职证明",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UWEM7",
+                      "name": "职业认证 Button",
+                      "fill": "$accent-soft",
+                      "cornerRadius": 12,
+                      "padding": [
+                        5,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "J52MF",
+                          "name": "职业认证 Btn Text",
+                          "fill": "$accent-dark",
+                          "content": "去认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n8S30D",
+                  "name": "房产认证 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Qpydl",
+                      "name": "房产认证 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "S4F1u",
+                          "name": "房产认证 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "house",
+                          "library": "lucide",
+                          "fill": "$gold"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "fRPMS",
+                      "name": "房产认证 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "G45iL",
+                          "name": "房产认证 Label",
+                          "fill": "$text-primary",
+                          "content": "房产认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "EfiOX",
+                          "name": "房产认证 Desc",
+                          "fill": "$text-muted",
+                          "content": "上传房产证或购房合同",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kMZZA",
+                      "name": "房产认证 Button",
+                      "fill": "$accent-soft",
+                      "cornerRadius": 12,
+                      "padding": [
+                        5,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "RCysG",
+                          "name": "房产认证 Btn Text",
+                          "fill": "$accent-dark",
+                          "content": "去认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "krveY",
+                  "name": "车辆认证 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "KFRgh",
+                      "name": "车辆认证 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "NVPg0",
+                          "name": "车辆认证 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "car",
+                          "library": "lucide",
+                          "fill": "$text-muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NKXEF",
+                      "name": "车辆认证 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "T5Jr5",
+                          "name": "车辆认证 Label",
+                          "fill": "$text-primary",
+                          "content": "车辆认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "LdMd2",
+                          "name": "车辆认证 Desc",
+                          "fill": "$text-muted",
+                          "content": "上传购车发票",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "j0DST",
+                      "name": "车辆认证 Button",
+                      "fill": "$accent-soft",
+                      "cornerRadius": 12,
+                      "padding": [
+                        5,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "N94SGJ",
+                          "name": "车辆认证 Btn Text",
+                          "fill": "$accent-dark",
+                          "content": "去认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "E1URz",
+                  "name": "收入认证 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "cm8M6",
+                      "name": "收入认证 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Vd97g",
+                          "name": "收入认证 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "banknote",
+                          "library": "lucide",
+                          "fill": "$text-muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "DXLYY",
+                      "name": "收入认证 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "X9EIq",
+                          "name": "收入认证 Label",
+                          "fill": "$text-primary",
+                          "content": "收入认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "d2e7Dt",
+                          "name": "收入认证 Desc",
+                          "fill": "$text-muted",
+                          "content": "上传收入证明或银行流水",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nSJIY",
+                      "name": "收入认证 Button",
+                      "fill": "$accent-soft",
+                      "cornerRadius": 12,
+                      "padding": [
+                        5,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LytD2",
+                          "name": "收入认证 Btn Text",
+                          "fill": "$accent-dark",
+                          "content": "去认证",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "y440o",
+              "name": "认证特权 Section",
+              "width": "fill_container",
+              "fill": "$bg-card",
+              "cornerRadius": "$radius-xl",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000008",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 18,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "U1xj42",
+                  "name": "认证特权 Title",
+                  "fill": "$text-primary",
+                  "content": "认证特权",
+                  "fontFamily": "$font-body",
+                  "fontSize": 16,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "tcM1q",
+                  "name": "专属标识 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "G7rB7",
+                      "name": "专属标识 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "i6JoM",
+                          "name": "专属标识 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "sparkles",
+                          "library": "lucide",
+                          "fill": "$accent-dark"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Swq8n",
+                      "name": "专属标识 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "zIzJh",
+                          "name": "专属标识 Title",
+                          "fill": "$text-primary",
+                          "content": "专属标识",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "S0lNFB",
+                          "name": "专属标识 Desc",
+                          "fill": "$text-muted",
+                          "content": "个人主页展示金色认证徽章",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "y0E1lc",
+                  "name": "优先推荐 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "XFubb",
+                      "name": "优先推荐 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "i7hZbZ",
+                          "name": "优先推荐 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "trending-up",
+                          "library": "lucide",
+                          "fill": "$accent-dark"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ukHqy",
+                      "name": "优先推荐 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "D374i",
+                          "name": "优先推荐 Title",
+                          "fill": "$text-primary",
+                          "content": "优先推荐",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "knekO",
+                          "name": "优先推荐 Desc",
+                          "fill": "$text-muted",
+                          "content": "首页推荐排名提升30%",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "l0vI8",
+                  "name": "无限畅聊 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uMHTn",
+                      "name": "无限畅聊 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "xR08z",
+                          "name": "无限畅聊 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "message-circle",
+                          "library": "lucide",
+                          "fill": "$accent-dark"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Si5Qg",
+                      "name": "无限畅聊 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "g5l8v",
+                          "name": "无限畅聊 Title",
+                          "fill": "$text-primary",
+                          "content": "无限畅聊",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "h8Omyu",
+                          "name": "无限畅聊 Desc",
+                          "fill": "$text-muted",
+                          "content": "认证后可解锁无限畅聊特权",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "T3DRI",
+                  "name": "安全保障 Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    4,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "RCAwr",
+                      "name": "安全保障 Icon BG",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "$bg-card-soft",
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Qp3hJ",
+                          "name": "安全保障 Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "shield",
+                          "library": "lucide",
+                          "fill": "$accent-dark"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "eEODF",
+                      "name": "安全保障 Text",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Y2xR5",
+                          "name": "安全保障 Title",
+                          "fill": "$text-primary",
+                          "content": "安全保障",
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "RP2LN",
+                          "name": "安全保障 Desc",
+                          "fill": "$text-muted",
+                          "content": "平台权益保障，投诉优先处理",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "Gj1dG",
+              "name": "Footer Tip",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "认证越多，信任度越高，匹配更精准",
+              "textAlign": "center",
+              "fontFamily": "$font-body",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
     }
   ],
   "variables": {
@@ -16798,6 +19244,46 @@
     "text-muted-2": {
       "type": "color",
       "value": "#C5C3BE"
+    },
+    "cream-bg": {
+      "type": "color",
+      "value": "#FAF7F0"
+    },
+    "border-green": {
+      "type": "color",
+      "value": "#DCE8D8"
+    },
+    "sage-mist": {
+      "type": "color",
+      "value": "#E2EBE0"
+    },
+    "accent-green-deep": {
+      "type": "color",
+      "value": "#627A5F"
+    },
+    "gradient-btn-start": {
+      "type": "color",
+      "value": "#D4E4D0"
+    },
+    "gradient-btn-end": {
+      "type": "color",
+      "value": "#BCD4B6"
+    },
+    "warm-cream": {
+      "type": "color",
+      "value": "#FBF6EF"
+    },
+    "gold-accent": {
+      "type": "color",
+      "value": "#C9A96E"
+    },
+    "bg-card-2": {
+      "type": "color",
+      "value": "#F8F9F6"
+    },
+    "warm-amber": {
+      "type": "color",
+      "value": "#E8CFA5"
     }
   },
   "fileToken": "b188d30c-35d6-40c1-b78b-d1a6bfd75973"
