@@ -1,307 +1,460 @@
 <template>
-	<view class="settings-page">
-		<view class="settings-list">
-			<!-- 账号信息 -->
-			<view class="section">
-				<view class="section-title">账号信息</view>
-				<view class="item" @click="navigateTo('/pages/user/edit')">
+	<view class="page">
+		<!-- 账号与安全 -->
+		<view class="section-card">
+			<text class="section-title">账号与安全</text>
+			<!-- 编辑资料 -->
+			<view class="item" @click="navigateTo('/pages/user/edit')">
+				<view class="icon-wrap">
+					<text class="icon-text">✏️</text>
+				</view>
+				<view class="text-wrap">
 					<text class="label">编辑资料</text>
-					<text class="arrow">›</text>
 				</view>
-				<view class="item" @click="navigateTo('/pages/profile/certification')">
+				<view class="right-wrap">
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+			<!-- 身份认证 -->
+			<view class="item" @click="navigateTo('/pages/profile/certification')">
+				<view class="icon-wrap icon-done">
+					<text class="icon-text">🛡</text>
+				</view>
+				<view class="text-wrap">
 					<text class="label">身份认证</text>
-					<view class="value-wrapper">
-						<text class="badge certified">已认证</text>
-						<text class="arrow">›</text>
-					</view>
 				</view>
-				<view class="item" @click="handleChangePhone">
+				<view class="right-wrap">
+					<view class="badge">
+						<text class="badge-text">已认证</text>
+					</view>
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+			<!-- 手机号 -->
+			<view class="item" @click="handleChangePhone">
+				<view class="icon-wrap">
+					<text class="icon-text">📱</text>
+				</view>
+				<view class="text-wrap">
 					<text class="label">手机号</text>
-					<view class="value-wrapper">
-						<text class="value text-muted">138****8888</text>
-						<text class="arrow">›</text>
-					</view>
 				</view>
-			</view>
-
-			<!-- 隐私设置 -->
-			<view class="section">
-				<view class="section-title">隐私设置</view>
-				<view class="item">
-					<text class="label">谁可以查看我的资料</text>
-					<view class="value-wrapper">
-						<text class="value text-muted">所有人</text>
-						<text class="arrow">›</text>
-					</view>
+				<view class="right-wrap">
+					<text class="value">138****8888</text>
+					<text class="arrow">‹</text>
 				</view>
-				<view class="item">
-					<text class="label">谁可以给我发消息</text>
-					<view class="value-wrapper">
-						<text class="value text-muted">所有人</text>
-						<text class="arrow">›</text>
-					</view>
-				</view>
-				<view class="item">
-					<text class="label">显示在线状态</text>
-					<switch :checked="showOnlineStatus" @change="onOnlineStatusChange" />
-				</view>
-			</view>
-
-			<!-- 通知设置 -->
-			<view class="section">
-				<view class="section-title">通知设置</view>
-				<view class="item">
-					<text class="label">接收新消息通知</text>
-					<switch :checked="receiveMessage" @change="onMessageNotifyChange" />
-				</view>
-				<view class="item">
-					<text class="label">接收匹配通知</text>
-					<switch :checked="receiveMatch" @change="onMatchNotifyChange" />
-				</view>
-				<view class="item">
-					<text class="label">接收活动通知</text>
-					<switch :checked="receiveActivity" @change="onActivityNotifyChange" />
-				</view>
-			</view>
-
-			<!-- 通用设置 -->
-			<view class="section">
-				<view class="section-title">通用</view>
-				<view class="item" @click="clearCache">
-					<text class="label">清除缓存</text>
-					<view class="value-wrapper">
-						<text class="value text-muted">128.5MB</text>
-						<text class="arrow">›</text>
-					</view>
-				</view>
-				<view class="item" @click="checkUpdate">
-					<text class="label">检查更新</text>
-					<view class="value-wrapper">
-						<text class="value text-muted">v1.0.0</text>
-						<text class="arrow">›</text>
-					</view>
-				</view>
-				<view class="item" @click="showAbout">
-					<text class="label">关于我们</text>
-					<text class="arrow">›</text>
-				</view>
-			</view>
-
-			<!-- 帮助与反馈 -->
-			<view class="section">
-				<view class="item" @click="showHelp">
-					<text class="label">帮助中心</text>
-					<text class="arrow">›</text>
-				</view>
-				<view class="item" @click="showFeedback">
-					<text class="label">意见反馈</text>
-					<text class="arrow">›</text>
-				</view>
-			</view>
-
-			<!-- 退出登录 -->
-			<view class="section">
-				<button class="logout-btn" @click="handleLogout">退出登录</button>
 			</view>
 		</view>
+
+		<!-- 隐私设置 -->
+		<view class="section-card">
+			<text class="section-title">隐私设置</text>
+			<view class="item" @click="handlePrivacy('profile')">
+				<view class="icon-wrap">
+					<text class="icon-text">👁</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">谁可以查看我的资料</text>
+				</view>
+				<view class="right-wrap">
+					<text class="value">{{ profilePrivacyLabel }}</text>
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+			<view class="item" @click="handlePrivacy('message')">
+				<view class="icon-wrap">
+					<text class="icon-text">💬</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">谁可以给我发消息</text>
+				</view>
+				<view class="right-wrap">
+					<text class="value">{{ messagePrivacyLabel }}</text>
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+			<view class="item">
+				<view class="icon-wrap">
+					<text class="icon-text">📶</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">显示在线状态</text>
+					<text class="desc">开启后，他人可以看到你的在线状态</text>
+				</view>
+				<switch :checked="showOnlineStatus" @change="onOnlineStatusChange" color="#7EC8A0" />
+			</view>
+		</view>
+
+		<!-- 通知设置 -->
+		<view class="section-card">
+			<text class="section-title">通知设置</text>
+			<view class="item">
+				<view class="icon-wrap">
+					<text class="icon-text">🔔</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">接收新消息通知</text>
+					<text class="desc">包括私信、系统通知等</text>
+				</view>
+				<switch :checked="receiveMessage" @change="onMessageNotifyChange" color="#7EC8A0" />
+			</view>
+			<view class="item">
+				<view class="icon-wrap">
+					<text class="icon-text">❤️</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">接收匹配通知</text>
+					<text class="desc">有人申请认识你时通知</text>
+				</view>
+				<switch :checked="receiveMatch" @change="onMatchNotifyChange" color="#7EC8A0" />
+			</view>
+			<view class="item">
+				<view class="icon-wrap">
+					<text class="icon-text">📅</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">接收活动通知</text>
+					<text class="desc">平台活动、牵线活动等提醒</text>
+				</view>
+				<switch :checked="receiveActivity" @change="onActivityNotifyChange" color="#7EC8A0" />
+			</view>
+		</view>
+
+		<!-- 通用设置 -->
+		<view class="section-card">
+			<text class="section-title">通用设置</text>
+			<view class="item" @click="clearCache">
+				<view class="icon-wrap">
+					<text class="icon-text">🗑</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">清除缓存</text>
+				</view>
+				<view class="right-wrap">
+					<text class="value">128.5MB</text>
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+			<view class="item" @click="checkUpdate">
+				<view class="icon-wrap">
+					<text class="icon-text">🔄</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">检查更新</text>
+				</view>
+				<view class="right-wrap">
+					<text class="value">{{ appVersion }}</text>
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+			<view class="item" @click="showAbout">
+				<view class="icon-wrap">
+					<text class="icon-text">ℹ️</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">关于我们</text>
+				</view>
+				<view class="right-wrap">
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 帮助与反馈 -->
+		<view class="section-card">
+			<text class="section-title">帮助与反馈</text>
+			<view class="item" @click="showHelp">
+				<view class="icon-wrap">
+					<text class="icon-text">🆘</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">帮助中心</text>
+				</view>
+				<view class="right-wrap">
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+			<view class="item" @click="showFeedback">
+				<view class="icon-wrap">
+					<text class="icon-text">📝</text>
+				</view>
+				<view class="text-wrap">
+					<text class="label">意见反馈</text>
+				</view>
+				<view class="right-wrap">
+					<text class="arrow">‹</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 退出登录 -->
+		<view class="section-card">
+			<view class="logout-btn" @click="handleLogout">
+				<text class="logout-text">退出登录</text>
+			</view>
+		</view>
+
+		<text class="footer-tip">宣誓爱 v1.0.0 — 为每一份真心寻找归宿</text>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import { logout } from '@/api'
+import { logout } from '@/api'
 
-	// 设置项状态
-	let showOnlineStatus = ref(true)
-	let receiveMessage = ref(true)
-	let receiveMatch = ref(true)
-	let receiveActivity = ref(false)
+// 设置项状态
+let showOnlineStatus = ref(true)
+let receiveMessage = ref(true)
+let receiveMatch = ref(true)
+let receiveActivity = ref(false)
 
-	// 在线状态开关
-	const onOnlineStatusChange = (e: SwitchChangeEvent) => {
-		showOnlineStatus.value = e.detail.value
-		// TODO: 调用接口保存设置
-		uni.showToast({
-			title: e.detail.value ? '已显示在线' : '已隐藏在线',
-			icon: 'none'
-		})
-	}
+// 隐私设置选项
+let profilePrivacy = ref('all')   // all | friends | only_me
+let messagePrivacy = ref('all')   // all | friends | certified
 
-	// 消息通知开关
-	const onMessageNotifyChange = (e: SwitchChangeEvent) => {
-		receiveMessage.value = e.detail.value
-		// TODO: 调用接口保存设置
-	}
+const profilePrivacyLabel = computed(() => {
+	const map: Record<string, string> = { all: '所有人', friends: '仅好友', only_me: '仅自己' }
+	return map[profilePrivacy.value] ?? '所有人'
+})
+const messagePrivacyLabel = computed(() => {
+	const map: Record<string, string> = { all: '所有人', friends: '仅好友', certified: '认证用户' }
+	return map[messagePrivacy.value] ?? '所有人'
+})
 
-	// 匹配通知开关
-	const onMatchNotifyChange = (e: SwitchChangeEvent) => {
-		receiveMatch.value = e.detail.value
-		// TODO: 调用接口保存设置
-	}
+const appVersion = computed(() => 'v1.0.0')
 
-	// 活动通知开关
-	const onActivityNotifyChange = (e: SwitchChangeEvent) => {
-		receiveActivity.value = e.detail.value
-		// TODO: 调用接口保存设置
-	}
+// 在线状态开关
+const onOnlineStatusChange = (e: SwitchChangeEvent) => {
+	showOnlineStatus.value = e.detail.value
+	// TODO: 调用接口保存设置
+	uni.showToast({
+		title: e.detail.value ? '已显示在线' : '已隐藏在线',
+		icon: 'none'
+	})
+}
 
-	// 导航到指定页面
-	const navigateTo = (url: string) => {
-		uni.navigateTo({ url })
-	}
+// 消息通知开关
+const onMessageNotifyChange = (e: SwitchChangeEvent) => {
+	receiveMessage.value = e.detail.value
+	// TODO: 调用接口保存设置
+}
 
-	// 修改手机号
-	const handleChangePhone = () => {
-		uni.showToast({
-			title: '功能开发中',
-			icon: 'none'
-		})
-	}
+// 匹配通知开关
+const onMatchNotifyChange = (e: SwitchChangeEvent) => {
+	receiveMatch.value = e.detail.value
+	// TODO: 调用接口保存设置
+}
 
-	// 清除缓存
-	const clearCache = () => {
-		uni.showModal({
-			title: '提示',
-			content: '确定要清除缓存吗？',
-			success: (res) => {
-				if (res.confirm) {
-					uni.showToast({
-						title: '清除成功',
-						icon: 'success'
-					})
-				}
+// 活动通知开关
+const onActivityNotifyChange = (e: SwitchChangeEvent) => {
+	receiveActivity.value = e.detail.value
+	// TODO: 调用接口保存设置
+}
+
+// 导航到指定页面
+const navigateTo = (url: string) => {
+	uni.navigateTo({ url })
+}
+
+// 隐私设置选择
+const handlePrivacy = (type: 'profile' | 'message') => {
+	const field = type === 'profile' ? '资料可见性' : '消息权限'
+	// TODO: 调用接口弹出选择器（如 Picker / ActionSheet）
+	uni.showToast({ title: field + '设置开发中', icon: 'none' })
+}
+
+// 修改手机号
+const handleChangePhone = () => {
+	// TODO: 实现手机号修改流程
+	uni.showToast({ title: '功能开发中', icon: 'none' })
+}
+
+// 清除缓存
+const clearCache = () => {
+	uni.showModal({
+		title: '提示',
+		content: '确定要清除缓存吗？',
+		success: (res) => {
+			if (res.confirm) {
+				uni.showToast({ title: '清除成功', icon: 'success' })
 			}
-		})
-	}
+		}
+	})
+}
 
-	// 检查更新
-	const checkUpdate = () => {
-		uni.showLoading({
-			title: '检查中...'
-		})
-		setTimeout(() => {
-			uni.hideLoading()
-			uni.showToast({
-				title: '已是最新版本',
-				icon: 'none'
-			})
-		}, 1500)
-	}
+// 检查更新
+const checkUpdate = () => {
+	uni.showLoading({ title: '检查中...' })
+	setTimeout(() => {
+		uni.hideLoading()
+		uni.showToast({ title: '已是最新版本', icon: 'none' })
+	}, 1500)
+}
 
-	// 关于我们
-	const showAbout = () => {
-		uni.showModal({
-			title: '关于宣誓爱',
-			content: '宣誓爱 v1.0.0\n真诚婚恋交友平台\n为每一份真心寻找归宿',
-			showCancel: false
-		})
-	}
+// 关于我们
+const showAbout = () => {
+	uni.showModal({
+		title: '关于宣誓爱',
+		content: '宣誓爱 v1.0.0\n真诚婚恋交友平台\n为每一份真心寻找归宿',
+		showCancel: false
+	})
+}
 
-	// 帮助中心
-	const showHelp = () => {
-		uni.showToast({
-			title: '功能开发中',
-			icon: 'none'
-		})
-	}
+// 帮助中心
+const showHelp = () => {
+	// TODO: 跳转帮助中心页面
+	uni.showToast({ title: '功能开发中', icon: 'none' })
+}
 
-	// 意见反馈
-	const showFeedback = () => {
-		uni.showToast({
-			title: '功能开发中',
-			icon: 'none'
-		})
-	}
+// 意见反馈
+const showFeedback = () => {
+	// TODO: 跳转意见反馈页面
+	uni.showToast({ title: '功能开发中', icon: 'none' })
+}
 
-	// 退出登录
-	const handleLogout = () => {
-		uni.showModal({
-			title: '提示',
-			content: '确定要退出登录吗？',
-			success: async (res) => {
-				if (res.confirm) {
-					await logout()
-					uni.reLaunch({
-						url: '/pages/auth/login'
-					})
-				}
+// 退出登录
+const handleLogout = () => {
+	uni.showModal({
+		title: '提示',
+		content: '确定要退出登录吗？',
+		success: async (res) => {
+			if (res.confirm) {
+				await logout()
+				uni.reLaunch({ url: '/pages/auth/login' })
 			}
-		})
-	}
+		}
+	})
+}
 </script>
 
 <style scoped>
-.settings-page {
+.page {
 	min-height: 100vh;
-	background: var(--canvas);
+	background-color: #FAF8F5;
+	padding: 32rpx;
 }
 
-.settings-list {
-	padding: 12px 0;
-}
-
-.section {
-	margin-bottom: 12px;
-	background: var(--surface);
+/* ---- 卡片（与 certification.uvue 一致） ---- */
+.section-card {
+	display: flex;
+	flex-direction: column;
+	gap: 28rpx;
+	padding: 32rpx;
+	background-color: #FFFFFF;
+	border-radius: 40rpx;
+	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.04);
+	margin-bottom: 28rpx;
 }
 
 .section-title {
-	padding: 16px 24px 8px;
-	font-size: 13px;
-	color: var(--muted);
+	font-size: 32rpx;
+	font-weight: 700;
+	color: #1A1A1A;
 }
 
+/* ---- 设置行 ---- */
 .item {
 	display: flex;
+	flex-direction: row;
 	align-items: center;
-	justify-content: space-between;
-	height: 52px;
-	padding: 0 24px;
-	border-bottom: 1px solid var(--line);
+	gap: 24rpx;
+	padding: 8rpx 0;
 }
 
-.section .item:last-child {
-	border-bottom: none;
+.icon-wrap {
+	width: 80rpx;
+	height: 80rpx;
+	border-radius: 40rpx;
+	background-color: #F5F9F2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.icon-wrap.icon-done {
+	background-color: #E8F5EE;
+}
+
+.icon-text {
+	font-size: 36rpx;
+}
+
+.text-wrap {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4rpx;
 }
 
 .label {
-	font-size: 15px;
-	color: var(--ink);
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #1A1A1A;
 }
 
-.value-wrapper {
+.desc {
+	font-size: 22rpx;
+	color: #A0B0A2;
+}
+
+.right-wrap {
 	display: flex;
+	flex-direction: row;
 	align-items: center;
-	gap: 8px;
+	gap: 12rpx;
+	flex-shrink: 0;
 }
 
 .value {
-	font-size: 14px;
+	font-size: 26rpx;
+	color: #A0B0A2;
 }
 
 .badge {
-	padding: 2px 8px;
-	border-radius: 999px;
-	font-size: 12px;
+	padding: 4rpx 16rpx;
+	border-radius: 24rpx;
+	background-color: #E8F5EE;
 }
 
-.badge.certified {
-	background: var(--sage-soft);
-	color: var(--sage);
+.badge-text {
+	font-size: 22rpx;
+	font-weight: 600;
+	color: #5BAF80;
 }
 
 .arrow {
-	font-size: 20px;
-	color: var(--muted);
+	font-size: 36rpx;
+	color: #C5C3BE;
+	font-weight: 300;
 }
 
+/* ---- Switch 样式 ---- */
+switch {
+	transform: scale(0.85);
+}
+
+/* ---- 退出登录 ---- */
 .logout-btn {
-	width: calc(100% - 48px);
-	height: 48px;
-	margin: 24px;
-	background: var(--surface);
-	color: var(--accent);
-	border: 1px solid var(--line);
-	border-radius: 8px;
-	font-size: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 88rpx;
+	border: 2rpx solid #7EC8A0;
+	border-radius: 24rpx;
+}
+
+.logout-text {
+	font-size: 30rpx;
+	font-weight: 600;
+	color: #7EC8A0;
+}
+
+/* ---- 底部提示 ---- */
+.footer-tip {
+	display: block;
+	text-align: center;
+	font-size: 24rpx;
+	color: #A0B0A2;
+	padding-bottom: 48rpx;
+	padding-top: 8rpx;
 }
 </style>
