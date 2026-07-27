@@ -553,7 +553,7 @@
 				<view class="vip-privilege-section">
 					<view class="vip-priv-header">
 						<text class="vip-priv-title">VIP会员专属特权</text>
-						<view class="vip-upgrade-btn">
+						<view class="vip-upgrade-btn" @tap="openVipPage">
 							<text class="ic ic-vip ic-huiyuan vip-upgrade-icon"></text>
 							<text class="vip-upgrade-text">立即开通</text>
 						</view>
@@ -597,22 +597,22 @@
 				<view class="vip-bottom-cta">
 					<text class="ic ic-home ic-star vip-cta-icon"></text><text class="vip-cta-title"> 升级VIP会员</text>
 					<text class="vip-cta-desc">解锁全部会员资料 · 无限牵线次数 · 优先展示曝光</text>
-					<view class="vip-price-row">
-						<view class="vip-price-opt">
+						<view class="vip-price-row">
+							<view class="vip-price-opt">
 							<text class="vip-price-period">7天</text>
 							<text class="vip-price-value">¥99</text>
 						</view>
-						<view class="vip-price-opt recommended">
+							<view class="vip-price-opt recommended">
 							<view class="vip-price-badge"><text class="vip-price-badge-text">推荐</text></view>
 							<text class="vip-price-period">30天</text>
 							<text class="vip-price-value">¥299</text>
 						</view>
-						<view class="vip-price-opt">
+							<view class="vip-price-opt">
 							<text class="vip-price-period">90天</text>
 							<text class="vip-price-value">¥799</text>
 						</view>
 					</view>
-					<view class="vip-cta-btn">
+					<view class="vip-cta-btn" @tap="openVipPage">
 						<text class="vip-cta-btn-text">立即开通VIP</text>
 					</view>
 					<text class="vip-cta-hint">付费即同意《会员服务协议》· 可随时取消</text>
@@ -628,7 +628,7 @@
 				</view>
 				<view class="chat-btn" @click="openApplyModal">
 					<text class="ic ic-home ic-hello chat-icon"></text>
-					<text class="chat-text">申请牵线</text>
+						<text class="chat-text">申请认识</text>
 				</view>
 				<view class="like-btn" @click="onLike(recommendUserId)">
 					<text class="ic ic-home ic-heart heart-icon"></text>
@@ -751,8 +751,13 @@
 	// ========== 导航 ==========
 	const currentTab = ref(0)
 	const navTabs = ['推荐', '广场', '会员专区']
-
 	const switchTab = (index: number) => { currentTab.value = index }
+	const openVipPage = () => {
+		uni.navigateTo({
+			url: '/pages/profile/vip',
+			fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) }
+		})
+	}
 	const onHistory = () => {}
 	const onSearch = () => {}
 

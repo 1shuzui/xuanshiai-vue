@@ -130,7 +130,7 @@ const onViewMyProfile = () => {
 }
 
 const onOpenVIP = () => {
-	uni.navigateTo({ url: '/pages/profile/vip' })
+	uni.navigateTo({ url: '/pages/profile/vip', fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) } })
 }
 
 const onMyTasks = () => {
