@@ -1,6 +1,6 @@
 # 宣誓爱项目 — CLAUDE.md
 
-本文件是 xuanshiai-vue/ 的开发导航和运行入口。实现约束以 AGENTS.md 为准；产品与设计参考以 PRODUCT.md、DESIGN.md 为准；最终需求决策以 ../最终版的文字需求/定版决策收口记录.md 为准。
+本文件是 xuanshiai-vue/ 的开发导航和运行入口。实现约束以 AGENTS.md 为准；产品与设计参考以 PRODUCT.md、DESIGN.md 为准。
 
 ## 1. 项目目录
 
@@ -21,11 +21,9 @@ xuanshiai-vue/
 ## 2. 推荐阅读顺序
 
 1. AGENTS.md：确认实现边界、保护文件和验证要求。
-2. ../最终版的文字需求/定版决策收口记录.md：确认本期与二期、认证、安全和商业化决策。
-3. 根目录 最终版的文字需求/ 内对应的页面文字、结构和截图材料。
-4. 相关 pages/、components/、api/、mock/ 源码。
-5. PRODUCT.md、DESIGN.md、uni.scss。
-6. docs/HOW_TO_RUN.md 与 docs/TROUBLESHOOTING.md。
+2. 相关 pages/、components/、api/、mock/ 源码。
+3. PRODUCT.md、DESIGN.md、uni.scss。
+4. docs/HOW_TO_RUN.md 与 docs/TROUBLESHOOTING.md。
 
 ## 3. 微信小程序运行与刷新
 
@@ -50,4 +48,4 @@ xuanshiai-vue/
 
 - AGENTS.md：可执行约束、保护文件与验证要求。
 - CLAUDE.md：目录导航、阅读顺序与运行入口。
-- PRODUCT.md、DESIGN.md：与定版决策记录保持一致的项目参考。
+- PRODUCT.md、DESIGN.md：项目产品与设计参考。
