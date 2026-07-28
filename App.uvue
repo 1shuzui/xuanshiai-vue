@@ -7,11 +7,11 @@
 		console.log('App Launch')
 	})
 
-	onAppShow(() => {
+	onShow(() => {
 		console.log('App Show')
 	})
 
-	onAppHide(() => {
+	onHide(() => {
 		console.log('App Hide')
 	})
 

@@ -37,7 +37,8 @@
 		const currentPage = pages[pages.length - 1]
 		if (currentPage != null) {
 			const route = currentPage.route != null ? String(currentPage.route) : ''
-			const idx = pageMap.get(route)
+			const normalizedRoute = route.indexOf('/') === 0 ? route.substring(1) : route
+			const idx = pageMap.get(normalizedRoute)
 			if (idx != null) {
 				currentIndex.value = idx
 			}
@@ -77,10 +78,10 @@
 	padding: 4px 0;
 }
 .tab-ic { font-size: 24px; }
-.tab-icon { color: #666666; }
-.tab-icon-active { color: #5A9D8E; }
-.tab-text { font-size: 10px; color: #666666; }
-.tab-text.active { color: #5A9D8E; font-weight: 600; }
+.tab-icon { color: #B4BAB6; transition: color 0.18s ease-out; }
+.tab-icon-active { color: #3F8C5A; transition: color 0.18s ease-out; }
+.tab-text { font-size: 10px; color: #9FA6A1; transition: color 0.18s ease-out; }
+.tab-text.active { color: #3F8C5A; font-weight: 800; }
 
 /* iconfont — 底部导航栏 */
 @font-face { font-family: "iconfont"; src: url('/static/底部导航栏/iconfont.woff2') format('woff2'), url('/static/底部导航栏/iconfont.woff') format('woff'), url('/static/底部导航栏/iconfont.ttf') format('truetype'); }
