@@ -230,7 +230,7 @@
 	})
 
 	const assessmentVersion = computed(() => {
-		return assessment.value != null ? assessment.value.version : 'mbti-core@1'
+		return assessment.value != null ? assessment.value.version : 'mbti-core@2'
 	})
 
 	const canStartAssessment = computed(() => {
@@ -242,7 +242,8 @@
 	const authorizationLabel = computed(() => {
 		if (assessment.value != null && assessment.value.authorization != null) {
 			const status = '' + assessment.value.authorization.status
-			if (status == 'verified' || status == 'approved') return '内容已审核'
+			if (status == 'approved') return '内容已授权'
+			if (status == 'verified') return '内容已审核'
 			if (status == 'rejected') return '内容不可用'
 		}
 		return '内容授权待审核'

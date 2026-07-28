@@ -2,7 +2,7 @@
 setlocal
 
 set "MINIPROGRAM_DIR=%~dp0unpackage\dist\dev\mp-weixin"
-set "WECHAT_CLI="
+set "WECHAT_CLI=D:\soft\wxkaifa\微信web开发者工具\cli.bat"
 
 if not exist "%MINIPROGRAM_DIR%\project.config.json" (
   echo Mini Program output was not found:
@@ -12,12 +12,9 @@ if not exist "%MINIPROGRAM_DIR%\project.config.json" (
   exit /b 1
 )
 
-for /f "delims=" %%F in ('where /r D:\ cli.bat 2^>nul') do (
-  echo %%F | findstr /i "web" >nul && set "WECHAT_CLI=%%F"
-)
-
-if not defined WECHAT_CLI (
-  echo WeChat DevTools CLI was not found under D:\.
+if not exist "%WECHAT_CLI%" (
+  echo WeChat DevTools CLI was not found at:
+  echo %WECHAT_CLI%
   pause
   exit /b 1
 )

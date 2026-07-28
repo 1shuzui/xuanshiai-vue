@@ -645,7 +645,10 @@
 	const acceptWelcomeAgreement = () => {
 		uni.setStorageSync('xsa_welcome_agreed', true)
 		welcomeAgreementVisible.value = false; welcomeVisible.value = false
-		uni.showTabBar({ animation: false })
+		uni.showTabBar({
+			animation: false,
+			fail: () => {}
+		})
 		uni.navigateTo({ url: '/pages/auth/login' })
 	}
 
@@ -795,8 +798,13 @@
 
 	onMounted(() => {
 		if (routeParentMode()) return
-		welcomeVisible.value = true
-		uni.hideTabBar({ animation: false })
+		welcomeVisible.value = uni.getStorageSync('xsa_welcome_agreed') != true
+		if (welcomeVisible.value) {
+			uni.hideTabBar({
+				animation: false,
+				fail: () => {}
+			})
+		}
 	})
 </script>
 

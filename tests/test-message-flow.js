@@ -84,6 +84,11 @@ for (const name of [
   'getMessageList',
   'getChatMessages',
   'sendMessage',
+  'uploadChatMedia',
+  'revokeMessage',
+  'getContactExchanges',
+  'createContactExchange',
+  'respondContactExchange',
   'getApplications',
   'handleApplication',
 ]) {
@@ -144,6 +149,10 @@ for (const name of [
   'handleMockApplication',
   'getMockChatMessages',
   'sendMockMessage',
+  'revokeMockMessage',
+  'getMockContactExchanges',
+  'createMockContactExchange',
+  'respondMockContactExchange',
 ]) {
   assert.strictEqual(typeof mock[name], 'function', `${name} should be executable`)
 }
@@ -246,6 +255,41 @@ assert.strictEqual(mock.getMockChatMessages(1).length, beforeSendCount + 1, 'ide
 const blockedSend = mock.sendMockMessage(9999, '不能越过门禁', 'text', 'blocked-message-1')
 assert.strictEqual(blockedSend.success, false, 'sending to an unapproved conversation must fail closed')
 
+const revokeFailureMessage = firstSend.message.id
+mock.failNextMockMessageOperation('revokeMessage')
+const failedRevoke = mock.revokeMockMessage(revokeFailureMessage, 'revoke-message-1')
+assert.strictEqual(failedRevoke.success, false, 'failed revoke should be observable')
+assert.ok(
+  mock.getMockChatMessages(1).some((message) => message.id === revokeFailureMessage && message.revoked !== true),
+  'failed revoke must preserve the original message',
+)
+const revoked = mock.revokeMockMessage(revokeFailureMessage, 'revoke-message-1')
+assert.strictEqual(revoked.success, true, 'own sent message can be revoked')
+const duplicateRevoke = mock.revokeMockMessage(revokeFailureMessage, 'revoke-message-1')
+assert.strictEqual(duplicateRevoke.success, true, 'revoke retry should be idempotent')
+assert.ok(
+  mock.getMockChatMessages(1).some((message) => message.id === revokeFailureMessage && message.content === '消息已撤回'),
+  'successful revoke should replace visible content',
+)
+
+mock.resetMockMessageState()
+const pendingExchanges = mock.getMockContactExchanges(1)
+assert.strictEqual(pendingExchanges.success, true, 'accepted chat permission can read contact exchange state')
+assert.strictEqual(pendingExchanges.list[0].contactValue, null, 'pending contact values must remain hidden')
+mock.failNextMockMessageOperation('createContactExchange')
+const failedContactCreate = mock.createMockContactExchange(1, 'wechat', 'xsa_contact_01', 'contact-create-1')
+assert.strictEqual(failedContactCreate.success, false, 'contact create failure should remain observable')
+const contactCreate = mock.createMockContactExchange(1, 'wechat', 'xsa_contact_01', 'contact-create-1')
+assert.strictEqual(contactCreate.success, true, 'contact request should be creatable after chat permission')
+assert.strictEqual(contactCreate.exchange.contactValue, null, 'requester cannot read a pending submitted value')
+const initialIncomingExchange = pendingExchanges.list[0]
+mock.failNextMockMessageOperation('respondContactExchange')
+const failedContactResponse = mock.respondMockContactExchange(initialIncomingExchange.id, 'accept', 'contact-accept-1')
+assert.strictEqual(failedContactResponse.success, false, 'contact response failure should preserve pending state')
+const acceptedContact = mock.respondMockContactExchange(initialIncomingExchange.id, 'accept', 'contact-accept-1')
+assert.strictEqual(acceptedContact.success, true, 'receiver can explicitly accept a contact request')
+assert.strictEqual(acceptedContact.exchange.contactValue, 'xsa_mock_suwanqing', 'accepted contact becomes visible to both parties')
+
 // Message center contract.
 assert.ok(fs.existsSync(messageCenterPath), 'reusable XsaMessageCenter component should exist')
 assert.ok(fs.existsSync(applicationTabsPath), 'reusable XsaApplicationTabs component should exist')
@@ -330,7 +374,10 @@ includes(chatPage, "res.code == 'CHAT_NOT_ALLOWED'", 'detail and send failures c
 assert.match(chatPage, /message\.status\s*=\s*'failed'/, 'failed sends should update only their own message state')
 excludes(chatPage, 'Math.random()', 'random auto replies')
 excludes(chatPage, '自动回复', 'demo auto reply')
-excludes(chatPage, 'uni.chooseImage', 'local-only image fake success')
+includes(chatPage, 'uni.chooseImage', 'image action should select a file for upload')
+includes(chatPage, 'sendMediaFile', 'selected media should enter the upload-and-send flow')
+includes(chatPage, 'uploadChatMedia', 'media messages should use the upload API before send')
+includes(apiSource, 'Mock 模式不上传本地媒体', 'mock media upload must fail explicitly instead of fake sending')
 excludes(chatPage, '@click="chooseImage"', 'album action without an upload-and-send flow')
 excludes(chatPage, '@click="takePhoto"', 'camera action without an upload-and-send flow')
 excludes(chatPage, '@click="sendVoice"', 'voice action without a send flow')

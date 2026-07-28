@@ -50,7 +50,12 @@ assert.ok(
   'entry and send-time permission checks must carry the subject',
 )
 includes(chatDetail, "isParentMode.value ? 'protected' : 'standard',\n\t\t\t\tsubject", 'chat history carries subject')
-includes(chatDetail, 'message.clientMessageId,\n\t\t\t\tsubject', 'chat send carries subject after client message id')
+assert.match(
+  chatDetail,
+  /message\.clientMessageId,\s+subject,\s+message\.mediaId/,
+  'chat send carries subject and media binding after client message id',
+)
+includes(chatDetail, 'message.mediaId != null ? Number(message.mediaId) : null', 'chat send binds an uploaded media ID when present')
 includes(chatDetail, ':parent-mode="isParentMode"', 'chat report sheet receives the parent-mode boundary')
 includes(chatDetail, ':parent-context="activeParentContext"', 'chat report sheet receives the verified parent context')
 includes(chatDetail, 'activeParentContext.value = context', 'verified parent context is retained for safety actions')
@@ -237,8 +242,8 @@ assert.ok(
   'permission, history, send-time permission and send use the subject-aware 401 handler',
 )
 assert.ok(
-  (chatDetail.match(/if \(isUnauthorizedResponse\(res\)\)/g) || []).length >= 2,
-  'feature unlock reads and writes clear chat state on normalized 401 responses',
+  !chatDetail.includes('ensureChatFeatureUnlocked'),
+  'removed points unlock flows must not remain in the chat page',
 )
 
 // Cloud failures reject, while the message API converts them back to the same

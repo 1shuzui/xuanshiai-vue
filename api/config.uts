@@ -1,15 +1,15 @@
 /**
  * API 配置文件
  *
- * 🔧 当前 FastAPI 联调状态：USE_MOCK = false
- * 🧪 需要全局 Mock 演示时才改为 true；消息、父母端、情感实验室另有模块开关
+ * 🧪 当前端侧回归使用 USE_MOCK = true
+ * 🚀 完成真实接口联调后才改为 false，并配置可达的 API_BASE_URL
  */
 
 // ⚠️ 唯一需要修改的开关：启用/禁用 Mock 数据
-// 当前关 Mock 联调中；切换状态时同时确认下方 API_BASE_URL 和各模块开关
+// 端侧 UI 回归保持 true；关闭前同时确认下方 API_BASE_URL 和各模块开关
 // 不要只靠关 Mock 宣称生产完成
 // 本机真联调（临时）：false + :8001；勿当作生产完成
-export const USE_MOCK = false
+export const USE_MOCK = true
 
 // FastAPI 服务根地址（不含 /api/v1）
 // 本机联调示例：http://127.0.0.1:8000

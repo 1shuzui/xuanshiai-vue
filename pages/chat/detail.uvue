@@ -59,12 +59,13 @@
 							@click="openPeerProfile"
 						></image>
 
-						<view class="bubble-column" :class="{ mine: message.isMine }">
-							<view class="message-bubble" :class="message.type">
-								<view class="protected-content" v-if="isParentMode && message.protectedContent">
-									<text class="protected-content-text">内容已保护</text>
-								</view>
-								<text class="text-content" v-else-if="message.type === 'text'">{{ message.content }}</text>
+							<view class="bubble-column" :class="{ mine: message.isMine }">
+								<view class="message-bubble" :class="message.type">
+									<text class="revoked-content" v-if="message.revoked == true">消息已撤回</text>
+									<view class="protected-content" v-else-if="isParentMode && message.protectedContent">
+										<text class="protected-content-text">内容已保护</text>
+									</view>
+									<text class="text-content" v-else-if="message.type === 'text'">{{ message.content }}</text>
 								<image
 									class="image-content"
 									:src="message.content"
@@ -72,17 +73,26 @@
 									@click="previewImage(message.content)"
 									v-else-if="message.type === 'image'"
 								></image>
-								<view class="voice-content" v-else-if="message.type === 'voice'">
-									<text class="icon">🔊</text>
-									<text class="duration">{{ message.duration }}''</text>
+									<view class="voice-content" v-else-if="message.type === 'voice'">
+										<audio class="voice-player" :src="message.content" controls></audio>
+									</view>
+									<video class="video-content" :src="message.content" controls v-else-if="message.type === 'video'"></video>
 								</view>
-							</view>
+								<text
+									v-if="!isParentMode && message.isMine && message.id > 0 && message.status == 'sent' && message.revoked != true"
+									class="revoke-action"
+									@click="requestRevokeMessage(message)"
+								>撤回</text>
 							<text class="message-status text-muted" v-if="message.isMine && message.status === 'sending'">发送中...</text>
-							<text
-								class="message-status failed"
-								v-else-if="message.isMine && message.status === 'failed'"
-								@click="retryFailedMessage(message)"
-							>{{ message.errorMessage != null && message.errorMessage != '' ? message.errorMessage + '，点击重试' : '发送失败，点击重试' }}</text>
+								<text
+									class="message-status failed"
+									v-else-if="message.isMine && message.status === 'failed' && message.type !== 'text' && message.mediaId == null"
+								>{{ message.errorMessage != null && message.errorMessage != '' ? message.errorMessage + '，请重新选择媒体' : '媒体上传失败，请重新选择媒体' }}</text>
+								<text
+									class="message-status failed retryable"
+									v-else-if="message.isMine && message.status === 'failed'"
+									@click="retryFailedMessage(message)"
+								>{{ message.errorMessage != null && message.errorMessage != '' ? message.errorMessage + '，点击重试' : '发送失败，点击重试' }}</text>
 						</view>
 
 						<view class="avatar protected-avatar" v-if="message.isMine && isParentMode">
@@ -116,8 +126,24 @@
 				</view>
 
 				<view class="more-actions" v-if="showMore">
-					<view class="menu-grid">
-						<view class="menu-item" @click="openChatReport">
+						<view class="menu-grid">
+							<view class="menu-item" v-if="!isParentMode" @click="chooseChatImage">
+								<view class="menu-icon">▧</view>
+								<text class="menu-text">图片</text>
+							</view>
+							<view class="menu-item" v-if="!isParentMode" @click="chooseChatVideo">
+								<view class="menu-icon">▷</view>
+								<text class="menu-text">视频</text>
+							</view>
+							<view class="menu-item" v-if="!isParentMode" @click="toggleVoiceRecording">
+								<view class="menu-icon">{{ voiceRecording ? '■' : '◉' }}</view>
+								<text class="menu-text">{{ voiceRecording ? '结束录音' : '语音' }}</text>
+							</view>
+							<view class="menu-item" v-if="!isParentMode" @click="openContactExchange">
+								<view class="menu-icon">⌁</view>
+								<text class="menu-text">联系方式</text>
+							</view>
+							<view class="menu-item" @click="openChatReport">
 							<view class="menu-icon">⚑</view>
 							<text class="menu-text">举报</text>
 						</view>
@@ -126,7 +152,7 @@
 			</view>
 		</template>
 
-		<XsaReportSheet
+			<XsaReportSheet
 			:visible="reportVisible"
 			target-type="chatUser"
 			:target-id="userId"
@@ -135,14 +161,46 @@
 			:parent-mode="isParentMode"
 			:parent-context="activeParentContext"
 			@close="reportVisible = false"
-			@reported="reportVisible = false"
-		/>
-	</view>
+				@reported="reportVisible = false"
+			/>
+
+			<XsaSheet :visible="contactVisible" title="联系方式交换" @close="closeContactExchange">
+				<view class="contact-sheet">
+					<text class="contact-note">双方已同意认识。对方明确确认前，不会显示你提交的联系方式。</text>
+					<view class="contact-type-row">
+						<button class="contact-type" :class="{ selected: contactType == 'phone' }" @click="contactType = 'phone'">手机号</button>
+						<button class="contact-type" :class="{ selected: contactType == 'wechat' }" @click="contactType = 'wechat'">微信号</button>
+					</view>
+					<input v-if="contactType == 'wechat'" class="contact-input" :value="contactValue" @input="onContactValueInput" placeholder="输入你的微信号" maxlength="64" />
+					<text v-else class="contact-phone-hint">将使用当前账号已绑定的手机号</text>
+					<button class="contact-send" :disabled="contactSubmitting" @click="submitContactExchange">{{ contactSubmitting ? '正在发送...' : '发起交换请求' }}</button>
+					<text v-if="contactError != ''" class="contact-error">{{ contactError }}</text>
+					<view class="contact-loading" v-if="contactLoading">
+						<text>正在读取联系方式状态...</text>
+					</view>
+					<view class="contact-list" v-else-if="contactExchanges.length > 0">
+						<view class="contact-card" v-for="exchange in contactExchanges" :key="exchange.id">
+							<view class="contact-card-copy">
+								<text class="contact-card-title">{{ exchange.contactType == 'phone' ? '手机号' : '微信号' }}</text>
+								<text class="contact-card-status">{{ contactExchangeStatus(exchange) }}</text>
+								<text v-if="exchange.status == 'accepted' && exchange.contactValue" class="contact-value">{{ exchange.contactValue }}</text>
+							</view>
+							<view class="contact-card-actions" v-if="exchange.status == 'pending' && exchange.requestedByMe != true">
+								<button class="contact-reject" :disabled="contactSubmitting" @click="respondToContactExchange(exchange, 'reject')">拒绝</button>
+								<button class="contact-accept" :disabled="contactSubmitting" @click="respondToContactExchange(exchange, 'accept')">确认</button>
+							</view>
+							<button v-if="exchange.status == 'accepted' && exchange.contactValue" class="contact-copy" @click="copyContactValue(exchange.contactValue)">复制</button>
+						</view>
+					</view>
+				</view>
+			</XsaSheet>
+		</view>
 </template>
 
 <script setup lang="uts">
 	import XsaButton from '@/components/XsaButton.uvue'
 	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
+	import XsaSheet from '@/components/XsaSheet.uvue'
 	import type { MessageSubject, ParentContext } from '@/api'
 	import {
 		getChatMessages,
@@ -150,8 +208,11 @@
 		getParentAccessGate,
 		getParentContext,
 		sendMessage as sendMessageApi,
-		getChatFeatureUnlocks,
-		unlockChatFeature
+		uploadChatMedia,
+		revokeMessage,
+		getContactExchanges,
+		createContactExchange,
+		respondContactExchange
 	} from '@/api'
 
 	const messages = ref([] as any[])
@@ -162,7 +223,6 @@
 	const chatError = ref('')
 	const userId = ref(0)
 	const reportVisible = ref(false)
-	const chatFeatureUnlocks = ref({ profile: false } as any)
 	const chatAllowed = ref(false)
 	const initialMode = uni.getStorageSync('xsa_onboarding_mode')
 	const roleMode = ref(initialMode != null && String(initialMode) == 'parent' ? 'parent' : 'self')
@@ -173,6 +233,14 @@
 	const permissionLoading = ref(true)
 	const permissionError = ref('双方同意后才能开始聊天')
 	const sendingText = ref(false)
+	const voiceRecording = ref(false)
+	const contactVisible = ref(false)
+	const contactLoading = ref(false)
+	const contactSubmitting = ref(false)
+	const contactError = ref('')
+	const contactType = ref('phone')
+	const contactValue = ref('')
+	const contactExchanges = ref([] as any[])
 	let clientMessageSequence = 0
 	let permissionRequestSequence = 0
 	let historyRequestSequence = 0
@@ -182,9 +250,11 @@
 	let deliveryAttemptSequence = 0
 	let textSendAttemptSequence = 0
 	let activeTextSendAttempt = 0
+	let voiceRecorder: any = null
+	let discardVoiceRecording = false
 
 	onMounted(() => {
-		if (!isParentMode.value) loadChatFeatureUnlocks()
+		setupVoiceRecorder()
 		const pages = getCurrentPages()
 		const currentPage = pages[pages.length - 1]
 		const options = currentPage.options
@@ -199,6 +269,14 @@
 
 	onShow(() => {
 		if (userId.value > 0) verifyChatPermission()
+	})
+
+	onUnmounted(() => {
+		if (voiceRecorder != null && voiceRecording.value) {
+			discardVoiceRecording = true
+			voiceRecorder.stop()
+		}
+		voiceRecording.value = false
 	})
 
 	const responseMessage = (res: any, fallback: string): string => {
@@ -231,8 +309,14 @@
 		loading.value = false
 		chatError.value = ''
 		chatAllowed.value = false
-		reportVisible.value = false
-		sendingText.value = false
+			reportVisible.value = false
+			contactVisible.value = false
+			contactLoading.value = false
+			contactSubmitting.value = false
+			contactError.value = ''
+			contactValue.value = ''
+			contactExchanges.value = []
+			sendingText.value = false
 		activeTextSendAttempt = 0
 		permissionLoading.value = false
 		if (clearSubject) {
@@ -260,21 +344,6 @@
 		if (requestSubjectKey != subjectKey(activeMessageSubject.value)) return false
 		clearChatSensitiveState(responseMessage(res, '登录状态已失效，请重新登录'), true)
 		return true
-	}
-
-	const loadChatFeatureUnlocks = async () => {
-		try {
-			const res = await getChatFeatureUnlocks()
-			if (isUnauthorizedResponse(res)) {
-				clearChatSensitiveState(responseMessage(res, '登录状态已失效，请重新登录'), true)
-				return
-			}
-			if (res != null && res.success && res.data != null) {
-				chatFeatureUnlocks.value = res.data as any
-			}
-		} catch (error) {
-			console.error('获取聊天功能解锁状态失败', error)
-		}
 	}
 
 	const fetchParentRoleAccess = async (requestEpoch: number): Promise<boolean> => {
@@ -502,6 +571,7 @@
 					isMine: message.isMine,
 					avatar: isParentMode.value ? '' : (message.senderAvatar != null ? message.senderAvatar : message.avatar),
 					protectedContent: protectedContent,
+					revoked: message.revoked == true,
 					status: message.isMine == true ? 'sent' : '',
 					subjectKey: requestSubjectKey
 				}
@@ -636,8 +706,9 @@
 				userId.value,
 				message.content,
 				message.type,
-				message.clientMessageId,
-				subject
+					message.clientMessageId,
+					subject,
+					message.mediaId != null ? Number(message.mediaId) : null
 			)
 			if (handleSubjectUnauthorizedResponse(res, expectedSubjectKey)) return
 			if (!isDeliveryAttemptCurrent(message, attemptId, expectedVersion, expectedSubjectKey)) return
@@ -695,12 +766,227 @@
 		}
 	}
 
-	const retryFailedMessage = async (message: any) => {
-		if (message.status !== 'failed' || !chatAllowed.value) return
-		await deliverMessage(message)
-	}
+		const retryFailedMessage = async (message: any) => {
+			if (message.status !== 'failed' || !chatAllowed.value) return
+			await deliverMessage(message)
+		}
 
-	const previewImage = (url: string) => {
+		const sendMediaFile = async (filePath: string, type: string) => {
+			if (isParentMode.value || !chatAllowed.value || filePath == '') return
+			const subject = activeMessageSubject.value
+			if (subject == null) return
+			closeMoreMenu()
+			const message = {
+				id: 0,
+				clientMessageId: createClientMessageId(),
+				type: type,
+				content: filePath,
+				mediaId: null,
+				time: getCurrentTime(),
+				showTime: false,
+				isMine: true,
+				avatar: '/static/portraits/profile-man-light.jpg',
+				status: 'sending',
+				errorMessage: '',
+				subjectKey: subjectKey(subject)
+			}
+			messages.value.push(message)
+			scrollToBottom()
+			let uploadRes: any = null
+			try {
+				uploadRes = await uploadChatMedia(userId.value, filePath, subject)
+			} catch (error) {
+				message.status = 'failed'
+				message.errorMessage = '媒体上传失败'
+				return
+			}
+			if (uploadRes == null || uploadRes.success != true || uploadRes.data == null || Number(uploadRes.data.id) <= 0) {
+				message.status = 'failed'
+				message.errorMessage = responseMessage(uploadRes, '媒体上传失败')
+				return
+			}
+			message.mediaId = Number(uploadRes.data.id)
+			if (uploadRes.data.url != null && '' + uploadRes.data.url != '') message.content = '' + uploadRes.data.url
+			message.status = 'queued'
+			await deliverMessage(message)
+		}
+
+		const chooseChatImage = () => {
+			if (isParentMode.value) return
+			uni.chooseImage({
+				count: 1,
+				sizeType: ['compressed'],
+				sourceType: ['album', 'camera'],
+				success: (res: any) => {
+					const paths = res != null ? res.tempFilePaths : null
+					if (paths != null && paths.length > 0) sendMediaFile('' + paths[0], 'image')
+				}
+			})
+		}
+
+		const chooseChatVideo = () => {
+			if (isParentMode.value) return
+			uni.chooseVideo({
+				sourceType: ['album', 'camera'],
+				compressed: true,
+				success: (res: any) => {
+					const path = res != null && res.tempFilePath != null ? '' + res.tempFilePath : ''
+					if (path != '') sendMediaFile(path, 'video')
+				}
+			})
+		}
+
+		const setupVoiceRecorder = () => {
+			// #ifdef MP-WEIXIN
+			voiceRecorder = uni.getRecorderManager()
+			voiceRecorder.onStop((res: any) => {
+				voiceRecording.value = false
+				if (discardVoiceRecording) {
+					discardVoiceRecording = false
+					return
+				}
+				const path = res != null && res.tempFilePath != null ? '' + res.tempFilePath : ''
+				if (path != '') sendMediaFile(path, 'voice')
+			})
+			voiceRecorder.onError(() => {
+				voiceRecording.value = false
+				uni.showToast({ title: '录音失败，请检查麦克风权限', icon: 'none' })
+			})
+			// #endif
+		}
+
+		const toggleVoiceRecording = () => {
+			if (isParentMode.value) return
+			// #ifdef MP-WEIXIN
+			if (voiceRecorder == null) {
+				uni.showToast({ title: '录音功能暂不可用', icon: 'none' })
+				return
+			}
+			if (voiceRecording.value) {
+				voiceRecorder.stop()
+			} else {
+				discardVoiceRecording = false
+				voiceRecording.value = true
+				voiceRecorder.start({ duration: 60000, format: 'mp3' })
+			}
+			// #endif
+			// #ifndef MP-WEIXIN
+			uni.showToast({ title: '请在微信小程序中使用录音', icon: 'none' })
+			// #endif
+		}
+
+		const contactCommandId = (operation: string, id: number = 0): string => {
+			return 'contact-' + operation + '-' + id + '-' + Date.now() + '-' + createClientMessageId()
+		}
+
+		const loadContactExchanges = async () => {
+			if (isParentMode.value || !chatAllowed.value) return
+			const subject = activeMessageSubject.value
+			if (subject == null) return
+			contactLoading.value = true
+			contactError.value = ''
+			try {
+				const res = await getContactExchanges(userId.value, subject)
+				if (res != null && res.success == true && Array.isArray(res.data)) {
+					contactExchanges.value = res.data
+					return
+				}
+				contactError.value = responseMessage(res, '联系方式状态加载失败')
+			} catch (error) {
+				contactError.value = '联系方式状态加载失败'
+			} finally {
+				contactLoading.value = false
+			}
+		}
+
+		const openContactExchange = () => {
+			if (isParentMode.value) return
+			closeMoreMenu()
+			contactVisible.value = true
+			loadContactExchanges()
+		}
+
+		const closeContactExchange = () => {
+			contactVisible.value = false
+			contactError.value = ''
+		}
+
+		const onContactValueInput = (event: InputEvent) => {
+			contactValue.value = event.detail.value
+		}
+
+		const contactExchangeStatus = (exchange: any): string => {
+			if (exchange.status == 'accepted') return '已确认，双方可见'
+			if (exchange.status == 'rejected') return '对方未同意'
+			return exchange.requestedByMe == true ? '等待对方确认' : '等待你的确认'
+		}
+
+		const submitContactExchange = async () => {
+			if (contactSubmitting.value || isParentMode.value) return
+			const subject = activeMessageSubject.value
+			if (subject == null) return
+			contactSubmitting.value = true
+			contactError.value = ''
+			try {
+				const res = await createContactExchange(
+					userId.value, contactType.value, contactValue.value.trim(), contactCommandId('create'), subject
+				)
+				if (res == null || res.success != true) {
+					contactError.value = responseMessage(res, '联系方式请求发送失败')
+					return
+				}
+				contactValue.value = ''
+				await loadContactExchanges()
+			} finally {
+				contactSubmitting.value = false
+			}
+		}
+
+		const respondToContactExchange = async (exchange: any, action: string) => {
+			if (contactSubmitting.value || exchange == null || isParentMode.value) return
+			const subject = activeMessageSubject.value
+			if (subject == null) return
+			contactSubmitting.value = true
+			contactError.value = ''
+			try {
+				const res = await respondContactExchange(Number(exchange.id), action, contactCommandId(action, Number(exchange.id)), subject)
+				if (res == null || res.success != true) {
+					contactError.value = responseMessage(res, '联系方式请求处理失败')
+					return
+				}
+				await loadContactExchanges()
+			} finally {
+				contactSubmitting.value = false
+			}
+		}
+
+		const copyContactValue = (value: string) => {
+			uni.setClipboardData({ data: value, success: () => uni.showToast({ title: '已复制', icon: 'success' }) })
+		}
+
+		const requestRevokeMessage = (message: any) => {
+			if (isParentMode.value || message == null || message.id <= 0 || message.revoked == true) return
+			uni.showModal({
+				title: '撤回消息',
+				content: '撤回后对方将看到“消息已撤回”。',
+				confirmText: '确认撤回',
+				success: async (result: any) => {
+					if (result == null || result.confirm != true) return
+					const subject = activeMessageSubject.value
+					if (subject == null) return
+					const res = await revokeMessage(Number(message.id), 'revoke-' + message.id + '-' + Date.now(), subject)
+					if (res != null && res.success == true) {
+						message.revoked = true
+						message.type = 'text'
+						message.content = '消息已撤回'
+						return
+					}
+					uni.showToast({ title: responseMessage(res, '撤回失败，请重试'), icon: 'none' })
+				}
+			})
+		}
+
+		const previewImage = (url: string) => {
 		const images = messages.value
 			.filter((message: any) => message.type === 'image')
 			.map((message: any) => message.content)
@@ -715,43 +1001,6 @@
 		showMore.value = false
 	}
 
-	const ensureChatFeatureUnlocked = (
-		feature: string,
-		label: string,
-		action: () => void
-	) => {
-		if (chatFeatureUnlocks.value[feature] == true) {
-			action()
-			return
-		}
-		uni.showModal({
-			title: '解锁' + label,
-			content: '使用' + label + '需要消耗80积分，确认解锁吗？',
-			confirmText: '80积分解锁',
-				success: async (modalRes: any) => {
-				if (modalRes == null || modalRes.confirm != true) return
-					try {
-						const res = await unlockChatFeature(feature)
-						if (isUnauthorizedResponse(res)) {
-							clearChatSensitiveState(responseMessage(res, '登录状态已失效，请重新登录'), true)
-							return
-						}
-						const data = res != null ? res.data : null
-					if (res != null && res.success && data != null && data.success == true) {
-						chatFeatureUnlocks.value[feature] = true
-						uni.showToast({ title: '已消耗80积分解锁', icon: 'success' })
-						action()
-						return
-					}
-					const message = data != null && data.message != null ? data.message : '解锁失败，请稍后再试'
-					uni.showToast({ title: message, icon: 'none' })
-				} catch (error) {
-					uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' })
-				}
-			}
-		})
-	}
-
 	const openPeerProfile = () => {
 		if (userId.value <= 0) {
 			uni.showToast({ title: '暂时无法获取对方资料', icon: 'none' })
@@ -761,9 +1010,7 @@
 			uni.navigateTo({ url: '/pages/parent/user-detail?id=' + userId.value })
 			return
 		}
-		ensureChatFeatureUnlocked('profile', '查看对方主页', () => {
 			uni.navigateTo({ url: '/pages/user/detail?userId=' + userId.value })
-		})
 	}
 
 	const openChatReport = () => {
@@ -880,6 +1127,22 @@
 
 	.message-status { margin-top: 4px; font-size: 11px; }
 	.message-status.failed { color: var(--accent2); }
+	.message-status.retryable { text-decoration: underline; }
+
+	.revoked-content {
+		display: block;
+		font-size: 13px;
+		line-height: 1.5;
+		color: var(--muted);
+	}
+
+	.revoke-action {
+		min-height: 32px;
+		margin-top: 2px;
+		font-size: 11px;
+		line-height: 32px;
+		color: var(--muted);
+	}
 
 	.image-content {
 		display: block;
@@ -888,9 +1151,13 @@
 		border-radius: 8px;
 	}
 
-	.voice-content { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 80px; }
-	.voice-content .icon { font-size: 18px; }
-	.voice-content .duration { font-size: 14px; }
+	.message-bubble.image,
+	.message-bubble.voice,
+	.message-bubble.video { padding: 4px; }
+
+	.voice-content { display: flex; flex-direction: row; align-items: center; min-width: 160px; }
+	.voice-player { width: 180px; height: 40px; }
+	.video-content { display: block; width: 220px; height: 160px; border-radius: 8px; }
 
 	.input-bar {
 		background: var(--surface);
@@ -958,7 +1225,112 @@
 		font-size: 28px;
 	}
 
-		.menu-text { font-size: 12px; color: var(--ink2); }
+	.menu-text { font-size: 12px; color: var(--ink2); }
+
+	.contact-sheet {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding-bottom: 8px;
+	}
+
+	.contact-note,
+	.contact-phone-hint,
+	.contact-error,
+	.contact-loading > text,
+	.contact-card-status {
+		font-size: 13px;
+		line-height: 1.5;
+		color: var(--muted);
+	}
+
+	.contact-type-row,
+	.contact-card,
+	.contact-card-actions {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.contact-type-row { width: 100%; }
+
+	.contact-type {
+		flex: 1;
+		height: 40px;
+		background: var(--paper);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		font-size: 14px;
+		color: var(--ink2);
+	}
+
+	.contact-type.selected {
+		background: var(--accent-bg);
+		border-color: var(--accent);
+		color: var(--accent2);
+		font-weight: 700;
+	}
+
+	.contact-input {
+		box-sizing: border-box;
+		width: 100%;
+		height: 44px;
+		padding: 0 12px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		font-size: 14px;
+		color: var(--ink);
+	}
+
+	.contact-send,
+	.contact-accept,
+	.contact-reject,
+	.contact-copy {
+		height: 40px;
+		padding: 0 12px;
+		border-radius: 8px;
+		font-size: 13px;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+
+	.contact-send,
+	.contact-accept {
+		background: var(--accent);
+		color: var(--text-invert);
+	}
+
+	.contact-send { width: 100%; }
+	.contact-reject,
+	.contact-copy {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		color: var(--ink2);
+	}
+
+	.contact-send[disabled],
+	.contact-accept[disabled],
+	.contact-reject[disabled] { opacity: 0.55; }
+	.contact-error { color: var(--accent2); }
+	.contact-loading { padding: 8px 0; text-align: center; }
+	.contact-list { display: flex; flex-direction: column; gap: 8px; }
+
+	.contact-card {
+		box-sizing: border-box;
+		width: 100%;
+		padding: 12px;
+		background: var(--paper);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		flex-wrap: wrap;
+	}
+
+	.contact-card-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+	.contact-card-title,
+	.contact-value { font-size: 14px; line-height: 1.45; color: var(--ink); }
+	.contact-value { overflow-wrap: anywhere; }
 
 		.chat-page.parent-mode .state-title { font-size: 20px; }
 

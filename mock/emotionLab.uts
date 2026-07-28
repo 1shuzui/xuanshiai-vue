@@ -1,7 +1,12 @@
 /**
  * 情感实验室 MBTI 领域 Mock。
- * 正式题库在授权审核通过前保持为空，以下逻辑仅处理稳定快照、答案校验与计分契约。
+ * 已授权题库与正式题库使用同一稳定 ID、极性和 1-7 级量表；Mock 仅替代存储与传输。
  */
+
+import {
+  createMockMbtiQuestionBank,
+  MOCK_MBTI_RESULT_SUMMARIES
+} from './mbtiQuestionBank.uts'
 
 export const MBTI_TYPES: string[] = [
   'ENFJ', 'ENFP', 'ENTJ', 'ENTP',
@@ -10,10 +15,9 @@ export const MBTI_TYPES: string[] = [
   'ISFJ', 'ISFP', 'ISTJ', 'ISTP'
 ]
 
-const CURRENT_RESULT_COPY_VERSION = 'mbti-result-copy@1'
+const CURRENT_RESULT_COPY_VERSION = 'mbti-result-copy@2'
 const RESULT_COPY_BY_VERSION: any = {
-  'mbti-result-copy@1': {
-    summary: '四个字母记录你在四组维度上的当前偏好，不代表能力高低或固定人格。',
+  'mbti-result-copy@2': {
     disclaimer: '结果仅用于自我了解，不构成心理诊断或专业建议。'
   }
 }
@@ -25,24 +29,23 @@ export const MBTI_RESULT_COPY: any = {
 
 export const mockMbtiAssessmentDefinition: any = {
   id: 'mbti-core',
-  version: 'mbti-core@1',
+  version: 'mbti-core@2',
   kind: 'mbti',
   title: 'MBTI 基础维度测试',
   authorization: {
-    status: 'unverified',
-    label: '内容授权待审核',
+    status: 'approved',
+    label: '内容已授权',
     reviewedAt: null
   },
-  canStart: false,
-  questionCount: 0,
-  scale: { min: 1, max: 5 },
+  canStart: true,
+  questionCount: 60,
+  scale: { min: 1, max: 7 },
   dimensions: ['EI', 'SN', 'TF', 'JP'],
   tieBreak: 'first_pole',
   resultCopyVersion: MBTI_RESULT_COPY.version
 }
 
-// 未经审核的题文不得进入客户端包。
-export const mockMbtiQuestionBank: any[] = []
+export const mockMbtiQuestionBank: any[] = createMockMbtiQuestionBank()
 
 export const EMOTION_LAB_STORAGE_PREFIX = 'xsa_emotion_lab_state_v1:'
 const CURRENT_SESSION_SCHEMA_VERSION = 2
@@ -422,7 +425,9 @@ function resultCopyFor(type: string, version: string): any {
   return {
     version: version,
     title: type + ' · MBTI 偏好结果',
-    summary: copy.summary,
+    summary: MOCK_MBTI_RESULT_SUMMARIES[type] != null
+      ? MOCK_MBTI_RESULT_SUMMARIES[type]
+      : '四个字母记录你在四组维度上的当前偏好，不代表能力高低或固定人格。',
     disclaimer: copy.disclaimer
   }
 }

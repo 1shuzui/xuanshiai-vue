@@ -34,7 +34,7 @@ const response = await getRecommendUser()
 |---|---:|---|
 | `MESSAGE_USE_MOCK` | `true` | 会话、收到/发出申请、处理申请、聊天权限、全部已读与消息幂等完成真实接口联调 |
 | `PARENT_USE_MOCK` | `true` | 真实父母/子女关系、关联子女业务主体、双主体认证、授权有效期和照片隐私字段完成后端授权校验 |
-| `EMOTION_LAB_USE_MOCK` | `true` | MBTI 定义/会话/资料同步接口完成，且生产题库已确认商用授权和版本 |
+| `EMOTION_LAB_USE_MOCK` | `true` | FastAPI 的 MBTI 定义/会话/资料同步接口已实现；关闭前完成可达环境、鉴权、会话持久化与资料同步联调 |
 
 模块开关关闭后请求失败必须返回失败，不能使用 `mockFallback` 或页面本地假数据继续伪造成功。
 
@@ -62,7 +62,7 @@ Mock 与真实接口至少对齐字段名、类型、分页、状态码、错误
 | `user.uts` | 推荐、广场、详情、我的资料；`likeUser` / `applyToMeet` 已 Mock+HTTP 双路径（social like / discovery applications） |
 | `message.uts` | 会话/申请分页、聊天权限、全部已读、聊天记录、发送与失败重试；当前 `MESSAGE_USE_MOCK=true`，真实消息接口待联调 |
 | `parent.uts` | 父母上下文、单子女资料、推荐、喜欢、申请与隐私裁剪；当前 `PARENT_USE_MOCK=true`，真实关系主体未联调 |
-| `emotionLab.uts` | MBTI 摘要、固定会话快照、保存/提交、手动类型和资料来源；当前题库 `unverified`，未打包外部题文 |
+| `emotionLab.uts` | MBTI 摘要、固定会话快照、保存/提交、手动类型和资料来源；当前使用已授权的 60 题 `mbti-core@2` 快照与 1–7 级量表，Mock 仅替代离线存储与传输 |
 | `community.uts` | 动态列表（tab/filter 分页 `list+hasMore`；关注 all 真路径并集）、详情、删帖/删评、话题、纸飞机收发/我的、活动、Banner、通知、配额、发布/评论、点赞/收藏/关注/取关、举报/拉黑、同城城市；`USE_MOCK=false` 时走 FastAPI |
 | `matchmaker.uts` | 服务红娘、志愿红娘、AI 推荐、套餐、预约 |
 

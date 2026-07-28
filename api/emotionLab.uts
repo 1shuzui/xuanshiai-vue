@@ -103,7 +103,7 @@ export type SetMyMbtiTypePayload = {
   resultId?: string
 }
 
-// 本切片没有已接入的正式题库后端；保留真实接口路径，审核与联调完成后切换。
+// 已授权题库与 FastAPI 契约均已就绪；当前保留 Mock 以支持端侧离线浏览，完成环境联调后再切换。
 export const EMOTION_LAB_USE_MOCK = true
 
 function readEmotionLabStorage(key: string): any {

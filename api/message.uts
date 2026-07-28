@@ -4,6 +4,7 @@
  */
 
 import { request } from './request.uts'
+import { buildApiUrl, getAccessToken } from './config.uts'
 import {
   getMockConversationPage,
   getMockApplicationPage,
@@ -11,7 +12,11 @@ import {
   markAllMockMessagesRead,
   handleMockApplication,
   getMockChatMessages,
-  sendMockMessage
+  sendMockMessage,
+  revokeMockMessage,
+  getMockContactExchanges,
+  createMockContactExchange,
+  respondMockContactExchange
 } from '@/mock/message.uts'
 
 /** 消息切片独立使用可变 Mock，避免受全局联调开关影响。 */
@@ -421,6 +426,17 @@ function messageSubjectFailure(subjectContext: any): any {
   return failResponse(subjectContext.message, subjectContext.code)
 }
 
+/** Parent acting-subject APIs remain Mock-only until their audited backend exists. */
+function parentBackendUnavailable(subjectContext: any): any | null {
+  if (!MESSAGE_USE_MOCK && subjectContext.mode == 'parent') {
+    return failResponse(
+      '父母端消息后端尚未开放，不能代子女使用普通用户接口',
+      'PARENT_BACKEND_NOT_AVAILABLE'
+    )
+  }
+  return null
+}
+
 function effectivePrivacyScope(privacyScope: string, subjectContext: any): string {
   return subjectContext.mode == 'parent' ? 'protected' : privacyScope
 }
@@ -481,6 +497,8 @@ export async function getConversationPage(
 ) {
   const subjectContext = resolveMessageSubject(subject)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
   const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
   const size = normalizedPageSize(pageSize)
   if (MESSAGE_USE_MOCK) {
@@ -517,6 +535,8 @@ export async function getApplicationPage(
 ) {
   const subjectContext = resolveMessageSubject(subject)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
   const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
   if (direction != 'incoming' && direction != 'outgoing') {
     return failResponse('不支持的申请方向', 'INVALID_APPLICATION_DIRECTION')
@@ -556,6 +576,8 @@ export async function getApplicationPage(
 export async function getChatPermission(userId: number, subject: MessageSubject | null = null) {
   const subjectContext = resolveMessageSubject(subject)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
   if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
   if (MESSAGE_USE_MOCK) {
     const permission = getMockChatPermission(userId, subjectContext.key)
@@ -587,6 +609,8 @@ export async function getChatPermission(userId: number, subject: MessageSubject 
 export async function markAllMessagesRead(subject: MessageSubject | null = null) {
   const subjectContext = resolveMessageSubject(subject)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
   if (MESSAGE_USE_MOCK) {
     return protectSubjectResponse(
       normalizeCommandResponse(
@@ -683,13 +707,22 @@ export async function sendMessage(
   content: string,
   type: string = 'text',
   clientMessageId: string = '',
-  subject: MessageSubject | null = null
+  subject: MessageSubject | null = null,
+  mediaId: number | null = null
 ) {
   const subjectContext = resolveMessageSubject(subject)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
   if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (type != 'text' && type != 'image' && type != 'voice' && type != 'video') {
+    return failResponse('不支持的消息类型', 'INVALID_MESSAGE_TYPE')
+  }
   if (typeof content != 'string' || (type == 'text' && content.trim() == '')) {
     return failResponse('消息内容不能为空', 'EMPTY_MESSAGE')
+  }
+  if (type != 'text' && (!isPositiveInteger(mediaId != null ? mediaId : 0) || content.trim() != '')) {
+    return failResponse('媒体消息必须引用已上传媒体且不能附带文本', 'INVALID_MEDIA_MESSAGE')
   }
   if (clientMessageId == null || clientMessageId.trim() == '') {
     return failResponse('缺少消息唯一标识', 'CLIENT_MESSAGE_ID_REQUIRED')
@@ -717,6 +750,9 @@ export async function sendMessage(
     )
   }
   if (MESSAGE_USE_MOCK) {
+    if (type != 'text') {
+      return failResponse('Mock 模式不上传本地媒体，请切换真实后端后重试', 'MOCK_MEDIA_UPLOAD_NOT_SUPPORTED')
+    }
     const result = sendMockMessage(userId, content, type, resolvedClientMessageId, subjectContext.key)
     if (result.success != true) {
       return protectSubjectResponse(failResponse(result.message, result.code, result), subjectContext)
@@ -733,7 +769,8 @@ export async function sendMessage(
     userId: userId,
     content: content,
     type: type,
-    clientMessageId: resolvedClientMessageId
+    clientMessageId: resolvedClientMessageId,
+    mediaId: type == 'text' ? null : mediaId
   }
   appendMessageSubject(requestData, subjectContext)
   const normalized = normalizeBusinessResponse(await messageRequest({
@@ -755,6 +792,8 @@ export async function getApplications(
 ) {
   const subjectContext = resolveMessageSubject(subject)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
   const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
   if (MESSAGE_USE_MOCK) {
     const incoming = getMockApplicationPage('incoming', '', 50, subjectContext.key)
@@ -775,6 +814,174 @@ export async function getApplications(
   )
 }
 
+function validCommandId(value: string, label: string): any {
+  const id = value != null ? value.trim() : ''
+  if (id == '') return failResponse('缺少' + label + '唯一标识', 'CLIENT_COMMAND_ID_REQUIRED')
+  if (id.length > 128) return failResponse(label + '唯一标识过长', 'INVALID_CLIENT_COMMAND_ID')
+  return id
+}
+
+/** Uploads a real chat attachment and returns its backend media ID. */
+export async function uploadChatMedia(
+  userId: number,
+  filePath: string,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (filePath == null || filePath.trim() == '') return failResponse('请选择要发送的媒体', 'EMPTY_FILE')
+  if (MESSAGE_USE_MOCK) {
+    return failResponse('Mock 模式不上传本地媒体，请切换真实后端后重试', 'MOCK_MEDIA_UPLOAD_NOT_SUPPORTED')
+  }
+  const permissionRes = await getChatPermission(userId, subject)
+  if (permissionRes == null || permissionRes.success != true || permissionRes.data == null || permissionRes.data.canChat != true) {
+    return permissionRes != null ? permissionRes : failResponse('聊天权限检查失败', 'CHAT_PERMISSION_FAILED')
+  }
+  const token = getAccessToken()
+  return await new Promise<any>((resolve) => {
+    uni.uploadFile({
+      url: buildApiUrl('/message/media/uploads'),
+      filePath: filePath,
+      name: 'file',
+      formData: { peerUserId: '' + userId },
+      header: token != '' ? { Authorization: 'Bearer ' + token } : {},
+      success: (res: any) => {
+        let data: any = null
+        try {
+          data = JSON.parse('' + res.data)
+        } catch (error) {
+          resolve(failResponse('上传响应解析失败', 'INVALID_UPLOAD_RESPONSE'))
+          return
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300 && data != null && isPositiveInteger(Number(data.id))) {
+          resolve(okResponse({
+            id: Number(data.id),
+            mediaType: data.mediaType != null ? data.mediaType : data.media_type,
+            url: data.url != null ? data.url : data.file_url
+          }))
+          return
+        }
+        const detail = data != null && data.detail != null ? '' + data.detail : '媒体上传失败，请重试'
+        resolve(failResponse(detail, res.statusCode))
+      },
+      fail: () => resolve(failResponse('媒体上传失败，请检查网络', 'UPLOAD_FAILED'))
+    })
+  })
+}
+
+export async function revokeMessage(
+  messageId: number,
+  clientCommandId: string,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(messageId)) return failResponse('无效的消息', 'INVALID_MESSAGE_ID')
+  const commandId = validCommandId(clientCommandId, '撤回操作')
+  if (typeof commandId != 'string') return commandId
+  if (MESSAGE_USE_MOCK) {
+    const result = revokeMockMessage(messageId, commandId, subjectContext.key)
+    return result.success == true ? okResponse(result) : failResponse(result.message, result.code, result)
+  }
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/messages/' + messageId,
+    method: 'DELETE',
+    data: { clientCommandId: commandId }
+  }))
+  return normalizeCommandResponse(normalized, '撤回消息响应无效', 'INVALID_REVOKE_RESPONSE')
+}
+
+export async function getContactExchanges(
+  userId: number,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (MESSAGE_USE_MOCK) {
+    const result = getMockContactExchanges(userId, subjectContext.key)
+    return result.success == true ? okResponse(result.list) : failResponse(result.message, result.code, result)
+  }
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/contact-exchanges', method: 'GET', data: { userId: userId }
+  }))
+  if (normalized == null || normalized.success != true) return normalized
+  const data = businessData(normalized)
+  if (data == null || !Array.isArray(data.list)) return failResponse('联系方式响应无效', 'INVALID_CONTACT_RESPONSE', data)
+  return okResponse(data.list)
+}
+
+export async function createContactExchange(
+  userId: number,
+  contactType: string,
+  contactValue: string,
+  clientCommandId: string,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (contactType != 'phone' && contactType != 'wechat') return failResponse('不支持的联系方式类型', 'INVALID_CONTACT_TYPE')
+  const commandId = validCommandId(clientCommandId, '联系方式操作')
+  if (typeof commandId != 'string') return commandId
+  if (MESSAGE_USE_MOCK) {
+    const result = createMockContactExchange(userId, contactType, contactValue, commandId, subjectContext.key)
+    return result.success == true ? okResponse(result.exchange) : failResponse(result.message, result.code, result)
+  }
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/contact-exchanges', method: 'POST', data: {
+      userId: userId, contactType: contactType, contactValue: contactValue, clientCommandId: commandId
+    }
+  }))
+  if (normalized == null || normalized.success != true) return normalized
+  return okResponse(businessData(normalized))
+}
+
+export async function respondContactExchange(
+  exchangeId: number,
+  action: string,
+  clientCommandId: string,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(exchangeId)) return failResponse('无效的联系方式请求', 'INVALID_CONTACT_EXCHANGE')
+  if (action != 'accept' && action != 'reject') return failResponse('不支持的处理方式', 'INVALID_ACTION')
+  const commandId = validCommandId(clientCommandId, '联系方式操作')
+  if (typeof commandId != 'string') return commandId
+  if (MESSAGE_USE_MOCK) {
+    const result = respondMockContactExchange(exchangeId, action, commandId, subjectContext.key)
+    return result.success == true ? okResponse(result.exchange) : failResponse(result.message, result.code, result)
+  }
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/contact-exchanges/' + exchangeId + '/respond', method: 'POST',
+    data: { action: action, clientCommandId: commandId }
+  }))
+  if (normalized == null || normalized.success != true) return normalized
+  return okResponse(businessData(normalized))
+}
+
+/** Compatibility alias retained for callers of the former placeholder export. */
+export async function handleContactExchangeRequest(
+  exchangeId: number,
+  action: string,
+  clientCommandId: string,
+  subject: MessageSubject | null = null
+) {
+  return respondContactExchange(exchangeId, action, clientCommandId, subject)
+}
+
 /** 处理收到的申请；稳定命令 ID 防止重试造成重复状态变更。 */
 export async function handleApplication(
   applicationId: number,
@@ -784,6 +991,8 @@ export async function handleApplication(
 ) {
   const subjectContext = resolveMessageSubject(subject)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
   if (!isPositiveInteger(applicationId)) return failResponse('无效的申请', 'INVALID_APPLICATION')
   if (action != 'accept' && action != 'reject') return failResponse('不支持的处理方式', 'INVALID_ACTION')
   if (clientCommandId == null || clientCommandId.trim() == '') {

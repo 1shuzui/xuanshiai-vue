@@ -3,7 +3,7 @@
 > 更新日期：2026-07-26
 > 用途：防止文档把占位实现、Mock 或历史配置描述成已完成生产能力。
 
-## 父母端、消息与情感实验室首期（2026-07-26）
+## 父母端、消息与情感实验室首期（2026-07-28）
 
 - `pages.json` 按本次明确授权只新增 `pages/parent/parent`、`pages/parent/user-detail`、`pages/emotion-lab/emotion-lab` 三个路由；普通用户原生五 Tab、`manifest.json`、`uniCloud-aliyun/` 未因本切片调整。
 - 父母身份使用独立单页四面板：**首页 / 牵线 / 消息 / 我的**。首期仅一名已授权子女，申请认识同时校验父母实名、子女授权及授权有效期；父母端不展示社区、情感实验室、联系人交换、多人子女、会员支付或未落地购买入口。
@@ -12,8 +12,8 @@
 - 普通用户消息页与父母端共用 `XsaMessageCenter`、`XsaApplicationTabs`、`XsaConversationList`。申请分收到/发出分页，待处理数只统计收到且 `pending`；会话入口和聊天详情均重新检查双方同意权限，失败时保持原状态并提供重试。父母模式所有消息调用显式绑定关联子女主体，Mock 状态按主体隔离；申请处理使用命令幂等键，protected 数据递归脱敏，云函数 reject 归一保留 `code/message/data`，401 或授权失效时清除登录凭据和页面旧数据。
 - 父母候选详情、喜欢和申请在真实关系接口完成前固定使用 `parent:<childId>` 内部 Mock scope，红娘列表也显式选择内部 Mock；全局 `USE_MOCK=false` 时不会误调用普通用户真实业务接口，不同子女主体的可变状态互不共享。
 - 父母申请成功后的剩余次数会写回当前上下文与模块 Mock 上下文，页面刷新不重置；父母 Mock 聊天中的举报/屏蔽走父母安全适配器并显示“内部演示”，不会误作用于普通用户真实关系。
-- 情感实验室首期仅 MBTI：介绍、答题、结果、手动设置在单页内切换；结果只含四维、类型、版本化说明和非心理诊断声明。Mock 草稿、结果及“我的资料”MBTI 来源按账号分区持久化，明确确认后才同步；资料编辑页通过统一摘要接口读取确认值并从 MBTI 行进入实验室。外部 demo 题库尚未确认商用授权，生产题库保持 `unverified` 且不打包外部题文，手动设置仍可用。
-- `MESSAGE_USE_MOCK=true`、`PARENT_USE_MOCK=true`、`EMOTION_LAB_USE_MOCK=true` 是显式模块边界。客户端 `MessageSubject.childId` 只表达业务主体，不构成授权；真实服务端必须从登录会话校验父母关系、子女授权和资源所有权。真实父母/子女关系主体、消息后端和获授权题库未联调前，不得把本切片描述为生产闭环。
+- 情感实验室首期仅 MBTI：介绍、答题、结果、手动设置在单页内切换；结果只含四维、类型、版本化说明和非心理诊断声明。Mock 草稿、结果及“我的资料”MBTI 来源按账号分区持久化，明确确认后才同步；资料编辑页通过统一摘要接口读取确认值并从 MBTI 行进入实验室。题库现使用已授权、经审校的 60 题 `mbti-core@2` 快照，采用稳定 ID、极性和 1–7 级量表；不迁入 demo UI 或其他人格体系。
+- `MESSAGE_USE_MOCK=true`、`PARENT_USE_MOCK=true`、`EMOTION_LAB_USE_MOCK=true` 是显式模块边界。普通用户消息与 MBTI FastAPI 路由已在后端源码实现，但当前端侧仍使用 Mock 以保证离线可浏览；关闭开关前必须完成可达环境、鉴权、数据库初始化和失败状态联调。客户端 `MessageSubject.childId` 只表达业务主体，不构成授权；真实服务端必须从登录会话校验父母关系、子女授权和资源所有权。真实父母/子女关系主体仍不在本期后端范围。
 - 本切片源码尚未用 HBuilderX 重新编译 `mp-weixin`，也未完成微信开发者工具和 320/375/390/428px 端侧回归；旧 `unpackage` 产物不能作为验收证据。
 
 ## 媒体与互动扩展（2026-07-26）
@@ -33,7 +33,7 @@
   - 发现：`全部 / MBTI / 校友 / 同乡`（TOPIC 面板仅在「发现·全部」）
 - 已有 `Xsa*` 组件含 `XsaDynamicCard`、`XsaApplySheet`、`XsaReportSheet` 等；实名门槛见 `utils/realNameGate.uts`（`passed|missing|reviewing|rejected`，兼容 pending/failed）。
 - 认证门槛：常规社区互动、申请认识、参与话题 / 带话题发布均仅要求实名通过；双重认证仅作展示加分。
-- 已有 `api/` 与 `mock/` 分层；**社区 API 已支持 Mock / FastAPI 双路径**（`config.uts` + `request.uts` HTTP Bearer + `community.uts` map*）；当前工作树全局 `USE_MOCK = false` 用于 HTTP 联调，但消息、父母端、情感实验室仍由各自模块开关走 Mock。
+- 已有 `api/` 与 `mock/` 分层；**社区 API 已支持 Mock / FastAPI 双路径**（`config.uts` + `request.uts` HTTP Bearer + `community.uts` map*）；当前工作树全局 `USE_MOCK = true` 用于端侧 Mock 浏览，消息、父母端、情感实验室仍由各自模块开关走 Mock。
 - 申请认识：`applyToMeet` Mock 幂等（重复申请 `success:false`）；**真路径** `POST /discovery/applications/{id}` + 刷新 quotas；409 → failRes。喜欢用户：`likeUser` 真路径 `PUT|DELETE /users/{id}/like`，likes 列表 `page_size≤50` 分页预检。
 - 社区 API 另导出：删帖/删评/取关/我的纸飞机；关注 Tab「全部」真路径 **`mode=following_and_liked`**（关注∪用户级喜欢，BE 分页；原客户端假并集已撤）。
 - **联调总账：** [`COMMUNITY_HTTP_CHANGELOG.md`](./COMMUNITY_HTTP_CHANGELOG.md)；**对抗审查：** [`COMMUNITY_ADVERSARIAL_REVIEW.md`](./COMMUNITY_ADVERSARIAL_REVIEW.md)。

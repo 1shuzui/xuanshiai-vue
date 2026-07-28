@@ -15,7 +15,7 @@
 					:key="role.key"
 					class="role-card"
 					:class="role.tone"
-					@click="chooseRole(role.key)"
+					@tap="chooseRole(role.key)"
 				>
 					<view class="role-icon" :class="role.iconTone"><text>{{ role.icon }}</text></view>
 					<view class="role-copy">

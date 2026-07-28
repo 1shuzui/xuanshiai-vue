@@ -44,6 +44,7 @@
 
 <script setup lang="uts">
 	import { USE_MOCK, API_BASE_URL, API_PREFIX, setAuthTokens } from '@/api/config.uts'
+	import { loginByPhone } from '@/api/auth.uts'
 
 	const authLoading = ref(false)
 
@@ -157,7 +158,24 @@
 	}
 
 	const handleDebugLogin = async () => {
-		// 仅调试入口：关 Mock 时用 mock 短信换 token；Mock 开启时直接进首页
+		// Mock 模式也必须建立稳定的演示主体，不能只跳转页面。
+		if (USE_MOCK) {
+			authLoading.value = true
+			const result = await loginByPhone('13800001001', '123456')
+			authLoading.value = false
+			if (result == null || result.success != true) {
+				uni.showToast({ title: '调试登录失败，请重试', icon: 'none' })
+				return
+			}
+			uni.setStorageSync('xsa_login_agreed', true)
+			uni.showToast({ title: '已进入演示账号', icon: 'success' })
+			setTimeout(() => {
+				routeAfterLogin(true)
+			}, 300)
+			return
+		}
+
+		// 关 Mock 联调时用 mock 短信换 token。
 		if (!USE_MOCK) {
 			authLoading.value = true
 			const ok = await loginWithMockSms('13800001001')
@@ -172,10 +190,13 @@
 				}, 400)
 			return
 		}
-		routeAfterLogin()
 	}
 
-	const handleFirstLogin = () => {
+	const handleFirstLogin = async () => {
+		if (USE_MOCK) {
+			await handleDebugLogin()
+			return
+		}
 		uni.navigateTo({ url: '/pages/onboarding/profile' })
 	}
 

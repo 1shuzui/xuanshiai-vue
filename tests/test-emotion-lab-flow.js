@@ -4,6 +4,7 @@ const path = require('path')
 
 const root = path.resolve(__dirname, '..')
 const mockPath = path.join(root, 'mock/emotionLab.uts')
+const questionBankPath = path.join(root, 'mock/mbtiQuestionBank.uts')
 const apiPath = path.join(root, 'api/emotionLab.uts')
 const apiIndexPath = path.join(root, 'api/index.uts')
 const pagePath = path.join(root, 'pages/emotion-lab/emotion-lab.uvue')
@@ -31,7 +32,7 @@ function fixtureDefinition() {
     questionCount: 8,
     scale: { min: 1, max: 5 },
     dimensions: ['EI', 'SN', 'TF', 'JP'],
-    resultCopyVersion: 'mbti-result-copy@1'
+    resultCopyVersion: 'mbti-result-copy@2'
   }
 }
 
@@ -91,16 +92,25 @@ function stripUtsAnnotations(source) {
     })
 }
 
-async function loadUtsModule(filePath) {
+async function loadUtsSource(source) {
   moduleSequence += 1
-  const source = stripUtsAnnotations(fs.readFileSync(filePath, 'utf8')) +
+  const transformed = stripUtsAnnotations(source) +
     `\n// isolated test module ${moduleSequence}\n`
-  const encoded = Buffer.from(source).toString('base64')
+  const encoded = Buffer.from(transformed).toString('base64')
   return import(`data:text/javascript;base64,${encoded}`)
 }
 
+async function loadUtsModule(filePath) {
+  return loadUtsSource(fs.readFileSync(filePath, 'utf8'))
+}
+
 async function loadMockModule() {
-  return loadUtsModule(mockPath)
+  const questionBank = fs.readFileSync(questionBankPath, 'utf8')
+  const emotionLab = fs.readFileSync(mockPath, 'utf8').replace(
+    /import\s+\{[\s\S]*?\}\s+from\s+'\.\/mbtiQuestionBank\.uts'\s*/,
+    ''
+  )
+  return loadUtsSource(questionBank + '\n' + emotionLab)
 }
 
 function createMemoryStorage() {
@@ -123,6 +133,7 @@ function openFixtureAssessment(lab, questions) {
   lab.mockMbtiAssessmentDefinition.authorization.label = '内容已审核'
   lab.mockMbtiAssessmentDefinition.canStart = true
   lab.mockMbtiAssessmentDefinition.questionCount = questions.length
+  lab.mockMbtiAssessmentDefinition.scale = { min: 1, max: 5 }
   lab.mockMbtiQuestionBank.splice(0, lab.mockMbtiQuestionBank.length, ...questions)
 }
 
@@ -174,7 +185,7 @@ async function run() {
   globalThis.uni.setStorageSync = workingSetStorageSync
 
   for (const declaration of [
-    'export const mockMbtiQuestionBank: any[] = []',
+    'export const mockMbtiQuestionBank: any[] = createMockMbtiQuestionBank()',
     'let storageAdapter: any = null',
     'let subjectResolver: any = null',
     'let profileWriter: any = null',
@@ -194,6 +205,10 @@ async function run() {
   ]) {
     assert.ok(mock.includes(declaration), `mock should use the UTS-safe declaration ${declaration}`)
   }
+  const questionBank = fs.readFileSync(questionBankPath, 'utf8')
+  assert.ok(questionBank.includes("'mbti-16p-001'"), 'approved bank should retain stable string IDs')
+  assert.ok(questionBank.includes("'mbti-16p-060'"), 'approved bank should contain all 60 questions')
+  assert.ok(questionBank.includes('direction: row[3]'), 'approved bank should preserve scoring direction')
   assert.doesNotMatch(
     mock,
     /\b(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*(?:\{\}|\[\]|null)(?:\s|$)/,
@@ -226,13 +241,19 @@ async function run() {
   const summary = lab.getEmotionLabSummaryData()
   assert.strictEqual(summary.assessments.length, 1)
   assert.strictEqual(summary.assessments[0].kind, 'mbti')
-  assert.strictEqual(summary.assessments[0].authorization.status, 'unverified')
-  assert.strictEqual(summary.assessments[0].canStart, false)
+  assert.strictEqual(summary.assessments[0].authorization.status, 'approved')
+  assert.strictEqual(summary.assessments[0].canStart, true)
+  assert.strictEqual(summary.assessments[0].version, 'mbti-core@2')
+  assert.strictEqual(summary.assessments[0].questionCount, 60)
+  assert.deepStrictEqual(summary.assessments[0].scale, { min: 1, max: 7 })
   assert.strictEqual(summary.manualTypes.length, 16)
   assert.ok(summary.disclaimer.includes('不构成心理诊断'))
-  assert.strictEqual(summary.disclaimerVersion, 'mbti-result-copy@1')
+  assert.strictEqual(summary.disclaimerVersion, 'mbti-result-copy@2')
   assert.strictEqual(profileWriteCount, 0, 'reading the summary must not write profile data')
-  expectThrows(() => lab.startEmotionLabSessionData(summary.assessments[0].id), 'ASSESSMENT_REVIEW_REQUIRED')
+  const approvedCoreSession = lab.startEmotionLabSessionData(summary.assessments[0].id)
+  assert.strictEqual(approvedCoreSession.questions.length, 60)
+  assert.ok(approvedCoreSession.questionIds.every(id => id.startsWith('mbti-16p-')))
+  lab.discardEmotionLabSessionData(approvedCoreSession.id)
 
   currentSubject = ''
   expectThrows(() => lab.getEmotionLabSummaryData(), 'EMOTION_LAB_SUBJECT_REQUIRED')
@@ -708,6 +729,8 @@ async function run() {
   const page = fs.readFileSync(pagePath, 'utf8')
   for (const required of [
     '情感实验室',
+    'mbti-core@2',
+    '内容已授权',
     '内容授权待审核',
     '审核完成前不可开始',
     '手动选择 16 型',
