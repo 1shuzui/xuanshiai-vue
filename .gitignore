@@ -11,6 +11,7 @@ docs/
 .zcode/
 graphify-out/
 .tmp_smoke/
+.uni-h5.*.log
 # Agent / local tooling (do not publish)
 .serena/
 docs/superpowers/
