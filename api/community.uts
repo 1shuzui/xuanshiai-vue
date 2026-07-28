@@ -626,20 +626,29 @@ function mapPost(row: any): any {
 
 function mapComment(row: any): any {
   if (row == null) return null
+  const rawUser = row.user != null ? row.user : {}
+  const replyToUser = row.reply_to_user != null ? row.reply_to_user : (row.replyToUser != null ? row.replyToUser : null)
   return {
     id: row.id,
     user: {
-      id: row.user_id,
-      name: row.nickname != null ? row.nickname : '用户',
-      avatar: row.avatar != null ? row.avatar : '',
+      id: row.user_id != null ? row.user_id : rawUser.id,
+      name: row.nickname != null ? row.nickname : (rawUser.name != null ? rawUser.name : '用户'),
+      avatar: row.avatar != null ? row.avatar : (rawUser.avatar != null ? rawUser.avatar : ''),
       realNameStatus: 'missing'
     },
     content: row.content != null ? row.content : '',
-    timeText: timeTextFrom(row.created_at),
-    likeCount: row.like_count != null ? row.like_count : 0,
-    liked: row.is_liked == true,
+    timeText: row.timeText != null ? row.timeText : timeTextFrom(row.created_at),
+    likeCount: row.like_count != null ? row.like_count : (row.likeCount != null ? row.likeCount : 0),
+    liked: row.is_liked == true || row.liked == true,
     replyTo: row.parent_id != null ? row.parent_id : null,
-    replyToCommentId: row.parent_id != null ? row.parent_id : null
+    replyToCommentId: row.target_comment_id != null ? row.target_comment_id : (row.parent_id != null ? row.parent_id : null),
+    rootId: row.root_id != null ? row.root_id : (row.rootId != null ? row.rootId : row.id),
+    replyCount: row.reply_count != null ? row.reply_count : (row.replyCount != null ? row.replyCount : 0),
+    isDeleted: row.is_deleted == true || row.isDeleted == true,
+    canDelete: row.can_delete == true || row.canDelete == true,
+    replyToUserId: row.target_user_id != null ? row.target_user_id : (row.replyToUserId != null ? row.replyToUserId : 0),
+    replyToUserName: typeof replyToUser === 'string' ? replyToUser : (replyToUser != null && replyToUser.nickname != null ? replyToUser.nickname : (replyToUser != null && replyToUser.name != null ? replyToUser.name : '')),
+    replies: []
   }
 }
 
@@ -781,6 +790,9 @@ function mapPaperPlane(row: any): any {
 
 function mapNotification(row: any): any {
   if (row == null) return null
+  const payload = row.payload != null && typeof row.payload === 'object' ? row.payload : {}
+  const targetType = row.target_type != null ? ('' + row.target_type) : (payload.target_type != null ? ('' + payload.target_type) : '')
+  const targetId = row.target_id != null ? row.target_id : (payload.target_id != null ? payload.target_id : (row.related_id != null ? row.related_id : 0))
   return {
     id: row.id,
     type: row.notification_type != null ? row.notification_type : 'system',
@@ -788,8 +800,12 @@ function mapNotification(row: any): any {
     content: row.content != null ? row.content : '',
     timeText: timeTextFrom(row.created_at),
     read: row.is_read == true,
-    targetType: 'post',
-    targetId: row.related_id != null ? row.related_id : 0
+    targetType,
+    targetId,
+    payload,
+    relatedUserId: row.related_user_id != null ? row.related_user_id : 0,
+    actorUserId: row.actor_user_id != null ? row.actor_user_id : (row.related_user_id != null ? row.related_user_id : 0),
+    action: row.action != null ? row.action : (row.notification_type != null ? row.notification_type : 'system')
   }
 }
 
@@ -2851,7 +2867,7 @@ function mapPlaneMessage(row: any, myId: number = 0): any {
     type: row.type != null ? row.type : 1,
     mediaUrl: row.media_url != null ? row.media_url : (row.mediaUrl != null ? row.mediaUrl : ''),
     voiceDurationSec: row.voice_duration_sec != null ? row.voice_duration_sec : (row.voiceDurationSec != null ? row.voiceDurationSec : 0),
-    mine: myId > 0 ? fromId == myId : row.mine == true,
+    mine: row.mine === true || (myId > 0 && fromId == myId),
     timeText: row.created_at != null ? timeTextFrom(row.created_at) : (row.timeText != null ? row.timeText : '')
   }
 }
@@ -3315,4 +3331,106 @@ export async function getMyPosts(query: any = null) {
     total: total,
     hasMore: page * pageSize < total
   })
+}
+
+export async function getCommunityPrivacy() {
+  if (USE_MOCK) return okRes({ hide_online_status: false, notify_like: true, notify_comment: true, notify_follow: true, notify_message: true, notify_match: true, notify_activity: true })
+  return request({ url: '/users/me/privacy', method: 'GET' })
+}
+
+export async function updateCommunityPrivacy(values: any) {
+  if (USE_MOCK) return okRes(values)
+  return request({ url: '/users/me/privacy', method: 'PUT', data: values })
+}
+
+function mapBlockedUser(row: any): any {
+  if (row == null) return { id: 0, user_id: 0, nickname: '已屏蔽用户', avatar: '' }
+  return {
+    id: row.id != null ? row.id : row.user_id,
+    user_id: row.user_id != null ? row.user_id : row.id,
+    nickname: row.nickname != null ? row.nickname : '已屏蔽用户',
+    avatar: row.avatar != null ? row.avatar : ''
+  }
+}
+
+export async function getBlockedUsers() {
+  if (USE_MOCK) return okRes((mockBlockedUserIds as number[]).map((id: number) => mapBlockedUser({ id })))
+  const res = await request({ url: '/security/blocks', method: 'GET' })
+  if (!res.success || res.data == null) return res
+  const raw = res.data
+  const rows: any[] = Array.isArray(raw) ? raw as any[] : (raw.items != null && Array.isArray(raw.items) ? raw.items as any[] : [])
+  const items: any[] = []
+  for (let i = 0; i < rows.length; i++) items.push(mapBlockedUser(rows[i]))
+  return okRes(items)
+}
+
+export async function unblockUser(userId: number) {
+  if (USE_MOCK) {
+    const ids = mockBlockedUserIds as number[]
+    const index = ids.indexOf(userId)
+    if (index >= 0) ids.splice(index, 1)
+    return okRes({ success: true })
+  }
+  return request({ url: '/security/blocks/' + userId, method: 'DELETE', data: {} })
+}
+
+export async function getMyReports(page: number = 1, pageSize: number = 20) {
+  if (USE_MOCK) return okRes({ items: [], page, page_size: pageSize, total: 0 })
+  return request({ url: '/community/reports/mine', method: 'GET', data: { page, page_size: pageSize } })
+}
+
+export async function getMyReportAppeals(page: number = 1, pageSize: number = 20) {
+  if (USE_MOCK) return okRes({ items: [], page, page_size: pageSize, total: 0 })
+  return request({ url: '/community/report-appeals/mine', method: 'GET', data: { page, page_size: pageSize } })
+}
+
+export async function createReportAppeal(reportId: number, reason: string) {
+  if (USE_MOCK) return okRes({ success: true, report_id: reportId, reason })
+  return request({ url: '/community/reports/' + reportId + '/appeals', method: 'POST', data: { reason } })
+}
+
+export async function getThreadedComments(dynamicId: number, cursor: string = '', pageSize: number = 20) {
+  if (USE_MOCK) {
+    const post = findDynamic(dynamicId)
+    const all = post != null && post.comments != null ? post.comments as any[] : []
+    const roots: any[] = []
+    for (let i = 0; i < all.length; i++) {
+      const row = all[i]
+      if (row.replyTo == null && row.parent_id == null) {
+        const root = mapComment(row)
+        const previews: any[] = []
+        for (let j = 0; j < all.length && previews.length < 3; j++) {
+          const reply = all[j]
+          if (reply.replyTo == row.id || reply.parent_id == row.id || reply.rootId == row.id) previews.push(mapComment(reply))
+        }
+        root.replies = previews
+        root.replyCount = previews.length
+        roots.push(root)
+      }
+    }
+    return okRes({ items: roots.slice(0, pageSize), next_cursor: null, has_more: false })
+  }
+  const res = await request({ url: '/community/posts/' + dynamicId + '/comments/page', method: 'GET', data: { cursor: cursor == '' ? null : cursor, page_size: pageSize } })
+  if (!res.success || res.data == null) return res
+  const raw = res.data as any
+  const rawItems = raw.items != null ? raw.items as any[] : []
+  const items: any[] = []
+  for (let i = 0; i < rawItems.length; i++) {
+    const comment = mapComment(rawItems[i])
+    const previews = rawItems[i].replies != null ? rawItems[i].replies as any[] : []
+    for (let j = 0; j < previews.length; j++) comment.replies.push(mapComment(previews[j]))
+    items.push(comment)
+  }
+  return okRes({ items, next_cursor: raw.next_cursor != null ? raw.next_cursor : null, has_more: raw.has_more == true })
+}
+
+export async function getCommentReplies(commentId: number, cursor: string = '', pageSize: number = 20) {
+  if (USE_MOCK) return okRes({ items: [], next_cursor: null, has_more: false })
+  const res = await request({ url: '/community/comments/' + commentId + '/replies', method: 'GET', data: { cursor: cursor == '' ? null : cursor, page_size: pageSize } })
+  if (!res.success || res.data == null) return res
+  const raw = res.data as any
+  const rawItems = raw.items != null ? raw.items as any[] : []
+  const items: any[] = []
+  for (let i = 0; i < rawItems.length; i++) items.push(mapComment(rawItems[i]))
+  return okRes({ items, next_cursor: raw.next_cursor != null ? raw.next_cursor : null, has_more: raw.has_more == true })
 }

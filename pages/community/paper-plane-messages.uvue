@@ -94,7 +94,7 @@
 		} catch (e) {}
 		item.unreadCount = 0
 		uni.navigateTo({
-			url: '/pages/chat/detail?userId=' + item.userId + '&userName=' + encodeURIComponent(item.name)
+			url: '/pages/chat/detail?paperPlaneConversationId=' + item.id + '&paperPlaneLabel=' + encodeURIComponent(item.name)
 		})
 	}
 </script>

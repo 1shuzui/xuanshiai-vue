@@ -50,6 +50,9 @@
 			<!-- 通知设置 -->
 			<view class="section">
 				<view class="section-title">通知设置</view>
+				<view class="item"><text class="label">接收点赞通知</text><switch :checked="receiveLike" @change="onLikeNotifyChange" /></view>
+				<view class="item"><text class="label">接收评论和回复通知</text><switch :checked="receiveComment" @change="onCommentNotifyChange" /></view>
+				<view class="item"><text class="label">接收关注通知</text><switch :checked="receiveFollow" @change="onFollowNotifyChange" /></view>
 				<view class="item">
 					<text class="label">接收新消息通知</text>
 					<switch :checked="receiveMessage" @change="onMessageNotifyChange" />
@@ -61,6 +64,33 @@
 				<view class="item">
 					<text class="label">接收活动通知</text>
 					<switch :checked="receiveActivity" @change="onActivityNotifyChange" />
+				</view>
+			</view>
+
+			<view class="section">
+				<view class="section-title">社区安全</view>
+				<view class="item" @click="toggleSafety"><text class="label">已屏蔽用户</text><text class="value text-muted">{{ blockedSummary }}</text></view>
+				<view class="safety-list" v-if="safetyVisible">
+					<text class="empty-safety" v-if="blockedLoading">加载中...</text>
+					<text class="empty-safety text-accent" v-else-if="blockedError != ''" @click="loadBlockedUsers">{{ blockedError }}，点击重试</text>
+					<view v-else>
+						<view class="safety-row" v-for="u in blockedUsers" :key="u.id"><text class="label">{{ u.nickname || '已屏蔽用户' }}</text><text class="text-accent" :class="{ disabled: isUnblocking(u.id) }" @click="unblock(u.id)">{{ isUnblocking(u.id) ? '处理中' : '解除屏蔽' }}</text></view>
+						<text class="empty-safety" v-if="blockedLoaded && !blockedLoading && blockedError == '' && blockedUsers.length == 0">暂无已屏蔽用户</text>
+					</view>
+				</view>
+				<view class="item" @click="toggleRecords"><text class="label">举报与申诉记录</text><text class="value text-muted">查看</text></view>
+				<view class="safety-list" v-if="recordsVisible">
+					<text class="empty-safety" v-if="recordsLoading">加载中...</text>
+					<text class="empty-safety text-accent" v-else-if="recordsError != ''" @click="loadReports">{{ recordsError }}，点击重试</text>
+					<view v-else>
+					<view class="report-row" v-for="r in reports" :key="r.id"><text>{{ r.result || '处理中' }}</text><text class="text-accent" v-if="r.can_appeal" @click="startAppeal(r.id)">申诉</text></view>
+					<view class="appeal-form" v-if="appealingReportId > 0">
+						<textarea class="appeal-input" :value="appealReason" maxlength="1000" placeholder="请说明申诉理由" @input="onAppealReasonInput"></textarea>
+						<view class="appeal-actions"><text class="text-muted" @click="cancelAppeal">取消</text><text class="text-accent" :class="{ disabled: appealSubmitting }" @click="submitAppeal">{{ appealSubmitting ? '提交中' : '提交申诉' }}</text></view>
+					</view>
+					<view class="report-row" v-for="a in appeals" :key="a.id"><text>申诉：{{ appealStatusText(a.status) }}</text></view>
+					<text class="empty-safety" v-if="recordsLoaded && reports.length == 0 && appeals.length == 0">暂无举报或申诉记录</text>
+					</view>
 				</view>
 			</view>
 
@@ -108,18 +138,69 @@
 </template>
 
 <script setup lang="uts">
-	import { logout } from '@/api'
+	import { logout, getCommunityPrivacy, updateCommunityPrivacy, getBlockedUsers, unblockUser, getMyReports, getMyReportAppeals, createReportAppeal } from '@/api'
 
 	// 设置项状态
 	let showOnlineStatus = ref(true)
 	let receiveMessage = ref(true)
 	let receiveMatch = ref(true)
 	let receiveActivity = ref(false)
+	let receiveLike = ref(true)
+	let receiveComment = ref(true)
+	let receiveFollow = ref(true)
+	let blockedUsers = ref([] as any[])
+	let reports = ref([] as any[])
+	let appeals = ref([] as any[])
+	let safetyVisible = ref(false)
+	let blockedLoading = ref(false)
+	let blockedLoaded = ref(false)
+	let blockedError = ref('')
+	let recordsVisible = ref(false)
+	let recordsLoading = ref(false)
+	let recordsLoaded = ref(false)
+	let recordsError = ref('')
+	let unblockingIds = ref([] as number[])
+	let appealingReportId = ref(0)
+	let appealReason = ref('')
+	let appealSubmitting = ref(false)
+
+	const loadPrivacy = async () => {
+		try {
+			const res = await getCommunityPrivacy()
+			if (!res.success || res.data == null) throw new Error('privacy unavailable')
+			const p = res.data as any
+			showOnlineStatus.value = p.hide_online_status != true
+			receiveLike.value = p.notify_like != false
+			receiveComment.value = p.notify_comment != false
+			receiveFollow.value = p.notify_follow != false
+			receiveMessage.value = p.notify_message != false
+			receiveMatch.value = p.notify_match != false
+			receiveActivity.value = p.notify_activity == true
+		} catch (e) {
+			uni.showToast({ title: '设置加载失败，请重试', icon: 'none' })
+		}
+	}
+	onMounted(() => { loadPrivacy() })
+	const savePrivacy = async (key: string, value: boolean, rollback: () => void) => {
+		const payload: any = {}
+		payload[key] = value
+		try {
+			const res = await updateCommunityPrivacy(payload)
+			if (!res.success) {
+				rollback()
+				uni.showToast({ title: '保存失败，请重试', icon: 'none' })
+			}
+		} catch (e) {
+			rollback()
+			uni.showToast({ title: '保存失败，请重试', icon: 'none' })
+		}
+	}
 
 	// 在线状态开关
 	const onOnlineStatusChange = (e: SwitchChangeEvent) => {
+		const previous = showOnlineStatus.value
 		showOnlineStatus.value = e.detail.value
-		// TODO: 调用接口保存设置
+		savePrivacy('hide_online_status', !e.detail.value, () => { showOnlineStatus.value = previous })
 		uni.showToast({
 			title: e.detail.value ? '已显示在线' : '已隐藏在线',
 			icon: 'none'
@@ -128,21 +209,36 @@
 
 	// 消息通知开关
 	const onMessageNotifyChange = (e: SwitchChangeEvent) => {
-		receiveMessage.value = e.detail.value
-		// TODO: 调用接口保存设置
+		const previous = receiveMessage.value; receiveMessage.value = e.detail.value
+		savePrivacy('notify_message', e.detail.value, () => { receiveMessage.value = previous })
 	}
 
 	// 匹配通知开关
 	const onMatchNotifyChange = (e: SwitchChangeEvent) => {
-		receiveMatch.value = e.detail.value
-		// TODO: 调用接口保存设置
+		const previous = receiveMatch.value; receiveMatch.value = e.detail.value
+		savePrivacy('notify_match', e.detail.value, () => { receiveMatch.value = previous })
 	}
 
 	// 活动通知开关
 	const onActivityNotifyChange = (e: SwitchChangeEvent) => {
-		receiveActivity.value = e.detail.value
-		// TODO: 调用接口保存设置
+		const previous = receiveActivity.value; receiveActivity.value = e.detail.value
+		savePrivacy('notify_activity', e.detail.value, () => { receiveActivity.value = previous })
 	}
+	const onLikeNotifyChange = (e: SwitchChangeEvent) => { const previous = receiveLike.value; receiveLike.value = e.detail.value; savePrivacy('notify_like', e.detail.value, () => { receiveLike.value = previous }) }
+	const onCommentNotifyChange = (e: SwitchChangeEvent) => { const previous = receiveComment.value; receiveComment.value = e.detail.value; savePrivacy('notify_comment', e.detail.value, () => { receiveComment.value = previous }) }
+	const onFollowNotifyChange = (e: SwitchChangeEvent) => { const previous = receiveFollow.value; receiveFollow.value = e.detail.value; savePrivacy('notify_follow', e.detail.value, () => { receiveFollow.value = previous }) }
+	const blockedSummary = computed(() => blockedLoading.value ? '加载中' : (blockedError.value != '' ? '加载失败' : (blockedLoaded.value ? ('' + blockedUsers.value.length + ' 人') : '点击查看')))
+	const toggleSafety = async () => { safetyVisible.value = !safetyVisible.value; if (safetyVisible.value && !blockedLoaded.value) await loadBlockedUsers() }
+	const loadBlockedUsers = async () => { blockedLoading.value = true; blockedError.value = ''; try { const res = await getBlockedUsers(); if (!res.success) throw new Error('blocked users unavailable'); blockedUsers.value = res.data as any[]; blockedLoaded.value = true } catch (e) { blockedError.value = '加载失败'; uni.showToast({ title: '黑名单加载失败', icon: 'none' }) } finally { blockedLoading.value = false } }
+	const isUnblocking = (id: number) => { const ids = unblockingIds.value as number[]; for (let i = 0; i < ids.length; i++) { if (ids[i] == id) return true }; return false }
+	const unblock = async (id: number) => { if (isUnblocking(id)) return; unblockingIds.value.push(id); try { const res = await unblockUser(id); if (res.success) blockedUsers.value = (blockedUsers.value as any[]).filter((u: any) => u.id != id); else uni.showToast({ title: '解除失败，请重试', icon: 'none' }) } catch (e) { uni.showToast({ title: '解除失败，请重试', icon: 'none' }) } finally { const ids = unblockingIds.value as number[]; const index = ids.indexOf(id); if (index >= 0) ids.splice(index, 1) } }
+	const toggleRecords = async () => { recordsVisible.value = !recordsVisible.value; if (recordsVisible.value && !recordsLoaded.value) await loadReports() }
+	const loadReports = async () => { recordsLoading.value = true; recordsError.value = ''; try { const res = await getMyReports(); const appealRes = await getMyReportAppeals(); if (!res.success || res.data == null || !appealRes.success || appealRes.data == null) throw new Error('reports unavailable'); reports.value = (res.data.items != null ? res.data.items : []) as any[]; appeals.value = (appealRes.data.items != null ? appealRes.data.items : []) as any[]; recordsLoaded.value = true } catch (e) { recordsError.value = '加载失败'; uni.showToast({ title: '记录加载失败', icon: 'none' }) } finally { recordsLoading.value = false } }
+	const appealStatusText = (status: number) => status == 1 ? '复核通过' : (status == 2 ? '复核驳回' : '复核中')
+	const startAppeal = (reportId: number) => { appealingReportId.value = reportId; appealReason.value = '' }
+	const onAppealReasonInput = (e: any) => { appealReason.value = e.detail.value }
+	const cancelAppeal = () => { appealingReportId.value = 0; appealReason.value = '' }
+	const submitAppeal = async () => { const reason = appealReason.value.trim(); if (reason.length == 0) { uni.showToast({ title: '请填写申诉理由', icon: 'none' }); return }; if (appealSubmitting.value) return; appealSubmitting.value = true; try { const res = await createReportAppeal(appealingReportId.value, reason); if (res.success) { uni.showToast({ title: '申诉已提交', icon: 'success' }); cancelAppeal(); await loadReports() } else uni.showToast({ title: '申诉提交失败，请重试', icon: 'none' }) } catch (e) { uni.showToast({ title: '申诉提交失败，请重试', icon: 'none' }) } finally { appealSubmitting.value = false } }
 
 	// 导航到指定页面
 	const navigateTo = (url: string) => {

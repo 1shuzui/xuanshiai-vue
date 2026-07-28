@@ -85,7 +85,16 @@ export {
   readPaperPlaneConversation,
   endPaperPlaneConversation,
   createCommunityCreateKey,
-  discardCommunityCreateKey
+  discardCommunityCreateKey,
+  getCommunityPrivacy,
+  updateCommunityPrivacy,
+  getBlockedUsers,
+  unblockUser,
+  getMyReports,
+  getMyReportAppeals,
+  createReportAppeal,
+  getThreadedComments,
+  getCommentReplies
 } from './community.uts'
 
 // 牵线/红娘相关

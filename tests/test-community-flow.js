@@ -32,6 +32,15 @@ console.log('====================================')
 console.log('社区闭环流程测试')
 console.log('====================================\n')
 
+// 0. 本地开发登录必须真正建立后端会话，不能只跳过登录页。
+console.log('0. 本地开发登录...')
+const loginPage = read('pages/auth/login.uvue')
+if (loginPage.includes('loginWithMockSms') && loginPage.includes('loginWithMockSms(')) {
+  ok('调试登录会调用本地短信登录并写入 Token')
+} else {
+  fail('调试登录没有调用本地短信登录，社区请求会因 401 失败')
+}
+
 // 1. 页面与路由
 console.log('1. 社区页面与 pages.json 路由...')
 const communityPages = [
@@ -1135,6 +1144,96 @@ scanTargets.forEach((p) => {
   }
 })
 if (browserHits === 0) ok('关键路径无 window/document 等浏览器 API')
+
+console.log('\n12. 第一期治理前端闭环...')
+contract('privacy, blocklist and appeal adapters are exported', () => {
+  assert.match(liveCommunityApi, /getCommunityPrivacy/)
+  assert.match(liveCommunityApi, /updateCommunityPrivacy/)
+  assert.match(liveCommunityApi, /getBlockedUsers/)
+  assert.match(liveCommunityApi, /createReportAppeal/)
+})
+contract('settings persists privacy and exposes safety management', () => {
+  const settings = read('pages/profile/settings.uvue')
+  assert.match(settings, /loadPrivacy/)
+  assert.match(settings, /savePrivacy/)
+  assert.match(settings, /getBlockedUsers/)
+  assert.match(settings, /createReportAppeal/)
+})
+contract('notifications route by backend target type without post hardcode', () => {
+  const page = read('pages/community/notifications.uvue')
+  assert.match(liveCommunityApi, /target_type/)
+  assert.match(page, /targetType == 'comment'/)
+  assert.match(page, /targetType == 'user'/)
+  assert.match(page, /targetType == 'report'/)
+})
+contract('post detail supports threaded cursor comments and reply submission', () => {
+  assert.match(livePostDetailPage, /getThreadedComments/)
+  assert.match(livePostDetailPage, /getCommentReplies/)
+  assert.match(livePostDetailPage, /replyToCommentId/)
+  assert.match(livePostDetailPage, /loadMoreComments/)
+  assert.match(livePostDetailPage, /removeComment/)
+  assert.match(livePostDetailPage, /@longpress="replyTo\(/)
+})
+contract('threaded comment adapters normalize backend metadata before rendering', () => {
+  const mapperStart = liveCommunityApi.indexOf('function mapComment')
+  const mapperEnd = liveCommunityApi.indexOf('function mapTopic', mapperStart)
+  const mapper = liveCommunityApi.slice(mapperStart, mapperEnd)
+  assert.match(mapper, /rootId:\s*row\.root_id/)
+  assert.match(mapper, /replyCount:\s*row\.reply_count/)
+  assert.match(mapper, /canDelete:\s*row\.can_delete/)
+  assert.match(mapper, /replyToUserId:\s*row\.target_user_id/)
+  assert.match(liveCommunityApi, /items\.push\(mapComment\(rawItems\[i\]\)\)/)
+})
+contract('settings sends UTS-compatible privacy payloads and shows appeal history', () => {
+  const settings = read('pages/profile/settings.uvue')
+  assert.match(settings, /const payload: any = \{\}/)
+  assert.match(settings, /payload\[key\] = value/)
+  assert.match(settings, /getMyReportAppeals/)
+  assert.match(settings, /appeals/)
+  assert.match(settings, /appealReason/)
+  assert.match(settings, /submitAppeal/)
+})
+contract('settings keeps notification preferences consistent and recovers failed safety actions', () => {
+  const settings = read('pages/profile/settings.uvue')
+  assert.match(settings, /p\.notify_message/)
+  assert.match(settings, /savePrivacy\('notify_message'/)
+  assert.match(settings, /try \{[\s\S]*await updateCommunityPrivacy\(payload\)[\s\S]*\} catch \(e\) \{[\s\S]*rollback\(\)/)
+  assert.match(settings, /blockedLoading/)
+  assert.match(settings, /blockedError/)
+  assert.match(settings, /recordsLoading/)
+  assert.match(settings, /recordsError/)
+  assert.match(settings, /unblockingIds/)
+  assert.match(settings, /appealSubmitting/)
+})
+contract('settings separates v-else from v-for and normalizes blocked user ids', () => {
+  const settings = read('pages/profile/settings.uvue')
+  assert.doesNotMatch(settings, /v-else\s+v-for=/)
+  assert.match(settings, /<view v-else>/)
+  assert.match(liveCommunityApi, /function mapBlockedUser/)
+  assert.match(liveCommunityApi, /id: row\.id != null \? row\.id : row\.user_id/)
+})
+contract('threaded comments map each backend root exactly once', () => {
+  const start = liveCommunityApi.indexOf('export async function getThreadedComments')
+  const end = liveCommunityApi.indexOf('export async function getCommentReplies', start)
+  const threaded = liveCommunityApi.slice(start, end)
+  assert.doesNotMatch(threaded, /items\.push\(mapComment\(rawItems\[i\]\)\)/)
+  assert.match(threaded, /const comment = mapComment\(rawItems\[i\]\)/)
+  assert.match(threaded, /items\.push\(comment\)/)
+})
+contract('notification and activity pages show retryable unavailable states', () => {
+  const notifications = read('pages/community/notifications.uvue')
+  const activity = read('pages/community/activity-detail.uvue')
+  assert.match(notifications, /notificationError/)
+  assert.match(notifications, /show-action/)
+  assert.match(notifications, /@action="load"/)
+  assert.match(activity, /activityLoading/)
+  assert.match(activity, /activityError/)
+  assert.match(activity, /show-action/)
+})
+contract('governance notification opens the registered settings destination', () => {
+  const page = read('pages/community/notifications.uvue')
+  assert.match(page, /navigateTo\(\{ url: '\/pages\/profile\/settings' \}\)/)
+})
 
 console.log('\n====================================')
 if (failed === 0) {
