@@ -1,108 +1,339 @@
 /**
- * 消息相关 API
- * 包含：聊天列表、消息详情、申请消息
+ * Message APIs.
+ * Mock mode keeps the local demo data. Real mode talks to FastAPI social and
+ * discovery endpoints, while preserving the page-facing data shape.
  */
 
 import { request } from './request.uts'
+import { USE_MOCK } from './config.uts'
 import { mockMessageList, mockChatMessages, mockApplications } from '@/mock'
 
+const DEFAULT_PEER_AVATAR = '/static/portraits/profile-woman-main.jpg'
+const DEFAULT_ME_AVATAR = '/static/portraits/profile-man-light.jpg'
+
+function okRes(data: any): any {
+  return {
+    success: true,
+    data: data,
+    code: 0,
+    message: 'success'
+  }
+}
+
+function failRes(message: string, code: any = -1): any {
+  return {
+    success: false,
+    data: null,
+    code: code,
+    message: message
+  }
+}
+
+function timestampFrom(value: any): number {
+  if (value == null) return Date.now()
+  if (typeof value === 'number') return value as number
+  const parsed = Date.parse('' + value)
+  return Number.isNaN(parsed) ? Date.now() : parsed
+}
+
+function formatTimeLabel(value: any): string {
+  const timestamp = timestampFrom(value)
+  const date = new Date(timestamp)
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+function backendTypeFrom(type: string): number {
+  if (type == 'image') return 2
+  if (type == 'voice') return 3
+  if (type == 'wechat-request') return 5
+  if (type == 'phone-request') return 6
+  return 1
+}
+
+function frontendTypeFrom(type: any): string {
+  const raw = Number(type)
+  if (raw == 2) return 'image'
+  if (raw == 3) return 'voice'
+  if (raw == 5) return 'wechat-request'
+  if (raw == 6) return 'phone-request'
+  return 'text'
+}
+
+function previewTypeFrom(message: string): string {
+  if (message == '[媒体消息]') return 'image'
+  if (message == '[语音]') return 'voice'
+  if (message.indexOf('交换微信') >= 0) return 'wechat-request'
+  if (message.indexOf('交换电话') >= 0) return 'phone-request'
+  return 'text'
+}
+
+function mapSession(row: any): any {
+  const target = row != null && row.target != null ? row.target : {}
+  const targetId = target.user_id != null ? Number(target.user_id) : 0
+  const lastMessage = row.last_message != null ? '' + row.last_message : ''
+  return {
+    id: row.id != null ? Number(row.id) : targetId,
+    sessionId: row.id != null ? Number(row.id) : 0,
+    userId: targetId,
+    avatar: target.avatar != null && ('' + target.avatar).length > 0 ? '' + target.avatar : DEFAULT_PEER_AVATAR,
+    name: target.nickname != null && ('' + target.nickname).length > 0 ? '' + target.nickname : `用户${targetId}`,
+    lastMessage: lastMessage,
+    time: timestampFrom(row.last_message_time),
+    unreadCount: row.unread_count != null ? Number(row.unread_count) : 0,
+    online: false,
+    messageType: previewTypeFrom(lastMessage),
+    type: 'chat',
+    matched: true,
+    canChat: true
+  }
+}
+
+function mapMessage(row: any, peerUserId: number, index: number): any {
+  const type = frontendTypeFrom(row.type)
+  const mine = row.from_user_id != null && Number(row.from_user_id) != peerUserId
+  const content = type == 'image' || type == 'voice'
+    ? (row.media_url != null ? '' + row.media_url : '')
+    : (row.content != null ? '' + row.content : '')
+  return {
+    id: row.id != null ? Number(row.id) : Date.now() + index,
+    sessionId: row.session_id != null ? Number(row.session_id) : 0,
+    senderId: row.from_user_id != null ? Number(row.from_user_id) : 0,
+    senderName: mine ? '我' : `用户${peerUserId}`,
+    senderAvatar: mine ? DEFAULT_ME_AVATAR : DEFAULT_PEER_AVATAR,
+    content: content,
+    type: type,
+    time: timestampFrom(row.created_at),
+    timeLabel: formatTimeLabel(row.created_at),
+    isMine: mine,
+    showTime: index == 0,
+    requestStatus: 'pending',
+    contactType: type == 'phone-request' ? 'phone' : 'wechat',
+    contactValue: '',
+    requestDate: getDateKey(timestampFrom(row.created_at))
+  }
+}
+
+function getDateKey(timestamp: number): string {
+  const date = new Date(timestamp)
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+async function getSessionsPage(): Promise<any> {
+  return await request({
+    url: '/chat/sessions',
+    method: 'GET',
+    data: { page: 1, page_size: 50 }
+  })
+}
+
+async function resolveSessionByTargetUser(targetUserId: number): Promise<any> {
+  const sessionsRes = await getSessionsPage()
+  if (!sessionsRes.success || sessionsRes.data == null) return sessionsRes
+  const items = sessionsRes.data.items != null ? (sessionsRes.data.items as any[]) : []
+  for (let i = 0; i < items.length; i++) {
+    const row = items[i]
+    if (row != null && row.target != null && Number(row.target.user_id) == targetUserId) {
+      return okRes(row)
+    }
+  }
+  return failRes('当前没有可用聊天会话', 'SESSION_NOT_FOUND')
+}
+
+function mapApplication(row: any, direction: string): any {
+  const otherId = direction == 'in'
+    ? (row.from_user_id != null ? Number(row.from_user_id) : 0)
+    : (row.to_user_id != null ? Number(row.to_user_id) : 0)
+  const status = row.status != null ? Number(row.status) : 0
+  let statusText = '待回应'
+  if (status == 1) statusText = '已同意'
+  if (status == 2) statusText = '已拒绝'
+  if (status == 3) statusText = '已过期'
+  return {
+    id: row.id != null ? Number(row.id) : otherId,
+    userId: otherId,
+    name: `用户${otherId}`,
+    avatar: DEFAULT_PEER_AVATAR,
+    message: row.message != null && ('' + row.message).length > 0 ? '' + row.message : '申请认识',
+    direction: direction,
+    status: status == 1 ? 'accepted' : (status == 2 ? 'rejected' : 'pending'),
+    accepted: status == 1,
+    matched: status == 1,
+    statusText: statusText,
+    time: timestampFrom(row.created_at)
+  }
+}
+
 /**
- * 获取聊天列表
+ * Get chat session list.
  */
 export async function getMessageList() {
-  return request({
-    url: '/message/list',
-    forceHttp: true,
-    mockFallback: true,
-    method: 'GET',
-    mockData: mockMessageList // Mock 数据
-  })
+  if (USE_MOCK) {
+    return request({
+      url: '/message/list',
+      method: 'GET',
+      mockData: mockMessageList
+    })
+  }
+
+  const res = await getSessionsPage()
+  if (!res.success) return res
+  const items = res.data != null && res.data.items != null ? (res.data.items as any[]) : []
+  const list: any[] = []
+  for (let i = 0; i < items.length; i++) {
+    list.push(mapSession(items[i]))
+  }
+  return okRes(list)
 }
 
 /**
- * 获取聊天详情
- * @param userId 对方用户 ID
+ * Get chat messages by peer user id. The backend uses session id, so this
+ * resolves the session first to keep the current page route compatible.
  */
 export async function getChatMessages(userId: number) {
-  return request({
-    url: '/message/chat',
-    forceHttp: true,
-    mockFallback: true,
+  if (USE_MOCK) {
+    return request({
+      url: '/message/chat',
+      method: 'GET',
+      data: { userId },
+      mockData: mockChatMessages
+    })
+  }
+
+  const sessionRes = await resolveSessionByTargetUser(userId)
+  if (!sessionRes.success || sessionRes.data == null) {
+    if (sessionRes.code == 'SESSION_NOT_FOUND') return okRes([])
+    return sessionRes
+  }
+  const sessionId = Number(sessionRes.data.id)
+  const res = await request({
+    url: '/chat/sessions/' + sessionId + '/messages',
     method: 'GET',
-    data: { userId },
-    mockData: mockChatMessages // Mock 数据
+    data: { page: 1, page_size: 50 }
   })
+  if (!res.success) return res
+  const arr = res.data != null && Array.isArray(res.data) ? (res.data as any[]) : []
+  const list: any[] = []
+  for (let i = 0; i < arr.length; i++) {
+    list.push(mapMessage(arr[i], userId, i))
+  }
+  return okRes(list)
 }
 
 /**
- * 发送消息
- * @param userId 对方用户 ID
- * @param content 消息内容
- * @param type 消息类型（text/image/voice/wechat-request/phone-request）
+ * Send a message by peer user id. Backend messages are posted to chat session.
  */
 export async function sendMessage(userId: number, content: string, type: string = 'text') {
-  return request({
-    url: '/message/send',
-    forceHttp: true,
-    mockFallback: true,
+  if (USE_MOCK) {
+    return request({
+      url: '/message/send',
+      method: 'POST',
+      data: { userId, content, type },
+      mockData: { success: true, messageId: Date.now() }
+    })
+  }
+
+  const sessionRes = await resolveSessionByTargetUser(userId)
+  if (!sessionRes.success || sessionRes.data == null) return sessionRes
+  const sessionId = Number(sessionRes.data.id)
+  const backendType = backendTypeFrom(type)
+  const isMedia = backendType == 2 || backendType == 3
+  const res = await request({
+    url: '/chat/sessions/' + sessionId + '/messages',
     method: 'POST',
-    data: { userId, content, type },
-    mockData: { success: true, messageId: Date.now() } // Mock 数据
+    data: {
+      type: backendType,
+      content: isMedia ? null : content,
+      media_url: isMedia ? content : null
+    }
+  })
+  if (!res.success) return res
+  const raw = res.data
+  return okRes({
+    success: true,
+    messageId: raw != null && raw.id != null ? Number(raw.id) : Date.now(),
+    message: raw
   })
 }
 
 /**
- * 处理联系方式交换申请
- * @param requestId 交换申请消息 ID
- * @param action accept / reject
- * @param contactType wechat / phone
+ * Contact exchange is not a dedicated backend endpoint yet. Keep the current
+ * local interaction contract so the frontend does not call removed mock routes.
  */
 export async function handleContactExchangeRequest(
   requestId: number,
   action: string,
   contactType: string = 'wechat'
 ) {
-  return request({
-    url: '/message/contact-exchange/handle',
-    cloudFunctionName: 'message',
-    action: 'handleContactExchangeRequest',
-    method: 'POST',
-    data: { requestId, action, contactType },
-    mockData: {
-      status: action == 'accept' ? 'accepted' : 'rejected',
-      contactType: contactType,
-      contactValue: action == 'accept'
-        ? (contactType == 'phone' ? '13812341234' : 'wanqing_art')
-        : ''
-    }
+  return okRes({
+    status: action == 'accept' ? 'accepted' : 'rejected',
+    contactType: contactType,
+    contactValue: action == 'accept'
+      ? (contactType == 'phone' ? '13812341234' : 'wanqing_art')
+      : ''
   })
 }
 
 /**
- * 获取申请消息列表
+ * Get incoming and outgoing match applications.
  */
 export async function getApplications() {
-  return request({
-    url: '/message/applications',
-    forceHttp: true,
-    mockFallback: true,
+  if (USE_MOCK) {
+    return request({
+      url: '/message/applications',
+      method: 'GET',
+      mockData: mockApplications
+    })
+  }
+
+  const incomingRes = await request({
+    url: '/discovery/applications/incoming',
     method: 'GET',
-    mockData: mockApplications // Mock 数据
+    data: { page: 1, page_size: 50 }
   })
+  const outgoingRes = await request({
+    url: '/discovery/applications/outgoing',
+    method: 'GET',
+    data: { page: 1, page_size: 50 }
+  })
+  if (!incomingRes.success) return incomingRes
+  if (!outgoingRes.success) return outgoingRes
+
+  const incoming = incomingRes.data != null && incomingRes.data.items != null ? (incomingRes.data.items as any[]) : []
+  const outgoing = outgoingRes.data != null && outgoingRes.data.items != null ? (outgoingRes.data.items as any[]) : []
+  const list: any[] = []
+  for (let i = 0; i < incoming.length; i++) list.push(mapApplication(incoming[i], 'in'))
+  for (let i = 0; i < outgoing.length; i++) list.push(mapApplication(outgoing[i], 'out'))
+  return okRes(list)
 }
 
 /**
- * 处理申请（同意/拒绝）
- * @param applicationId 申请 ID
- * @param action 操作（accept/reject）
+ * Accept or reject a match application.
  */
 export async function handleApplication(applicationId: number, action: string) {
-  return request({
-    url: '/message/application/handle',
-    forceHttp: true,
-    mockFallback: true,
+  if (USE_MOCK) {
+    return request({
+      url: '/message/application/handle',
+      method: 'POST',
+      data: { applicationId, action },
+      mockData: { success: true }
+    })
+  }
+
+  const endpoint = action == 'accept' ? 'accept' : 'reject'
+  const data = action == 'accept' ? {} : { reason: '暂时不合适' }
+  const res = await request({
+    url: '/discovery/applications/' + applicationId + '/' + endpoint,
     method: 'POST',
-    data: { applicationId, action },
-    mockData: { success: true } // Mock 数据
+    data: data
+  })
+  if (!res.success) return res
+  return okRes({
+    success: true,
+    application: res.data
   })
 }
