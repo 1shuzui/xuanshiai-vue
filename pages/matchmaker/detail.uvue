@@ -84,7 +84,7 @@
 					<text class="section-link" @click="showMoreCases">查看更多 ›</text>
 				</view>
 
-				<scroll-view scroll-x enhanced :enable-flex="true" class="case-scroll" :show-scrollbar="false" @scroll="handleCaseScroll">
+				<scroll-view v-if="displayCases.length > 0" scroll-x enhanced :enable-flex="true" class="case-scroll" :show-scrollbar="false" @scroll="handleCaseScroll" @scrollend="handleCaseScrollEnd">
 					<view class="case-list">
 						<view v-for="(item, caseIdx) in displayCases" :key="item._id || item.title" class="case-card" @click="viewCaseDetail(item)">
 							<image class="case-image" :src="item.image || item.images[0]" mode="aspectFill"></image>
@@ -99,15 +99,43 @@
 						</view>
 					</view>
 				</scroll-view>
+				<view v-else class="case-empty">
+					<text>该红娘暂未展示成功案例</text>
+				</view>
 
 				<!-- 滑动指示点 -->
-				<view class="case-dots">
+				<view v-if="displayCases.length > 0" class="case-dots">
 					<view
 						v-for="(dot, dotIdx) in displayCases"
 						:key="'dot-' + dotIdx"
 						class="case-dot"
 						:class="{ active: currentCaseIndex === dotIdx }"
 					></view>
+				</view>
+
+				<!-- ===== 全部成功案例 ===== -->
+				<view v-if="allCasesModalVisible" class="cases-overlay" @click="closeAllCases">
+					<view class="cases-modal" @click.stop>
+						<view class="cases-modal-head">
+							<view>
+								<text class="cases-modal-title">全部成功案例</text>
+								<text class="cases-modal-sub">案例展示，人物照片来自公开图库</text>
+							</view>
+							<view class="cases-modal-close" @click="closeAllCases"><text>×</text></view>
+						</view>
+						<scroll-view scroll-y class="cases-modal-scroll" :show-scrollbar="false">
+							<view class="cases-modal-list">
+								<view v-for="item in displayCases" :key="'all-' + (item._id || item.title)" class="cases-modal-card" @click="viewCaseDetail(item)">
+									<image class="cases-modal-image" :src="item.image || item.images[0]" mode="aspectFit"></image>
+									<view class="cases-modal-body">
+										<text class="cases-modal-name">{{ item.title }}</text>
+										<text class="cases-modal-meta">{{ item.matchTime || item.meta }}</text>
+										<text class="cases-modal-copy">{{ item.matchmakerComment || item.copy }}</text>
+									</view>
+								</view>
+							</view>
+						</scroll-view>
+					</view>
 				</view>
 
 				<!-- ===== 服务提醒 ===== -->
@@ -211,44 +239,82 @@ const fallbackMatchmaker = {
 const matchmaker = ref<any>(fallbackMatchmaker)
 const introExpanded = ref(false)
 const wechatPanelVisible = ref(false)
+const allCasesModalVisible = ref(false)
 const toastVisible = ref(false)
 const toastMessage = ref('')
 
 const displayCases = ref<any[]>([
 	{
 		_id: 'case_001',
-		title: '从初次见面到订婚',
+		title: '稳步了解后的确定',
 		matchTime: '2025-12',
-		image: '/static/portraits/profile-man-light.jpg',
-		images: ['/static/portraits/profile-man-light.jpg'],
-		story: '两位用户都是高校教师，性格内敛但目标明确。红娘通过深度沟通梳理了双方的核心需求，安排了三次渐进式见面，从咖啡到徒步到家庭聚餐，节奏自然。',
-		feedback: '红娘很耐心，推荐的非常精准',
-		matchmakerComment: '两人生活节奏相似，价值观高度一致',
-		tags: ['高知', '同城']
+		image: '/static/cases/hangzhou-lin-wang.jpg',
+		images: ['/static/cases/hangzhou-lin-wang.jpg'],
+		story: '先明确双方的生活节奏与关系边界，再安排循序渐进的见面，让彼此在稳定沟通中确认长期方向。',
+		feedback: '节奏安排得很舒服，我们都能做自己',
+		matchmakerComment: '匹配不是催促，而是让合适的节奏自然发生',
+		tags: ['节奏匹配', '同城']
 	},
 	{
 		_id: 'case_002',
-		title: '跨越城市的双向奔赴',
+		title: '异地关系的共同选择',
 		matchTime: '2025-10',
-		image: '/static/portraits/profile-woman-community.jpg',
-		images: ['/static/portraits/profile-woman-community.jpg'],
-		story: '杭州的她与南京的他，经过红娘三个月的节奏推进，最终确定了共同生活的城市。',
-		feedback: '感谢红娘帮我们看清了方向',
-		matchmakerComment: '两人都有迁就的意愿，关键是在对的时间点确认',
-		tags: ['异地', '长期规划']
+		image: '/static/cases/nanjing-zhou-zhao.jpg',
+		images: ['/static/cases/nanjing-zhou-zhao.jpg'],
+		story: '红娘帮助双方把工作安排、城市规划和沟通频率逐项说清，减少猜测后共同做出了下一步选择。',
+		feedback: '关键问题说开之后，关系一下清晰了',
+		matchmakerComment: '异地不怕距离，怕的是没有共同的行动计划',
+		tags: ['异地', '行动计划']
 	},
 	{
 		_id: 'case_003',
-		title: '慢热型的幸福节奏',
+		title: '慢热关系的安心感',
 		matchTime: '2025-08',
-		image: '/static/portraits/profile-woman-alt.jpg',
-		images: ['/static/portraits/profile-woman-alt.jpg'],
-		story: '双方都不是一见钟情的类型，但在红娘的持续跟进与反馈中，逐渐发现了彼此的契合点。',
-		feedback: '不着急反而更稳地走进了彼此的生活',
-		matchmakerComment: '不是所有的遇见都需要火花，更多是日复一日的确定感',
-		tags: ['慢热', '深度沟通']
+		image: '/static/cases/shanghai-chen-li.jpg',
+		images: ['/static/cases/shanghai-chen-li.jpg'],
+		story: '两位用户都偏慢热，红娘在每次见面后协助复盘，让他们更清楚地感受到彼此的可靠与默契。',
+		feedback: '不着急反而更能看见彼此的好',
+		matchmakerComment: '好的关系经得起时间，也值得被耐心对待',
+		tags: ['慢热', '复盘沟通']
 	}
 ])
+
+const fallbackCasesForMatchmaker = (matchmakerId: number): any[] => {
+	if (matchmakerId == 1) return displayCases.value
+	if (matchmakerId == 2) {
+		return [
+			{
+				_id: 'service-2-case-1', title: '忙碌生活里的高效匹配', matchTime: '2025-09',
+				image: '/static/cases/shenzhen-zhang-liu.jpg', images: ['/static/cases/shenzhen-zhang-liu.jpg'],
+				story: '双方工作节奏紧凑，红娘先帮助他们确定高质量沟通频率，再安排线下见面。',
+				matchmakerComment: '把有限的时间留给真正重要的了解。', tags: ['高效沟通', '同城']
+			},
+			{
+				_id: 'service-2-case-2', title: '从条件清单到真实默契', matchTime: '2025-07',
+				image: '/static/cases/chengdu-yang-sun.jpg', images: ['/static/cases/chengdu-yang-sun.jpg'],
+				story: '红娘协助双方从条件筛选转向真实相处，慢慢建立起稳定的信任。',
+				matchmakerComment: '合适不只在纸面条件，更在相处的舒适感。', tags: ['资料优化', '深度沟通']
+			}
+		]
+	}
+	if (matchmakerId == 3) {
+		return [
+			{
+				_id: 'service-3-case-1', title: '第一次见面的安心感', matchTime: '2025-06',
+				image: '/static/cases/beijing-zhao-wu.jpg', images: ['/static/cases/beijing-zhao-wu.jpg'],
+				story: '从资料准备到见面后的反馈，红娘陪着双方把每一步都讲得清楚、走得踏实。',
+				matchmakerComment: '安全感来自清晰沟通和被认真对待。', tags: ['初次见面', '关系边界']
+			},
+			{
+				_id: 'service-3-case-2', title: '共同目标下的双向靠近', matchTime: '2025-04',
+				image: '/static/cases/guangzhou-chen-huang.jpg', images: ['/static/cases/guangzhou-chen-huang.jpg'],
+				story: '双方在相处中不断校准期待，最终确认了共同的长期目标。',
+				matchmakerComment: '关系的推进，需要两个人都愿意向前一步。', tags: ['长期规划', '双向沟通']
+			}
+		]
+	}
+	return []
+}
 
 // ===== 计算属性 =====
 const specialtyTags = computed(() => {
@@ -320,15 +386,14 @@ onMounted(async () => {
 	const currentPage = pages[pages.length - 1]
 	const options = currentPage.options
 	const targetId = options != null && options.id != null ? parseInt(options.id) : 1
+	displayCases.value = fallbackCasesForMatchmaker(targetId)
 
 	try {
 		// 尝试加载详情
 		const detailRes = await getMatchmakerDetail(targetId)
 		if (detailRes.success && detailRes.data != null) {
 			matchmaker.value = Object.assign({}, fallbackMatchmaker, detailRes.data)
-			if (detailRes.data.cases != null && detailRes.data.cases.length > 0) {
-				displayCases.value = detailRes.data.cases as any[]
-			}
+			displayCases.value = detailRes.data.cases != null ? detailRes.data.cases as any[] : fallbackCasesForMatchmaker(targetId)
 			return
 		}
 	} catch (e) {
@@ -359,26 +424,38 @@ const toggleIntro = () => { introExpanded.value = !introExpanded.value }
 const currentCaseIndex = ref(0)
 let caseScrollTimer: any = null
 const caseCardStepRpx = 294
+let latestCaseScrollLeft = 0
+
+const updateCaseIndex = (scrollLeft: number) => {
+	try {
+		const info = uni.getSystemInfoSync()
+		const screenWidth = info.screenWidth ?? 375
+		const cardStep = (caseCardStepRpx / 750) * screenWidth
+		if (cardStep <= 0 || displayCases.value.length == 0) return
+		// 先通过当前卡片的一半，就切换到下一页提示点；初始位置仍为第一张。
+		const rawIdx = Math.floor((scrollLeft + cardStep * 0.5) / cardStep)
+		currentCaseIndex.value = Math.max(0, Math.min(rawIdx, displayCases.value.length - 1))
+	} catch (_) {
+		// 降级：不更新指示点
+	}
+}
 
 const handleCaseScroll = (e: any) => {
-	if (caseScrollTimer != null) return
+	latestCaseScrollLeft = e.detail?.scrollLeft ?? 0
+	if (caseScrollTimer != null) clearTimeout(caseScrollTimer)
 	caseScrollTimer = setTimeout(() => {
 		caseScrollTimer = null
-		const scrollLeft = e.detail?.scrollLeft ?? 0
-		// 卡片宽度 276rpx + 间距 18rpx = 294rpx
-		try {
-			const info = uni.getSystemInfoSync()
-			const screenWidth = info.screenWidth ?? 375
-			const cardStep = (caseCardStepRpx / 750) * screenWidth
-			if (cardStep > 0) {
-				const rawIdx = Math.round(scrollLeft / cardStep)
-				const clamped = Math.max(0, Math.min(rawIdx, displayCases.value.length - 1))
-				currentCaseIndex.value = clamped
-			}
-		} catch (_) {
-			// 降级：不更新指示点
-		}
-	}, 120)
+		updateCaseIndex(latestCaseScrollLeft)
+	}, 48)
+}
+
+const handleCaseScrollEnd = (e: any) => {
+	latestCaseScrollLeft = e.detail?.scrollLeft ?? latestCaseScrollLeft
+	if (caseScrollTimer != null) {
+		clearTimeout(caseScrollTimer)
+		caseScrollTimer = null
+	}
+	updateCaseIndex(latestCaseScrollLeft)
 }
 // ===== 成功案例 =====
 const viewCaseDetail = (item: any) => {
@@ -392,7 +469,15 @@ const viewCaseDetail = (item: any) => {
 }
 
 const showMoreCases = () => {
-	uni.showToast({ title: '更多案例整理中', icon: 'none' })
+	if (displayCases.value.length == 0) {
+		uni.showToast({ title: '暂无更多案例', icon: 'none' })
+		return
+	}
+	allCasesModalVisible.value = true
+}
+
+const closeAllCases = () => {
+	allCasesModalVisible.value = false
 }
 
 // ===== 电话 =====
@@ -740,22 +825,30 @@ const showToast = (msg: string) => {
 
 .case-scroll {
 	width: 100%;
+	height: 400rpx;
 	margin: -8rpx -28rpx 0;
 	padding: 8rpx 28rpx 4rpx;
+	box-sizing: border-box;
+	white-space: nowrap;
 }
 
 .case-list {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
-	gap: 18rpx;
+	align-items: flex-start;
+	width: 966rpx;
+	height: 392rpx;
+	box-sizing: border-box;
 	padding-right: 84rpx;
 }
 
 .case-card {
 	width: 276rpx;
+	height: 356rpx;
+	margin-right: 18rpx;
 	flex-shrink: 0;
-	min-height: 356rpx;
+	white-space: normal;
 	border-radius: 16rpx;
 	background: var(--surface);
 	overflow: hidden;
@@ -813,6 +906,85 @@ const showToast = (msg: string) => {
 	color: var(--rose-dark);
 	font-weight: 700;
 }
+
+.case-empty {
+	height: 180rpx;
+	margin-top: 12rpx;
+	border-radius: 16rpx;
+	background: var(--rose-faint);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.case-empty text { font-size: 22rpx; color: var(--muted); }
+
+.cases-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+	padding: 56rpx 32rpx;
+	box-sizing: border-box;
+	background: rgba(17, 23, 24, 0.48);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cases-modal {
+	width: 100%;
+	max-height: 900rpx;
+	border-radius: 28rpx;
+	background: var(--surface);
+	overflow: hidden;
+	box-shadow: var(--shadow-lg);
+	display: flex;
+	flex-direction: column;
+}
+
+.cases-modal-head {
+	position: relative;
+	padding: 28rpx 76rpx 20rpx 28rpx;
+	border-bottom: 1rpx solid var(--rose-line);
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+}
+
+.cases-modal-title { font-size: 32rpx; font-weight: 900; color: var(--ink); }
+.cases-modal-sub { font-size: 20rpx; color: var(--muted); }
+
+.cases-modal-close {
+	position: absolute;
+	right: 20rpx;
+	top: 22rpx;
+	width: 52rpx;
+	height: 52rpx;
+	border-radius: 50%;
+	background: var(--rose-faint);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cases-modal-close text { font-size: 32rpx; line-height: 1; color: var(--muted); }
+.cases-modal-scroll { height: 720rpx; }
+.cases-modal-list { padding: 20rpx 24rpx 28rpx; display: flex; flex-direction: column; gap: 16rpx; }
+
+.cases-modal-card {
+	padding: 14rpx;
+	border-radius: 16rpx;
+	background: var(--rose-faint);
+	display: flex;
+	flex-direction: row;
+	gap: 16rpx;
+}
+
+.cases-modal-image { width: 180rpx; height: 120rpx; flex-shrink: 0; border-radius: 12rpx; background: var(--surface); }
+.cases-modal-body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+.cases-modal-name { font-size: 25rpx; font-weight: 900; color: var(--ink); }
+.cases-modal-meta { font-size: 19rpx; color: var(--rose-dark); font-weight: 700; }
+.cases-modal-copy { font-size: 20rpx; line-height: 1.35; color: var(--ink2); }
 
 /* ===== 服务提醒 ===== */
 .notice-card {
