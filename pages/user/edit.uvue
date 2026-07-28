@@ -149,27 +149,6 @@
 </template>
 
 <script setup lang="uts">
-		// 表单数据（默认对齐高保真编辑资料演示）
-		let formData = ref({
-			avatar: '/static/portraits/profile-woman-main.jpg',
-			photos: [
-				'/static/portraits/profile-woman-main.jpg',
-				'/static/portraits/profile-woman-alt.jpg'
-			] as string[],
-			nickname: '苏晚晴',
-			gender: 2, // 0-未选择 1-男 2-女
-			birthday: '1998-05-15',
-			height: 165,
-			location: '杭州',
-			education: '本科',
-			occupation: '插画师',
-			income: '15k—30k',
-			maritalStatus: '未婚',
-			housing: '',
-			introduction: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
-			requirement: '愿意把真实想法说清楚，不用猜来猜去。各自有生活，也愿意为共同计划留出时间。把长期关系当作两个人一起完成的作品。'
-		})
-
 	// 表单数据
 	const formData = ref({
 		avatar: '/static/portraits/profile-woman-main.jpg',

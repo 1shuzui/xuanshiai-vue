@@ -257,7 +257,6 @@ const submitComment = async () => {
 				uni.showToast({ title: msg, icon: 'none' })
 			}
 		}
-	}
 
 	const onFollow = async (userId: number) => {
 		const ok = await guardRealName('follow')
