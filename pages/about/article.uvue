@@ -1,0 +1,121 @@
+<template>
+	<view class="page">
+		<scroll-view class="article-scroll" scroll-y="true" v-if="!loading && !error && article != null">
+			<view class="article-header">
+				<text class="article-title">{{ article.title }}</text>
+				<text class="article-updated" v-if="article.updatedAt">更新于 {{ article.updatedAt }}</text>
+			</view>
+			<view class="article-body">
+				<text class="article-text">{{ article.content }}</text>
+			</view>
+		</scroll-view>
+
+		<view class="empty-state" v-if="loading">
+			<text class="empty-text">加载中...</text>
+		</view>
+
+		<view class="empty-state" v-else-if="error != ''">
+			<text class="empty-text">{{ error }}，点击重试</text>
+		</view>
+
+		<view class="empty-state" v-else-if="article == null">
+			<text class="empty-text">文章不存在</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+import { getArticle, ArticleDetail } from '@/api/about'
+
+let type = ''
+let article = ref(null as ArticleDetail | null)
+let loading = ref(true)
+let error = ref('')
+
+const loadArticle = async (articleType: string) => {
+	loading.value = true
+	error.value = ''
+	try {
+		const res = await getArticle(articleType)
+		if (!res.success || res.data == null) throw new Error('内容获取失败')
+		article.value = res.data
+		uni.setNavigationBarTitle({ title: res.data.title })
+	} catch (e: any) {
+		error.value = '内容加载失败，点击重试'
+		uni.showToast({ title: '加载失败', icon: 'none' })
+	} finally {
+		loading.value = false
+	}
+}
+
+// 从页面参数获取文章类型
+onLoad((options) => {
+	type = options?.type ?? ''
+	if (type != '') {
+		loadArticle(type)
+	}
+})
+
+const onRetry = () => {
+	if (type != '') {
+		loadArticle(type)
+	}
+}
+</script>
+
+<style scoped>
+.page {
+	min-height: 100vh;
+	background-color: #FFFFFF;
+}
+
+.article-scroll {
+	height: 100vh;
+	padding: 32rpx 40rpx 60rpx;
+}
+
+.article-header {
+	display: flex;
+	flex-direction: column;
+	gap: 16rpx;
+	padding-bottom: 40rpx;
+	border-bottom: 2rpx solid #F0F0F0;
+	margin-bottom: 40rpx;
+}
+
+.article-title {
+	font-size: 40rpx;
+	font-weight: 700;
+	color: #1A1A1A;
+}
+
+.article-updated {
+	font-size: 24rpx;
+	color: #9CA3AF;
+}
+
+.article-body {
+	display: flex;
+	flex-direction: column;
+}
+
+.article-text {
+	font-size: 30rpx;
+	color: #333333;
+	line-height: 1.8;
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.empty-state {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100vh;
+}
+
+.empty-text {
+	font-size: 28rpx;
+	color: #9CA3AF;
+}
+</style>
