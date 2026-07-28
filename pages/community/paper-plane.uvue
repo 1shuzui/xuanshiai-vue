@@ -174,6 +174,18 @@
 				</view>
 
 				<view v-if="composerTab == 'text'" class="composer-panel">
+					<view class="paper-plane-media-grid">
+						<view class="paper-plane-media-item" v-for="(item, index) in paperPlaneImages" :key="index">
+							<image class="paper-plane-media-image" :src="item.localPath" mode="aspectFill"></image>
+							<view class="paper-plane-media-status" v-if="item.status == 'uploading' || item.status == 'pending'">上传中</view>
+							<view class="paper-plane-media-status paper-plane-media-failed" v-else-if="item.status == 'failed'" @click="retryPaperPlaneImage(index)">重试</view>
+							<button class="paper-plane-media-remove" @click="removePaperPlaneImage(index)">×</button>
+						</view>
+						<view v-if="paperPlaneImages.length < 6" class="paper-plane-media-add" @click="addPaperPlaneImage">
+							<text>+</text>
+							<text>添加图片</text>
+						</view>
+					</view>
 					<textarea
 						class="ta"
 						:value="draft"
@@ -185,7 +197,7 @@
 						<text>保持真诚，也给彼此留一点余地</text>
 						<text>{{ draft.length }}/120</text>
 					</view>
-					<button class="throw-button" :disabled="sending || draft.trim().length == 0" @click="send">{{ sending ? '正在放飞...' : '扔出去' }}</button>
+					<button class="throw-button" :disabled="sending || (draft.trim().length == 0 && paperPlaneImages.length == 0)" @click="send">{{ sending ? '正在放飞...' : '扔出去' }}</button>
 				</view>
 
 				<view v-else class="composer-panel voice-panel">
@@ -264,6 +276,120 @@
 	const recording = ref(false)
 	const recorded = ref(false)
 	const recordSeconds = ref(0)
+	let recorderManager: any = null
+	let recordTimer: any = null
+
+	type PaperPlaneMedia = {
+		localPath: string
+		mediaId: number
+		remoteUrl: string
+		status: string
+		mediaType: string
+		cancelled: boolean
+	}
+
+	const paperPlaneImages = ref<PaperPlaneMedia[]>([])
+	const inFlightMedia = ref<PaperPlaneMedia[]>([])
+	const pendingSendKey = ref('')
+	const pendingSendFingerprint = ref('')
+	const pendingReplyKey = ref('')
+	const pendingReplyFingerprint = ref('')
+
+	const loadPaperPlaneProfile = () => {
+		try {
+			const saved = uni.getStorageSync(PAPER_PLANE_PROFILE_STORAGE_KEY) as any
+			if (saved == null || typeof saved !== 'object' || saved.initialized != true) return
+
+			const nickname = typeof saved.nickname === 'string' && saved.nickname.trim().length > 0
+				? saved.nickname.trim()
+				: PAPER_PLANE_DEFAULT_NICKNAME
+			const hasAlbumAvatar = saved.avatarType == 'album' && typeof saved.avatar === 'string' && saved.avatar != ''
+			const avatarType = hasAlbumAvatar ? 'album' : (saved.avatarType == 'default' ? 'default' : '')
+			if (avatarType == '') return
+
+			paperPlaneProfile.value.nickname = nickname
+			paperPlaneProfile.value.avatar = hasAlbumAvatar ? saved.avatar : ''
+			paperPlaneProfile.value.avatarType = avatarType
+			paperPlaneProfile.value.initialized = true
+		} catch (e) {
+			console.error('恢复纸飞机身份失败', e)
+		}
+	}
+
+	const openPaperPlaneProfileEditor = () => {
+		paperPlaneProfileDraft.value.nickname = paperPlaneProfile.value.nickname
+		paperPlaneProfileDraft.value.avatar = paperPlaneProfile.value.avatar
+		paperPlaneProfileDraft.value.avatarType = paperPlaneProfile.value.avatarType
+		paperPlaneProfileEditorVisible.value = true
+	}
+
+	const closePaperPlaneProfileEditor = () => {
+		paperPlaneProfileEditorVisible.value = false
+	}
+
+	const ensurePaperPlaneProfile = (): boolean => {
+		if (paperPlaneProfile.value.initialized) return true
+		openPaperPlaneProfileEditor()
+		return false
+	}
+
+	const onPaperPlaneNicknameInput = (e: any) => {
+		paperPlaneProfileDraft.value.nickname = e.detail.value
+	}
+
+	const randomizePaperPlaneNickname = () => {
+		const index = Math.floor(Math.random() * paperPlaneRandomNames.length)
+		paperPlaneProfileDraft.value.nickname = paperPlaneRandomNames[index]
+	}
+
+	const useDefaultPaperPlaneAvatar = () => {
+		paperPlaneProfileDraft.value.avatar = ''
+		paperPlaneProfileDraft.value.avatarType = 'default'
+	}
+
+	const choosePaperPlaneAvatar = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album'],
+			success: (res: any) => {
+				if (res != null && res.tempFilePaths != null && res.tempFilePaths.length > 0) {
+					paperPlaneProfileDraft.value.avatar = res.tempFilePaths[0]
+					paperPlaneProfileDraft.value.avatarType = 'album'
+				}
+			}
+		})
+	}
+
+	const savePaperPlaneProfile = () => {
+		const nickname = paperPlaneProfileDraft.value.nickname.trim()
+		if (nickname.length == 0) {
+			uni.showToast({ title: '请输入纸飞机昵称', icon: 'none' })
+			return
+		}
+		if (paperPlaneProfileDraft.value.avatarType == '') {
+			uni.showToast({ title: '请选择纸飞机头像', icon: 'none' })
+			return
+		}
+
+		paperPlaneProfile.value.nickname = nickname
+		paperPlaneProfile.value.avatar = paperPlaneProfileDraft.value.avatar
+		paperPlaneProfile.value.avatarType = paperPlaneProfileDraft.value.avatarType
+		paperPlaneProfile.value.initialized = true
+		try {
+			uni.setStorageSync(PAPER_PLANE_PROFILE_STORAGE_KEY, {
+				nickname: paperPlaneProfile.value.nickname,
+				avatar: paperPlaneProfile.value.avatar,
+				avatarType: paperPlaneProfile.value.avatarType,
+				initialized: true
+			})
+		} catch (e) {
+			console.error('保存纸飞机身份失败', e)
+		}
+		paperPlaneProfileEditorVisible.value = false
+		uni.showToast({ title: '纸飞机身份已保存', icon: 'success' })
+	}
+
 	const recordTime = computed(() => {
 		const minutes = Math.floor(recordSeconds.value / 60)
 		const seconds = recordSeconds.value % 60
@@ -337,7 +463,174 @@
 		return res.data != null && res.data.success == false
 	}
 
-	const openComposer = async () => {
+	const setMode = (mode: string) => {
+		activeMode.value = mode
+	}
+
+	const openPaperPlaneMessages = () => {
+		if (!ensurePaperPlaneProfile()) return
+		activeMode.value = 'mine'
+		uni.navigateTo({ url: '/pages/community/paper-plane-messages' })
+	}
+
+	const openCatchMenu = () => {
+		if (!ensurePaperPlaneProfile()) return
+		activeMode.value = 'catch'
+		catchMenuVisible.value = true
+	}
+
+	const closeCatchMenu = () => {
+		catchMenuVisible.value = false
+	}
+
+	const recordCatch = () => {
+		catchCount.value += 1
+	}
+
+	const openPlaneQuota = () => {
+		if (!ensurePaperPlaneProfile()) return
+		planeQuotaTab.value = 'throw'
+		planeQuotaVisible.value = true
+	}
+
+	const closePlaneQuota = () => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaVisible.value = false
+	}
+
+	const selectPlaneQuotaTab = (tab: string) => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaTab.value = tab
+	}
+
+	const purchasePaperPlaneTimes = async () => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaPurchasing.value = true
+		try {
+			const res = await purchasePaperPlaneChance(planeQuotaTab.value)
+			const data = res != null ? res.data as any : null
+			if (res != null && res.success && data != null && data.success) {
+				if (data.quotas != null) {
+					total.value = data.quotas.total
+					remain.value = data.quotas.remain
+					purchasedThrowCount.value = data.quotas.purchasedThrow != null
+						? Math.max(0, Number(data.quotas.purchasedThrow))
+						: purchasedThrowCount.value
+					if (planeQuotaTab.value == 'catch') {
+						const purchasedCatch = data.quotas.purchasedCatch != null
+							? Math.max(0, Number(data.quotas.purchasedCatch))
+							: catchCount.value + 1
+						catchCount.value = Math.max(catchCount.value, purchasedCatch)
+					}
+				}
+				const points = data.points != null ? Number(data.points) : 0
+				uni.showModal({
+					title: '已获取纸飞机次数',
+					content: '积分 -50，剩余 ' + points + ' 积分',
+					showCancel: false,
+					confirmText: '知道了'
+				})
+				return
+			}
+			uni.showToast({ title: data != null && data.message != null ? data.message : '获取失败，请稍后重试', icon: 'none' })
+		} catch (e) {
+			console.error(e)
+			uni.showToast({ title: '获取失败，请稍后重试', icon: 'none' })
+		} finally {
+			planeQuotaPurchasing.value = false
+		}
+	}
+
+	const openNormalCatch = () => {
+		if (!ensurePaperPlaneProfile()) return
+		catchMenuVisible.value = false
+		recordCatch()
+		normalReportVisible.value = false
+		normalReplyDraft.value = ''
+		normalVoicePlaying.value = false
+		const index = Math.floor(Math.random() * normalPlanePool.length)
+		normalPlane.value = normalPlanePool[index]
+		normalCatchVisible.value = true
+	}
+
+	const closeNormalCatch = () => {
+		normalVoicePlaying.value = false
+		normalCatchVisible.value = false
+	}
+
+	const openNormalReport = () => {
+		normalReportVisible.value = true
+	}
+
+	const toggleNormalVoice = () => {
+		normalVoicePlaying.value = !normalVoicePlaying.value
+	}
+
+	const onNormalReplyInput = (e: any) => {
+		normalReplyDraft.value = e.detail.value
+		invalidatePendingReplyKey()
+	}
+
+	const reply = async () => {
+		const text = normalReplyDraft.value.trim()
+		if (text.length == 0 || normalSending.value) return
+		const p = normalPlane.value
+		const content = text
+		const fingerprint = p.id + '|' + content
+		if (pendingReplyKey.value == '' || pendingReplyFingerprint.value != fingerprint) {
+			discardPendingReplyKey()
+			pendingReplyKey.value = createCommunityCreateKey('paper-plane-reply')
+			pendingReplyFingerprint.value = fingerprint
+		}
+		normalSending.value = true
+		try {
+			const res = await replyPaperPlane(p.id, content, pendingReplyKey.value)
+			const replyOk = res != null && res.success && (res.data == null || res.data.success != false)
+			if (replyOk) {
+				if (p.replyCount == null) p.replyCount = 0
+				p.replied = true
+				p.replyCount += 1
+				discardPendingReplyKey()
+				normalReplyDraft.value = ''
+				returnFromNormalCatch()
+			} else {
+				uni.showToast({ title: '发送失败，请稍后再试', icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' })
+		} finally {
+			normalSending.value = false
+		}
+	}
+
+	const returnFromNormalCatch = () => {
+		normalCatchVisible.value = false
+		normalReportVisible.value = false
+		discardPendingReplyKey()
+		uni.reLaunch({ url: '/pages/community/paper-plane' })
+	}
+
+	const openComposerMenu = () => {
+		if (!ensurePaperPlaneProfile()) return
+		menuVisible.value = true
+	}
+
+	const openDatingPlane = () => {
+		if (!ensurePaperPlaneProfile()) return
+		menuVisible.value = false
+		catchMenuVisible.value = false
+		recordCatch()
+		uni.navigateTo({ url: '/pages/community/dating-plane' })
+	}
+
+	const openDatingPlaneComposer = () => {
+		if (!ensurePaperPlaneProfile()) return
+		menuVisible.value = false
+		uni.navigateTo({ url: '/pages/community/dating-plane-compose' })
+	}
+
+	const prepareComposer = async (tab: string) => {
+		if (!ensurePaperPlaneProfile()) return
 		if (remain.value <= 0) {
 			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
 			return
@@ -346,14 +639,27 @@
 		if (!ok) return
 		discardPendingSendKey()
 		draft.value = ''
+		paperPlaneImages.value = []
+		discardPendingSendKey()
 		recorded.value = false
 		recordSeconds.value = 0
 		composerVisible.value = true
 	}
 
-	const closeComposer = () => {
+	const openTextComposer = async () => {
+		if (!ensurePaperPlaneProfile()) return
+		await prepareComposer('text')
+	}
+
+	const openVoiceComposer = async () => {
+		if (!ensurePaperPlaneProfile()) return
+		await prepareComposer('voice')
+	}
+
+	const closeComposer = (preserveMedia: boolean = false) => {
+		if (recording.value) stopRecording()
+		if (!preserveMedia) cleanupPaperPlaneMedia()
 		discardPendingSendKey()
-		draft.value = ''
 		composerVisible.value = false
 	}
 
@@ -366,9 +672,167 @@
 
 	const onDraft = (e: any) => {
 		draft.value = e.detail.value
-		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != sendFingerprint(draft.value.trim())) {
+		invalidatePendingSendKey()
+	}
+
+	const makePaperPlaneMedia = (localPath: string): PaperPlaneMedia => {
+		return {
+			localPath: localPath,
+			mediaId: 0,
+			remoteUrl: '',
+			status: 'pending',
+			mediaType: 'image',
+			cancelled: false
+		}
+	}
+
+	const sendNormalReply = reply
+
+	const trackInFlight = (item: PaperPlaneMedia) => {
+		const list = inFlightMedia.value as PaperPlaneMedia[]
+		for (let i = 0; i < list.length; i++) {
+			if (list[i] === item) return
+		}
+		list.push(item)
+		inFlightMedia.value = list
+	}
+
+	const untrackInFlight = (item: PaperPlaneMedia) => {
+		const list = inFlightMedia.value as PaperPlaneMedia[]
+		const next: PaperPlaneMedia[] = []
+		for (let i = 0; i < list.length; i++) {
+			if (list[i] !== item) next.push(list[i])
+		}
+		inFlightMedia.value = next
+	}
+
+	const uploadPaperPlaneImage = async (item: PaperPlaneMedia) => {
+		if (item.cancelled) return
+		item.status = 'uploading'
+		trackInFlight(item)
+		try {
+			const res = await uploadCommunityMedia(item.localPath, 'paper_plane')
+			const mediaId = res != null && res.success && res.data != null && res.data.id != null
+				? (res.data.id as number)
+				: 0
+			if (item.cancelled) {
+				if (mediaId > 0) {
+					try { await deleteCommunityMedia(mediaId) } catch (e) {}
+				}
+				return
+			}
+			if (mediaId > 0) {
+				item.mediaId = mediaId
+				item.remoteUrl = res.data.url != null ? ('' + res.data.url) : ''
+				item.status = 'ready'
+			} else {
+				item.mediaId = 0
+				item.remoteUrl = ''
+				item.status = 'failed'
+			}
+		} catch (e) {
+			item.mediaId = 0
+			item.remoteUrl = ''
+			item.status = 'failed'
+		} finally {
+			untrackInFlight(item)
+			invalidatePendingSendKey()
+		}
+	}
+
+	const addPaperPlaneImage = () => {
+		const remainingImages = 6 - paperPlaneImages.value.length
+		if (remainingImages <= 0) return
+		uni.chooseImage({
+			count: remainingImages,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: async (res: any) => {
+				const paths = res != null && res.tempFilePaths != null ? res.tempFilePaths as string[] : []
+				const added: PaperPlaneMedia[] = []
+				for (let i = 0; i < paths.length; i++) {
+					const path = paths[i] != null ? ('' + paths[i]) : ''
+					if (path == '') continue
+					const item = makePaperPlaneMedia(path)
+					paperPlaneImages.value.push(item)
+					added.push(item)
+				}
+				invalidatePendingSendKey()
+				for (let i = 0; i < added.length; i++) await uploadPaperPlaneImage(added[i])
+			}
+		})
+	}
+
+	const removePaperPlaneImage = async (index: number) => {
+		const list = paperPlaneImages.value as PaperPlaneMedia[]
+		if (index < 0 || index >= list.length) return
+		const item = list[index]
+		if (item.status == 'uploading' || item.status == 'pending') {
+			item.cancelled = true
+			trackInFlight(item)
+			paperPlaneImages.value = list.filter((entry: PaperPlaneMedia) => entry !== item)
+			invalidatePendingSendKey()
+			return
+		}
+		if (item.status == 'ready' && item.mediaId > 0) {
+			try { await deleteCommunityMedia(item.mediaId) } catch (e) {}
+		}
+		paperPlaneImages.value.splice(index, 1)
+		invalidatePendingSendKey()
+	}
+
+	const retryPaperPlaneImage = async (index: number) => {
+		const list = paperPlaneImages.value as PaperPlaneMedia[]
+		if (index < 0 || index >= list.length || list[index].status != 'failed') return
+		list[index].cancelled = false
+		await uploadPaperPlaneImage(list[index])
+	}
+
+	const cleanupPaperPlaneMedia = async () => {
+		const list = paperPlaneImages.value as PaperPlaneMedia[]
+		for (let i = 0; i < list.length; i++) {
+			const item = list[i]
+			if (item.status == 'uploading' || item.status == 'pending') {
+				item.cancelled = true
+				trackInFlight(item)
+			} else if (item.status == 'ready' && item.mediaId > 0) {
+				try { await deleteCommunityMedia(item.mediaId) } catch (e) {}
+			}
+		}
+		const flying = inFlightMedia.value as PaperPlaneMedia[]
+		for (let i = 0; i < flying.length; i++) flying[i].cancelled = true
+		paperPlaneImages.value = []
+		invalidatePendingSendKey()
+	}
+
+	const paperPlaneSendFingerprint = (): string => {
+		const ids: string[] = []
+		const list = paperPlaneImages.value as PaperPlaneMedia[]
+		for (let i = 0; i < list.length; i++) ids.push('i' + list[i].mediaId + ':' + list[i].status)
+		return draft.value.trim() + '|' + ids.join(',')
+	}
+
+	const discardPendingSendKey = () => {
+		if (pendingSendKey.value != '') discardCommunityCreateKey(pendingSendKey.value)
+		pendingSendKey.value = ''
+		pendingSendFingerprint.value = ''
+	}
+
+	const invalidatePendingSendKey = () => {
+		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != paperPlaneSendFingerprint()) {
 			discardPendingSendKey()
 		}
+	}
+
+	const discardPendingReplyKey = () => {
+		if (pendingReplyKey.value != '') discardCommunityCreateKey(pendingReplyKey.value)
+		pendingReplyKey.value = ''
+		pendingReplyFingerprint.value = ''
+	}
+
+	const invalidatePendingReplyKey = () => {
+		const fingerprint = normalPlane.value.id + '|' + normalReplyDraft.value.trim()
+		if (pendingReplyFingerprint.value != '' && pendingReplyFingerprint.value != fingerprint) discardPendingReplyKey()
 	}
 
 	const onReplyDraft = (e: any) => {
@@ -388,12 +852,25 @@
 
 	const send = async () => {
 		const text = draft.value.trim()
-		if (text.length == 0 || sending.value) return
+		const mediaList = paperPlaneImages.value as PaperPlaneMedia[]
+		const imageMediaIds: number[] = []
+		for (let i = 0; i < mediaList.length; i++) {
+			if (mediaList[i].status == 'uploading' || mediaList[i].status == 'pending') {
+				uni.showToast({ title: '图片上传中，请稍候', icon: 'none' })
+				return
+			}
+			if (mediaList[i].status == 'failed') {
+				uni.showToast({ title: '图片上传失败，请重试或删除', icon: 'none' })
+				return
+			}
+			if (mediaList[i].status == 'ready' && mediaList[i].mediaId > 0) imageMediaIds.push(mediaList[i].mediaId)
+		}
+		if ((text.length == 0 && imageMediaIds.length == 0) || sending.value) return
 		if (remain.value <= 0) {
 			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
 			return
 		}
-		const fingerprint = sendFingerprint(text)
+		const fingerprint = paperPlaneSendFingerprint()
 		if (pendingSendKey.value == '' || pendingSendFingerprint.value != fingerprint) {
 			discardPendingSendKey()
 			pendingSendKey.value = createCommunityCreateKey('paper-plane')
@@ -401,30 +878,15 @@
 		}
 		sending.value = true
 		try {
-			const res = await sendPaperPlane({
-				content: text,
-				anonymous: true,
-				scope: 'city',
-				idempotencyKey: pendingSendKey.value
-			})
+			const res = await sendPaperPlane({ content: text, imageMediaIds, scope: 'city', anonymous: true, idempotencyKey: pendingSendKey.value })
 			const data = res != null ? res.data : null
 			const bizOk = res != null && res.success && data != null && data.success != false
 			if (bizOk) {
+				if (data.quotas != null) remain.value = data.quotas.remain
+				else remain.value = Math.max(0, remain.value - 1)
 				discardPendingSendKey()
-				if (data.plane != null) {
-					;(planes.value as any[]).unshift(data.plane)
-				} else {
-					await load()
-				}
-				if (data.quotas != null && data.quotas.remain != null) {
-					remain.value = data.quotas.remain
-					if (data.quotas.total != null) total.value = data.quotas.total
-				} else if (data.remain != null) {
-					remain.value = data.remain
-				} else {
-					remain.value = Math.max(0, remain.value - 1)
-				}
-				composerVisible.value = false
+				paperPlaneImages.value = []
+				closeComposer(true)
 				uni.showToast({ title: '已放飞', icon: 'success' })
 			} else {
 				if (shouldDiscardCreateKey(res)) discardPendingSendKey()
@@ -712,6 +1174,15 @@
 	.composer-tab::after { border: none; }
 	.composer-tab.active { background: var(--plane-purple); color: var(--text-invert); font-weight: 800; }
 	.composer-panel { display: flex; flex-direction: column; gap: 10px; }
+	.paper-plane-media-grid { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+	.paper-plane-media-item, .paper-plane-media-add { position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; background: var(--bg-subtle); }
+	.paper-plane-media-image { width: 100%; height: 100%; }
+	.paper-plane-media-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px dashed var(--line); color: var(--muted); font-size: 11px; }
+	.paper-plane-media-add text:first-child { font-size: 24px; line-height: 24px; }
+	.paper-plane-media-status { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 0; background: rgba(25, 15, 48, 0.72); color: var(--text-invert); font-size: 10px; text-align: center; }
+	.paper-plane-media-failed { background: rgba(160, 55, 69, 0.86); }
+	.paper-plane-media-remove { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; margin: 0; padding: 0; border-radius: 11px; background: rgba(25, 15, 48, 0.72); color: var(--text-invert); font-size: 16px; line-height: 20px; }
+	.paper-plane-media-remove::after { border: none; }
 	.ta { width: 100%; min-height: 120px; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-size: 14px; line-height: 1.55; }
 	.compose-meta { display: flex; flex-direction: row; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted); }
 	.throw-button { width: 100%; height: 46px; border-radius: 14px; background: var(--plane-purple); color: var(--text-invert); font-size: 15px; font-weight: 800; }

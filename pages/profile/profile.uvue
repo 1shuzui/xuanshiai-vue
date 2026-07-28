@@ -1,16 +1,7 @@
 <template>
 	<view class="page">
-		<!-- 状态栏 -->
-		<view class="status-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-			<text class="time-text">9:41</text>
-			<view class="status-icons">
-				<text class="battery-icon">●●●</text>
-			</view>
-		</view>
-
 		<!-- 导航栏 -->
-		<view class="nav-bar">
-			<text class="nav-title">我的</text>
+		<view class="nav-bar" :style="{ paddingTop: (statusBarHeight + 12) + 'px', paddingRight: (menuButtonSpacing + 8) + 'px' }">
 			<view class="nav-right">
 				<view class="nav-icon-btn" @tap="onMessages">
 					<text class="ic ic-social ic-tongzhi nav-icon"></text>
@@ -108,8 +99,11 @@
 
 <script setup lang="uts">
 import XsaTabBar from '@/components/XsaTabBar.uvue'
+
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+const menuButtonInfo = uni.getMenuButtonBoundingClientRect()
+const menuButtonSpacing = menuButtonInfo != null ? (systemInfo.windowWidth - menuButtonInfo.left) : 8
 
 const user = ref({
 	nickname: '张小姐',
@@ -136,7 +130,7 @@ const onViewMyProfile = () => {
 }
 
 const onOpenVIP = () => {
-	uni.navigateTo({ url: '/pages/profile/vip' })
+	uni.navigateTo({ url: '/pages/profile/vip', fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) } })
 }
 
 const onMyTasks = () => {
@@ -144,7 +138,7 @@ const onMyTasks = () => {
 }
 
 const onMyMoments = () => {
-	uni.showToast({ title: '我的动态', icon: 'none' })
+	uni.navigateTo({ url: '/pages/profile/my-moments' })
 }
 
 const onMyPoster = () => {
@@ -224,44 +218,14 @@ page {
 	flex-direction: column;
 }
 
-/* ==================== 状态栏 ==================== */
-.status-bar {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	height: 44px;
-	padding-left: 16px;
-	padding-right: 16px;
-	box-sizing: border-box;
-}
-
-.time-text {
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--profile-text);
-}
-
-.status-icons {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-}
-
-.battery-icon {
-	font-size: 12px;
-	color: var(--profile-text);
-	letter-spacing: 1px;
-}
 
 /* ==================== 导航栏 ==================== */
 .nav-bar {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	justify-content: center;
+	justify-content: flex-end;
 	padding: 12px 16px 16px 16px;
-	position: relative;
 }
 
 .nav-title {
@@ -271,9 +235,6 @@ page {
 }
 
 .nav-right {
-	position: absolute;
-	right: 16px;
-	top: 12px;
 	display: flex;
 	flex-direction: row;
 	align-items: center;

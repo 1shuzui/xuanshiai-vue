@@ -269,6 +269,9 @@
 		import {
 			getChatMessages,
 			sendMessage as sendMessageApi,
+			getPaperPlaneMessages,
+			sendPaperPlaneMessage,
+			readPaperPlaneConversation,
 			handleContactExchangeRequest,
 			getChatFeatureUnlocks,
 			unlockChatFeature
@@ -300,6 +303,7 @@
 		let scrollToView = ref('')
 		let loading = ref(false)
 		let userId = ref(0)
+		let paperPlaneConversationId = ref(0)
 		let peerName = ref('对方')
 		let peerAvatar = ref('/static/portraits/profile-woman-main.jpg')
 let contactExchangeRecords = ref([] as any[])
@@ -343,6 +347,18 @@ let contactExchangeRecords = ref([] as any[])
 				title: peerName.value
 			})
 		}
+		if (options && options.paperPlaneLabel) {
+			peerName.value = decodeURIComponent(options.paperPlaneLabel)
+			uni.setNavigationBarTitle({ title: peerName.value })
+		}
+		if (options && options.paperPlaneConversationId) {
+			const parsedConversationId = parseInt(options.paperPlaneConversationId)
+			if (parsedConversationId > 0) {
+				paperPlaneConversationId.value = parsedConversationId
+				loadPaperPlaneMessages()
+				return
+			}
+		}
 if (options && options.userId) {
 				userId.value = parseInt(options.userId)
 				loadChatFeatureUnlocks()
@@ -350,6 +366,32 @@ if (options && options.userId) {
 				loadChatMessages()
 			}
 	})
+
+		const loadPaperPlaneMessages = async () => {
+			try {
+				loading.value = true
+				await readPaperPlaneConversation(paperPlaneConversationId.value)
+				const res = await getPaperPlaneMessages(paperPlaneConversationId.value)
+				if (res.success) {
+					const list = res.data as any[]
+					messages.value = list.map((msg: any, idx: number) => ({
+						id: msg.id,
+						type: msg.type == 3 ? 'voice' : 'text',
+						content: msg.type == 3 ? (msg.mediaUrl != null ? msg.mediaUrl : '') : msg.content,
+						time: msg.timeText != null ? msg.timeText : '',
+						showTime: idx == 0,
+						isMine: msg.mine === true,
+						avatar: msg.mine === true ? '/static/portraits/profile-man-light.jpg' : peerAvatar.value,
+						duration: msg.voiceDurationSec != null ? msg.voiceDurationSec : 0
+					}))
+					scrollToBottom()
+				}
+			} catch (error) {
+				console.error('纸飞机消息加载失败', error)
+			} finally {
+				loading.value = false
+			}
+		}
 
 		// 加载聊天记录
 		const loadChatMessages = async () => {
@@ -608,6 +650,23 @@ if (options && options.userId) {
 			inputText.value = ''
 			quotedMessage.value = null
 			scrollToBottom()
+
+			if (paperPlaneConversationId.value > 0) {
+				try {
+					const res = await sendPaperPlaneMessage(paperPlaneConversationId.value, content)
+					if (res.success && res.data != null) {
+						newMsg.id = res.data.id != null ? res.data.id : newMsg.id
+					} else {
+						messages.value = (messages.value as any[]).filter((item: any) => item.id != newMsg.id)
+						uni.showToast({ title: res.message != null ? res.message : '发送失败', icon: 'none' })
+					}
+				} catch (error) {
+					messages.value = (messages.value as any[]).filter((item: any) => item.id != newMsg.id)
+					console.error('纸飞机发送失败', error)
+					uni.showToast({ title: '发送失败', icon: 'none' })
+				}
+				return
+			}
 
 			// 调用发送消息接口
 			try {

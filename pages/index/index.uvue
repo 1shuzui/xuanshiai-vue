@@ -27,17 +27,7 @@
 
 		<view v-else class="page">
 			<!-- 固定头部 -->
-			<view class="sticky-header">
-			<!-- 状态栏 -->
-			<view class="status-bar">
-				<text class="time-text">9:41</text>
-				<view class="status-icons">
-					<text class="signal-icon">●●●●</text>
-					<text class="wifi-icon">◉</text>
-					<text class="battery-icon">●●●</text>
-				</view>
-			</view>
-
+			<view class="sticky-header" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<!-- 导航栏 -->
 			<view class="nav-bar">
 				<view class="nav-tabs">
@@ -71,7 +61,7 @@
 
 			</view>
 			<!-- 推荐 Tab -->
-			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll" enhanced show-scrollbar="false">
+			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll" enhanced show-scrollbar="false" @touchstart="onTouchStart" @touchend="onTouchEnd">
 				<view class="profile-card">
 					<view class="cover-wrap">
 						<image class="cover-img" :src="currentRecommendUser.photos != null && currentRecommendUser.photos.length > 0 ? currentRecommendUser.photos[0] : '/static/portraits/profile-woman-alt.jpg'" mode="aspectFill"></image>
@@ -201,13 +191,13 @@
 
 <text class="section-title">Ta的动态</text>
 
-<text class="feed-more" @click="viewAllFeed">查看全部 ></text>
+<text class="feed-more" @click="viewAllFeed">查看全部 ›</text>
 
 </view>
 
 <view class="feed-list">
 
-<view class="feed-card" v-for="(feed, fi) in feedDynamics" :key="fi">
+<view class="feed-card" v-for="(feed, fi) in feedDynamics" :key="fi" @tap="goPostDetail(feed.id)">
 
 <view class="feed-card-header">
 
@@ -343,7 +333,7 @@
 								<text class="sq-section-title">会员专区</text>
 								<text class="sq-section-count">128位</text>
 							</view>
-							<text class="sq-section-more">查看全部 <text class="ic ic-sys ic-jiantou-you sq-arrow"></text></text>
+							<text class="sq-section-more">查看全部 ›</text>
 						</view>
 						<view class="sq-vip-row">
 							<view class="sq-vip-mini" @tap="goUserDetail">
@@ -420,7 +410,7 @@
 								<text class="sq-section-title">高收入专区</text>
 								<text class="sq-section-count">56位</text>
 							</view>
-							<text class="sq-section-more">查看全部 <text class="ic ic-sys ic-jiantou-you sq-arrow"></text></text>
+							<text class="sq-section-more">查看全部 ›</text>
 						</view>
 						<view class="sq-vip-row">
 							<view class="sq-vip-mini" @tap="goUserDetail">
@@ -563,7 +553,7 @@
 				<view class="vip-privilege-section">
 					<view class="vip-priv-header">
 						<text class="vip-priv-title">VIP会员专属特权</text>
-						<view class="vip-upgrade-btn">
+						<view class="vip-upgrade-btn" @tap="openVipPage">
 							<text class="ic ic-vip ic-huiyuan vip-upgrade-icon"></text>
 							<text class="vip-upgrade-text">立即开通</text>
 						</view>
@@ -588,7 +578,7 @@
 							<text class="vip-spot-title">人气爆灯嘉宾</text>
 							<text class="vip-spot-count">32人</text>
 						</view>
-						<text class="vip-spot-more">查看全部 <text class="ic ic-sys ic-jiantou-you sq-arrow"></text></text>
+						<text class="vip-spot-more">查看全部 ›</text>
 					</view>
 					<text class="vip-spot-desc">爆灯后系统将短信通知对方，头像将显示在对方爆灯栏中</text>
 					<view class="vip-spot-row">
@@ -607,22 +597,22 @@
 				<view class="vip-bottom-cta">
 					<text class="ic ic-home ic-star vip-cta-icon"></text><text class="vip-cta-title"> 升级VIP会员</text>
 					<text class="vip-cta-desc">解锁全部会员资料 · 无限牵线次数 · 优先展示曝光</text>
-					<view class="vip-price-row">
-						<view class="vip-price-opt">
+						<view class="vip-price-row">
+							<view class="vip-price-opt">
 							<text class="vip-price-period">7天</text>
 							<text class="vip-price-value">¥99</text>
 						</view>
-						<view class="vip-price-opt recommended">
+							<view class="vip-price-opt recommended">
 							<view class="vip-price-badge"><text class="vip-price-badge-text">推荐</text></view>
 							<text class="vip-price-period">30天</text>
 							<text class="vip-price-value">¥299</text>
 						</view>
-						<view class="vip-price-opt">
+							<view class="vip-price-opt">
 							<text class="vip-price-period">90天</text>
 							<text class="vip-price-value">¥799</text>
 						</view>
 					</view>
-					<view class="vip-cta-btn">
+					<view class="vip-cta-btn" @tap="openVipPage">
 						<text class="vip-cta-btn-text">立即开通VIP</text>
 					</view>
 					<text class="vip-cta-hint">付费即同意《会员服务协议》· 可随时取消</text>
@@ -636,12 +626,9 @@
 				<view class="share-btn" @click="shareProfile">
 					<text class="ic ic-sys ic-fenxiang share-icon"></text>
 				</view>
-				<view class="skip-btn" @click="switchToNextRecommend">
-					<text class="skip-text">换一个</text>
-				</view>
 				<view class="chat-btn" @click="openApplyModal">
 					<text class="ic ic-home ic-hello chat-icon"></text>
-					<text class="chat-text">申请牵线</text>
+						<text class="chat-text">申请认识</text>
 				</view>
 				<view class="like-btn" @click="onLike(recommendUserId)">
 					<text class="ic ic-home ic-heart heart-icon"></text>
@@ -729,6 +716,9 @@
 </template>
 
 <script setup lang="uts">
+	const systemInfo = uni.getSystemInfoSync()
+	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+
 	import XsaSheet from '@/components/XsaSheet.uvue'
 	import XsaModal from '@/components/XsaModal.uvue'
 	import XsaToast from '@/components/XsaToast.uvue'
@@ -761,8 +751,13 @@
 	// ========== 导航 ==========
 	const currentTab = ref(0)
 	const navTabs = ['推荐', '广场', '会员专区']
-
 	const switchTab = (index: number) => { currentTab.value = index }
+	const openVipPage = () => {
+		uni.navigateTo({
+			url: '/pages/profile/vip',
+			fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) }
+		})
+	}
 	const onHistory = () => {}
 	const onSearch = () => {}
 
@@ -840,9 +835,9 @@
 		const quota = getDailyViewQuota()
 		if (quota.isVip) {
 			quotaExhaustedMessage.value = '今日免费查看次数已用完（' + quota.total + '/' + quota.total + '），可使用积分兑换'
-		} else {
+} else {
 			quotaExhaustedMessage.value = '今日免费查看次数已用完（' + quota.total + '/' + quota.total + '），升级VIP享每日20次查看，或积分兑换'
-		}
+}
 		quotaExhaustedVisible.value = true
 	}
 	const handleQuotaUpgrade = () => { quotaExhaustedVisible.value = false; uni.navigateTo({ url: '/pages/profile/vip' }) }
@@ -854,12 +849,37 @@
 	}
 	const showBlockReport = () => { showToast('屏蔽/举报功能') }
 
+	// 左滑换一个
+	const touchStartX = ref(0)
+	const touchStartY = ref(0)
+	const onTouchStart = (e: any) => {
+		const touch = e.touches != null && e.touches.length > 0 ? e.touches[0] : null
+		if (touch != null) {
+			touchStartX.value = touch.clientX
+			touchStartY.value = touch.clientY
+		}
+	}
+	const onTouchEnd = (e: any) => {
+		const touch = e.changedTouches != null && e.changedTouches.length > 0 ? e.changedTouches[0] : null
+		if (touch != null) {
+			const deltaX = touchStartX.value - touch.clientX
+			const deltaY = touchStartY.value - touch.clientY
+			// 左滑（deltaX > 60）且水平位移大于垂直位移
+			if (deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY)) {
+				switchToNextRecommend()
+			}
+		}
+	}
+
 	// Ta的动态
 	const feedDynamics = [
 		{ id: 101, avatar: '/static/portraits/profile-woman-main.jpg', name: '苏晚晴', timeText: '2小时前', location: '大理', content: '周末和朋友去了趟大理，洱海边的风真的好舒服！租了一辆小电驴环了半个岛，停下来拍照的时候，感觉整个世界都慢下来了。', photos: ['/static/portraits/profile-woman-alt.jpg', '/static/portraits/profile-woman-community.jpg'], tags: ['#旅行'], likeCount: 89, commentCount: 12 },
 		{ id: 102, avatar: '/static/portraits/profile-woman-main.jpg', name: '苏晚晴', timeText: '1天前', location: '杭州', content: '在画室泡了一整天，终于把新系列的第一幅完成了！这次尝试了新的水彩技法，颜色层次比之前丰富了很多。', photos: ['/static/portraits/profile-man-light.jpg', '/static/portraits/profile-man-sea.jpg'], tags: ['#画画', '#日常'], likeCount: 56, commentCount: 8 }
 	]
-	const viewAllFeed = () => { showToast('查看全部动态') }
+		const viewAllFeed = () => { showToast('查看全部动态') }
+		const goPostDetail = (postId: number) => {
+			uni.navigateTo({ url: '/pages/community/post-detail?id=' + postId })
+		}
 
 	// ========== AI 合拍度 ==========
 	const aiVisible = ref(false)
@@ -890,7 +910,7 @@
 		successVisible.value = true
 		if (payload != null && payload.code == 'ALREADY_PENDING') {
 			showToast('申请已发送，请等待对方回应')
-		}
+}
 	}
 
 	const goMessages = () => { successVisible.value = false; uni.switchTab({ url: '/pages/message/message' }) }
@@ -918,9 +938,9 @@
 			} else {
 				showToast('操作失败，请重试')
 			}
-		} catch (e) {
+} catch (e) {
 			showToast('操作失败，请重试')
-		}
+}
 	}
 
 	// ========== 生命周期 ==========
@@ -987,13 +1007,6 @@
 	--radius-full: 9999rpx;
 }
 
-/* ==================== 状态栏 ==================== */
-.status-bar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; height: 124rpx; padding: 32rpx 40rpx 16rpx 40rpx; box-sizing: border-box; }
-.time-text { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
-.status-icons { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
-.signal-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
-.wifi-icon { font-size: 24rpx; color: var(--text-primary); }
-.battery-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
 
 /* ==================== 导航栏 ==================== */
 .nav-bar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0 40rpx 24rpx 40rpx; margin-right: -4rpx; }
@@ -1271,13 +1284,10 @@
 
 /* 固定头部 */
 .sticky-header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; max-width: 750rpx; margin: 0 auto; background-color: var(--bg-primary); }
-.content-scroll { flex: 1; padding: 290rpx 32rpx 0 32rpx; }
+.content-scroll { flex: 1; padding: 254rpx 32rpx 0 32rpx; }
 /* 屏蔽/举报行 */
 .block-row { display: flex; justify-content: center; align-items: center; width: 100%; padding: 16rpx 0 8rpx 0; }
 .block-text { font-size: 24rpx; color: var(--text-muted); }
-/* 换一个按钮 */
-.skip-btn { height: 88rpx; padding: 0 28rpx; border-radius: 44rpx; background-color: var(--bg-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04); }
-.skip-text { font-size: 24rpx; font-weight: 600; color: var(--text-secondary); }
 /* 底部操作栏 */
 
 .ai-float-btn { z-index: 55; bottom: 360rpx; }

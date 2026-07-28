@@ -24,7 +24,7 @@
 				<view v-if="comments.length == 0" class="empty-c">
 					<text class="text-muted">还没有评论，说一句真诚的话吧</text>
 				</view>
-<view class="comment" v-for="c in comments" :key="c.id">
+<view class="comment" v-for="c in comments" :key="c.id" @longpress="replyTo(c)">
 						<image class="avatar" :src="c.user.avatar" mode="aspectFill"></image>
 						<view class="body">
 							<view class="comment-row">
@@ -34,12 +34,17 @@
 							<text class="content">{{ c.content }}</text>
 							<view class="comment-foot">
 								<text class="time text-muted">{{ c.timeText }}</text>
+								<text class="like-btn" @click="replyTo(c)">回复</text>
+								<text class="like-btn" v-if="c.canDelete" @click="removeComment(c)">删除</text>
 								<text class="like-btn" :class="{ on: c.liked }" @click="onLikeComment(c)">
 									{{ c.liked ? '已赞' : '点赞' }} {{ c.likeCount > 0 ? c.likeCount : '' }}
 								</text>
-							</view>
 						</view>
+						<view class="reply" v-for="r in c.replies" :key="r.id" @click="replyTo(r)" @longpress="replyTo(r)"><text class="name">{{ r.user.name }}</text><text v-if="r.replyToUserName"> 回复 @{{ r.replyToUserName }}</text><text>：{{ r.content }}</text></view>
+						<text class="like-btn" v-if="c.replyCount > (c.replies != null ? c.replies.length : 0)" @click="loadReplies(c)">加载更多回复</text>
 					</view>
+				</view>
+				<text class="like-btn load-more" v-if="commentHasMore" @click="loadMoreComments">加载更多评论</text>
 			</view>
 			<view class="pad"></view>
 		</scroll-view>
@@ -49,7 +54,7 @@
 				class="input"
 				:value="draft"
 				@input="onDraft"
-				placeholder="友善评论，完成实名后可发送"
+				:placeholder="replyTarget != null ? '回复 @' + replyTarget.user.name : '友善评论，完成实名后可发送'"
 				confirm-type="send"
 				@confirm="submitComment"
 			/>
@@ -85,6 +90,9 @@ import {
 			collectDynamic,
 			followUserFromCommunity,
 			commentDynamic,
+			deleteComment,
+			getThreadedComments,
+			getCommentReplies,
 			createCommunityCreateKey,
 			discardCommunityCreateKey
 		} from '@/api'
@@ -101,6 +109,9 @@ import {
 	const reportVisible = ref(false)
 	const reportTargetId = ref(0)
 	const reportUserId = ref(0)
+	const replyTarget = ref(null as any)
+	const commentCursor = ref('')
+	const commentHasMore = ref(false)
 
 	onLoad((q: any) => {
 		postId.value = q != null && q.id != null ? parseInt('' + q.id) : 0
@@ -135,20 +146,64 @@ const normalize = (item: any) => {
 			}
 		}
 
-	const load = async () => {
-		if (postId.value <= 0) return
-		loading.value = true
-		try {
-			const res = await getDynamicDetail(postId.value)
-			if (res.success) {
-				post.value = res.data
-				comments.value = res.data != null && res.data.comments != null ? res.data.comments : []
+const load = async () => {
+			if (postId.value <= 0) return
+			loading.value = true
+			try {
+				const res = await getDynamicDetail(postId.value)
+				if (res.success) {
+					post.value = res.data
+					comments.value = []
+					commentCursor.value = ''
+					await loadMoreComments()
+					if (res.data != null && res.data.commentsLoadError == true) {
+						uni.showToast({ title: '评论加载失败', icon: 'none' })
+					}
+				} else {
+					const msg =
+						res.data != null && res.data.message != null
+							? res.data.message
+							: res.message != null
+								? res.message
+								: '加载失败'
+					uni.showToast({ title: msg, icon: 'none' })
+				}
+			} catch (e) {
+				console.error(e)
+				uni.showToast({ title: '加载失败', icon: 'none' })
+			} finally {
+				loading.value = false
 			}
 		} catch (e) {
 			console.error(e)
 		} finally {
 			loading.value = false
 		}
+
+	const commentFingerprint = (text: string) => postId.value + '|' + text + '|' + (replyTarget.value != null ? replyTarget.value.id : 0)
+	const loadMoreComments = async () => {
+		const res = await getThreadedComments(postId.value, commentCursor.value)
+		if (!res.success || res.data == null) return
+		const raw = res.data as any
+		const items = raw.items != null ? raw.items : []
+		for (let i = 0; i < items.length; i++) { if (items[i].replies == null) items[i].replies = []; (comments.value as any[]).push(items[i]) }
+		commentCursor.value = raw.next_cursor != null ? raw.next_cursor : ''
+		commentHasMore.value = raw.has_more == true
+	}
+	const loadReplies = async (comment: any) => { const res = await getCommentReplies(comment.id, comment.replyCursor != null ? comment.replyCursor : ''); if (res.success && res.data != null) { const data = res.data as any; const more = data.items != null ? data.items as any[] : []; if (comment.replies == null) comment.replies = []; for (let i = 0; i < more.length; i++) comment.replies.push(more[i]); comment.replyCursor = data.next_cursor != null ? data.next_cursor : ''; comment.replyHasMore = data.has_more == true } else uni.showToast({ title: '回复加载失败，请重试', icon: 'none' }) }
+	const replyTo = (comment: any) => { if (comment.isDeleted == true) return; replyTarget.value = comment }
+	const removeComment = async (comment: any) => { const res = await deleteComment(comment.id, postId.value); if (res.success) { comment.content = '该评论已删除'; comment.isDeleted = true; comment.canDelete = false } else uni.showToast({ title: '删除失败，请重试', icon: 'none' }) }
+	const discardPendingCommentKey = () => {
+		if (pendingCommentKey.value != '') {
+			discardCommunityCreateKey(pendingCommentKey.value)
+		}
+		pendingCommentKey.value = ''
+		pendingCommentFingerprint.value = ''
+	}
+	const shouldDiscardCommentKey = (res: any): boolean => {
+		if (res == null) return false
+		if (res.success == false) return res.code != null && res.code != -1
+		return res.data != null && res.data.success == false
 	}
 
 	const onDraft = (e: any) => {
@@ -172,16 +227,22 @@ const submitComment = async () => {
 			try {
 				const res = await commentDynamic({
 					dynamicId: postId.value,
-					content: text
+					content: text,
+					replyToCommentId: replyTarget.value != null ? replyTarget.value.id : 0,
+					idempotencyKey: pendingCommentKey.value
 				})
 				const data = res != null ? res.data : null
 				const bizOk = res != null && res.success && (data == null || data.success != false)
 				if (bizOk && data != null && data.comment != null) {
-					comments.value.push(data.comment)
+					if (replyTarget.value != null) {
+						const root = (comments.value as any[]).find((c: any) => c.id == replyTarget.value.id || c.id == replyTarget.value.rootId)
+						if (root != null) { if (root.replies == null) root.replies = []; root.replies.push(data.comment) }
+					} else comments.value.push(data.comment)
 					if (post.value != null) {
 						post.value.commentCount = (post.value.commentCount || 0) + 1
 					}
 					draft.value = ''
+					replyTarget.value = null
 					uni.showToast({ title: '已发送', icon: 'success' })
 				} else {
 					const msg = data != null && data.message != null ? data.message : '发送失败'
@@ -396,6 +457,8 @@ const onApply = (userId: number) => {
 		border-radius: 999px;
 		font-size: 14px;
 	}
+	.reply { margin: 6px 0 0 42px; padding: 7px 10px; background: var(--soft); border-radius: 6px; font-size: 12px; color: var(--ink); }
+	.load-more { display: block; padding: 12px 16px; text-align: center; }
 	.send {
 		height: 40px;
 		padding: 0 14px;

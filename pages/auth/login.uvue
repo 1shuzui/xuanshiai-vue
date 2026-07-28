@@ -88,8 +88,19 @@
 		}, 500)
 	}
 
-	const handleDebugLogin = () => {
-		goHome()
+	const handleDebugLogin = async () => {
+		if (authLoading.value) return
+		authLoading.value = true
+		const ok = await loginWithMockSms('17870810285')
+		authLoading.value = false
+		if (ok) {
+			uni.showToast({ title: '本地测试登录成功', icon: 'success' })
+			setTimeout(() => {
+				goHome()
+			}, 400)
+			return
+		}
+		uni.showToast({ title: '本地登录失败，请检查后端', icon: 'none' })
 	}
 
 	const handleFirstLogin = () => {
