@@ -21,7 +21,7 @@
 
 			<view v-if="conversations.length > 0" class="conversation-list">
 				<button v-for="item in conversations" :key="item.id" class="conversation-card" @click="openConversation(item)">
-					<image class="avatar" :src="item.avatar" mode="aspectFill"></image>
+					<image class="avatar" :src="item.avatar" mode="aspectFill" @click.stop="openPeerProfile(item)"></image>
 					<view class="conversation-copy">
 						<view class="conversation-head">
 							<text class="conversation-name">{{ item.name }}</text>
@@ -79,6 +79,14 @@
 		uni.navigateTo({ url: '/pages/community/paper-plane-sent' })
 	}
 
+	const openPeerProfile = (item: any) => {
+		if (item == null || item.userId == null || Number(item.userId) <= 0) {
+			uni.showToast({ title: '暂时无法获取对方资料', icon: 'none' })
+			return
+		}
+		uni.navigateTo({ url: '/pages/user/detail?userId=' + item.userId })
+	}
+
 	const returnHome = () => {
 		const pages = getCurrentPages()
 		if (pages.length > 1) {
@@ -94,7 +102,7 @@
 		} catch (e) {}
 		item.unreadCount = 0
 		uni.navigateTo({
-			url: '/pages/chat/detail?userId=' + item.userId + '&userName=' + encodeURIComponent(item.name)
+			url: '/pages/chat/detail?paperPlaneConversationId=' + item.id + '&paperPlaneLabel=' + encodeURIComponent(item.name)
 		})
 	}
 </script>

@@ -32,16 +32,22 @@ page,
 	--sage: #338D6B;
 	--sage-soft: #C2E0CF;
 
-	/* 辅助色 */
-	--bg-hover: #E7ECEC;
-	--bg-subtle: #DCE3E2;
-	--accent-bg: #C3DEDA;
-	--accent-glow: rgba(56, 152, 141, 0.15);
-	--text-invert: #FCFCFC;
-	--shortcut-application: #ECEBF8;
-	--shortcut-plane: #DDF1F5;
-	--shortcut-dynamic: #DDF2EC;
-	--shortcut-lab: #F6E8DE;
+/* 辅助色 */
+		--bg-hover: #E7ECEC;
+		--bg-subtle: #DCE3E2;
+		--accent-bg: #C3DEDA;
+		--accent-glow: rgba(56, 152, 141, 0.15);
+		--text-invert: #FCFCFC;
+		--shortcut-application: #ECEBF8;
+		--shortcut-plane: #DDF1F5;
+		--shortcut-dynamic: #DDF2EC;
+		--shortcut-lab: #F6E8DE;
+
+		/* 社区互动（赞 / 喜欢激活态，暖红，不与主色青瓷抢主路径） */
+		--like: #E85A6B;
+		--like-bg: rgba(232, 90, 107, 0.12);
+		--superlike: #F4B942;
+		--superlike-bg: rgba(244, 185, 66, 0.16);
 
 	/* 纸飞机工作台 */
 	--plane-purple: #7450C8;

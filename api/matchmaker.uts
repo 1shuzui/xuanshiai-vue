@@ -28,9 +28,36 @@ export async function getMockMatchmakerContact() {
     message: 'success'
   }
 }
-
 function toMatchmakerCard(item: any) {
   const successCount = item.success_count != null ? Number(item.success_count) : 0
+  const cases: any[] = []
+  if (item.cases != null) {
+    const source = item.cases as any[]
+    for (let i = 0; i < source.length; i++) {
+      const entry = source[i]
+      const description = entry.description != null ? String(entry.description).trim() : ''
+      if (description.length == 0) continue
+      const images: string[] = []
+      if (entry.images != null) {
+        const sourceImages = entry.images as any[]
+        for (let j = 0; j < sourceImages.length; j++) {
+          const image = String(sourceImages[j]).trim()
+          if (image.length > 0) images.push(image)
+        }
+      }
+      cases.push({
+        _id: 'service-case-' + String(item.user_id) + '-' + String(i),
+        title: '成功牵线案例',
+        matchTime: '服务案例',
+        image: images.length > 0 ? images[0] : '',
+        images: images,
+        story: description,
+        copy: description,
+        matchmakerComment: description,
+        tags: []
+      })
+    }
+  }
   return {
     id: item.user_id != null ? Number(item.user_id) : Number(item.id),
     name: item.nickname != null && String(item.nickname).length > 0 ? String(item.nickname) : '服务红娘',
@@ -51,6 +78,7 @@ function toMatchmakerCard(item: any) {
     status: item.is_available === true ? 'online' : 'busy',
     certification: item.certification_tags != null && item.certification_tags.length > 0,
     isOnline: item.is_available === true,
+    cases: cases,
     caseRecord: successCount > 0 ? '累计促成 ' + successCount + ' 次有效牵线。' : ''
   }
 }

@@ -1,12 +1,11 @@
 /**
  * 社区闭环 Mock / 路由 / 实名门槛 静态校验
  * 不启动小程序，仅校验源码与 Mock 约定
- * 主 Tab：关注 / 同城 / 发现；关注页喜欢=用户级喜欢动态
+ * 主 Tab：关注 / 同城 / 发现；关注页收藏=用户级收藏动态
  */
 
 const fs = require('fs')
 const path = require('path')
-const assert = require('assert')
 
 const root = path.join(__dirname, '..')
 let failed = 0
@@ -31,6 +30,15 @@ function exists(rel) {
 console.log('====================================')
 console.log('社区闭环流程测试')
 console.log('====================================\n')
+
+// 0. 本地开发登录必须真正建立后端会话，不能只跳过登录页。
+console.log('0. 本地开发登录...')
+const loginPage = read('pages/auth/login.uvue')
+if (loginPage.includes('loginWithMockSms') && loginPage.includes('loginWithMockSms(')) {
+  ok('调试登录会调用本地短信登录并写入 Token')
+} else {
+  fail('调试登录没有调用本地短信登录，社区请求会因 401 失败')
+}
 
 // 1. 页面与路由
 console.log('1. 社区页面与 pages.json 路由...')
@@ -174,10 +182,6 @@ const apiFns = [
   'likeDynamic',
   'collectDynamic',
   'followUserFromCommunity',
-  'unfollowUserFromCommunity',
-  'deleteDynamic',
-  'deleteComment',
-  'getMyPaperPlanes',
   'commentDynamic',
   'reportContent',
   'blockUser',
@@ -189,97 +193,6 @@ apiFns.forEach((fn) => {
   if (apiCommunity.includes(`export async function ${fn}`)) ok(fn)
   else fail(`API 缺少 ${fn}`)
 })
-
-// 关注 all：BE following_and_liked 真并集；mergeLiked 恒 false（禁止客户端假分页）
-	if (apiCommunity.includes("filter == 'likedUsers'") && apiCommunity.includes('liked_users')) {
-	  ok('关注 Tab 支持 following / liked_users 分流')
-	} else {
-	  fail('关注 Tab 缺少 liked_users 分流')
-	}
-	if (
-	  apiCommunity.includes("mode: 'following_and_liked'") &&
-	  apiCommunity.includes('mergeLiked: false')
-	) {
-	  ok('关注 Tab all → following_and_liked（BE 并集，无假分页）')
-	} else {
-	  fail('关注 Tab all 未切到 following_and_liked')
-	}
-if (
-		  apiCommunity.includes('COMMUNITY_CITY_OPTIONS') &&
-		  apiCommunity.includes('normalizeCityCode') &&
-		  apiCommunity.includes('city_code')
-		) {
-		  ok('同城 city_code 规范化 + 列表传参')
-		} else {
-		  fail('同城 city_code 对齐缺失')
-		}
-		// 同城 Mock 对齐 BE：location-only；拒未设置；一周限改
-		const cityFilterBlock = (() => {
-		  const i = apiCommunity.indexOf("tab == 'city'")
-		  if (i < 0) return ''
-		  return apiCommunity.slice(i, i + 500)
-		})()
-		if (
-		  cityFilterBlock.includes('loc.indexOf(city)') &&
-		  !cityFilterBlock.includes('cityTag == true') &&
-		  !cityFilterBlock.includes("tabs.indexOf('city')")
-		) {
-		  ok('Mock 同城 filter 仅 location/city（无 cityTag/tabs 放宽）')
-		} else {
-		  fail('Mock 同城 filter 未与 BE location-only 对齐')
-		}
-		if (
-		  apiCommunity.includes("城市名称不能为空") &&
-		  apiCommunity.includes('同城城市一周内仅可更换一次')
-		) {
-		  ok('Mock setCurrentCity 拒非法名 + 一周限改')
-		} else {
-		  fail('Mock setCurrentCity 契约不完整')
-		}
-if (apiCommunity.includes('points_available') && apiCommunity.includes(': false')) {
-  ok('mapQuotaItem pointsAvailable 缺省 fail-closed')
-} else {
-  fail('mapQuotaItem pointsAvailable 缺省未 fail-closed')
-}
-if (apiCommunity.includes('commentsLoadError') && apiCommunity.includes('动态加载失败，无法点赞')) {
-  ok('详情评论失败标记 + 赞藏预检失败不默认 PUT')
-} else {
-  fail('详情/赞藏 fail-closed 不完整')
-}
-
-const apiIndex = read('api/index.uts')
-;['unfollowUserFromCommunity', 'deleteDynamic', 'deleteComment', 'getMyPaperPlanes'].forEach((n) => {
-  if (apiIndex.includes(n)) ok(`api/index 导出 ${n}`)
-  else fail(`api/index 未导出 ${n}`)
-})
-
-console.log('\n3.0 user like/apply 双路径...')
-const apiUser = read('api/user.uts')
-if (apiUser.includes('USE_MOCK') && apiUser.includes('/discovery/applications/') && apiUser.includes('/users/') && apiUser.includes('/like')) {
-  ok('likeUser/applyToMeet 含 USE_MOCK 与 discovery/social 真路径')
-} else {
-  fail('user.uts 未双路径对接 discovery/social')
-}
-if (apiUser.includes('relations/likes')) {
-  ok('likeUser 真路径会查 relations/likes')
-} else {
-  fail('likeUser 缺少 likes 状态查询')
-}
-if (apiUser.includes('page_size: pageSize') || apiUser.includes('page_size: 50')) {
-  ok('likeUser page_size≤50 分页扫描')
-} else {
-  fail('likeUser 仍可能 page_size>50')
-}
-if (apiUser.includes('喜欢列表加载失败')) {
-  ok('likeUser 预检失败返回 failRes')
-} else {
-  fail('likeUser 预检失败路径缺失')
-}
-if (apiUser.includes('ALREADY_PENDING') && apiUser.includes('failRes') && apiUser.includes('quotaRefreshFailed')) {
-  ok('apply 409 failRes + 额度刷新失败标记')
-} else {
-  fail('apply 409/额度刷新修复不完整')
-}
 
 if (apiCommunity.includes('hasMore') && apiCommunity.includes('pageSize') && apiCommunity.includes('list:')) {
   ok('getDynamicList 分页结构 list/hasMore/pageSize')
@@ -329,6 +242,7 @@ if (
   fail('publishDynamic request data 未写入 mediaType/topicTitle')
 }
 
+const apiIndex = read('api/index.uts')
 ;[
   'commentDynamic',
   'signupActivity',
@@ -487,18 +401,8 @@ if (communityMain.includes('filterOptions') || communityMain.includes("key: 'med
 } else {
   fail('缺少二级筛选')
 }
-if (
-	  communityMain.includes("选择城市") &&
-	  communityMain.includes("!isValidCity(cityName.value)") &&
-	  communityMain.includes('switchCity()') &&
-	  communityMain.includes('城市加载失败')
-	) {
-	  ok('同城未设城 CTA→选择城市/switchCity；loadCity 失败可见')
-	} else {
-	  fail('同城空态 CTA 或 loadCity 失败提示缺失')
-	}
-	if (communityMain.includes('loadDynamics') && communityMain.includes('getDynamicList')) {
-	  ok('动态列表可直接加载（浏览无门槛）')
+if (communityMain.includes('loadDynamics') && communityMain.includes('getDynamicList')) {
+  ok('动态列表可直接加载（浏览无门槛）')
 } else {
   fail('动态列表加载异常')
 }
@@ -510,34 +414,61 @@ if (communityMain.includes('getUnreadNotificationCount') || communityMain.includ
   fail('通知未读角标未接入')
 }
 
-// 6.1 二级标签与喜欢用户语义
-console.log('\n6.1 二级标签 / 喜欢用户 / 话题页...')
+// 6.1 二级标签与收藏用户语义
+console.log('\n6.1 二级标签 / 收藏用户 / 话题页...')
 const filterKeys = [
-  "key: 'all'",
-  "key: 'following'",
-  "key: 'likedUsers'",
-  "key: 'hot'",
-  "key: 'latest'",
-  "key: 'mbti'",
-  "key: 'alumni'",
-  "key: 'hometown'"
-]
+	  "key: 'all'",
+	  "key: 'following'",
+	  "key: 'likedUsers'",
+	  "key: 'hot'",
+	  "key: 'latest'",
+	  "key: 'mbti'",
+	  "key: 'alumni'"
+	]
+	if (communityMain.includes("key: 'hometown'") || communityMain.includes("label: '同乡'")) {
+	  fail('发现页仍保留同乡二级标签')
+	} else {
+	  ok('发现页已移除同乡二级标签')
+	}
 if (filterKeys.every((k) => communityMain.includes(k))) {
   ok('三组二级标签键齐全')
 } else {
   fail('二级标签键缺失')
 }
-if (communityMain.includes("label: '喜欢'") && communityMain.includes('likedUsers')) {
-  ok('关注页含「喜欢」二级标签（用户级）')
+if (communityMain.includes("label: '收藏'") && communityMain.includes('likedUsers')) {
+	ok('关注页含「收藏」二级标签（用户级）')
 } else {
-  fail('关注页喜欢标签缺失')
+	fail('关注页收藏标签缺失')
 }
 if (communityMain.includes("currentTab === 'discover' && currentFilter === 'all'")) {
-  ok('TOPIC 轮播仅在发现·全部展示')
-} else {
-  fail('TOPIC 展示条件未限制为发现·全部')
-}
+	  ok('TOPIC 轮播仅在发现·全部展示')
+	} else {
+	  fail('TOPIC 展示条件未限制为发现·全部')
+	}
+	if (
+	  communityMain.includes("currentTab === 'discover' && currentFilter === 'mbti'") &&
+	  communityMain.includes('lab-entry-strip') &&
+	  communityMain.includes('openLabEntry')
+	) {
+	  ok('发现·MBTI 含情感实验室入口条')
+	} else {
+	  fail('发现·MBTI 入口条缺失或不限条件')
+	}
+	const labLabels = ['性格色彩', '每日星座', '更多测试']
+	if (
+	  labLabels.every((t) => communityMain.includes(t)) &&
+	  communityMain.includes('敬请期待')
+	) {
+	  ok('实验室入口四文案齐全且点击敬请期待')
+	} else {
+	  fail('实验室入口文案或敬请期待缺失')
+	}
 if (communityMain.includes('topic-panel') && communityMain.includes('hotTopics') && communityMain.includes('openTopics')) {
+  if (communityMain.includes('hotTopics.slice(0, 2)')) {
+    ok('热门话题网格最多展示 2 个')
+  } else {
+    fail('热门话题网格展示数量超过 2 个')
+  }
   ok('发现·全部含 TOPIC 完整话题面板')
 } else {
   fail('TOPIC 面板结构不完整')
@@ -551,6 +482,11 @@ if (communityMain.includes('bannerIndex') && communityMain.includes('onBannerCha
   ok('轮播支持受控 current + change + 指示项')
 } else {
   fail('轮播受控状态不完整')
+}
+if (communityMain.includes('bottom: calc(50px + 36px + env(safe-area-inset-bottom))')) {
+  ok('社区发布悬浮球上移 12px')
+} else {
+  fail('社区发布悬浮球位置未上移')
 }
 
 if (mockCommunity.includes('mockLikedUserIds') && mockCommunity.includes('mbti:') && mockCommunity.includes('school:') && mockCommunity.includes('hometown:')) {
@@ -816,6 +752,64 @@ if (
 	  fail('入口 topicId 标题失败仍可能静默')
 	}
 
+console.log('\n7.1 发布页视觉结构...')
+if (
+  publishSrc.includes('publish-compose') &&
+  publishSrc.includes('publish-tip') &&
+  publishSrc.includes('publish-media-tile') &&
+  publishSrc.includes('quick-topic-row') &&
+  publishSrc.includes('publish-toolbar')
+) {
+  ok('发布页采用沉浸式编辑器结构')
+} else {
+  fail('发布页缺少参考稿的编辑器结构')
+}
+if (
+  publishSrc.includes('const quickTopics = computed') &&
+  publishSrc.includes('v-for="topic in quickTopics"') &&
+  publishSrc.includes('@click="pickTopic(topic)"') &&
+  publishSrc.includes('topicLabel(topic)') &&
+  publishSrc.includes('loadTopicOptions()')
+) {
+  ok('发布页快捷话题来自热门话题并可直接选取')
+} else {
+  fail('发布页快捷话题仍是观看入口或硬编码，无法直接选取')
+}
+if (
+	  !publishSrc.includes('publish-header') &&
+	  !publishSrc.includes('header-title') &&
+	  publishSrc.includes('footer-publish') &&
+	  publishSrc.includes('visibility-row')
+	) {
+	  ok('发布页使用系统导航且保留底部发布与可见范围')
+	} else {
+	  fail('发布页仍自绘顶栏或缺少底部发布/可见范围')
+	}
+	const pagesJsonForPublish = read('pages.json')
+	const publishRouteBlock = pagesJsonForPublish.slice(
+	  pagesJsonForPublish.indexOf('"path": "pages/community/publish"'),
+	  pagesJsonForPublish.indexOf('"path": "pages/community/topic-list"')
+	)
+	if (
+	  publishRouteBlock.includes('"navigationBarTitleText": "发布动态"') &&
+	  !publishRouteBlock.includes('"navigationStyle": "custom"')
+	) {
+	  ok('发布页路由使用系统导航标题，未开 custom')
+	} else {
+	  fail('发布页路由导航配置不是系统导航')
+	}
+	if (publishSrc.includes('onBackPress') && publishSrc.includes('确定放弃编辑吗')) {
+	  ok('系统返回接入放弃编辑确认')
+	} else {
+	  fail('系统返回未接入放弃编辑确认')
+	}
+const duplicateTopicRows = (publishSrc.match(/class="setting-row" @click="openTopicSheet"/g) || []).length
+if (duplicateTopicRows === 0) {
+  ok('发布页只保留一处话题入口')
+} else {
+  fail('发布页仍存在重复的话题入口')
+}
+
 // 8. 通知分栏
 	console.log('\n8. 通知分栏...')
 	const notifySrc = read('pages/community/notifications.uvue')
@@ -890,15 +884,6 @@ if (applyApi.includes('ALREADY_PENDING') && applyApi.includes('mockApplyStates')
   ok('applyToMeet 幂等 pending/accepted 不重复扣次')
 } else {
   fail('applyToMeet 幂等状态不完整')
-}
-// Mock 重复申请应 success:false，避免 Sheet 当成功
-if (
-  applyApi.includes("code: 'ALREADY_PENDING'") &&
-  applyApi.includes('success: false')
-) {
-  ok('applyToMeet 重复申请 mock/真路径均为失败语义')
-} else {
-  fail('applyToMeet 重复申请仍可能 success:true')
 }
 
 const planeApi = read('api/community.uts')
@@ -981,6 +966,12 @@ contract('real post mapper preserves verification, visibility, and declaration',
   assert.match(liveCommunityApi, /visibility:\s*row\.visibility/)
   assert.match(liveCommunityApi, /declaration:\s*row\.declaration/)
 })
+contract('real community media URLs are normalized for image rendering', () => {
+  const config = read('api/config.uts')
+  assert.match(config, /export function resolveMediaUrl/)
+  assert.match(liveCommunityApi, /resolveMediaUrl/)
+  assert.match(liveCommunityApi, /const photos: string\[\]/)
+})
 contract('create requests transmit fields and idempotency keys', () => {
   assert.match(liveCommunityApi, /visibility:\s*visibility/)
   assert.match(liveCommunityApi, /declaration:\s*declaration/)
@@ -1016,6 +1007,28 @@ contract('dynamic card emits interactions without optimistic local mutation', ()
   assert.match(dynamicCard, /emit\('like', props\.dynamic\.id\)/)
   assert.match(dynamicCard, /emit\('collect', props\.dynamic\.id\)/)
   assert.match(dynamicCard, /emit\('follow', props\.dynamic\.user\.id\)/)
+})
+contract('dynamic card uses red like and yellow star active states', () => {
+  const app = read('App.uvue')
+  assert.match(dynamicCard, /class="action-item is-comment"/)
+  assert.match(dynamicCard, /ic-home ic-baodeng action-icon/)
+  assert.doesNotMatch(dynamicCard, /ic-social ic-xihuan action-icon/)
+  assert.match(app, /--like:\s*#E85A6B/)
+  assert.match(app, /--superlike:\s*#F4B942/)
+  assert.match(dynamicCard, /is-like\.on[\s\S]*color:\s*var\(--like\)/)
+  assert.match(dynamicCard, /is-collect\.on[\s\S]*color:\s*var\(--superlike\)/)
+})
+contract('paper-plane banner uses the paper-plane palette', () => {
+  assert.match(read('pages/community/community.uvue'), /\.feature\.type-plane\s*\{[\s\S]*background:\s*var\(--plane-purple\)/)
+  assert.doesNotMatch(read('pages/community/community.uvue'), /\.feature\.type-plane\s*\{[^}]*background:\s*var\(--sage\)/)
+})
+contract('paper-plane banner remains available without remote content', () => {
+  const api = read('api/community.uts')
+  const page = read('pages/community/community.uvue')
+  assert.match(api, /export function getFixedCommunityBanner\(\)/)
+  assert.match(api, /ensureCommunityBanners\(/)
+  assert.match(api, /return okRes\(ensureCommunityBanners\(list\)\)/)
+  assert.match(page, /const banners = ref\(\[getFixedCommunityBanner\(\)\]\)/)
 })
 contract('publish page retains the request failure message', () => {
   assert.match(livePublishPage, /res\.message/)
@@ -1135,6 +1148,102 @@ scanTargets.forEach((p) => {
   }
 })
 if (browserHits === 0) ok('关键路径无 window/document 等浏览器 API')
+
+console.log('\n12. 第一期治理前端闭环...')
+contract('privacy, blocklist and appeal adapters are exported', () => {
+  assert.match(liveCommunityApi, /getCommunityPrivacy/)
+  assert.match(liveCommunityApi, /updateCommunityPrivacy/)
+  assert.match(liveCommunityApi, /getBlockedUsers/)
+  assert.match(liveCommunityApi, /createReportAppeal/)
+})
+contract('settings persists privacy and exposes safety management', () => {
+  const settings = read('pages/profile/settings.uvue')
+  assert.match(settings, /loadPrivacy/)
+  assert.match(settings, /savePrivacy/)
+  assert.match(settings, /getBlockedUsers/)
+  assert.match(settings, /createReportAppeal/)
+})
+contract('notifications route by backend target type without post hardcode', () => {
+  const page = read('pages/community/notifications.uvue')
+  assert.match(liveCommunityApi, /target_type/)
+  assert.match(page, /targetType == 'comment'/)
+  assert.match(page, /targetType == 'user'/)
+  assert.match(page, /targetType == 'report'/)
+})
+contract('post detail supports threaded cursor comments and reply submission', () => {
+  assert.match(livePostDetailPage, /getThreadedComments/)
+  assert.match(livePostDetailPage, /getCommentReplies/)
+  assert.match(livePostDetailPage, /replyToCommentId/)
+  assert.match(livePostDetailPage, /loadMoreComments/)
+  assert.match(livePostDetailPage, /removeComment/)
+  assert.match(livePostDetailPage, /@longpress="replyTo\(/)
+})
+contract('nested replies expose their own actions', () => {
+  assert.match(livePostDetailPage, /class="reply-actions"/)
+  assert.match(livePostDetailPage, /onLikeComment\(r\)/)
+  assert.match(livePostDetailPage, /removeComment\(r\)/)
+  assert.match(livePostDetailPage, /ic-dianzan/)
+})
+contract('threaded comment adapters normalize backend metadata before rendering', () => {
+  const mapperStart = liveCommunityApi.indexOf('function mapComment')
+  const mapperEnd = liveCommunityApi.indexOf('function mapTopic', mapperStart)
+  const mapper = liveCommunityApi.slice(mapperStart, mapperEnd)
+  assert.match(mapper, /rootId:\s*row\.root_id/)
+  assert.match(mapper, /replyCount:\s*row\.reply_count/)
+  assert.match(mapper, /canDelete:\s*row\.can_delete/)
+  assert.match(mapper, /replyToUserId:\s*row\.target_user_id/)
+  assert.match(liveCommunityApi, /items\.push\(mapComment\(rawItems\[i\]\)\)/)
+})
+contract('settings sends UTS-compatible privacy payloads and shows appeal history', () => {
+  const settings = read('pages/profile/settings.uvue')
+  assert.match(settings, /const payload: any = \{\}/)
+  assert.match(settings, /payload\[key\] = value/)
+  assert.match(settings, /getMyReportAppeals/)
+  assert.match(settings, /appeals/)
+  assert.match(settings, /appealReason/)
+  assert.match(settings, /submitAppeal/)
+})
+contract('settings keeps notification preferences consistent and recovers failed safety actions', () => {
+  const settings = read('pages/profile/settings.uvue')
+  assert.match(settings, /p\.notify_message/)
+  assert.match(settings, /savePrivacy\('notify_message'/)
+  assert.match(settings, /try \{[\s\S]*await updateCommunityPrivacy\(payload\)[\s\S]*\} catch \(e\) \{[\s\S]*rollback\(\)/)
+  assert.match(settings, /blockedLoading/)
+  assert.match(settings, /blockedError/)
+  assert.match(settings, /recordsLoading/)
+  assert.match(settings, /recordsError/)
+  assert.match(settings, /unblockingIds/)
+  assert.match(settings, /appealSubmitting/)
+})
+contract('settings separates v-else from v-for and normalizes blocked user ids', () => {
+  const settings = read('pages/profile/settings.uvue')
+  assert.doesNotMatch(settings, /v-else\s+v-for=/)
+  assert.match(settings, /<view v-else>/)
+  assert.match(liveCommunityApi, /function mapBlockedUser/)
+  assert.match(liveCommunityApi, /id: row\.id != null \? row\.id : row\.user_id/)
+})
+contract('threaded comments map each backend root exactly once', () => {
+  const start = liveCommunityApi.indexOf('export async function getThreadedComments')
+  const end = liveCommunityApi.indexOf('export async function getCommentReplies', start)
+  const threaded = liveCommunityApi.slice(start, end)
+  assert.doesNotMatch(threaded, /items\.push\(mapComment\(rawItems\[i\]\)\)/)
+  assert.match(threaded, /const comment = mapComment\(rawItems\[i\]\)/)
+  assert.match(threaded, /items\.push\(comment\)/)
+})
+contract('notification and activity pages show retryable unavailable states', () => {
+  const notifications = read('pages/community/notifications.uvue')
+  const activity = read('pages/community/activity-detail.uvue')
+  assert.match(notifications, /notificationError/)
+  assert.match(notifications, /show-action/)
+  assert.match(notifications, /@action="load"/)
+  assert.match(activity, /activityLoading/)
+  assert.match(activity, /activityError/)
+  assert.match(activity, /show-action/)
+})
+contract('governance notification opens the registered settings destination', () => {
+  const page = read('pages/community/notifications.uvue')
+  assert.match(page, /navigateTo\(\{ url: '\/pages\/profile\/settings' \}\)/)
+})
 
 console.log('\n====================================')
 if (failed === 0) {

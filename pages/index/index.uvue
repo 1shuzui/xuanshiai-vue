@@ -274,7 +274,7 @@
 						<text class="pinned-title">置顶推荐</text>
 						<view class="quality-badge"><text class="quality-text">优质</text></view>
 					</view>
-					<view class="want-top-btn">
+					<view class="want-top-btn" @tap="openTopPlacement">
 						<text class="ic ic-sys ic-zhankai want-top-icon"></text>
 						<text class="want-top-text">我要置顶</text>
 					</view>
@@ -756,6 +756,12 @@
 		uni.navigateTo({
 			url: '/pages/profile/vip',
 			fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) }
+		})
+	}
+	const openTopPlacement = () => {
+		uni.navigateTo({
+			url: '/pages/index/top-placement',
+			fail: () => { uni.showToast({ title: '置顶页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
 	const onHistory = () => {}
