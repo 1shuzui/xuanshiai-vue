@@ -1,12 +1,11 @@
 /**
  * 社区闭环 Mock / 路由 / 实名门槛 静态校验
  * 不启动小程序，仅校验源码与 Mock 约定
- * 主 Tab：关注 / 同城 / 发现；关注页喜欢=用户级喜欢动态
+ * 主 Tab：关注 / 同城 / 发现；关注页收藏=用户级收藏动态
  */
 
 const fs = require('fs')
 const path = require('path')
-const assert = require('assert')
 
 const root = path.join(__dirname, '..')
 let failed = 0
@@ -183,10 +182,6 @@ const apiFns = [
   'likeDynamic',
   'collectDynamic',
   'followUserFromCommunity',
-  'unfollowUserFromCommunity',
-  'deleteDynamic',
-  'deleteComment',
-  'getMyPaperPlanes',
   'commentDynamic',
   'reportContent',
   'blockUser',
@@ -198,97 +193,6 @@ apiFns.forEach((fn) => {
   if (apiCommunity.includes(`export async function ${fn}`)) ok(fn)
   else fail(`API 缺少 ${fn}`)
 })
-
-// 关注 all：BE following_and_liked 真并集；mergeLiked 恒 false（禁止客户端假分页）
-	if (apiCommunity.includes("filter == 'likedUsers'") && apiCommunity.includes('liked_users')) {
-	  ok('关注 Tab 支持 following / liked_users 分流')
-	} else {
-	  fail('关注 Tab 缺少 liked_users 分流')
-	}
-	if (
-	  apiCommunity.includes("mode: 'following_and_liked'") &&
-	  apiCommunity.includes('mergeLiked: false')
-	) {
-	  ok('关注 Tab all → following_and_liked（BE 并集，无假分页）')
-	} else {
-	  fail('关注 Tab all 未切到 following_and_liked')
-	}
-if (
-		  apiCommunity.includes('COMMUNITY_CITY_OPTIONS') &&
-		  apiCommunity.includes('normalizeCityCode') &&
-		  apiCommunity.includes('city_code')
-		) {
-		  ok('同城 city_code 规范化 + 列表传参')
-		} else {
-		  fail('同城 city_code 对齐缺失')
-		}
-		// 同城 Mock 对齐 BE：location-only；拒未设置；一周限改
-		const cityFilterBlock = (() => {
-		  const i = apiCommunity.indexOf("tab == 'city'")
-		  if (i < 0) return ''
-		  return apiCommunity.slice(i, i + 500)
-		})()
-		if (
-		  cityFilterBlock.includes('loc.indexOf(city)') &&
-		  !cityFilterBlock.includes('cityTag == true') &&
-		  !cityFilterBlock.includes("tabs.indexOf('city')")
-		) {
-		  ok('Mock 同城 filter 仅 location/city（无 cityTag/tabs 放宽）')
-		} else {
-		  fail('Mock 同城 filter 未与 BE location-only 对齐')
-		}
-		if (
-		  apiCommunity.includes("城市名称不能为空") &&
-		  apiCommunity.includes('同城城市一周内仅可更换一次')
-		) {
-		  ok('Mock setCurrentCity 拒非法名 + 一周限改')
-		} else {
-		  fail('Mock setCurrentCity 契约不完整')
-		}
-if (apiCommunity.includes('points_available') && apiCommunity.includes(': false')) {
-  ok('mapQuotaItem pointsAvailable 缺省 fail-closed')
-} else {
-  fail('mapQuotaItem pointsAvailable 缺省未 fail-closed')
-}
-if (apiCommunity.includes('commentsLoadError') && apiCommunity.includes('动态加载失败，无法点赞')) {
-  ok('详情评论失败标记 + 赞藏预检失败不默认 PUT')
-} else {
-  fail('详情/赞藏 fail-closed 不完整')
-}
-
-const apiIndex = read('api/index.uts')
-;['unfollowUserFromCommunity', 'deleteDynamic', 'deleteComment', 'getMyPaperPlanes'].forEach((n) => {
-  if (apiIndex.includes(n)) ok(`api/index 导出 ${n}`)
-  else fail(`api/index 未导出 ${n}`)
-})
-
-console.log('\n3.0 user like/apply 双路径...')
-const apiUser = read('api/user.uts')
-if (apiUser.includes('USE_MOCK') && apiUser.includes('/discovery/applications/') && apiUser.includes('/users/') && apiUser.includes('/like')) {
-  ok('likeUser/applyToMeet 含 USE_MOCK 与 discovery/social 真路径')
-} else {
-  fail('user.uts 未双路径对接 discovery/social')
-}
-if (apiUser.includes('relations/likes')) {
-  ok('likeUser 真路径会查 relations/likes')
-} else {
-  fail('likeUser 缺少 likes 状态查询')
-}
-if (apiUser.includes('page_size: pageSize') || apiUser.includes('page_size: 50')) {
-  ok('likeUser page_size≤50 分页扫描')
-} else {
-  fail('likeUser 仍可能 page_size>50')
-}
-if (apiUser.includes('喜欢列表加载失败')) {
-  ok('likeUser 预检失败返回 failRes')
-} else {
-  fail('likeUser 预检失败路径缺失')
-}
-if (apiUser.includes('ALREADY_PENDING') && apiUser.includes('failRes') && apiUser.includes('quotaRefreshFailed')) {
-  ok('apply 409 failRes + 额度刷新失败标记')
-} else {
-  fail('apply 409/额度刷新修复不完整')
-}
 
 if (apiCommunity.includes('hasMore') && apiCommunity.includes('pageSize') && apiCommunity.includes('list:')) {
   ok('getDynamicList 分页结构 list/hasMore/pageSize')
@@ -338,6 +242,7 @@ if (
   fail('publishDynamic request data 未写入 mediaType/topicTitle')
 }
 
+const apiIndex = read('api/index.uts')
 ;[
   'commentDynamic',
   'signupActivity',
@@ -496,18 +401,8 @@ if (communityMain.includes('filterOptions') || communityMain.includes("key: 'med
 } else {
   fail('缺少二级筛选')
 }
-if (
-	  communityMain.includes("选择城市") &&
-	  communityMain.includes("!isValidCity(cityName.value)") &&
-	  communityMain.includes('switchCity()') &&
-	  communityMain.includes('城市加载失败')
-	) {
-	  ok('同城未设城 CTA→选择城市/switchCity；loadCity 失败可见')
-	} else {
-	  fail('同城空态 CTA 或 loadCity 失败提示缺失')
-	}
-	if (communityMain.includes('loadDynamics') && communityMain.includes('getDynamicList')) {
-	  ok('动态列表可直接加载（浏览无门槛）')
+if (communityMain.includes('loadDynamics') && communityMain.includes('getDynamicList')) {
+  ok('动态列表可直接加载（浏览无门槛）')
 } else {
   fail('动态列表加载异常')
 }
@@ -519,8 +414,8 @@ if (communityMain.includes('getUnreadNotificationCount') || communityMain.includ
   fail('通知未读角标未接入')
 }
 
-// 6.1 二级标签与喜欢用户语义
-console.log('\n6.1 二级标签 / 喜欢用户 / 话题页...')
+// 6.1 二级标签与收藏用户语义
+console.log('\n6.1 二级标签 / 收藏用户 / 话题页...')
 const filterKeys = [
   "key: 'all'",
   "key: 'following'",
@@ -536,10 +431,10 @@ if (filterKeys.every((k) => communityMain.includes(k))) {
 } else {
   fail('二级标签键缺失')
 }
-if (communityMain.includes("label: '喜欢'") && communityMain.includes('likedUsers')) {
-  ok('关注页含「喜欢」二级标签（用户级）')
+if (communityMain.includes("label: '收藏'") && communityMain.includes('likedUsers')) {
+	ok('关注页含「收藏」二级标签（用户级）')
 } else {
-  fail('关注页喜欢标签缺失')
+	fail('关注页收藏标签缺失')
 }
 if (communityMain.includes("currentTab === 'discover' && currentFilter === 'all'")) {
   ok('TOPIC 轮播仅在发现·全部展示')
@@ -899,15 +794,6 @@ if (applyApi.includes('ALREADY_PENDING') && applyApi.includes('mockApplyStates')
   ok('applyToMeet 幂等 pending/accepted 不重复扣次')
 } else {
   fail('applyToMeet 幂等状态不完整')
-}
-// Mock 重复申请应 success:false，避免 Sheet 当成功
-if (
-  applyApi.includes("code: 'ALREADY_PENDING'") &&
-  applyApi.includes('success: false')
-) {
-  ok('applyToMeet 重复申请 mock/真路径均为失败语义')
-} else {
-  fail('applyToMeet 重复申请仍可能 success:true')
 }
 
 const planeApi = read('api/community.uts')

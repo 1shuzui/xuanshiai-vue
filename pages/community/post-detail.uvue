@@ -14,6 +14,7 @@
 					@comment="focusComment"
 					@collect="onCollect"
 					@follow="onFollow"
+					@unfollow="onUnfollow"
 					@apply="onApply"
 					@more="onMore"
 					@topic="goTopic"
@@ -89,6 +90,7 @@ import {
 			likeComment,
 			collectDynamic,
 			followUserFromCommunity,
+			unfollowUserFromCommunity,
 			commentDynamic,
 			deleteComment,
 			getThreadedComments,
@@ -104,8 +106,6 @@ import {
 	const loading = ref(false)
 	const draft = ref('')
 	const sending = ref(false)
-	const pendingCommentKey = ref('')
-	const pendingCommentFingerprint = ref('')
 	const applyVisible = ref(false)
 	const applyUserId = ref(0)
 	const reportVisible = ref(false)
@@ -206,14 +206,7 @@ const load = async () => {
 
 	const onDraft = (e: any) => {
 		draft.value = e.detail.value
-		if (pendingCommentFingerprint.value != '' && pendingCommentFingerprint.value != commentFingerprint(draft.value.trim())) {
-			discardPendingCommentKey()
-		}
 	}
-
-	onUnload(() => {
-		discardPendingCommentKey()
-	})
 
 	const focusComment = async () => {
 		// 底部输入即可
@@ -228,12 +221,6 @@ const submitComment = async () => {
 			const ok = await guardRealName('comment')
 			if (!ok) return
 			if (sending.value) return
-			const fingerprint = commentFingerprint(text)
-			if (pendingCommentKey.value == '' || pendingCommentFingerprint.value != fingerprint) {
-				discardPendingCommentKey()
-				pendingCommentKey.value = createCommunityCreateKey('comment')
-				pendingCommentFingerprint.value = fingerprint
-			}
 			sending.value = true
 			try {
 				const res = await commentDynamic({
@@ -252,12 +239,10 @@ const submitComment = async () => {
 					if (post.value != null) {
 						post.value.commentCount = (post.value.commentCount || 0) + 1
 					}
-					discardPendingCommentKey()
 					draft.value = ''
 					replyTarget.value = null
 					uni.showToast({ title: '已发送', icon: 'success' })
 				} else {
-					if (shouldDiscardCommentKey(res)) discardPendingCommentKey()
 					const msg = data != null && data.message != null ? data.message : '发送失败'
 					uni.showToast({ title: msg, icon: 'none' })
 				}
@@ -269,30 +254,22 @@ const submitComment = async () => {
 		}
 
 	const goUser = (id: number) => {
-		uni.navigateTo({ url: `/pages/user/detail?userId=${id}` })
+		uni.navigateTo({ url: `/pages/user/detail?userId=${id}&source=community` })
 	}
 
 	const goTopic = (id: number) => {
 		uni.navigateTo({ url: `/pages/community/topic-detail?id=${id}` })
 	}
 
-const onLike = async (id: number) => {
-			const ok = await guardRealName('like')
-			if (!ok) return
-			const res = await likeDynamic(id)
-			if (res.success && post.value != null && res.data != null) {
-				post.value.liked = res.data.liked
-				post.value.likeCount = res.data.likeCount
-			} else if (!res.success) {
-				const msg =
-					res.data != null && res.data.message != null
-						? res.data.message
-						: res.message != null
-							? res.message
-							: '点赞失败'
-				uni.showToast({ title: msg, icon: 'none' })
-			}
+	const onLike = async (id: number) => {
+		const ok = await guardRealName('like')
+		if (!ok) return
+		const res = await likeDynamic(id)
+		if (res.success && post.value != null) {
+			post.value.liked = res.data.liked
+			post.value.likeCount = res.data.likeCount
 		}
+	}
 
 		const onLikeComment = async (c: any) => {
 			if (c == null) return
@@ -340,21 +317,48 @@ const onLike = async (id: number) => {
 			}
 		}
 
+	const syncFollowed = (userId: number, followed: boolean) => {
+		const current = post.value as any
+		if (current == null || current.user == null || current.user.id != userId) return
+
+		post.value = { ...current, followed: followed }
+	}
+
 	const onFollow = async (userId: number) => {
 		const ok = await guardRealName('follow')
 		if (!ok) return
-		const res = await followUserFromCommunity(userId)
-		if (res.success && post.value != null) {
-			post.value.followed = true
-		} else if (!res.success) {
-			const msg =
-				res.data != null && res.data.message != null
-					? res.data.message
-					: res.message != null
-						? res.message
-						: '关注失败'
-			uni.showToast({ title: msg, icon: 'none' })
+
+		try {
+			const res = await followUserFromCommunity(userId)
+			if (res.success) {
+				syncFollowed(userId, true)
+				uni.showToast({ title: '已关注', icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '关注失败，请重试', icon: 'none' })
 		}
+	}
+
+	const onUnfollow = (userId: number) => {
+		uni.showModal({
+			content: '确定取消关注吗？',
+			cancelText: '取消',
+			cancelColor: '#000000',
+			confirmText: '确定',
+			confirmColor: '#38988D',
+			success: async (modalRes: any) => {
+				if (!modalRes.confirm) return
+				try {
+					const res = await unfollowUserFromCommunity(userId)
+					if (res.success) {
+						syncFollowed(userId, false)
+						uni.showToast({ title: '已取消关注', icon: 'none' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				}
+			}
+		})
 	}
 
 const onApply = (userId: number) => {

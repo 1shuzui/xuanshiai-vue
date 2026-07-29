@@ -641,8 +641,8 @@ export const mockReportReasons = [
   { id: 'other', label: '其他安全问题' }
 ]
 
-/** 当前演示城市（同城 Tab）；code 为市一级 6 位 */
+/** 当前演示城市（同城 Tab） */
 export const mockCurrentCity = {
   name: '南京',
-  code: '320100'
+  code: 'nanjing'
 }

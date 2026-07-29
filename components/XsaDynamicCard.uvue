@@ -7,18 +7,14 @@
 					<view class="name-row">
 						<view class="name-left">
 							<text class="name">{{ dynamic.user.name }}</text>
-							<text class="gender-icon text-muted" v-if="genderIcon !== ''">{{ genderIcon }}</text>
+							<text class="gender-icon" :class="genderClass" v-if="genderIcon !== ''">{{ genderIcon }}</text>
+							<view class="relation-row header-relation-row" v-if="relationList.length > 0">
+								<text class="relation-tag" v-for="(rt, ri) in relationList" :key="ri">{{ rt }}</text>
+							</view>
 						</view>
-						<text class="time text-muted">{{ timeText }}</text>
 					</view>
 					<view class="meta-row" v-if="metaLine !== ''">
-						<text class="meta-text text-muted">{{ metaLine }}</text>
-					</view>
-					<view class="relation-row" v-if="relationList.length > 0">
-						<text class="relation-tag" v-for="(rt, ri) in relationList" :key="ri">{{ rt }}</text>
-					</view>
-					<view class="tag-row" v-if="tagList.length > 0">
-						<text class="mini-tag" v-for="(tag, i) in tagList" :key="i">{{ tag }}</text>
+						<text class="meta-text">{{ metaLine }}</text>
 					</view>
 				</view>
 			<button
@@ -72,9 +68,12 @@
 					<text class="topic-label">{{ topicLabel }}</text>
 				</view>
 
-			<view class="location" v-if="dynamic.location">
-				<text class="icon">📍</text>
-				<text class="text text-muted">{{ dynamic.location }}</text>
+			<view class="location-time-row" v-if="dynamic.location || timeText !== ''">
+				<view class="location" v-if="dynamic.location">
+					<text class="icon">📍</text>
+					<text class="text text-muted">{{ dynamic.location }}</text>
+				</view>
+				<text class="time time-bottom text-muted" v-if="timeText !== ''">{{ timeText }}</text>
 			</view>
 		</view>
 
@@ -89,7 +88,7 @@
 				<text class="text text-muted" v-if="commentCount > 0">{{ commentCount }}</text>
 			</view>
 			<view class="action-item" @click="handleCollect">
-				<text class="icon">{{ collected ? '⭐' : '☆' }}</text>
+				<text class="icon collect-icon">{{ collected ? '⭐' : '☆' }}</text>
 				<text class="text text-muted" v-if="collectCount > 0">{{ collectCount }}</text>
 			</view>
 			<button
@@ -169,6 +168,7 @@ const emit = defineEmits<{
 	share: [dynamicId: number]
 	collect: [dynamicId: number]
 	follow: [userId: number]
+	unfollow: [userId: number]
 	apply: [userId: number]
 	more: [dynamicId: number, userId: number]
 	topic: [topicId: number]
@@ -179,7 +179,9 @@ const liked = ref(props.dynamic.liked === true)
 const likeCount = ref(props.dynamic.likeCount != null ? props.dynamic.likeCount : 0)
 const collected = ref(props.dynamic.collected === true)
 const collectCount = ref(props.dynamic.collectCount != null ? props.dynamic.collectCount : 0)
-const followed = ref(props.dynamic.followed === true)
+const followed = computed((): boolean => {
+	return props.dynamic.followed === true
+})
 const applyStatus = ref(props.dynamic.applyStatus != null ? props.dynamic.applyStatus : 'none')
 
 watch(
@@ -189,7 +191,6 @@ watch(
 		likeCount.value = d.likeCount != null ? d.likeCount : 0
 		collected.value = d.collected === true
 		collectCount.value = d.collectCount != null ? d.collectCount : 0
-		followed.value = d.followed === true
 		applyStatus.value = d.applyStatus != null ? d.applyStatus : 'none'
 	},
 	{ deep: true }
@@ -211,6 +212,15 @@ const genderIcon = computed((): string => {
 		const s = ('' + g).toLowerCase()
 		if (s == '男' || s == 'male' || s == 'm') return '♂'
 		if (s == '女' || s == 'female' || s == 'f') return '♀'
+		return ''
+	})
+
+	const genderClass = computed((): string => {
+		const g = props.dynamic.user != null ? props.dynamic.user.gender : null
+		if (g == null || g === '') return ''
+		const s = ('' + g).toLowerCase()
+		if (s == '男' || s == 'male' || s == 'm') return 'male'
+		if (s == '女' || s == 'female' || s == 'f') return 'female'
 		return ''
 	})
 
@@ -269,35 +279,6 @@ const genderIcon = computed((): string => {
 		return first != null ? ('' + first) : ''
 	})
 
-	const tagList = computed((): string[] => {
-		const out: string[] = []
-		const relationSet = relationList.value
-		const u = props.dynamic.user
-		if (u != null) {
-			// age/city 已由 meta/relation 承担，避免重复
-			if (u.job != null && u.job !== '') out.push(u.job as string)
-			if (u.height != null && u.height !== '') out.push(u.height as string)
-			if (u.education != null && u.education !== '') out.push(u.education as string)
-			if (u.realNameStatus == 'passed' || u.verified == true) out.push('已实名')
-		}
-		if (props.dynamic.declaration != null && props.dynamic.declaration !== '') {
-			out.push(props.dynamic.declaration as string)
-		}
-		if (props.dynamic.tags != null) {
-			const tags = props.dynamic.tags as string[]
-			for (let i = 0; i < tags.length; i++) {
-				const t = tags[i]
-				if (t == null || t === '') continue
-				// 关系标（同城/校友等）已在 relation 行展示，tags 中再出现则跳过
-				if (relationSet.indexOf(t) >= 0) continue
-				if (out.indexOf(t) < 0) out.push(t)
-			}
-		}
-		// 控制展示密度，避免小屏溢出
-		if (out.length > 6) return out.slice(0, 6)
-		return out
-	})
-
 const applyLabel = computed((): string => {
 		if (applyStatus.value === 'pending') return '已申请'
 		if (applyStatus.value === 'accepted') return '已通过'
@@ -331,6 +312,8 @@ const handlePhotoClick = (index: number) => {
 	}
 
 const handleLike = () => {
+	liked.value = !liked.value
+	likeCount.value += liked.value ? 1 : -1
 	emit('like', props.dynamic.id)
 }
 
@@ -339,11 +322,16 @@ const handleComment = () => {
 }
 
 const handleCollect = () => {
+	collected.value = !collected.value
+	collectCount.value += collected.value ? 1 : -1
 	emit('collect', props.dynamic.id)
 }
 
 const handleFollow = () => {
-	if (followed.value) return
+	if (followed.value) {
+		emit('unfollow', props.dynamic.user.id)
+		return
+	}
 	emit('follow', props.dynamic.user.id)
 }
 
@@ -400,15 +388,17 @@ const handleOpen = () => {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
+	justify-content: center;
 	gap: 4px;
 	min-width: 0;
+	transform: translateY(4px);
 }
 
-.name-row {
+	.name-row {
 		display: flex;
 		flex-direction: row;
-		align-items: baseline;
-		justify-content: space-between;
+		align-items: center;
+		justify-content: flex-start;
 		gap: 8px;
 	}
 
@@ -416,6 +406,8 @@ const handleOpen = () => {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
+		flex-wrap: wrap;
+		flex: 1;
 		min-width: 0;
 	}
 
@@ -426,8 +418,17 @@ const handleOpen = () => {
 	}
 
 	.gender-icon {
-		font-size: 12px;
+		font-size: 14px;
 		margin-left: 4px;
+		color: var(--muted);
+	}
+
+	.gender-icon.male {
+		color: var(--plane-blue);
+	}
+
+	.gender-icon.female {
+		color: var(--plane-pink);
 	}
 
 	.time {
@@ -442,6 +443,7 @@ const handleOpen = () => {
 	.meta-text {
 		font-size: 11px;
 		line-height: 1.4;
+		color: var(--accent2);
 	}
 
 	.relation-row {
@@ -452,28 +454,20 @@ const handleOpen = () => {
 		margin-top: 4px;
 	}
 
+	.header-relation-row {
+		margin-top: 0;
+		margin-left: 6px;
+		gap: 4px;
+		flex: 0 1 auto;
+	}
+
 	.relation-tag {
 		font-size: 10px;
-		color: var(--accent);
-		background: var(--soft);
+		color: var(--accent2);
+		background: var(--accent-bg);
 		padding: 2px 8px;
 		border-radius: 999px;
 	}
-
-	.tag-row {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		gap: 4px;
-	}
-
-.mini-tag {
-	font-size: 10px;
-	padding: 2px 6px;
-	border-radius: 4px;
-	background: var(--soft);
-	color: var(--accent2);
-}
 
 .follow-btn {
 	height: 28px;
@@ -605,11 +599,11 @@ const handleOpen = () => {
 	margin-bottom: 8px;
 	padding: 4px 8px;
 	border-radius: 6px;
-	background: var(--soft);
+	background: var(--accent-bg);
 }
 
 .topic-hash {
-	color: var(--accent);
+	color: var(--accent2);
 	font-weight: 800;
 	font-size: 12px;
 }
@@ -627,12 +621,24 @@ const handleOpen = () => {
 	gap: 4px;
 }
 
+.location-time-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 20px;
+}
+
 .location .icon {
 	font-size: 13px;
 }
 
 .location .text {
 	font-size: 13px;
+}
+
+.time-bottom {
+	margin-left: auto;
 }
 
 .card-footer {
@@ -653,6 +659,11 @@ const handleOpen = () => {
 
 .action-item .icon {
 	font-size: 18px;
+}
+
+.action-item .collect-icon {
+	font-size: 24px;
+	line-height: 1;
 }
 
 .action-item .icon.liked {

@@ -1,57 +1,35 @@
 /**
  * 统一请求封装
- * - USE_MOCK=true：返回 mockData
- * - USE_MOCK=false + useHttp=true：HTTP 调 FastAPI（Bearer）
- * - USE_MOCK=false + useHttp=false：uniCloud.callFunction
+ * 自动根据 USE_MOCK 配置决定返回 Mock 数据还是真实 API
  */
 
-import {
-  USE_MOCK,
-  API_CONFIG,
-  MOCK_DELAY,
-  getAccessToken,
-  clearAuthTokens,
-  buildApiUrl
-} from './config.uts'
+import { USE_MOCK, API_BASE_URL, API_CONFIG, API_PREFIX, ACCESS_TOKEN_KEY, MOCK_DELAY } from './config.uts'
 
 /**
  * 统一请求方法
- * options:
- *  - url: string 路径（/community/posts 或完整 http）
- *  - method: GET|POST|PUT|DELETE
- *  - data: query 或 body
- *  - mockData: Mock 模式返回值
- *  - cloudFunctionName / action: 云函数回退
- *  - headers: 额外请求头
- *  - skipAuth: 跳过 Authorization
- *  - raw: true 时不包 success 层（少用）
+ * @param options 请求配置
+ * @returns Promise
  */
 export async function request(options: any) {
+  // 开发模式：返回 Mock 数据
   if (USE_MOCK) {
     return mockRequest(options)
   }
-  if (API_CONFIG.useHttp == true) {
-    return httpRequest(options)
-  }
-  return realCloudRequest(options)
+
+  // 生产模式：调用真实 uniCloud 云函数
+  return realRequest(options)
 }
 
+/**
+ * Mock 请求（开发阶段）
+ */
 async function mockRequest(options: any) {
   console.log('📦 [Mock Request]', options.url, options.data)
+
+  // 模拟网络延迟
   await sleep(MOCK_DELAY)
-  // 允许 mock 侧直接给出失败包
-  if (
-    options.mockData != null &&
-    typeof options.mockData === 'object' &&
-    options.mockData.success === false
-  ) {
-    return {
-      success: false,
-      data: options.mockData,
-      code: options.mockData.code != null ? options.mockData.code : -1,
-      message: options.mockData.message != null ? options.mockData.message : 'error'
-    }
-  }
+
+  // 返回 Mock 数据
   return {
     success: true,
     data: options.mockData,
@@ -60,133 +38,57 @@ async function mockRequest(options: any) {
   }
 }
 
-function extractDetail(data: any): string {
-  if (data == null) return '请求失败'
-  if (typeof data === 'string') return data
-  if (data.detail != null) {
-    if (typeof data.detail === 'string') return data.detail
-    if (Array.isArray(data.detail) && data.detail.length > 0) {
-      const first = data.detail[0]
-      if (first != null && first.msg != null) return '' + first.msg
-      return JSON.stringify(data.detail)
-    }
-  }
-  if (data.message != null) return '' + data.message
-  return '请求失败'
+function resolveApiUrl(path: string): string {
+  if (path.indexOf('http://') == 0 || path.indexOf('https://') == 0) return path
+  const normalizedPath = path.indexOf('/') == 0 ? path : '/' + path
+  return API_BASE_URL + API_PREFIX + normalizedPath
 }
 
-async function httpRequest(options: any) {
-  const methodRaw = options.method != null ? ('' + options.method).toUpperCase() : 'GET'
-  const method = methodRaw
-  const urlPath = options.url != null ? ('' + options.url) : ''
-  let url = buildApiUrl(urlPath)
-  const headers: any = {
-    'Content-Type': 'application/json'
+function responseMessage(data: any, fallback: string): string {
+  if (data != null && data.detail != null) {
+    if (typeof data.detail == 'string') return data.detail
+    if (Array.isArray(data.detail) && data.detail.length > 0) return '' + data.detail[0].msg
   }
+  if (data != null && data.message != null) return '' + data.message
+  return fallback
+}
+
+/**
+ * 真实请求（FastAPI HTTP）
+ */
+async function realRequest(options: any) {
+  const url = resolveApiUrl(options.url != null ? '' + options.url : '')
+  const method = options.method != null ? ('' + options.method).toUpperCase() : 'GET'
+  const headers: any = {}
+  headers['Content-Type'] = 'application/json'
   if (options.headers != null) {
-    const extra = options.headers
-    const keys = Object.keys(extra)
-    for (let i = 0; i < keys.length; i++) {
-      headers[keys[i]] = extra[keys[i]]
+    const optionHeaderKeys = Object.keys(options.headers)
+    for (let i = 0; i < optionHeaderKeys.length; i++) {
+      const key = optionHeaderKeys[i]
+      headers[key] = options.headers[key]
     }
   }
-  if (options.skipAuth != true) {
-    const token = getAccessToken()
-    if (token != '') {
-      headers['Authorization'] = 'Bearer ' + token
-    }
-  }
+  const rawToken = uni.getStorageSync(ACCESS_TOKEN_KEY)
+  const token = rawToken != null ? '' + rawToken : ''
+  if (token != '') headers['Authorization'] = 'Bearer ' + token
 
-  let body: any = null
-  const data = options.data
-  if (method == 'GET' || method == 'DELETE') {
-    if (data != null && typeof data === 'object') {
-      const parts: string[] = []
-      const keys = Object.keys(data)
-      for (let i = 0; i < keys.length; i++) {
-        const k = keys[i]
-        const v = data[k]
-        if (v == null) continue
-        if (Array.isArray(v)) {
-          for (let j = 0; j < v.length; j++) {
-            parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v[j]))
-          }
-        } else {
-          parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v))
-        }
-      }
-      if (parts.length > 0) {
-        url = url + (url.indexOf('?') >= 0 ? '&' : '?') + parts.join('&')
-      }
-    }
-  } else {
-    body = data != null ? data : {}
-  }
+  console.log('🌐 [Real Request]', method, url, options.data)
 
-  console.log('🌐 [HTTP Request]', method, url)
-
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     uni.request({
-      url: url,
-      method: method as any,
-      data: body,
+      url,
+      method,
+      data: options.data != null ? options.data : null,
       header: headers,
       timeout: API_CONFIG.timeout,
       success: (res: any) => {
-        const status = res.statusCode != null ? (res.statusCode as number) : 0
-        const raw = res.data
-        if (status == 204) {
-          resolve({ success: true, data: null, code: 0, message: 'success' })
-          return
-        }
-        if (status >= 200 && status < 300) {
-          resolve({
-            success: true,
-            data: raw,
-            code: 0,
-            message: 'success'
-          })
-          return
-        }
-        if (status == 401) {
-          clearAuthTokens()
-        }
-        const message = extractDetail(raw)
+        const statusCode = res.statusCode != null ? res.statusCode : 200
+        const ok = statusCode >= 200 && statusCode < 300
         resolve({
-          success: false,
-          data: raw,
-          code: status,
-          message: message
-        })
-      },
-      fail: (err: any) => {
-        console.error('❌ [HTTP Error]', err)
-        resolve({
-          success: false,
-          data: null,
-          code: -1,
-          message: err != null && err.errMsg != null ? err.errMsg : '网络请求失败'
-        })
-      }
-    })
-  })
-}
-
-async function realCloudRequest(options: any) {
-  console.log('☁️ [Cloud Request]', options.url, options.data)
-  return new Promise((resolve, reject) => {
-    uniCloud.callFunction({
-      name: options.cloudFunctionName,
-      data: {
-        action: options.action,
-        ...options.data
-      },
-      success: (res: any) => {
-        resolve({
-          success: true,
-          data: res.result,
-          code: 0,
-          message: 'success'
+          success: ok,
+          data: res.data,
+          code: ok ? 0 : statusCode,
+          message: ok ? 'success' : responseMessage(res.data, '请求失败')
         })
       },
       fail: (err: any) => {
@@ -202,6 +104,9 @@ async function realCloudRequest(options: any) {
   })
 }
 
+/**
+ * 延迟函数
+ */
 function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise(resolve => setTimeout(resolve, ms))
 }

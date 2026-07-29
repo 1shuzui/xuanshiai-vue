@@ -1,15 +1,15 @@
 /**
  * API 配置文件
  *
- * 🔧 开发阶段默认 USE_MOCK = true
- * 🚀 联调 FastAPI：USE_MOCK = false，并配置可达的 API_BASE_URL
+ * 🔧 开发阶段设置 USE_MOCK = true
+ * 🚀 生产阶段设置 USE_MOCK = false
  */
 
 // ⚠️ 唯一需要修改的开关：启用/禁用 Mock 数据
 // 关 Mock 联调时改为 false，并确认下方 API_BASE_URL 可达；演示/默认请保持 true
 // 不要只靠关 Mock 宣称生产完成
 // 当前已连接后端 FastAPI 服务
-export const USE_MOCK = false
+export const USE_MOCK = true
 
 // FastAPI 服务根地址（不含 /api/v1）
 // 后端项目：xuanshiai-backend，默认端口 8000
@@ -33,19 +33,27 @@ export const API_PREFIX = '/api/v1'
 export const ACCESS_TOKEN_KEY = 'xsa_access_token'
 export const REFRESH_TOKEN_KEY = 'xsa_refresh_token'
 
+export function setAuthTokens(accessToken: string, refreshToken: string = '') {
+  uni.setStorageSync(ACCESS_TOKEN_KEY, accessToken)
+  if (refreshToken != '') uni.setStorageSync(REFRESH_TOKEN_KEY, refreshToken)
+  else uni.removeStorageSync(REFRESH_TOKEN_KEY)
+}
+
+export function clearAuthTokens() {
+  uni.removeStorageSync(ACCESS_TOKEN_KEY)
+  uni.removeStorageSync(REFRESH_TOKEN_KEY)
+}
+
 // API 基础配置
 export const API_CONFIG = {
-  // uniCloud 云函数配置（旧链路，useHttp=false 时使用）
+  // uniCloud 云函数配置（生产环境使用）
   cloudFunction: {
     timeout: 60000,
-    spaceId: 'your-space-id'
+    spaceId: 'your-space-id' // 替换为你的 uniCloud spaceId
   },
 
-  // 是否走 FastAPI HTTP（推荐联调路径）；false 时回退 uniCloud
-  useHttp: true,
-
   // 请求超时配置
-  timeout: 15000,
+  timeout: 10000,
 
   // 是否显示加载提示
   showLoading: true,
@@ -56,41 +64,3 @@ export const API_CONFIG = {
 
 // Mock 延迟配置（模拟网络延迟，单位：毫秒）
 export const MOCK_DELAY = 300
-
-/** 读取本地 access token */
-export function getAccessToken(): string {
-  try {
-    const token = uni.getStorageSync(ACCESS_TOKEN_KEY)
-    if (token != null && token !== '') return '' + token
-  } catch (e) {}
-  return ''
-}
-
-/** 写入 access / refresh token */
-export function setAuthTokens(accessToken: string, refreshToken: string = '') {
-  try {
-    if (accessToken != null && accessToken !== '') {
-      uni.setStorageSync(ACCESS_TOKEN_KEY, accessToken)
-    }
-    if (refreshToken != null && refreshToken !== '') {
-      uni.setStorageSync(REFRESH_TOKEN_KEY, refreshToken)
-    }
-  } catch (e) {}
-}
-
-/** 清理本地 token */
-export function clearAuthTokens() {
-  try {
-    uni.removeStorageSync(ACCESS_TOKEN_KEY)
-    uni.removeStorageSync(REFRESH_TOKEN_KEY)
-  } catch (e) {}
-}
-
-/** 拼接完整 HTTP URL */
-export function buildApiUrl(path: string): string {
-  let p = path != null ? ('' + path) : ''
-  if (p.indexOf('http://') == 0 || p.indexOf('https://') == 0) return p
-  if (p.indexOf('/api/') == 0) return API_BASE_URL + p
-  if (p.charAt(0) != '/') p = '/' + p
-  return API_BASE_URL + API_PREFIX + p
-}
