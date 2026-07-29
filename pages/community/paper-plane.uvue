@@ -14,31 +14,24 @@
 			<view class="flight-plane flight-plane-k"><text>✈</text></view>
 			<view class="flight-plane flight-plane-l"><text>✈</text></view>
 		</view>
-		<view class="plane-profile-bar">
-			<view class="plane-profile-summary" @click="openPaperPlaneProfileEditor">
-				<view class="plane-profile-avatar">
-					<image v-if="paperPlaneProfile.avatarType == 'album' && paperPlaneProfile.avatar != ''" class="plane-profile-avatar-image" :src="paperPlaneProfile.avatar" mode="aspectFill"></image>
-					<view v-else class="plane-profile-default">
-						<view class="plane-profile-default-head"></view>
-						<view class="plane-profile-default-body"></view>
-					</view>
-				</view>
-				<view class="plane-profile-copy">
-					<text class="plane-profile-name">{{ paperPlaneProfile.nickname }}</text>
-					<text class="plane-profile-note">{{ paperPlaneProfile.initialized ? '纸飞机身份' : '请完成身份初始化' }}</text>
-				</view>
+		<view class="hero">
+			<view class="hero-copy">
+				<text class="eyebrow">PAPER PLANE · 认真表达</text>
+				<text class="hero-title">把想说的话轻轻放出去</text>
+				<text class="hero-desc">给这一刻留一句话，也给未来的自己留一个回声。</text>
 			</view>
-			<button class="plane-profile-edit" @click="openPaperPlaneProfileEditor" aria-label="修改纸飞机身份">
-				<text>✎</text>
-			</button>
+			<view class="hero-mark">
+				<text class="hero-plane">✈</text>
+				<text class="hero-spark">✦</text>
+			</view>
 		</view>
 
 		<view class="quota-bar">
 			<view class="quota-copy">
-				<text class="q-label">扔纸飞机次数：{{ total - remain + purchasedThrowCount }}</text>
+				<text class="q-label">扔纸飞机次数：{{ total - remain }}</text>
 				<text class="q-label">捡纸飞机次数：{{ catchCount }}</text>
 			</view>
-			<button class="quota-badge" @click="openPlaneQuota"><text>获取纸飞机</text></button>
+			<view class="quota-badge"><text>实名可放飞</text></view>
 		</view>
 
 		<view class="topic-card">
@@ -55,49 +48,32 @@
 			<text class="topic-desc">不用写得完整，先把此刻最想留下的一句话放进纸飞机。</text>
 		</view>
 
-		<view class="quiet-note">
-			<view class="quiet-icon"><text>♡</text></view>
-			<view class="quiet-copy">
-				<text class="quiet-title">认真表达，温柔回应</text>
-				<text class="quiet-desc">纸飞机会先以内容呈现，回复前请确认对方是否愿意继续认识。</text>
+		<XsaSheet :visible="composerVisible" title="放飞纸飞机" @close="closeComposer">
+			<view class="composer">
+				<textarea
+					class="ta"
+					:value="draft"
+					@input="onDraft"
+					placeholder="写下一句认真的话（120 字内）"
+					maxlength="120"
+				></textarea>
+				<text class="count">{{ draft.length }}/120</text>
+				<button class="send" :disabled="sending || draft.trim().length == 0" @click="send">放飞</button>
 			</view>
-		</view>
+		</XsaSheet>
 
-		<view class="bottom-dock">
-			<button class="dock-action" @click="openComposerMenu">
-				<view class="dock-icon dock-send"><text>✈</text></view>
-				<text class="dock-label">扔纸飞机</text>
-			</button>
-			<button class="dock-action" :class="{ active: activeMode == 'catch' }" @click="openCatchMenu">
-				<view class="dock-icon dock-catch"><text>✦</text></view>
-				<text class="dock-label">捡纸飞机</text>
-			</button>
-			<button class="dock-action" :class="{ active: activeMode == 'mine' }" @click="openPaperPlaneMessages">
-				<view class="dock-icon dock-mine">
-					<text>▱</text>
-					<text v-if="paperPlaneUnreadCount > 0" class="mine-unread-badge">{{ paperPlaneUnreadCount > 99 ? '99+' : paperPlaneUnreadCount }}</text>
-				</view>
-				<text class="dock-label">我的纸飞机</text>
-			</button>
-		</view>
-
-		<XsaSheet :visible="catchMenuVisible" title="捡纸飞机" @close="closeCatchMenu">
-			<view class="catch-menu">
-				<button class="catch-option catch-option-dating" @click="openDatingPlane">
-					<view class="catch-option-icon"><text>♡</text></view>
-					<view class="catch-option-copy">
-						<text class="catch-option-title">脱单纸飞机</text>
-						<text class="catch-option-desc">看看别人认真写下的心意</text>
-					</view>
-					<text class="choice-arrow">›</text>
-				</button>
-				<button class="catch-option catch-option-normal" @click.stop="openNormalCatch">
-					<view class="catch-option-icon"><text>✦</text></view>
-					<view class="catch-option-copy">
-						<text class="catch-option-title">普通纸飞机</text>
-						<text class="catch-option-desc">接住一句轻轻落下的话</text>
-					</view>
-					<text class="choice-arrow">›</text>
+		<XsaSheet :visible="replyVisible" title="回复纸飞机" @close="closeReply">
+			<view class="composer">
+				<textarea
+					class="ta"
+					:value="replyDraft"
+					@input="onReplyDraft"
+					placeholder="写一句认真的回复（120 字内）"
+					maxlength="120"
+				></textarea>
+				<text class="count">{{ replyDraft.length }}/120</text>
+				<button class="send" :disabled="replying || replyDraft.trim().length == 0" @click="submitReply">
+					{{ replying ? '发送中...' : '发送回复' }}
 				</button>
 			</view>
 		</XsaSheet>
@@ -187,64 +163,6 @@
 			</view>
 		</XsaSheet>
 
-		<view v-if="planeQuotaVisible" class="plane-quota-overlay" @click="closePlaneQuota">
-			<view class="plane-quota-modal" @click.stop>
-				<view class="plane-quota-heading">
-					<text class="plane-quota-title">获取纸飞机</text>
-					<button class="plane-quota-close" @click="closePlaneQuota">×</button>
-				</view>
-				<view class="plane-quota-tabs">
-					<button class="plane-quota-tab" :class="{ active: planeQuotaTab == 'throw' }" @click="selectPlaneQuotaTab('throw')">扔纸飞机次数</button>
-					<button class="plane-quota-tab" :class="{ active: planeQuotaTab == 'catch' }" @click="selectPlaneQuotaTab('catch')">捡纸飞机次数</button>
-				</view>
-				<view class="plane-quota-panel">
-					<text class="plane-quota-copy">{{ planeQuotaTab == 'throw' ? '补充一次今日可扔纸飞机次数' : '补充一次捡纸飞机次数' }}</text>
-					<button class="plane-quota-buy" :disabled="planeQuotaPurchasing" @click="purchasePaperPlaneTimes">{{ planeQuotaPurchasing ? '获取中...' : '50积分/次' }}</button>
-					<text v-if="planeQuotaTab == 'catch'" class="plane-quota-hint">每日免费刷新3次捡飞机次数</text>
-				</view>
-			</view>
-		</view>
-
-		<view v-if="paperPlaneProfileEditorVisible" class="plane-profile-overlay" @click="closePaperPlaneProfileEditor">
-			<view class="plane-profile-modal" @click.stop>
-				<view class="plane-profile-modal-heading">
-					<view>
-						<text class="plane-profile-modal-title">{{ paperPlaneProfile.initialized ? '修改纸飞机身份' : '先完成纸飞机身份' }}</text>
-						<text class="plane-profile-modal-desc">仅用于纸飞机，不会同步到小程序其他页面</text>
-					</view>
-					<button class="plane-profile-modal-close" @click="closePaperPlaneProfileEditor">×</button>
-				</view>
-
-				<view class="plane-profile-form-field">
-					<view class="plane-profile-label-row">
-						<text class="plane-profile-form-label">昵称</text>
-						<button class="plane-profile-random" @click="randomizePaperPlaneNickname">随机昵称</button>
-					</view>
-					<input class="plane-profile-input" :value="paperPlaneProfileDraft.nickname" @input="onPaperPlaneNicknameInput" placeholder="请输入纸飞机昵称" maxlength="16" />
-				</view>
-
-				<view class="plane-profile-form-field">
-					<text class="plane-profile-form-label">头像</text>
-					<view class="plane-avatar-options">
-						<button class="plane-avatar-choice" :class="{ active: paperPlaneProfileDraft.avatarType == 'default' }" @click="useDefaultPaperPlaneAvatar">
-							<view class="plane-profile-default plane-profile-default-small">
-								<view class="plane-profile-default-head"></view>
-								<view class="plane-profile-default-body"></view>
-							</view>
-							<text>默认头像</text>
-						</button>
-						<button class="plane-avatar-choice" :class="{ active: paperPlaneProfileDraft.avatarType == 'album' }" @click="choosePaperPlaneAvatar">
-							<image v-if="paperPlaneProfileDraft.avatarType == 'album' && paperPlaneProfileDraft.avatar != ''" class="plane-profile-choice-image" :src="paperPlaneProfileDraft.avatar" mode="aspectFill"></image>
-							<view v-else class="plane-profile-album-placeholder"><text>+</text></view>
-							<text>从相册选择</text>
-						</button>
-					</view>
-				</view>
-
-				<button class="plane-profile-save" @click="savePaperPlaneProfile">{{ paperPlaneProfile.initialized ? '保存修改' : '完成并进入纸飞机' }}</button>
-			</view>
-		</view>
-
 		<view v-if="composerVisible" class="composer-overlay" @click="closeComposer">
 			<view class="composer-modal" @click.stop>
 				<view class="modal-topline">
@@ -297,34 +215,14 @@
 
 <script setup lang="uts">
 	import XsaSheet from '@/components/XsaSheet.uvue'
-	import { sendPaperPlane, getCommunityQuotas, purchasePaperPlaneChance, replyPaperPlane, getPaperPlaneUnreadCount, createCommunityCreateKey, discardCommunityCreateKey, uploadCommunityMedia, deleteCommunityMedia } from '@/api'
+	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
+	import { getPaperPlanes, sendPaperPlane, replyPaperPlane, getCommunityQuotas, createCommunityCreateKey, discardCommunityCreateKey } from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
-
-	const PAPER_PLANE_PROFILE_STORAGE_KEY = 'xsa_paper_plane_profile_v1'
-	const PAPER_PLANE_DEFAULT_NICKNAME = '宣誓爱用户'
-	const paperPlaneRandomNames = ['云端旅人', '微光信使', '晚风邮差', '星河来信', '晴天收件人', '月光投递员']
-
-	const paperPlaneProfile = ref({
-		nickname: PAPER_PLANE_DEFAULT_NICKNAME,
-		avatar: '',
-		avatarType: '',
-		initialized: false
-	})
-	const paperPlaneProfileDraft = ref({
-		nickname: PAPER_PLANE_DEFAULT_NICKNAME,
-		avatar: '',
-		avatarType: ''
-	})
-	const paperPlaneProfileEditorVisible = ref(false)
 
 	const activeMode = ref('catch')
 	const remain = ref(3)
 	const total = ref(3)
 	const catchCount = ref(0)
-	const purchasedThrowCount = ref(0)
-	const planeQuotaVisible = ref(false)
-	const planeQuotaTab = ref('throw')
-	const planeQuotaPurchasing = ref(false)
 	const paperPlaneUnreadCount = ref(0)
 	const menuVisible = ref(false)
 	const catchMenuVisible = ref(false)
@@ -363,6 +261,18 @@
 	const composerTab = ref('text')
 	const draft = ref('')
 	const sending = ref(false)
+	const loadError = ref(false)
+	const replyVisible = ref(false)
+	const replyDraft = ref('')
+	const replying = ref(false)
+	let replyTarget: any = null
+	const reportVisible = ref(false)
+	const reportTargetId = ref(0)
+	const reportUserId = ref(0)
+	const pendingSendKey = ref('')
+	const pendingSendFingerprint = ref('')
+	const pendingReplyKey = ref('')
+	const pendingReplyFingerprint = ref('')
 	const recording = ref(false)
 	const recorded = ref(false)
 	const recordSeconds = ref(0)
@@ -380,10 +290,6 @@
 
 	const paperPlaneImages = ref<PaperPlaneMedia[]>([])
 	const inFlightMedia = ref<PaperPlaneMedia[]>([])
-	const pendingSendKey = ref('')
-	const pendingSendFingerprint = ref('')
-	const pendingReplyKey = ref('')
-	const pendingReplyFingerprint = ref('')
 
 	const loadPaperPlaneProfile = () => {
 		try {
@@ -481,14 +387,12 @@
 	}
 
 	const recordTime = computed(() => {
-		const seconds = recordSeconds.value
-		const minute = seconds >= 60 ? Math.floor(seconds / 60) : 0
-		const second = seconds % 60
-		return (minute < 10 ? '0' + minute : '' + minute) + ':' + (second < 10 ? '0' + second : '' + second)
+		const minutes = Math.floor(recordSeconds.value / 60)
+		const seconds = recordSeconds.value % 60
+		return (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds
 	})
 
 	onMounted(() => {
-		loadPaperPlaneProfile()
 		setupRecorder()
 		loadQuota()
 		loadPaperPlaneUnreadCount()
@@ -529,28 +433,28 @@
 			if (res.success && res.data != null && res.data.paperPlaneDaily != null) {
 				remain.value = res.data.paperPlaneDaily.remain
 				total.value = res.data.paperPlaneDaily.total
-				purchasedThrowCount.value = res.data.paperPlaneDaily.purchasedThrow != null
-					? Math.max(0, Number(res.data.paperPlaneDaily.purchasedThrow))
-					: 0
-				const purchasedCatch = res.data.paperPlaneDaily.purchasedCatch != null
-					? Math.max(0, Number(res.data.paperPlaneDaily.purchasedCatch))
-					: 0
-				catchCount.value = Math.max(catchCount.value, purchasedCatch)
 			}
 		} catch (e) {
 			console.error(e)
 		}
 	}
 
-	const loadPaperPlaneUnreadCount = async () => {
-		try {
-			const res = await getPaperPlaneUnreadCount()
-			if (res != null && res.success && res.data != null && res.data.count != null) {
-				paperPlaneUnreadCount.value = Math.max(0, res.data.count as number)
-			}
-		} catch (e) {
-			console.error(e)
-		}
+	const sendFingerprint = (text: string) => text + '|city|true'
+	const replyFingerprint = (planeId: number, text: string) => planeId + '|' + text + '|true'
+	const discardPendingSendKey = () => {
+		if (pendingSendKey.value != '') discardCommunityCreateKey(pendingSendKey.value)
+		pendingSendKey.value = ''
+		pendingSendFingerprint.value = ''
+	}
+	const discardPendingReplyKey = () => {
+		if (pendingReplyKey.value != '') discardCommunityCreateKey(pendingReplyKey.value)
+		pendingReplyKey.value = ''
+		pendingReplyFingerprint.value = ''
+	}
+	const shouldDiscardCreateKey = (res: any): boolean => {
+		if (res == null) return false
+		if (res.success == false) return res.code != null && res.code != -1
+		return res.data != null && res.data.success == false
 	}
 
 	const setMode = (mode: string) => {
@@ -727,8 +631,7 @@
 		}
 		const ok = await guardRealName('paperPlane')
 		if (!ok) return
-		menuVisible.value = false
-		composerTab.value = tab
+		discardPendingSendKey()
 		draft.value = ''
 		paperPlaneImages.value = []
 		discardPendingSendKey()
@@ -754,9 +657,11 @@
 		composerVisible.value = false
 	}
 
-	const switchComposerTab = (tab: string) => {
-		if (recording.value) stopRecording()
-		composerTab.value = tab
+	const closeReply = () => {
+		discardPendingReplyKey()
+		replyDraft.value = ''
+		replyTarget = null
+		replyVisible.value = false
 	}
 
 	const onDraft = (e: any) => {
@@ -901,28 +806,31 @@
 		return draft.value.trim() + '|' + ids.join(',')
 	}
 
-	const discardPendingSendKey = () => {
-		if (pendingSendKey.value != '') discardCommunityCreateKey(pendingSendKey.value)
-		pendingSendKey.value = ''
-		pendingSendFingerprint.value = ''
-	}
-
 	const invalidatePendingSendKey = () => {
 		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != paperPlaneSendFingerprint()) {
 			discardPendingSendKey()
 		}
 	}
 
-	const discardPendingReplyKey = () => {
-		if (pendingReplyKey.value != '') discardCommunityCreateKey(pendingReplyKey.value)
-		pendingReplyKey.value = ''
-		pendingReplyFingerprint.value = ''
-	}
-
 	const invalidatePendingReplyKey = () => {
 		const fingerprint = normalPlane.value.id + '|' + normalReplyDraft.value.trim()
 		if (pendingReplyFingerprint.value != '' && pendingReplyFingerprint.value != fingerprint) discardPendingReplyKey()
 	}
+
+	const onReplyDraft = (e: any) => {
+		replyDraft.value = e.detail.value
+		if (replyTarget != null && pendingReplyFingerprint.value != '') {
+			const content = replyDraft.value.trim()
+			if (pendingReplyFingerprint.value != replyFingerprint(replyTarget.id, content)) {
+				discardPendingReplyKey()
+			}
+		}
+	}
+
+	onUnload(() => {
+		discardPendingSendKey()
+		discardPendingReplyKey()
+	})
 
 	const send = async () => {
 		const text = draft.value.trim()
@@ -963,9 +871,17 @@
 				closeComposer(true)
 				uni.showToast({ title: '已放飞', icon: 'success' })
 			} else {
-				const msg = data != null && data.message != null ? data.message : '放飞失败'
+				if (shouldDiscardCreateKey(res)) discardPendingSendKey()
+				const msg =
+					data != null && data.message != null
+						? data.message
+						: res != null && res.message != null
+							? res.message
+							: '放飞失败'
 				uni.showToast({ title: msg, icon: 'none' })
-				if (data != null && data.remain != null) remain.value = data.remain
+				if (data != null && data.remain != null) {
+					remain.value = data.remain
+				}
 			}
 		} catch (e) {
 			uni.showToast({ title: '网络异常', icon: 'none' })
@@ -988,20 +904,24 @@
 		}
 	}
 
-	const startRecording = () => {
+	const startRecording = async () => {
 		// #ifdef MP-WEIXIN
 		if (recorderManager == null) {
 			uni.showToast({ title: '录音功能暂不可用', icon: 'none' })
 			return
 		}
+		const ok = await guardRealName('paperPlane')
+		if (!ok) return
 		recorded.value = false
 		recordSeconds.value = 0
-		recording.value = true
 		beginRecordTimer()
-		recorderManager.start({ duration: 60000, sampleRate: 44100, numberOfChannels: 1, encodeBitRate: 192000, format: 'mp3' })
-		// #endif
-		// #ifndef MP-WEIXIN
-		uni.showToast({ title: '请在微信小程序中使用录音', icon: 'none' })
+		recorderManager.start({
+			duration: 60000,
+			sampleRate: 44100,
+			numberOfChannels: 1,
+			encodeBitRate: 192000,
+			format: 'mp3'
+		})
 		// #endif
 	}
 
@@ -1009,6 +929,48 @@
 		// #ifdef MP-WEIXIN
 		if (recorderManager != null) recorderManager.stop()
 		// #endif
+	}
+
+	const submitReply = async () => {
+		const content = replyDraft.value.trim()
+		if (replying.value || content.length == 0 || replyTarget == null) return
+		const p = replyTarget
+		const fingerprint = replyFingerprint(p.id, content)
+		if (pendingReplyKey.value == '' || pendingReplyFingerprint.value != fingerprint) {
+			discardPendingReplyKey()
+			pendingReplyKey.value = createCommunityCreateKey('paper-plane-reply')
+			pendingReplyFingerprint.value = fingerprint
+		}
+		replying.value = true
+		try {
+			const res = await replyPaperPlane(p.id, content, pendingReplyKey.value)
+			const data = res != null ? res.data : null
+			const replyOk = res != null && res.success && (res.data == null || res.data.success != false)
+			if (replyOk) {
+				discardPendingReplyKey()
+				p.replied = true
+				p.replyCount += 1
+				if (data != null && data.replyCount != null) {
+					p.replyCount = data.replyCount
+				}
+				replyVisible.value = false
+				replyTarget = null
+				uni.showToast({ title: '已回复', icon: 'success' })
+			} else {
+				if (shouldDiscardCreateKey(res)) discardPendingReplyKey()
+				const message =
+					data != null && data.message != null
+						? data.message
+						: res != null && res.message != null
+							? res.message
+							: '回复失败'
+				uni.showToast({ title: message, icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '回复失败，请稍后重试', icon: 'none' })
+		} finally {
+			replying.value = false
+		}
 	}
 
 	const toggleRecording = () => {
@@ -1079,23 +1041,28 @@
 	/* #ifdef H5 */
 	.page { height: calc(100vh - 44px); }
 	/* #endif */
-	.plane-profile-bar { position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; justify-content: space-between; min-height: 86px; padding: 14px 16px; background: var(--plane-cloud); border-bottom: 1px solid var(--line); }
-	.plane-profile-summary { flex: 1; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 11px; }
-	.plane-profile-avatar { width: 54px; height: 54px; overflow: hidden; border-radius: 50%; flex-shrink: 0; background: #EDF0F3; border: 1px solid #DDE1E7; }
-	.plane-profile-avatar-image { width: 100%; height: 100%; }
-	.plane-profile-default { width: 100%; height: 100%; position: relative; overflow: hidden; background: #E8EBEF; }
-	.plane-profile-default-head { position: absolute; left: 50%; top: 11px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #9FA7B2; }
-	.plane-profile-default-body { position: absolute; left: 50%; bottom: -3px; width: 33px; height: 24px; margin-left: -16.5px; border-radius: 18px 18px 0 0; background: #9FA7B2; }
-	.plane-profile-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-	.plane-profile-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; line-height: 1.25; font-weight: 800; color: var(--ink); }
-	.plane-profile-note { font-size: 11px; line-height: 1.4; color: var(--muted); }
-	.plane-profile-edit { width: 38px; height: 38px; margin-left: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--plane-lilac); color: var(--plane-purple); font-size: 22px; font-weight: 800; line-height: 38px; }
-	.plane-profile-edit::after { border: none; }
+	.hero {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		padding: 18px 16px 16px;
+		background: var(--plane-cloud);
+		border-bottom: 1px solid var(--line);
+		position: relative;
+		z-index: 2;
+	}
+	.hero-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; padding-right: 12px; }
+	.eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--plane-purple); }
+	.hero-title { font-size: 23px; line-height: 1.25; font-family: var(--serif); font-weight: 700; color: var(--ink); }
+	.hero-desc { font-size: 12px; line-height: 1.5; color: var(--muted); }
+	.hero-mark { width: 72px; height: 72px; border-radius: 24px; background: var(--plane-lilac); position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+	.hero-plane { font-size: 39px; color: var(--plane-purple); transform: rotate(-14deg); }
+	.hero-spark { position: absolute; right: 10px; top: 8px; font-size: 17px; color: var(--plane-pink); }
 	.quota-bar { position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--plane-lavender-surface); border-bottom: 1px solid var(--line); }
 	.quota-copy { display: flex; flex-direction: row; align-items: baseline; gap: 12px; }
 	.q-label { font-size: 11px; color: var(--plane-purple); }
-	.quota-badge { min-width: 84px; margin: 0; padding: 4px 8px; border-radius: 999px; background: var(--surface); }
-	.quota-badge::after { border: none; }
+	.quota-badge { padding: 4px 8px; border-radius: 999px; background: var(--surface); }
 	.quota-badge text { font-size: 10px; font-weight: 700; color: var(--plane-purple); }
 	.topic-card { position: relative; z-index: 2; margin: 16px 14px 0; padding: 16px; border-radius: 18px; background: var(--plane-surface); border: 1px solid #DDD2F8; box-shadow: var(--shadow-sm); }
 	.topic-row { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; }
@@ -1179,47 +1146,6 @@
 	.normal-send-button { background: var(--plane-purple); color: #FFFFFF; }
 	.normal-send-button:disabled { opacity: 0.55; }
 	.throw-back-button { background: #9C93AE; border: 1px solid #8E849F; color: #FFFFFF; }
-	.plane-quota-overlay { position: fixed; inset: 0; z-index: 10080; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(25, 15, 48, 0.55); }
-	.plane-quota-modal { width: 100%; max-width: 340px; padding: 18px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
-	.plane-quota-heading { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
-	.plane-quota-title { font-size: 19px; line-height: 1.3; font-family: var(--serif); font-weight: 800; color: var(--ink); }
-	.plane-quota-close { width: 30px; height: 30px; flex-shrink: 0; margin: 0; border-radius: 15px; background: var(--bg-subtle); color: var(--muted); font-size: 21px; line-height: 28px; }
-	.plane-quota-close::after { border: none; }
-	.plane-quota-tabs { display: flex; flex-direction: row; gap: 4px; margin-top: 18px; padding: 4px; border-radius: 14px; background: var(--bg-subtle); }
-	.plane-quota-tab { flex: 1; height: 38px; margin: 0; border-radius: 10px; background: transparent; color: var(--muted); font-size: 12px; }
-	.plane-quota-tab::after { border: none; }
-	.plane-quota-tab.active { background: var(--plane-purple); color: var(--text-invert); font-weight: 800; }
-	.plane-quota-panel { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-top: 20px; }
-	.plane-quota-copy { text-align: center; font-size: 13px; line-height: 1.5; color: var(--muted); }
-	.plane-quota-buy { width: 100%; height: 46px; margin: 0; border-radius: 14px; background: var(--plane-purple); color: var(--text-invert); font-size: 15px; font-weight: 800; }
-	.plane-quota-buy::after { border: none; }
-	.plane-quota-buy:disabled { opacity: 0.55; }
-	.plane-quota-hint { text-align: center; font-size: 11px; line-height: 1.5; color: var(--plane-purple); }
-	.plane-profile-overlay { position: fixed; inset: 0; z-index: 10070; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(25, 15, 48, 0.55); }
-	.plane-profile-modal { width: 100%; max-width: 340px; padding: 18px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
-	.plane-profile-modal-heading { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 12px; }
-	.plane-profile-modal-title { display: block; font-size: 19px; line-height: 1.3; font-family: var(--serif); font-weight: 800; color: var(--ink); }
-	.plane-profile-modal-desc { display: block; margin-top: 5px; font-size: 11px; line-height: 1.5; color: var(--muted); }
-	.plane-profile-modal-close { width: 30px; height: 30px; flex-shrink: 0; border-radius: 15px; background: var(--bg-subtle); color: var(--muted); font-size: 21px; line-height: 28px; }
-	.plane-profile-modal-close::after { border: none; }
-	.plane-profile-form-field { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
-	.plane-profile-label-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
-	.plane-profile-form-label { font-size: 13px; font-weight: 800; color: var(--ink); }
-	.plane-profile-random { height: 28px; padding: 0 10px; border-radius: 10px; background: var(--plane-lilac); color: var(--plane-purple); font-size: 11px; font-weight: 800; line-height: 28px; }
-	.plane-profile-random::after { border: none; }
-	.plane-profile-input { width: 100%; height: 43px; padding: 0 12px; border: 1px solid #D9D4E7; border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 14px; }
-	.plane-avatar-options { display: flex; flex-direction: row; gap: 10px; }
-	.plane-avatar-choice { flex: 1; min-width: 0; height: 82px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px solid #DED9E9; border-radius: 14px; background: var(--surface); color: var(--muted); font-size: 11px; }
-	.plane-avatar-choice::after { border: none; }
-	.plane-avatar-choice.active { border-color: var(--plane-purple); background: #F7F2FF; color: var(--plane-purple); }
-	.plane-profile-default-small, .plane-profile-choice-image, .plane-profile-album-placeholder { width: 32px; height: 32px; border-radius: 50%; }
-	.plane-profile-default-small { border: 1px solid #DDE1E7; }
-	.plane-profile-default-small .plane-profile-default-head { top: 6px; width: 10px; height: 10px; margin-left: -5px; }
-	.plane-profile-default-small .plane-profile-default-body { bottom: -2px; width: 20px; height: 14px; margin-left: -10px; border-radius: 11px 11px 0 0; }
-	.plane-profile-choice-image { background: #E8EBEF; }
-	.plane-profile-album-placeholder { display: flex; align-items: center; justify-content: center; background: #EEF0F6; color: #81899A; font-size: 21px; line-height: 32px; }
-	.plane-profile-save { width: 100%; height: 46px; margin-top: 22px; border-radius: 14px; background: var(--plane-purple); color: var(--text-invert); font-size: 14px; font-weight: 800; }
-	.plane-profile-save::after { border: none; }
 	.composer-overlay { position: fixed; inset: 0; z-index: 10060; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(25, 15, 48, 0.55); }
 	.composer-modal { width: 100%; max-width: 340px; padding: 16px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
 	.modal-topline { display: flex; flex-direction: row; justify-content: flex-end; align-items: center; height: 32px; }

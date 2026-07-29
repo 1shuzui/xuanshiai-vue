@@ -17,6 +17,8 @@ colors:
   navy: "#18415D"
   sage: "#338D6B"
   sage-soft: "#C2E0CF"
+  like: "#E85A6B"
+  like-bg: "rgba(232, 90, 107, 0.12)"
   text-invert: "#FCFCFC"
   overlays:
     surface: "rgba(250, 252, 252, 0.96)"

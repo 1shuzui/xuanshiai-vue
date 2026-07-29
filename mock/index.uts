@@ -10,6 +10,7 @@ export {
   mockRecommendUsers,
   mockSquareUsers,
   mockUserDetail,
+  mockPaperPlanePeerProfile,
   mockMeProfile
 } from './user.uts'
 

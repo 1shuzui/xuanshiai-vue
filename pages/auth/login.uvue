@@ -9,17 +9,11 @@
 		</view>
 
 		<view class="login-content">
-			<!-- #ifdef MP-WEIXIN -->
-			<button
-				class="phone-auth-button"
-				open-type="getPhoneNumber"
-				:disabled="authLoading"
-				@getphonenumber="handlePhoneNumber"
-			>
-				{{ authLoading ? '正在登录' : '微信一键登录' }}
+			<button class="phone-auth-button" :disabled="authLoading" @click="handleLocalLogin">
+				{{ authLoading ? '正在进入社区' : '本地登录进入社区' }}
 			</button>
-			<!-- #endif -->
 
+<<<<<<< HEAD
 			<!-- #ifndef MP-WEIXIN -->
 			<button class="phone-auth-button" :disabled="authLoading" @click="handleNonWechatLogin">
 				{{ authLoading ? '正在登录' : '模拟微信一键登录' }}
@@ -27,10 +21,13 @@
 			<!-- #endif -->
 
 			<button class="debug-login-button" @click="handleDebugLogin">调试登录</button>
+=======
+			<button class="debug-login-button" @click="handleLocalLogin">调试登录，直接进入社区</button>
+>>>>>>> sync/upstream-main-751a9f4
 			<button class="first-login-button" @click="handleFirstLogin">首次登录</button>
 
 			<view class="login-note">
-				<text>微信授权仅用于完成身份登录和手机号验证</text>
+				<text>本地演示登录使用内置数据，无需微信授权或后端服务</text>
 			</view>
 		</view>
 
@@ -43,6 +40,7 @@
 </template>
 
 <script setup lang="uts">
+<<<<<<< HEAD
 	import { USE_MOCK, API_BASE_URL, API_PREFIX, setAuthTokens } from '@/api/config.uts'
 	import { loginByPhone } from '@/api/auth.uts'
 
@@ -140,15 +138,25 @@
 				icon: 'none'
 			})
 			return
+=======
+	import { CURRENT_USER_ID_KEY, setAuthTokens } from '@/api/config.uts'
+
+	const authLoading = ref(false)
+
+	const startLocalDemoSession = (): boolean => {
+		try {
+			setAuthTokens('local_demo_access_token', 'local_demo_refresh_token')
+			uni.setStorageSync('xsa_login_agreed', true)
+			uni.setStorageSync(CURRENT_USER_ID_KEY, 1)
+			return true
+		} catch (error) {
+			console.error('local demo login failed', error)
+			return false
+>>>>>>> sync/upstream-main-751a9f4
 		}
-		authLoading.value = true
-		// Mock 阶段只验证授权结果；真微信 code 换手机号未接，正式路径不走联调账号
-		setTimeout(() => {
-			authLoading.value = false
-			finishLogin()
-		}, 500)
 	}
 
+<<<<<<< HEAD
 	const handleNonWechatLogin = () => {
 		authLoading.value = true
 		setTimeout(() => {
@@ -190,6 +198,19 @@
 				}, 400)
 			return
 		}
+=======
+	const handleLocalLogin = () => {
+		if (authLoading.value) return
+		authLoading.value = true
+		const ok = startLocalDemoSession()
+		authLoading.value = false
+		if (!ok) {
+			uni.showToast({ title: '本地登录失败，请重试', icon: 'none' })
+			return
+		}
+		uni.showToast({ title: '本地登录成功', icon: 'success' })
+		uni.switchTab({ url: '/pages/community/community' })
+>>>>>>> sync/upstream-main-751a9f4
 	}
 
 	const handleFirstLogin = async () => {

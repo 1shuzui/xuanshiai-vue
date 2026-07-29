@@ -1,74 +1,21 @@
 /**
- * 社区相关 API
- * 主 Tab：follow / city / discover；二级 filter：
- * follow=all|following|likedUsers；city=all|hot|latest；discover=all|mbti|alumni|hometown
- * 互动门槛由页面侧 guardRealName 控制（仅实名）
- *
- * USE_MOCK=true 走本地 mock；false 时走 FastAPI `/api/v1`（见 config.uts）
- */
+	 * 社区相关 API
+	 * 主 Tab：follow / city / discover；二级 filter：
+	 * follow=all|following|likedUsers；city=all|hot|latest；discover=all|mbti|alumni
+	 * 互动门槛由页面侧 guardRealName 控制（仅实名）
+	 *
+	 * 已全部切换到真实后端 FastAPI `/api/v1`（见 config.uts）
+	 */
 
 import { request } from './request.uts'
-import { USE_MOCK, PAPER_PLANE_CHANCE_USE_MOCK, API_BASE_URL, API_PREFIX, getAccessToken, buildApiUrl } from './config.uts'
-import {
-  mockDynamicList,
-  mockTopics,
-  mockPaperPlanes,
-  mockPaperPlaneConversations,
-  mockActivities,
-  mockCommunityBanners,
-  mockCommunityNotifications,
-  mockReportReasons,
-  mockBlockedUserIds,
-  mockApplyStates,
-  mockLikedUserIds,
-  mockCurrentCity,
-  mockMeProfile,
-  
-} from '@/mock'
+import { API_BASE_URL, API_PREFIX, getAccessToken, buildApiUrl, resolveMediaUrl } from './config.uts'
+// Mock 已全部切换到真实后端，不再导入 mock 数据
 
-
-const PAPER_PLANE_STORAGE_KEY = 'xsa_paper_plane_state_v1'
 export const PAPER_PLANE_CHANCE_COST = 50
-const PAPER_PLANE_FREE_TIMES = 3
-let paperPlaneStateLoaded = false
-let paperPlaneStateDateKey = ''
 
-/** mock 媒体 id → { url, mediaType, purpose }，供 publish/send 解析 */
-const mockCommunityMediaById: any = {}
 
-function guessMockMediaType(filePath: string): string {
-  const p = (filePath != null ? ('' + filePath) : '').toLowerCase()
-  if (
-    p.indexOf('.mp4') >= 0 ||
-    p.indexOf('.mov') >= 0 ||
-    p.indexOf('.m4v') >= 0 ||
-    p.indexOf('.webm') >= 0 ||
-    p.indexOf('video') >= 0
-  ) {
-    return 'video'
-  }
-  return 'image'
-}
 
-function resolveMockMediaUrls(mediaIds: number[]): string[] {
-  const urls: string[] = []
-  if (mediaIds == null) return urls
-  for (let i = 0; i < mediaIds.length; i++) {
-    const id = mediaIds[i]
-    if (id == null || id <= 0) continue
-    const entry = mockCommunityMediaById['' + id]
-    if (entry != null && entry.url != null && ('' + entry.url) != '') {
-      urls.push('' + entry.url)
-    }
-  }
-  return urls
-}
 
-function resolveMockMediaEntry(mediaId: number): any {
-  if (mediaId == null || mediaId <= 0) return null
-  const entry = mockCommunityMediaById['' + mediaId]
-  return entry != null ? entry : null
-}
 
 function currentDateKey(): string {
   const now = new Date()
@@ -79,93 +26,9 @@ function currentDateKey(): string {
   return now.getFullYear() + '-' + monthText + '-' + dayText
 }
 
-function savePaperPlaneState() {
-	const quotas = mockCommunityQuotas as any
-	uni.setStorageSync(PAPER_PLANE_STORAGE_KEY, {
-		dateKey: currentDateKey(),
-		planes: mockPaperPlanes,
-		conversations: mockPaperPlaneConversations,
-		paperPlaneDaily: quotas.paperPlaneDaily,
-		points: mockMeProfile.points
-	})
-}
 
-function resetPaperPlaneDaily() {
-	const daily = (mockCommunityQuotas as any).paperPlaneDaily
-	daily.total = PAPER_PLANE_FREE_TIMES
-	daily.used = 0
-	daily.remain = PAPER_PLANE_FREE_TIMES
-	daily.purchasedThrow = 0
-	daily.purchasedCatch = 0
-}
 
-function syncPaperPlanePoints() {
-	const points = mockMeProfile.points
-	try {
-		const chatSaved = uni.getStorageSync('xsa_chat_feature_unlocks_v1') as any
-		const chatState = chatSaved != null && typeof chatSaved === 'object'
-			? chatSaved
-			: { album: false, camera: false, profile: false }
-		chatState.points = points
-		uni.setStorageSync('xsa_chat_feature_unlocks_v1', chatState)
-	} catch (e) {
-		console.error('同步纸飞机积分失败', e)
-	}
-}
 
-function restorePaperPlaneState() {
-  const today = currentDateKey()
-	if (paperPlaneStateLoaded) {
-		if (paperPlaneStateDateKey != today) {
-			resetPaperPlaneDaily()
-			paperPlaneStateDateKey = today
-			savePaperPlaneState()
-    }
-    return
-  }
-  paperPlaneStateLoaded = true
-  paperPlaneStateDateKey = today
-
-  try {
-    const saved = uni.getStorageSync(PAPER_PLANE_STORAGE_KEY) as any
-    if (saved == null || typeof saved !== 'object') return
-
-    if (saved.planes != null && Array.isArray(saved.planes)) {
-      const target = mockPaperPlanes as any[]
-      target.splice(0, target.length)
-      ;(saved.planes as any[]).forEach((item: any) => target.push(item))
-    }
-
-    if (saved.conversations != null && Array.isArray(saved.conversations)) {
-      const target = mockPaperPlaneConversations as any[]
-      target.splice(0, target.length)
-      ;(saved.conversations as any[]).forEach((item: any) => target.push(item))
-    }
-
-		const quotas = mockCommunityQuotas as any
-		if (saved.dateKey == today && saved.paperPlaneDaily != null) {
-			const daily = saved.paperPlaneDaily as any
-			const purchasedThrow = daily.purchasedThrow != null ? Math.max(0, Number(daily.purchasedThrow)) : 0
-			const purchasedCatch = daily.purchasedCatch != null ? Math.max(0, Number(daily.purchasedCatch)) : 0
-			quotas.paperPlaneDaily.total = PAPER_PLANE_FREE_TIMES + purchasedThrow
-			quotas.paperPlaneDaily.remain = daily.remain != null
-				? Math.max(0, Math.min(quotas.paperPlaneDaily.total, Number(daily.remain)))
-				: quotas.paperPlaneDaily.total
-			quotas.paperPlaneDaily.used = quotas.paperPlaneDaily.total - quotas.paperPlaneDaily.remain
-			quotas.paperPlaneDaily.purchasedThrow = purchasedThrow
-			quotas.paperPlaneDaily.purchasedCatch = purchasedCatch
-			if (saved.points != null && Number(saved.points) >= 0) {
-				mockMeProfile.points = Number(saved.points)
-				syncPaperPlanePoints()
-			}
-		} else {
-			resetPaperPlaneDaily()
-			savePaperPlaneState()
-    }
-  } catch (e) {
-    console.error('恢复纸飞机本地状态失败', e)
-  }
-}
 
 // ─── 通用工具 ───────────────────────────────────────────────
 
@@ -277,21 +140,7 @@ function isTemporaryMediaPath(value: string): boolean {
 
 // ─── Mock helpers ───────────────────────────────────────────
 
-function findDynamic(dynamicId: number): any {
-  const all = mockDynamicList as any[]
-  for (let i = 0; i < all.length; i++) {
-    if (all[i].id == dynamicId) return all[i]
-  }
-  return null
-}
 
-function findTopic(topicId: number): any {
-  const all = mockTopics as any[]
-  for (let i = 0; i < all.length; i++) {
-    if (all[i].id == topicId) return all[i]
-  }
-  return null
-}
 
 function markTopicParticipation(topic: any): void {
   if (topic == null || topic.joined == true) return
@@ -306,90 +155,16 @@ function unmarkTopicParticipation(topic: any): void {
   topic.participantCount = n > 0 ? n - 1 : 0
 }
 
-function findActivity(activityId: number): any {
-  const all = mockActivities as any[]
-  for (let i = 0; i < all.length; i++) {
-    if (all[i].id == activityId) return all[i]
-  }
-  return null
-}
 
-function isBlocked(userId: number): boolean {
-  const ids = mockBlockedUserIds as number[]
-  for (let i = 0; i < ids.length; i++) {
-    if (ids[i] == userId) return true
-  }
-  return false
-}
 
-function applyStatusForUser(userId: number, fallback: string = 'none'): string {
-  const key = '' + userId
-  const map = mockApplyStates as any
-  if (map[key] != null) return map[key] as string
-  return fallback
-}
 
-function syncApplyOnDynamics(userId: number, status: string) {
-  const all = mockDynamicList as any[]
-  for (let i = 0; i < all.length; i++) {
-    if (all[i].user != null && all[i].user.id == userId) {
-      all[i].applyStatus = status
-    }
-  }
-}
 
-function notBlockedDynamic(d: any): boolean {
-  if (d == null || d.user == null) return true
-  return !isBlocked(d.user.id as number)
-}
 
-function isLikedUser(userId: number): boolean {
-  const ids = mockLikedUserIds as number[]
-  for (let i = 0; i < ids.length; i++) {
-    if (ids[i] == userId) return true
-  }
-  return false
-}
 
-function schoolKey(raw: any): string {
-  if (raw == null) return ''
-  let s = '' + raw
-  const cut = s.indexOf(' · ')
-  if (cut >= 0) s = s.substring(0, cut)
-  return s.trim()
-}
 
-function hometownKey(raw: any): string {
-  if (raw == null) return ''
-  return ('' + raw).trim()
-}
 
-function meProfile(): any {
-  return mockMeProfile as any
-}
 
-function sortTopicsByHeat(list: any[]): any[] {
-  return list.slice().sort((a: any, b: any) => {
-    const ha = a.heat != null ? (a.heat as number) : ((a.participantCount as number) || 0) * 10 + ((a.postCount as number) || 0)
-    const hb = b.heat != null ? (b.heat as number) : ((b.participantCount as number) || 0) * 10 + ((b.postCount as number) || 0)
-    return hb - ha
-  })
-}
 
-function sortTopicsByCreated(list: any[]): any[] {
-  return list.slice().sort((a: any, b: any) => {
-    return ((b.createdAt as number) || 0) - ((a.createdAt as number) || 0)
-  })
-}
-
-function excludeTopicIds(list: any[], excludeIds: any): any[] {
-  if (excludeIds == null || !Array.isArray(excludeIds) || excludeIds.length == 0) return list
-  const ban: any = {}
-  for (let i = 0; i < excludeIds.length; i++) {
-    ban['' + excludeIds[i]] = true
-  }
-  return list.filter((t: any) => ban['' + t.id] != true)
-}
 
 function resolveTabValue(raw: any): string {
   if (typeof raw === 'number') {
@@ -439,139 +214,53 @@ function normalizeCityName(raw: any): string {
 			return ''
 		}
 
-		function normalizeListQuery(input: any, pageArg: number = 1): any {
-		  if (input != null && typeof input === 'object' && !Array.isArray(input)) {
-		    const tabName = resolveTabValue(input.tab)
-		    const filterName = input.filter != null ? ('' + input.filter) : 'all'
-		    const pageNum = input.page != null ? (input.page as number) : 1
-		    const sizeNum = input.pageSize != null ? (input.pageSize as number) : 10
-		    // 真路径缺省不传假城市；Mock 才回落 mockCurrentCity
-		    let cityName = normalizeCityName(input.city)
-		    let cityCode = normalizeCityCode(input.cityCode != null ? input.cityCode : input.city_code)
-		    if (cityName == '' && USE_MOCK) {
-		      cityName = mockCurrentCity.name
-		    }
-		    if (cityCode == '' && cityName != '') {
-		      cityCode = cityCodeFromName(cityName)
-		    }
-		    if (cityCode == '' && USE_MOCK && mockCurrentCity.code != null) {
-		      cityCode = normalizeCityCode(mockCurrentCity.code)
-		    }
-		    return {
-		      tab: tabName,
-		      filter: filterName,
-		      page: pageNum,
-		      pageSize: sizeNum,
-		      city: cityName,
-		      cityCode: cityCode
-		    }
-		  }
-		  const tabName = resolveTabValue(input)
-		  return {
-		    tab: tabName,
-		    filter: 'all',
-		    page: pageArg > 0 ? pageArg : 1,
-		    pageSize: 10,
-		    city: USE_MOCK ? mockCurrentCity.name : '',
-		    cityCode: USE_MOCK && mockCurrentCity.code != null ? normalizeCityCode(mockCurrentCity.code) : ''
-		  }
-	}
+function normalizeListQuery(input: any, pageArg: number = 1): any {
+			  if (input != null && typeof input === 'object' && !Array.isArray(input)) {
+			    const tabName = resolveTabValue(input.tab)
+			    const filterName = input.filter != null ? ('' + input.filter) : 'all'
+			    const pageNum = input.page != null ? (input.page as number) : 1
+			    const sizeNum = input.pageSize != null ? (input.pageSize as number) : 10
+			    let cityName = normalizeCityName(input.city)
+			    let cityCode = normalizeCityCode(input.cityCode != null ? input.cityCode : input.city_code)
+			    if (cityCode == '' && cityName != '') {
+			      cityCode = cityCodeFromName(cityName)
+			    }
+			    return {
+			      tab: tabName,
+			      filter: filterName,
+			      page: pageNum,
+			      pageSize: sizeNum,
+			      city: cityName,
+			      cityCode: cityCode
+			    }
+			  }
+			  const tabName = resolveTabValue(input)
+			  return {
+			    tab: tabName,
+			    filter: 'all',
+			    page: pageArg > 0 ? pageArg : 1,
+			    pageSize: 10,
+			    city: '',
+			    cityCode: ''
+			  }
+		}
 
-function filterDynamics(tab: string, filter: string, city: string): any[] {
-  const all = (mockDynamicList as any[]).filter(notBlockedDynamic)
-  for (let i = 0; i < all.length; i++) {
-    if (all[i].user != null) {
-      all[i].applyStatus = applyStatusForUser(all[i].user.id as number, all[i].applyStatus || 'none')
-    }
-  }
-
-  const me = meProfile()
-  const meSchool = schoolKey(me != null ? me.school : '')
-  const meHometown = hometownKey(me != null ? me.hometown : '')
-
-  let filtered: any[] = all
-  if (tab == 'follow') {
-    if (filter == 'following') {
-      filtered = all.filter((d: any) => {
-        return d.followed == true || (d.tabs != null && d.tabs.indexOf('follow') >= 0)
-      })
-    } else if (filter == 'likedUsers') {
-      filtered = all.filter((d: any) => {
-        return d.user != null && isLikedUser(d.user.id as number)
-      })
-    } else {
-      const map: any = {}
-      const out: any[] = []
-      for (let i = 0; i < all.length; i++) {
-        const d = all[i]
-        const followed = d.followed == true || (d.tabs != null && d.tabs.indexOf('follow') >= 0)
-        const likedU = d.user != null && isLikedUser(d.user.id as number)
-        if (!followed && !likedU) continue
-        const key = '' + d.id
-        if (map[key] == true) continue
-        map[key] = true
-        out.push(d)
-      }
-      filtered = out
-    }
-} else if (tab == 'city') {
-	    // 与 BE 对齐：只按发帖 location/city 名，不用 cityTag/tabs 放宽
-	    filtered = all.filter((d: any) => {
-	      const loc = d.location != null ? ('' + d.location).trim() : ''
-	      const dCity = d.city != null ? ('' + d.city).trim() : ''
-	      if (city == '') return false
-	      if (loc == city || dCity == city) return true
-	      if (loc.indexOf(city) == 0) return true
-	      return false
-	    })
-    if (filter == 'hot') {
-      filtered = filtered.slice().sort((a: any, b: any) => {
-        return ((b.likeCount as number) || 0) - ((a.likeCount as number) || 0)
-      })
-    } else if (filter == 'latest') {
-      filtered = filtered.slice().sort((a: any, b: any) => {
-        return ((b.time as number) || 0) - ((a.time as number) || 0)
-      })
-    }
-  } else {
-    filtered = all.filter((d: any) => {
-      return (
-        d.tab == 'discover' ||
-        d.tab == null ||
-        (d.tabs != null && d.tabs.indexOf('discover') >= 0)
-      )
-    })
-    if (filtered.length == 0) filtered = all
-
-    if (filter == 'mbti') {
-      filtered = filtered.filter((d: any) => d.user != null && d.user.mbti != null && ('' + d.user.mbti) != '')
-    } else if (filter == 'alumni') {
-      filtered = filtered.filter((d: any) => {
-        if (d.user == null) return false
-        const s = schoolKey(d.user.school)
-        return s != '' && meSchool != '' && s == meSchool
-      })
-    } else if (filter == 'hometown') {
-      filtered = filtered.filter((d: any) => {
-        if (d.user == null) return false
-        const h = hometownKey(d.user.hometown)
-        if (h == '' || meHometown == '') return false
-        return h == meHometown || h.indexOf(meHometown) >= 0 || meHometown.indexOf(h) >= 0
-      })
-    }
-  }
-
-  return filtered
-}
 
 // ─── Real API adapters (snake_case → 页面 camelCase) ────────
 
 function mapPost(row: any): any {
   if (row == null) return null
-  const images = row.images != null ? row.images : []
-  const video = row.video != null ? ('' + row.video) : ''
+  const rawImages = row.images != null ? row.images : []
+  const imageList = Array.isArray(rawImages) ? (rawImages as any[]) : []
+  const video = row.video != null ? resolveMediaUrl(row.video) : ''
   const hasVideo = video != ''
-  const photos: string[] = hasVideo ? [] : (images as string[])
+  const photos: string[] = []
+  if (!hasVideo) {
+    for (let i = 0; i < imageList.length; i++) {
+      const url = resolveMediaUrl(imageList[i])
+      if (url != '') photos.push(url)
+    }
+  }
   const videos: string[] = hasVideo ? [video] : []
   const created = row.created_at != null ? row.created_at : row.createdAt
   const city = row.residence != null ? ('' + row.residence) : (row.location != null ? ('' + row.location) : '')
@@ -580,7 +269,7 @@ function mapPost(row: any): any {
     id: row.id,
     user: {
       id: row.user_id != null ? row.user_id : row.userId,
-      avatar: row.avatar != null ? row.avatar : '',
+      avatar: row.avatar != null ? resolveMediaUrl(row.avatar) : '',
       name: row.nickname != null ? row.nickname : '用户',
       age: row.age != null ? row.age : 0,
       city: city,
@@ -610,19 +299,20 @@ function mapPost(row: any): any {
     declaration: row.declaration != null ? row.declaration : '',
     time: toMs(created),
     timeText: timeTextFrom(created),
-    likeCount: row.like_count != null ? row.like_count : 0,
-    commentCount: row.comment_count != null ? row.comment_count : 0,
-    collectCount: row.collect_count != null ? row.collect_count : 0,
-    liked: row.is_liked == true,
-    collected: row.is_collected == true,
-    followed: row.is_followed == true,
-    applyStatus: 'none',
-    tabs: ['discover'],
-    tab: 'discover',
-    comments: [],
-    visibility: row.visibility != null ? row.visibility : 0
-  }
-}
+likeCount: row.like_count != null ? row.like_count : 0,
+	    commentCount: row.comment_count != null ? row.comment_count : 0,
+	    collectCount: row.collect_count != null ? row.collect_count : 0,
+	    liked: row.is_liked == true,
+	    collected: row.is_collected == true,
+	    followed: row.is_followed == true,
+	    applyStatus: 'none',
+	    likeAvatars: row.like_avatars != null ? row.like_avatars : (row.likeAvatars != null ? row.likeAvatars : []),
+	    tabs: ['discover'],
+	    tab: 'discover',
+	    comments: [],
+	    visibility: row.visibility != null ? row.visibility : 0
+	  }
+	}
 
 function mapComment(row: any): any {
   if (row == null) return null
@@ -646,6 +336,7 @@ function mapComment(row: any): any {
     replyCount: row.reply_count != null ? row.reply_count : (row.replyCount != null ? row.replyCount : 0),
     isDeleted: row.is_deleted == true || row.isDeleted == true,
     canDelete: row.can_delete == true || row.canDelete == true,
+    isAuthor: row.is_author == true || row.isAuthor == true,
     replyToUserId: row.target_user_id != null ? row.target_user_id : (row.replyToUserId != null ? row.replyToUserId : 0),
     replyToUserName: typeof replyToUser === 'string' ? replyToUser : (replyToUser != null && replyToUser.nickname != null ? replyToUser.nickname : (replyToUser != null && replyToUser.name != null ? replyToUser.name : '')),
     replies: []
@@ -743,6 +434,31 @@ function mapBanner(row: any): any {
   }
 }
 
+/** 纸飞机是社区固定入口，不依赖后台话题 / 活动数据。 */
+export function getFixedCommunityBanner(): any {
+  return {
+    id: -1001,
+    type: 'plane',
+    title: '把想说的话扔出去',
+    subtitle: '每日 3 次认真表达',
+    description: '每日 3 次认真表达',
+    cta: '去放飞',
+    kicker: 'PAPER PLANE',
+    cover: '',
+    targetId: 0,
+    isFixed: true
+  }
+}
+
+export function ensureCommunityBanners(list: any[]): any[] {
+  const next: any[] = list != null ? list.slice() : []
+  for (let i = 0; i < next.length; i++) {
+    if (next[i] != null && next[i].type == 'plane') return next
+  }
+  next.push(getFixedCommunityBanner())
+  return next
+}
+
 function mapQuotaItem(row: any): any {
   if (row == null) {
     return { total: 0, used: 0, remain: 0, pointsAvailable: false, pointsCost: 0 }
@@ -823,11 +539,11 @@ function feedModeFromTab(tab: string, filter: string): any {
     if (filter == 'hot') sort = 'hot'
     return { mode: 'city', filter: null, sort: sort, mergeLiked: false }
   }
-  // discover
-  let f: any = null
-  if (filter == 'mbti' || filter == 'alumni' || filter == 'hometown') f = filter
-  return { mode: 'latest', filter: f, sort: 'latest', mergeLiked: false }
-}
+// discover
+	  let f: any = null
+	  if (filter == 'mbti' || filter == 'alumni') f = filter
+	  return { mode: 'latest', filter: f, sort: 'latest', mergeLiked: false }
+	}
 
 /** 真路径拉一页帖子并 map */
 async function fetchPostPage(params: any): Promise<any> {
@@ -854,30 +570,6 @@ async function fetchPostPage(params: any): Promise<any> {
 }
 
 /** following ∪ liked_users 去重后按 time 降序，再本地分页 */
-function mergeFollowAndLikedLists(a: any[], b: any[]): any[] {
-  const seen: any = {}
-  const out: any[] = []
-  for (let i = 0; i < a.length; i++) {
-    const id = a[i] != null ? a[i].id : 0
-    if (id > 0 && seen['' + id] != true) {
-      seen['' + id] = true
-      out.push(a[i])
-    }
-  }
-  for (let j = 0; j < b.length; j++) {
-    const id2 = b[j] != null ? b[j].id : 0
-    if (id2 > 0 && seen['' + id2] != true) {
-      seen['' + id2] = true
-      out.push(b[j])
-    }
-  }
-  out.sort((x: any, y: any) => {
-    const tx = x != null && x.time != null ? (x.time as number) : 0
-    const ty = y != null && y.time != null ? (y.time as number) : 0
-    return ty - tx
-  })
-  return out
-}
 
 // ─── 动态列表 / 详情 ────────────────────────────────────────
 
@@ -892,61 +584,7 @@ export async function getDynamicList(queryOrTab: any = 'discover', pageArg: numb
   const page = q.page > 0 ? q.page : 1
   const pageSize = q.pageSize > 0 ? q.pageSize : 10
 
-  if (USE_MOCK) {
-    const filtered = filterDynamics(q.tab, q.filter, q.city)
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    const slice = filtered.slice(start, end)
-    const hasMore = end < filtered.length
-    return request({
-      url: '/community/dynamic/list',
-      cloudFunctionName: 'community',
-      action: 'getDynamicList',
-      method: 'GET',
-      data: q,
-      mockData: {
-        list: cloneList(slice),
-        page,
-        pageSize,
-        hasMore,
-        total: filtered.length,
-        tab: q.tab,
-        filter: q.filter
-      }
-    })
-  }
-
   const mf = feedModeFromTab(q.tab, q.filter)
-
-// 遗留：mergeLiked 恒 false；并集已走 BE following_and_liked。勿再开启客户端假分页。
-	  if (mf.mergeLiked == true) {
-    const fetchSize = page * pageSize
-    const common: any = { page: 1, page_size: fetchSize > 50 ? 50 : fetchSize, sort: 'latest' }
-    const resA = await fetchPostPage({ mode: 'following', page: common.page, page_size: common.page_size, sort: common.sort })
-    if (!resA.success) return resA
-    const resB = await fetchPostPage({ mode: 'liked_users', page: common.page, page_size: common.page_size, sort: common.sort })
-    if (!resB.success) return resB
-    const merged = mergeFollowAndLikedLists(
-      resA.data != null && resA.data.list != null ? (resA.data.list as any[]) : [],
-      resB.data != null && resB.data.list != null ? (resB.data.list as any[]) : []
-    )
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    const slice = merged.slice(start, end)
-    const totalA = resA.data != null && resA.data.total != null ? (resA.data.total as number) : 0
-    const totalB = resB.data != null && resB.data.total != null ? (resB.data.total as number) : 0
-    const approxTotal = totalA + totalB
-    const hasMoreMerge = end < merged.length || page * pageSize < approxTotal
-    return okRes({
-      list: slice,
-      page: page,
-      pageSize: pageSize,
-      hasMore: hasMoreMerge,
-      total: merged.length > approxTotal ? merged.length : approxTotal,
-      tab: q.tab,
-      filter: q.filter
-    })
-  }
 
 const params: any = {
 		    mode: mf.mode,
@@ -990,30 +628,6 @@ const params: any = {
 }
 
 export async function getDynamicDetail(dynamicId: number) {
-  if (USE_MOCK) {
-    const item = findDynamic(dynamicId)
-    if (item != null && item.user != null && isBlocked(item.user.id as number)) {
-      return request({
-        url: '/community/dynamic/detail',
-        cloudFunctionName: 'community',
-        action: 'getDynamicDetail',
-        method: 'GET',
-        data: { dynamicId },
-        mockData: null
-      })
-    }
-    if (item != null && item.user != null) {
-      item.applyStatus = applyStatusForUser(item.user.id as number, item.applyStatus || 'none')
-    }
-    return request({
-      url: '/community/dynamic/detail',
-      cloudFunctionName: 'community',
-      action: 'getDynamicDetail',
-      method: 'GET',
-      data: { dynamicId },
-      mockData: item != null ? item : null
-    })
-  }
 
   const res = await request({
     url: '/community/posts/' + dynamicId,
@@ -1055,22 +669,6 @@ export async function getDynamicDetail(dynamicId: number) {
 // ─── 话题 ───────────────────────────────────────────────────
 
 export async function getTopics(sort: string = 'hot') {
-  if (USE_MOCK) {
-    let list = cloneList(mockTopics as any[])
-    if (sort == 'new' || sort == 'latest') {
-      list = sortTopicsByCreated(list)
-    } else {
-      list = sortTopicsByHeat(list)
-    }
-    return request({
-      url: '/community/topics',
-      cloudFunctionName: 'community',
-      action: 'getTopics',
-      method: 'GET',
-      data: { sort },
-      mockData: list
-    })
-  }
 
   const sortKey = sort == 'new' || sort == 'latest' ? 'latest' : 'hot'
   const res = await request({
@@ -1098,34 +696,6 @@ export async function getTopicList(query: any = null) {
   const pageSize = query != null && query.pageSize != null && (query.pageSize as number) > 0 ? (query.pageSize as number) : 10
   const excludeIds = query != null ? query.excludeIds : null
 
-  if (USE_MOCK) {
-    let list = cloneList(mockTopics as any[])
-    if (sort == 'new' || sort == 'latest') {
-      list = sortTopicsByCreated(list)
-    } else {
-      list = sortTopicsByHeat(list)
-    }
-    list = excludeTopicIds(list, excludeIds)
-    const total = list.length
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    const slice = list.slice(start, end)
-    const hasMore = end < total
-    return request({
-      url: '/community/topics/list',
-      cloudFunctionName: 'community',
-      action: 'getTopicList',
-      method: 'GET',
-      data: { sort, page, pageSize, excludeIds },
-      mockData: {
-        list: slice,
-        page,
-        pageSize,
-        total,
-        hasMore
-      }
-    })
-  }
 
   const sortKey = sort == 'new' || sort == 'latest' ? 'latest' : 'hot'
   const params: any = { sort: sortKey, page: page, page_size: pageSize }
@@ -1155,39 +725,6 @@ export async function getTopicList(query: any = null) {
 }
 
 export async function getTopicDetail(topicId: number, sort: string = 'hot', page: number = 1, pageSize: number = 20) {
-  if (USE_MOCK) {
-    const topic = findTopic(topicId)
-    let posts = (mockDynamicList as any[]).filter((d: any) => {
-      return d.topicId == topicId && notBlockedDynamic(d)
-    })
-    if (sort == 'latest' || sort == 'new') {
-      posts = posts.slice().sort((a: any, b: any) => {
-        return ((b.time as number) || 0) - ((a.time as number) || 0)
-      })
-    } else {
-      posts = posts.slice().sort((a: any, b: any) => {
-        return ((b.likeCount as number) || 0) - ((a.likeCount as number) || 0)
-      })
-    }
-    const start = (page - 1) * pageSize
-    const items = posts.slice(start, start + pageSize)
-    return request({
-      url: '/community/topic/detail',
-      cloudFunctionName: 'community',
-      action: 'getTopicDetail',
-      method: 'GET',
-      data: { topicId, sort, page, pageSize },
-      mockData: {
-        topic,
-        posts: cloneList(items),
-        sort,
-        page: page,
-        pageSize: pageSize,
-        total: posts.length,
-        hasMore: start + items.length < posts.length
-      }
-    })
-  }
 
   const sortKey = sort == 'latest' || sort == 'new' ? 'latest' : 'hot'
   const res = await request({
@@ -1218,24 +755,6 @@ export async function getTopicDetail(topicId: number, sort: string = 'hot', page
 }
 
 export async function joinTopic(topicId: number) {
-  if (USE_MOCK) {
-    const topic = findTopic(topicId)
-    if (topic == null) {
-      return failRes('话题不存在', 404)
-    }
-    markTopicParticipation(topic)
-    const participantCount = topic.participantCount != null
-      ? (topic.participantCount as number)
-      : 0
-    return request({
-      url: '/community/topic/join',
-      cloudFunctionName: 'community',
-      action: 'joinTopic',
-      method: 'POST',
-      data: { topicId },
-      mockData: { success: true, joined: true, topicId, participantCount }
-    })
-  }
 
   const res = await request({
     url: '/community/topics/' + topicId + '/join',
@@ -1254,24 +773,6 @@ export async function joinTopic(topicId: number) {
 }
 
 export async function leaveTopic(topicId: number) {
-  if (USE_MOCK) {
-    const topic = findTopic(topicId)
-    if (topic == null) {
-      return failRes('话题不存在', 404)
-    }
-    unmarkTopicParticipation(topic)
-    const participantCount = topic.participantCount != null
-      ? (topic.participantCount as number)
-      : 0
-    return request({
-      url: '/community/topic/leave',
-      cloudFunctionName: 'community',
-      action: 'leaveTopic',
-      method: 'DELETE',
-      data: { topicId },
-      mockData: { success: true, joined: false, topicId, participantCount }
-    })
-  }
 
   const res = await request({
     url: '/community/topics/' + topicId + '/leave',
@@ -1292,26 +793,6 @@ export async function leaveTopic(topicId: number) {
 // ─── 纸飞机 ─────────────────────────────────────────────────
 
 export async function getPaperPlanes() {
-  if (USE_MOCK) {
-    restorePaperPlaneState()
-    const list = (mockPaperPlanes as any[]).filter((p: any) => {
-      if (p.userId == null) return true
-      return !isBlocked(p.userId as number)
-    })
-    list.forEach((p: any) => {
-      p.timeText = timeTextFrom(p.time)
-      if (p.userId == mockMeProfile.id && (p.gender == null || p.gender == '我')) {
-        p.gender = mockMeProfile.gender == 1 ? '男' : '女'
-      }
-    })
-    return request({
-      url: '/community/paper-planes',
-      cloudFunctionName: 'community',
-      action: 'getPaperPlanes',
-      method: 'GET',
-      mockData: cloneList(list)
-    })
-  }
 
   const res = await request({
     url: '/paper-planes',
@@ -1329,21 +810,6 @@ export async function getPaperPlanes() {
 
 /** 我发出的纸飞机 */
 export async function getMyPaperPlanes() {
-  if (USE_MOCK) {
-    const meId = mockMeProfile != null && mockMeProfile.id != null ? (mockMeProfile.id as number) : 0
-    const list = (mockPaperPlanes as any[]).filter((p: any) => {
-      if (meId > 0 && p.userId != null) return p.userId == meId
-      // mock 样本若无 userId，保留全部作为「我的」演示
-      return p.userId == null || p.mine == true
-    })
-    return request({
-      url: '/community/paper-planes/mine',
-      cloudFunctionName: 'community',
-      action: 'getMyPaperPlanes',
-      method: 'GET',
-      mockData: cloneList(list)
-    })
-  }
 
   const res = await request({
     url: '/paper-planes/mine',
@@ -1399,57 +865,6 @@ export async function sendPaperPlane(contentOrPayload: any, anonymousArg: boolea
     return failRes('语音时长需在 1-60 秒', 'INVALID_VOICE')
   }
 
-  if (USE_MOCK) {
-    restorePaperPlaneState()
-    const quotas = mockCommunityQuotas as any
-    if (quotas.paperPlaneDaily.remain <= 0) {
-      return request({
-        url: '/community/paper-planes/send',
-        cloudFunctionName: 'community',
-        action: 'sendPaperPlane',
-        method: 'POST',
-        data: { content, anonymous, scope },
-        mockData: {
-          success: false,
-          code: 'QUOTA_EXCEEDED',
-          remain: 0,
-          message: '今日免费纸飞机次数已用完，可用积分加次'
-        }
-      })
-    }
-    quotas.paperPlaneDaily.used += 1
-    quotas.paperPlaneDaily.remain -= 1
-    const planeImages = hasImageMediaIds ? resolveMockMediaUrls(imageMediaIds) : []
-    const plane = {
-      id: Date.now(),
-      content,
-      anonymous,
-      scope,
-      gender: mockMeProfile.gender == 1 ? '男' : '女',
-      age: mockMeProfile.age,
-      city: mockMeProfile.city != null ? mockMeProfile.city : mockCurrentCity.name,
-      userId: mockMeProfile.id,
-      time: Date.now(),
-      timeText: '刚刚',
-      replyCount: 0,
-      replied: false,
-      voiceUrl: voiceUrl,
-      voiceDurationSec: voiceDurationSec,
-      conversationId: 0,
-      images: planeImages,
-      photos: planeImages
-    }
-    ;(mockPaperPlanes as any[]).unshift(plane)
-    savePaperPlaneState()
-    return request({
-      url: '/community/paper-planes/send',
-      cloudFunctionName: 'community',
-      action: 'sendPaperPlane',
-      method: 'POST',
-      data: { content, anonymous, scope },
-      mockData: { success: true, plane, quotas: quotas.paperPlaneDaily }
-    })
-  }
 
   const key = idempotencyKey('paper-plane', suppliedCreateKey)
   const planeBody: any = {
@@ -1503,63 +918,6 @@ export async function replyPaperPlane(planeId: number, content: string, supplied
     return failRes('回复内容不能超过 120 字', 'CONTENT_TOO_LONG')
   }
 
-  if (USE_MOCK) {
-    restorePaperPlaneState()
-    const list = mockPaperPlanes as any[]
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id == planeId) {
-        if (list[i].replied == true) {
-          return request({
-            url: '/community/paper-planes/reply',
-            cloudFunctionName: 'community',
-            action: 'replyPaperPlane',
-            method: 'POST',
-            data: { planeId, content: replyContent },
-            mockData: {
-              success: false,
-              code: 'ALREADY_REPLIED',
-              message: '这架纸飞机已经回复过了'
-            }
-          })
-        }
-        list[i].replied = true
-        list[i].replyCount = (list[i].replyCount as number) + 1
-        if (list[i].conversationId == null || list[i].conversationId == 0) {
-          list[i].conversationId = 900000 + planeId
-        }
-        ensureMockPlaneConversation(list[i].conversationId as number, planeId, replyContent)
-        if (list[i].userId != mockMeProfile.id) {
-          upsertPaperPlaneConversation(list[i], replyContent, list[i].conversationId as number)
-        }
-        savePaperPlaneState()
-        return request({
-          url: '/community/paper-planes/reply',
-          cloudFunctionName: 'community',
-          action: 'replyPaperPlane',
-          method: 'POST',
-          data: { planeId, content: replyContent },
-          mockData: {
-            success: true,
-            replyCount: list[i].replyCount,
-            conversationId: list[i].conversationId,
-            conversation_id: list[i].conversationId
-          }
-        })
-      }
-    }
-    return request({
-      url: '/community/paper-planes/reply',
-      cloudFunctionName: 'community',
-      action: 'replyPaperPlane',
-      method: 'POST',
-      data: { planeId, content: replyContent },
-      mockData: {
-        success: false,
-        code: 'NOT_FOUND',
-        message: '这架纸飞机已不存在'
-      }
-    })
-  }
 
   const key = idempotencyKey('paper-plane-reply', suppliedCreateKey)
   const res = await request({
@@ -1587,22 +945,6 @@ export async function replyPaperPlane(planeId: number, content: string, supplied
 // ─── 活动 ───────────────────────────────────────────────────
 
 export async function getActivities(filter: string = 'all') {
-  if (USE_MOCK) {
-    let list = cloneList(mockActivities as any[])
-    if (filter == 'recruiting') {
-      list = list.filter((a: any) => a.status == 'recruiting')
-    } else if (filter == 'mine') {
-      list = list.filter((a: any) => a.myStatus == 'joined' || a.myStatus == 'pending')
-    }
-    return request({
-      url: '/community/activities',
-      cloudFunctionName: 'community',
-      action: 'getActivities',
-      method: 'GET',
-      data: { filter },
-      mockData: list
-    })
-  }
 
   const f = filter == 'recruiting' || filter == 'mine' ? filter : 'all'
   const res = await request({
@@ -1620,17 +962,6 @@ export async function getActivities(filter: string = 'all') {
 }
 
 export async function getActivityDetail(activityId: number) {
-  if (USE_MOCK) {
-    const item = findActivity(activityId)
-    return request({
-      url: '/community/activity/detail',
-      cloudFunctionName: 'community',
-      action: 'getActivityDetail',
-      method: 'GET',
-      data: { activityId },
-      mockData: item
-    })
-  }
 
   const res = await request({
     url: '/community/activities/' + activityId,
@@ -1641,38 +972,6 @@ export async function getActivityDetail(activityId: number) {
 }
 
 export async function signupActivity(activityId: number) {
-  if (USE_MOCK) {
-    const item = findActivity(activityId)
-    if (item != null) {
-      if (item.myStatus == 'none' || item.myStatus == null) {
-        item.myStatus = 'pending'
-        item.participantCount = (item.participantCount as number) + 1
-      }
-    }
-    const notes = mockCommunityNotifications as any[]
-    notes.unshift({
-      id: Date.now(),
-      type: 'activity',
-      title: '活动报名已提交',
-      content: item != null ? item.title : '报名审核中',
-      timeText: '刚刚',
-      read: false,
-      targetType: 'activity',
-      targetId: activityId
-    })
-    return request({
-      url: '/community/activity/signup',
-      cloudFunctionName: 'community',
-      action: 'signupActivity',
-      method: 'POST',
-      data: { activityId },
-      mockData: {
-        success: true,
-        myStatus: item != null ? item.myStatus : 'pending',
-        message: '报名已提交，审核通过后告知集合信息'
-      }
-    })
-  }
 
   const res = await request({
     url: '/community/activities/' + activityId + '/signup',
@@ -1689,26 +988,6 @@ export async function signupActivity(activityId: number) {
 }
 
 export async function getMyActivities(filter: string = 'all') {
-  if (USE_MOCK) {
-    let list = (mockActivities as any[]).filter((a: any) => {
-      return a.myStatus == 'joined' || a.myStatus == 'pending'
-    })
-    if (filter == 'pending') {
-      list = list.filter((a: any) => a.myStatus == 'pending')
-    } else if (filter == 'joined') {
-      list = list.filter((a: any) => a.myStatus == 'joined')
-    } else if (filter == 'ended') {
-      list = list.filter((a: any) => a.status == 'ended')
-    }
-    return request({
-      url: '/community/activities/mine',
-      cloudFunctionName: 'community',
-      action: 'getMyActivities',
-      method: 'GET',
-      data: { filter },
-      mockData: cloneList(list)
-    })
-  }
 
   const f =
     filter == 'pending' || filter == 'joined' || filter == 'ended' ? filter : 'all'
@@ -1729,15 +1008,6 @@ export async function getMyActivities(filter: string = 'all') {
 // ─── Banner / 通知 / 额度 ───────────────────────────────────
 
 export async function getCommunityBanners() {
-  if (USE_MOCK) {
-    return request({
-      url: '/community/banners',
-      cloudFunctionName: 'community',
-      action: 'getBanners',
-      method: 'GET',
-      mockData: cloneList(mockCommunityBanners as any[])
-    })
-  }
 
   const res = await request({
     url: '/community/banners',
@@ -1750,19 +1020,10 @@ export async function getCommunityBanners() {
   for (let i = 0; i < arr.length; i++) {
     list.push(mapBanner(arr[i]))
   }
-  return okRes(list)
+  return okRes(ensureCommunityBanners(list))
 }
 
 export async function getCommunityNotifications() {
-  if (USE_MOCK) {
-    return request({
-      url: '/community/notifications',
-      cloudFunctionName: 'community',
-      action: 'getNotifications',
-      method: 'GET',
-      mockData: cloneList(mockCommunityNotifications as any[])
-    })
-  }
 
   const res = await request({
     url: '/notifications',
@@ -1779,20 +1040,6 @@ export async function getCommunityNotifications() {
 }
 
 export async function getUnreadNotificationCount() {
-  if (USE_MOCK) {
-    const list = mockCommunityNotifications as any[]
-    let count = 0
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].read != true) count += 1
-    }
-    return request({
-      url: '/community/notifications/unread',
-      cloudFunctionName: 'community',
-      action: 'getUnreadCount',
-      method: 'GET',
-      mockData: { count }
-    })
-  }
 
   const res = await request({
     url: '/notifications',
@@ -1805,23 +1052,6 @@ export async function getUnreadNotificationCount() {
 }
 
 export async function markNotificationRead(notificationId: number) {
-  if (USE_MOCK) {
-    const list = mockCommunityNotifications as any[]
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id == notificationId) {
-        list[i].read = true
-        break
-      }
-    }
-    return request({
-      url: '/community/notifications/read',
-      cloudFunctionName: 'community',
-      action: 'markRead',
-      method: 'POST',
-      data: { notificationId },
-      mockData: { success: true }
-    })
-  }
 
   const res = await request({
     url: '/notifications/' + notificationId + '/read',
@@ -1833,19 +1063,6 @@ export async function markNotificationRead(notificationId: number) {
 }
 
 export async function markAllNotificationsRead() {
-  if (USE_MOCK) {
-    const list = mockCommunityNotifications as any[]
-    for (let i = 0; i < list.length; i++) {
-      list[i].read = true
-    }
-    return request({
-      url: '/community/notifications/read-all',
-      cloudFunctionName: 'community',
-      action: 'markAllRead',
-      method: 'POST',
-      mockData: { success: true }
-    })
-  }
 
   const res = await request({
     url: '/notifications/read-all',
@@ -1857,16 +1074,6 @@ export async function markAllNotificationsRead() {
 }
 
 export async function getCommunityQuotas() {
-  if (USE_MOCK) {
-    restorePaperPlaneState()
-    return request({
-      url: '/community/quotas',
-      cloudFunctionName: 'community',
-      action: 'getQuotas',
-      method: 'GET',
-      mockData: mockCommunityQuotas
-    })
-  }
 
   const res = await request({
     url: '/community/quotas',
@@ -1876,46 +1083,35 @@ export async function getCommunityQuotas() {
   return okRes(mapQuotas(res.data))
 }
 
-/** 购买纸飞机次数。扔飞机次数会直接补充今日可投额度，捡飞机次数单独累计。 */
+/** 购买纸飞机次数。通过积分兑换系统实现。 */
 export async function purchasePaperPlaneChance(type: string) {
-  if (PAPER_PLANE_CHANCE_USE_MOCK != true) {
-    return request({
-      url: '/community/paper-planes/chances',
-      method: 'POST',
-      data: { type }
-    })
-  }
-
-  restorePaperPlaneState()
   if (type != 'throw' && type != 'catch') {
     return failRes('无效的纸飞机次数类型', 'INVALID_TYPE')
   }
-
-  if (mockMeProfile.points < PAPER_PLANE_CHANCE_COST) {
-    return failRes('积分不足，无法获取纸飞机次数', 'INSUFFICIENT_POINTS', {
-      points: mockMeProfile.points,
-      cost: PAPER_PLANE_CHANCE_COST
-    })
+  const productCode = type == 'throw' ? 'paper_plane_throw_chance' : 'paper_plane_catch_chance'
+  const key = idempotencyKey('paper-plane-redeem', '')
+  const res = await request({
+    url: '/users/me/points/redeem',
+    method: 'POST',
+    data: { product_code: productCode },
+    headers: { 'Idempotency-Key': key }
+  })
+  if (!res.success) {
+    return failRes(res.message != null ? res.message : '积分不足，无法获取纸飞机次数', res.code)
   }
-
-  const daily = (mockCommunityQuotas as any).paperPlaneDaily
-  mockMeProfile.points -= PAPER_PLANE_CHANCE_COST
-  if (type == 'throw') {
-    daily.purchasedThrow = daily.purchasedThrow != null ? Number(daily.purchasedThrow) + 1 : 1
-    daily.total = Number(daily.total) + 1
-    daily.remain = Number(daily.remain) + 1
-  } else {
-    daily.purchasedCatch = daily.purchasedCatch != null ? Number(daily.purchasedCatch) + 1 : 1
+  // 兑换成功后刷新配额
+  let quotaItem: any = null
+  const qRes = await request({ url: '/community/quotas', method: 'GET' })
+  if (qRes.success && qRes.data != null) {
+    const q = mapQuotas(qRes.data)
+    if (q != null) quotaItem = q.paperPlaneDaily
   }
-  syncPaperPlanePoints()
-  savePaperPlaneState()
-
   return okRes({
     success: true,
     type: type,
-    points: mockMeProfile.points,
-    cost: PAPER_PLANE_CHANCE_COST,
-    quotas: daily
+    points: res.data != null ? res.data.balance : 0,
+    cost: res.data != null ? res.data.points_cost : PAPER_PLANE_CHANCE_COST,
+    quotas: quotaItem
   })
 }
 
@@ -1991,114 +1187,6 @@ export async function publishDynamic(
     imageMediaIds = imageMediaIds.slice(0, 9)
   }
 
-  if (USE_MOCK) {
-    let topicTitle = ''
-    let topic: any = null
-    if (topicId > 0) {
-      topic = findTopic(topicId)
-      if (topic == null) {
-        return failRes('话题不存在', 404)
-      }
-      if (topic.title != null) {
-        topicTitle = '' + topic.title
-      }
-    }
-    // media ids 优先：从 mock 上传表解析 url，避免发布后 photos/videos 为空
-    let finalPhotos: string[] = hasPhotos ? (photos != null ? photos : []) : []
-    let finalVideos: string[] = hasVideos ? (videos != null ? videos : []) : []
-    let mediaType = hasVideos ? 'video' : (hasPhotos ? 'image' : 'none')
-    if (hasVideoMediaId) {
-      const vEntry = resolveMockMediaEntry(videoMediaId)
-      if (vEntry != null && vEntry.url != null && ('' + vEntry.url) != '') {
-        finalVideos = ['' + vEntry.url]
-        finalPhotos = []
-        mediaType = 'video'
-      }
-    } else if (hasImageMediaIds) {
-      const resolved = resolveMockMediaUrls(imageMediaIds)
-      if (resolved.length > 0) {
-        finalPhotos = resolved
-        finalVideos = []
-        mediaType = 'image'
-      }
-    }
-    if (mediaType == 'video') {
-      finalPhotos = []
-    } else if (mediaType == 'image') {
-      finalVideos = []
-    }
-    const dynamicId = Date.now()
-    const cityName = location != '' ? ('' + location).split('·')[0].trim() : mockCurrentCity.name
-    const item = {
-      id: dynamicId,
-      user: {
-        id: 9001,
-        avatar: '/static/portraits/profile-man-light.jpg',
-        name: '顾言澄',
-        age: 29,
-        gender: '男',
-        birthYear: 1997,
-        ipLocation: '江苏',
-        income: '',
-        city: mockCurrentCity.name,
-        height: '178cm',
-        job: '产品经理',
-        education: '本科',
-        verified: true,
-        realNameStatus: 'passed',
-        educationStatus: 'missing'
-      },
-      content: content,
-      photos: finalPhotos,
-      media: finalPhotos,
-      videos: finalVideos,
-      mediaType: mediaType,
-      location: location,
-      cityTag: cityName == mockCurrentCity.name,
-      city: cityName,
-      topicId: topicId > 0 ? topicId : null,
-      topicTitle: topicTitle,
-      relationTags: [],
-      tags: declaration != '' ? [declaration] : [],
-      declaration: declaration,
-      time: Date.now(),
-      timeText: '刚刚',
-      likeCount: 0,
-      commentCount: 0,
-      collectCount: 0,
-      liked: false,
-      collected: false,
-      followed: false,
-      applyStatus: 'none',
-      tabs: ['discover', cityName == mockCurrentCity.name ? 'city' : 'discover'],
-      tab: 'discover',
-      comments: [],
-      visibility: visibility
-    }
-    ;(mockDynamicList as any[]).unshift(item)
-    if (topicId > 0 && topic != null) {
-      topic.postCount = ((topic.postCount as number) || 0) + 1
-      markTopicParticipation(topic)
-    }
-    return request({
-      url: '/community/dynamic/publish',
-      cloudFunctionName: 'community',
-      action: 'publishDynamic',
-      method: 'POST',
-      data: {
-        content: content,
-        photos: finalPhotos,
-        videos: finalVideos,
-        mediaType: mediaType,
-        topicTitle: topicTitle,
-        location: location,
-        topicId: topicId,
-        visibility: visibility,
-        declaration: declaration
-      },
-      mockData: { success: true, dynamicId: dynamicId, dynamic: item }
-    })
-  }
 
   const body: any = {
     content: content,
@@ -2154,25 +1242,6 @@ export async function publishDynamic(
 }
 
 export async function likeDynamic(dynamicId: number) {
-  if (USE_MOCK) {
-    const item = findDynamic(dynamicId)
-    if (item != null) {
-      item.liked = !item.liked
-      item.likeCount = (item.likeCount as number) + (item.liked ? 1 : -1)
-    }
-    return request({
-      url: '/community/dynamic/like',
-      cloudFunctionName: 'community',
-      action: 'likeDynamic',
-      method: 'POST',
-      data: { dynamicId },
-      mockData: {
-        success: true,
-        liked: item != null ? item.liked : true,
-        likeCount: item != null ? item.likeCount : 0
-      }
-    })
-  }
 
   // 先取当前状态再 toggle；详情预检失败不默认 PUT
   const detail = await request({
@@ -2199,32 +1268,6 @@ export async function likeDynamic(dynamicId: number) {
 }
 
 export async function likeComment(commentId: number, currentlyLiked: boolean = false) {
-  if (USE_MOCK) {
-    const all = mockDynamics as any[]
-    let liked = !currentlyLiked
-    let likeCount = currentlyLiked ? 0 : 1
-    for (let i = 0; i < all.length; i++) {
-      const comments = all[i].comments as any[]
-      if (comments == null) continue
-      for (let j = 0; j < comments.length; j++) {
-        if (comments[j].id == commentId) {
-          comments[j].liked = !comments[j].liked
-          comments[j].likeCount = (comments[j].likeCount as number) + (comments[j].liked ? 1 : -1)
-          if ((comments[j].likeCount as number) < 0) comments[j].likeCount = 0
-          liked = comments[j].liked == true
-          likeCount = comments[j].likeCount as number
-        }
-      }
-    }
-    return request({
-      url: '/community/comments/' + commentId + '/like',
-      cloudFunctionName: 'community',
-      action: 'likeComment',
-      method: currentlyLiked ? 'DELETE' : 'PUT',
-      data: { commentId },
-      mockData: { success: true, liked: liked, likeCount: likeCount, is_liked: liked, like_count: likeCount }
-    })
-  }
 
   const method = currentlyLiked ? 'DELETE' : 'PUT'
   const res = await request({
@@ -2243,25 +1286,6 @@ export async function likeComment(commentId: number, currentlyLiked: boolean = f
 }
 
 export async function collectDynamic(dynamicId: number) {
-  if (USE_MOCK) {
-    const item = findDynamic(dynamicId)
-    if (item != null) {
-      item.collected = !item.collected
-      item.collectCount = (item.collectCount as number) + (item.collected ? 1 : -1)
-    }
-    return request({
-      url: '/community/dynamic/collect',
-      cloudFunctionName: 'community',
-      action: 'collectDynamic',
-      method: 'POST',
-      data: { dynamicId },
-      mockData: {
-        success: true,
-        collected: item != null ? item.collected : true,
-        collectCount: item != null ? item.collectCount : 0
-      }
-    })
-  }
 
   const detail = await request({
     url: '/community/posts/' + dynamicId,
@@ -2287,25 +1311,6 @@ export async function collectDynamic(dynamicId: number) {
 }
 
 export async function followUserFromCommunity(userId: number) {
-  if (USE_MOCK) {
-    const all = mockDynamicList as any[]
-    for (let i = 0; i < all.length; i++) {
-      if (all[i].user != null && all[i].user.id == userId) {
-        all[i].followed = true
-        if (all[i].tabs != null && all[i].tabs.indexOf('follow') < 0) {
-          ;(all[i].tabs as any[]).push('follow')
-        }
-      }
-    }
-    return request({
-      url: '/community/follow',
-      cloudFunctionName: 'community',
-      action: 'followUser',
-      method: 'POST',
-      data: { userId },
-      mockData: { success: true, followed: true }
-    })
-  }
 
   const res = await request({
     url: '/users/' + userId + '/follow',
@@ -2318,22 +1323,6 @@ export async function followUserFromCommunity(userId: number) {
 
 /** 取消关注 */
 export async function unfollowUserFromCommunity(userId: number) {
-  if (USE_MOCK) {
-    const all = mockDynamicList as any[]
-    for (let i = 0; i < all.length; i++) {
-      if (all[i].user != null && all[i].user.id == userId) {
-        all[i].followed = false
-      }
-    }
-    return request({
-      url: '/community/unfollow',
-      cloudFunctionName: 'community',
-      action: 'unfollowUser',
-      method: 'POST',
-      data: { userId },
-      mockData: { success: true, followed: false }
-    })
-  }
 
   const res = await request({
     url: '/users/' + userId + '/follow',
@@ -2346,27 +1335,6 @@ export async function unfollowUserFromCommunity(userId: number) {
 
 /** 删除自己的动态 */
 export async function deleteDynamic(dynamicId: number) {
-  if (USE_MOCK) {
-    const all = mockDynamicList as any[]
-    let idx = -1
-    for (let i = 0; i < all.length; i++) {
-      if (all[i].id == dynamicId) {
-        idx = i
-        break
-      }
-    }
-    if (idx >= 0) {
-      all.splice(idx, 1)
-    }
-    return request({
-      url: '/community/dynamic/delete',
-      cloudFunctionName: 'community',
-      action: 'deleteDynamic',
-      method: 'POST',
-      data: { dynamicId },
-      mockData: { success: true, dynamicId: dynamicId }
-    })
-  }
 
   const res = await request({
     url: '/community/posts/' + dynamicId,
@@ -2379,47 +1347,6 @@ export async function deleteDynamic(dynamicId: number) {
 
 /** 删除自己的评论 */
 export async function deleteComment(commentId: number, dynamicId: number = 0) {
-  if (USE_MOCK) {
-    if (dynamicId > 0) {
-      const item = findDynamic(dynamicId)
-      if (item != null && item.comments != null) {
-        const comments = item.comments as any[]
-        let cidx = -1
-        for (let i = 0; i < comments.length; i++) {
-          if (comments[i].id == commentId) {
-            cidx = i
-            break
-          }
-        }
-        if (cidx >= 0) {
-          comments.splice(cidx, 1)
-          item.commentCount = Math.max(0, (item.commentCount as number) - 1)
-        }
-      }
-    } else {
-      const all = mockDynamicList as any[]
-      for (let i = 0; i < all.length; i++) {
-        const item = all[i]
-        if (item.comments == null) continue
-        const comments = item.comments as any[]
-        for (let j = 0; j < comments.length; j++) {
-          if (comments[j].id == commentId) {
-            comments.splice(j, 1)
-            item.commentCount = Math.max(0, (item.commentCount as number) - 1)
-            break
-          }
-        }
-      }
-    }
-    return request({
-      url: '/community/comment/delete',
-      cloudFunctionName: 'community',
-      action: 'deleteComment',
-      method: 'POST',
-      data: { commentId, dynamicId },
-      mockData: { success: true, commentId: commentId }
-    })
-  }
 
   const res = await request({
     url: '/community/comments/' + commentId,
@@ -2465,50 +1392,6 @@ export async function commentDynamic(
     return failRes('请输入评论内容', 'EMPTY_CONTENT')
   }
 
-  if (USE_MOCK) {
-    const item = findDynamic(dynamicId)
-    const comment = {
-      id: Date.now(),
-      user: {
-        id: 9001,
-        name: '顾言澄',
-        avatar: '/static/portraits/profile-man-light.jpg',
-        realNameStatus: 'passed'
-      },
-      content,
-      timeText: '刚刚',
-      likeCount: 0,
-      liked: false,
-      replyTo: replyToCommentId > 0 ? replyToCommentId : null,
-      replyToCommentId: replyToCommentId > 0 ? replyToCommentId : null
-    }
-    if (item != null) {
-      if (item.comments == null) item.comments = []
-      ;(item.comments as any[]).push(comment)
-      item.commentCount = (item.commentCount as number) + 1
-    }
-
-    const notes = mockCommunityNotifications as any[]
-    notes.unshift({
-      id: Date.now() + 1,
-      type: 'comment',
-      title: '有人评论了动态',
-      content: content.length > 24 ? content.substring(0, 24) + '…' : content,
-      timeText: '刚刚',
-      read: false,
-      targetType: 'post',
-      targetId: dynamicId
-    })
-
-    return request({
-      url: '/community/dynamic/comment',
-      cloudFunctionName: 'community',
-      action: 'commentDynamic',
-      method: 'POST',
-      data: { dynamicId, content, replyToCommentId },
-      mockData: { success: true, comment }
-    })
-  }
 
   const body: any = { content: content }
   if (replyToCommentId > 0) {
@@ -2537,19 +1420,6 @@ export async function reportContent(targetType: string, targetId: number, reason
     normalizedType = 'paper_plane'
   }
 
-  if (USE_MOCK) {
-    return request({
-      url: '/community/report',
-      cloudFunctionName: 'community',
-      action: 'reportContent',
-      method: 'POST',
-      data: { targetType: normalizedType, targetId, reasonId, detail },
-      mockData: {
-        success: true,
-        message: '举报已提交，我们会尽快处理'
-      }
-    })
-  }
 
   const reason = reasonId != null && reasonId != '' ? reasonId : 'other'
   const description = detail != null ? detail : ''
@@ -2595,30 +1465,6 @@ export async function reportContent(targetType: string, targetId: number, reason
 }
 
 export async function blockUser(userId: number) {
-  if (USE_MOCK) {
-    const ids = mockBlockedUserIds as number[]
-    let exists = false
-    for (let i = 0; i < ids.length; i++) {
-      if (ids[i] == userId) {
-        exists = true
-        break
-      }
-    }
-    if (!exists) {
-      ids.push(userId)
-    }
-    return request({
-      url: '/community/block',
-      cloudFunctionName: 'community',
-      action: 'blockUser',
-      method: 'POST',
-      data: { userId },
-      mockData: {
-        success: true,
-        message: '已屏蔽该用户，其内容将不再展示'
-      }
-    })
-  }
 
   const res = await request({
     url: '/security/blocks/' + userId,
@@ -2633,15 +1479,6 @@ export async function blockUser(userId: number) {
 }
 
 export async function getReportReasons() {
-  if (USE_MOCK) {
-    return request({
-      url: '/community/report/reasons',
-      cloudFunctionName: 'community',
-      action: 'getReportReasons',
-      method: 'GET',
-      mockData: mockReportReasons
-    })
-  }
 
   const res = await request({
     url: '/community/report-reasons',
@@ -2653,15 +1490,6 @@ export async function getReportReasons() {
 }
 
 export async function getCurrentCity() {
-  if (USE_MOCK) {
-    return request({
-      url: '/community/city',
-      cloudFunctionName: 'community',
-      action: 'getCurrentCity',
-      method: 'GET',
-      mockData: mockCurrentCity
-    })
-  }
 
   const res = await request({
     url: '/community/city',
@@ -2676,8 +1504,6 @@ export async function getCurrentCity() {
 }
 
 /** Mock 同城偏好上次变更时间（ms）；对齐 BE 一周限改 */
-		let mockCommunityCityUpdatedAt: number = 0
-		const MOCK_CITY_COOLDOWN_MS: number = 7 * 24 * 60 * 60 * 1000
 
 		/**
 		 * 设置同城城市。code 可选；缺省时按 COMMUNITY_CITY_OPTIONS / 名称推断 6 位市码。
@@ -2688,37 +1514,6 @@ export async function getCurrentCity() {
 		  let cityCode = normalizeCityCode(code)
 		  if (cityCode == '' && cityName != '') {
 		    cityCode = cityCodeFromName(cityName)
-		  }
-		  if (USE_MOCK) {
-		    if (cityName == '') {
-		      return failRes('城市名称不能为空', 422)
-		    }
-		    const prevName = mockCurrentCity.name != null ? normalizeCityName(mockCurrentCity.name) : ''
-		    const prevCode = mockCurrentCity.code != null ? normalizeCityCode(mockCurrentCity.code) : ''
-		    const same =
-		      prevName == cityName &&
-		      (prevCode == cityCode || (prevCode == '' && cityCode == '') || prevCode == cityCode)
-		    if (!same && mockCommunityCityUpdatedAt > 0) {
-		      const elapsed = Date.now() - mockCommunityCityUpdatedAt
-		      if (elapsed < MOCK_CITY_COOLDOWN_MS) {
-		        return failRes('同城城市一周内仅可更换一次', 429)
-		      }
-		    }
-		    if (!same || prevName == '') {
-		      mockCurrentCity.name = cityName
-		      if (cityCode != '') {
-		        mockCurrentCity.code = cityCode
-		      }
-		      mockCommunityCityUpdatedAt = Date.now()
-		    }
-		    return request({
-		      url: '/community/city/set',
-		      cloudFunctionName: 'community',
-		      action: 'setCurrentCity',
-		      method: 'POST',
-		      data: { name: cityName, code: cityCode },
-		      mockData: { success: true, city: { name: mockCurrentCity.name, code: mockCurrentCity.code } }
-		    })
 		  }
 
 		  if (cityName == '') {
@@ -2747,99 +1542,11 @@ export async function getCurrentCity() {
 
 // ─── 媒体上传 / 纸飞机匿名会话 ───────────────────────────────
 
-const mockPlaneConversations: any[] = []
-const mockPlaneMessages: any = {}
 
-function ensureMockPlaneConversation(conversationId: number, planeId: number, firstContent: string) {
-  let found = false
-  for (let i = 0; i < mockPlaneConversations.length; i++) {
-    if (mockPlaneConversations[i].id == conversationId) {
-      found = true
-      mockPlaneConversations[i].lastMessage = firstContent
-      mockPlaneConversations[i].unreadCount = 1
-    }
-  }
-  if (!found) {
-    mockPlaneConversations.unshift({
-      id: conversationId,
-      planeId: planeId,
-      status: 1,
-      lastMessage: firstContent,
-      unreadCount: 1,
-      peerLabel: '纸飞机主人',
-      planeContent: ''
-    })
-  }
-  const key = '' + conversationId
-  if (mockPlaneMessages[key] == null) mockPlaneMessages[key] = []
-  ;(mockPlaneMessages[key] as any[]).push({
-    id: Date.now(),
-    conversationId: conversationId,
-    fromUserId: mockMeProfile.id,
-    content: firstContent,
-    type: 1,
-    mediaUrl: '',
-    voiceDurationSec: 0,
-    mine: true,
-    timeText: '刚刚'
-  })
-}
 
-function paperPlaneTimeText(rawTime: any): string {
-  const time = rawTime != null ? Number(rawTime) : 0
-  if (time <= 0) return ''
-  const diff = Math.max(0, Date.now() - time)
-  const minute = Math.floor(diff / 60000)
-  if (minute < 1) return '刚刚'
-  if (minute < 60) return minute + ' 分钟前'
-  const hour = Math.floor(minute / 60)
-  if (hour < 24) return hour + ' 小时前'
-  const day = Math.floor(hour / 24)
-  if (day < 7) return day + ' 天前'
-  return '更早'
-}
 
-function getPaperPlanePeerName(plane: any): string {
-  if (plane != null && plane.name != null && ('' + plane.name).length > 0) {
-    return '' + plane.name
-  }
-  if (plane != null && plane.gender == '男') return '一位认真生活的男生'
-  return '一位认真生活的女生'
-}
 
 /** 回复纸飞机后，同步到「我的纸飞机」消息列表（PR 前端会话卡）。 */
-function upsertPaperPlaneConversation(plane: any, content: string, conversationId: number = 0) {
-  const list = mockPaperPlaneConversations as any[]
-  let conversation: any = null
-  for (let i = 0; i < list.length; i++) {
-    if (list[i].planeId == plane.id) {
-      conversation = list[i]
-      break
-    }
-  }
-
-  if (conversation == null) {
-    conversation = {
-      id: conversationId > 0 ? conversationId : Date.now(),
-      planeId: plane.id,
-      userId: plane.userId != null ? plane.userId : 0,
-      name: getPaperPlanePeerName(plane),
-      avatar: '/static/portraits/profile-woman-alt.jpg',
-      planeType: plane.type == 'voice' || plane.voiceUrl != null ? '语音纸飞机' : '文字纸飞机',
-      lastMessage: '',
-      time: Date.now(),
-      timeText: '刚刚',
-      unreadCount: 0
-    }
-    list.unshift(conversation)
-  }
-
-  if (conversationId > 0) conversation.id = conversationId
-  conversation.lastMessage = '我：' + content
-  conversation.time = Date.now()
-  conversation.timeText = '刚刚'
-  conversation.unreadCount = 0
-}
 
 function mapPlaneConversation(row: any): any {
   if (row == null) return null
@@ -2910,26 +1617,6 @@ export async function uploadCommunityMedia(filePath: string, purpose: string) {
     return failRes('请选择要上传的文件', 'EMPTY_FILE')
   }
   const purposeVal = purpose != null ? ('' + purpose) : 'post'
-  if (USE_MOCK) {
-    const id = Date.now() + Math.floor(Math.random() * 1000)
-    const mediaType = guessMockMediaType(filePath)
-    const url = '' + filePath
-    mockCommunityMediaById['' + id] = {
-      url: url,
-      mediaType: mediaType,
-      purpose: purposeVal
-    }
-    return okRes({
-      id: id,
-      purpose: purposeVal,
-      mediaType: mediaType,
-      url: url,
-      thumbnailUrl: url,
-      fileSize: 0,
-      durationSeconds: null,
-      status: 'ready'
-    })
-  }
   const token = getAccessToken()
   const url = buildApiUrl('/community/media/uploads')
   return await new Promise<any>((resolve) => {
@@ -2965,12 +1652,6 @@ export async function deleteCommunityMedia(mediaId: number) {
   if (mediaId == null || mediaId <= 0) {
     return failRes('无效的媒体 ID', 'INVALID_MEDIA_ID')
   }
-  if (USE_MOCK) {
-    try {
-      delete mockCommunityMediaById['' + mediaId]
-    } catch (e) {}
-    return okRes({ success: true })
-  }
   return request({
     url: '/community/media/' + mediaId,
     method: 'DELETE'
@@ -2980,21 +1661,6 @@ export async function deleteCommunityMedia(mediaId: number) {
 export async function uploadMedia(filePath: string, purpose: string = 'paper_plane_voice') {
   if (filePath == null || ('' + filePath).length == 0) {
     return failRes('请选择要上传的文件', 'EMPTY_FILE')
-  }
-  if (USE_MOCK) {
-    return request({
-      url: '/media/uploads',
-      cloudFunctionName: 'community',
-      action: 'uploadMedia',
-      method: 'POST',
-      data: { purpose },
-      mockData: {
-        url: 'mock://voice/' + Date.now() + '.mp3',
-        content_type: 'audio/mpeg',
-        size: 1024,
-        purpose: purpose
-      }
-    })
   }
   return new Promise<any>((resolve) => {
     const token = getAccessTokenLocal()
@@ -3037,22 +1703,6 @@ function getAccessTokenLocal(): string {
 
 /** 获取由纸飞机回复形成的聊天列表（PR 消息页形状）。 */
 export async function getPaperPlaneConversations() {
-  if (USE_MOCK) {
-    restorePaperPlaneState()
-    const list = cloneList(mockPaperPlaneConversations as any[])
-    list.forEach((item: any) => {
-      item.timeText = paperPlaneTimeText(item.time)
-      item.unreadCount = item.unreadCount != null ? Math.max(0, item.unreadCount as number) : 0
-    })
-    list.sort((a: any, b: any) => Number(b.time) - Number(a.time))
-    return request({
-      url: '/community/paper-planes/conversations',
-      cloudFunctionName: 'community',
-      action: 'getPaperPlaneConversations',
-      method: 'GET',
-      mockData: list
-    })
-  }
   const res = await request({
     url: '/paper-plane-conversations',
     method: 'GET',
@@ -3082,24 +1732,6 @@ export async function getPaperPlaneConversations() {
 
 /** 获取当前用户最近五天扔出的纸飞机。 */
 export async function getSentPaperPlanes() {
-  if (USE_MOCK) {
-    restorePaperPlaneState()
-    const cutoff = Date.now() - 5 * 24 * 60 * 60 * 1000
-    const list = (mockPaperPlanes as any[]).filter((plane: any) => {
-      return plane.userId == mockMeProfile.id && Number(plane.time) >= cutoff
-    })
-    list.forEach((plane: any) => {
-      plane.timeText = paperPlaneTimeText(plane.time)
-    })
-    list.sort((a: any, b: any) => Number(b.time) - Number(a.time))
-    return request({
-      url: '/community/paper-planes/sent',
-      cloudFunctionName: 'community',
-      action: 'getSentPaperPlanes',
-      method: 'GET',
-      mockData: cloneList(list)
-    })
-  }
   const res = await request({
     url: '/paper-planes/mine',
     method: 'GET',
@@ -3112,21 +1744,6 @@ export async function getSentPaperPlanes() {
 
 /** 获取纸飞机聊天列表的未读消息总数。 */
 export async function getPaperPlaneUnreadCount() {
-  if (USE_MOCK) {
-    restorePaperPlaneState()
-    const list = mockPaperPlaneConversations as any[]
-    let count = 0
-    for (let i = 0; i < list.length; i++) {
-      count += list[i].unreadCount != null ? Math.max(0, list[i].unreadCount as number) : 0
-    }
-    return request({
-      url: '/community/paper-planes/conversations/unread',
-      cloudFunctionName: 'community',
-      action: 'getPaperPlaneUnreadCount',
-      method: 'GET',
-      mockData: { count }
-    })
-  }
   const res = await getPaperPlaneConversations()
   if (!res.success || res.data == null || !Array.isArray(res.data)) {
     return okRes({ count: 0 })
@@ -3141,43 +1758,10 @@ export async function getPaperPlaneUnreadCount() {
 
 /** 查看会话后清除该会话的未读数。 */
 export async function markPaperPlaneConversationRead(conversationId: number) {
-  if (USE_MOCK) {
-    restorePaperPlaneState()
-    const list = mockPaperPlaneConversations as any[]
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id == conversationId) {
-        list[i].unreadCount = 0
-        break
-      }
-    }
-    for (let i = 0; i < mockPlaneConversations.length; i++) {
-      if (mockPlaneConversations[i].id == conversationId) {
-        mockPlaneConversations[i].unreadCount = 0
-      }
-    }
-    savePaperPlaneState()
-    return request({
-      url: '/community/paper-planes/conversations/read',
-      cloudFunctionName: 'community',
-      action: 'markPaperPlaneConversationRead',
-      method: 'POST',
-      data: { conversationId },
-      mockData: { success: true }
-    })
-  }
   return await readPaperPlaneConversation(conversationId)
 }
 
 export async function getPaperPlaneMessages(conversationId: number) {
-  if (USE_MOCK) {
-    const key = '' + conversationId
-    const list = mockPlaneMessages[key] != null ? mockPlaneMessages[key] : []
-    return request({
-      url: '/paper-plane-conversations/' + conversationId + '/messages',
-      method: 'GET',
-      mockData: list
-    })
-  }
   const res = await request({
     url: '/paper-plane-conversations/' + conversationId + '/messages',
     method: 'GET',
@@ -3194,33 +1778,6 @@ export async function getPaperPlaneMessages(conversationId: number) {
 export async function sendPaperPlaneMessage(conversationId: number, content: string, suppliedCreateKey: string = '') {
   const textContent = content != null ? ('' + content).trim() : ''
   if (textContent.length == 0) return failRes('请输入消息', 'EMPTY_CONTENT')
-  if (USE_MOCK) {
-    const key = '' + conversationId
-    if (mockPlaneMessages[key] == null) mockPlaneMessages[key] = []
-    const msg = {
-      id: Date.now(),
-      conversationId: conversationId,
-      fromUserId: mockMeProfile.id,
-      content: textContent,
-      type: 1,
-      mediaUrl: '',
-      voiceDurationSec: 0,
-      mine: true,
-      timeText: '刚刚'
-    }
-    ;(mockPlaneMessages[key] as any[]).push(msg)
-    for (let i = 0; i < mockPlaneConversations.length; i++) {
-      if (mockPlaneConversations[i].id == conversationId) {
-        mockPlaneConversations[i].lastMessage = textContent
-      }
-    }
-    return request({
-      url: '/paper-plane-conversations/' + conversationId + '/messages',
-      method: 'POST',
-      data: { content: textContent },
-      mockData: msg
-    })
-  }
   const key = idempotencyKey('paper-plane-message', suppliedCreateKey)
   const res = await request({
     url: '/paper-plane-conversations/' + conversationId + '/messages',
@@ -3233,12 +1790,6 @@ export async function sendPaperPlaneMessage(conversationId: number, content: str
 }
 
 export async function readPaperPlaneConversation(conversationId: number) {
-  if (USE_MOCK) {
-    for (let i = 0; i < mockPlaneConversations.length; i++) {
-      if (mockPlaneConversations[i].id == conversationId) mockPlaneConversations[i].unreadCount = 0
-    }
-    return okRes({ success: true })
-  }
   return await request({
     url: '/paper-plane-conversations/' + conversationId + '/read',
     method: 'POST',
@@ -3247,12 +1798,6 @@ export async function readPaperPlaneConversation(conversationId: number) {
 }
 
 export async function endPaperPlaneConversation(conversationId: number) {
-  if (USE_MOCK) {
-    for (let i = 0; i < mockPlaneConversations.length; i++) {
-      if (mockPlaneConversations[i].id == conversationId) mockPlaneConversations[i].status = 2
-    }
-    return okRes({ success: true, status: 2 })
-  }
   const res = await request({
     url: '/paper-plane-conversations/' + conversationId + '/end',
     method: 'POST',
@@ -3262,11 +1807,9 @@ export async function endPaperPlaneConversation(conversationId: number) {
   return okRes(mapPlaneConversation(res.data))
 }
 
-/** 供 apply 同步动态卡状态 */
+/** 供 apply 同步动态卡状态（已切真实后端，保留空实现供兼容） */
 export function __syncApplyStatus(userId: number, status: string) {
-  const map = mockApplyStates as any
-  map['' + userId] = status
-  syncApplyOnDynamics(userId, status)
+  // 真实后端管理状态，无需前端同步
 }
 
 // ─── 我的动态 ─────────────────────────────────────────────────
@@ -3280,36 +1823,6 @@ export async function getMyPosts(query: any = null) {
   const page = query != null && query.page != null && (query.page as number) > 0 ? (query.page as number) : 1
   const pageSize = query != null && query.pageSize != null && (query.pageSize as number) > 0 ? (query.pageSize as number) : 10
 
-  if (USE_MOCK) {
-    // mock：取当前用户（meProfile.id == 1 即苏晚晴）发表的动态
-    const meId = meProfile() != null ? (meProfile().id as number) : 1
-    const all = (mockDynamicList as any[]).filter((d: any) => {
-      return d.user != null && d.user.id == meId && !isBlocked(d.user.id as number)
-    })
-    // 按时间倒序
-    all.sort((a: any, b: any) => {
-      return ((b.time as number) || 0) - ((a.time as number) || 0)
-    })
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    const slice = all.slice(start, end)
-    const total = all.length
-    const hasMore = end < total
-    return request({
-      url: '/community/posts/mine',
-      cloudFunctionName: 'community',
-      action: 'getMyPosts',
-      method: 'GET',
-      data: { page, pageSize },
-      mockData: {
-        list: cloneList(slice),
-        page,
-        pageSize,
-        total,
-        hasMore
-      }
-    })
-  }
 
   const res = await request({
     url: '/community/posts/mine',
@@ -3334,12 +1847,10 @@ export async function getMyPosts(query: any = null) {
 }
 
 export async function getCommunityPrivacy() {
-  if (USE_MOCK) return okRes({ hide_online_status: false, notify_like: true, notify_comment: true, notify_follow: true, notify_message: true, notify_match: true, notify_activity: true })
   return request({ url: '/users/me/privacy', method: 'GET' })
 }
 
 export async function updateCommunityPrivacy(values: any) {
-  if (USE_MOCK) return okRes(values)
   return request({ url: '/users/me/privacy', method: 'PUT', data: values })
 }
 
@@ -3354,7 +1865,6 @@ function mapBlockedUser(row: any): any {
 }
 
 export async function getBlockedUsers() {
-  if (USE_MOCK) return okRes((mockBlockedUserIds as number[]).map((id: number) => mapBlockedUser({ id })))
   const res = await request({ url: '/security/blocks', method: 'GET' })
   if (!res.success || res.data == null) return res
   const raw = res.data
@@ -3365,51 +1875,22 @@ export async function getBlockedUsers() {
 }
 
 export async function unblockUser(userId: number) {
-  if (USE_MOCK) {
-    const ids = mockBlockedUserIds as number[]
-    const index = ids.indexOf(userId)
-    if (index >= 0) ids.splice(index, 1)
-    return okRes({ success: true })
-  }
   return request({ url: '/security/blocks/' + userId, method: 'DELETE', data: {} })
 }
 
 export async function getMyReports(page: number = 1, pageSize: number = 20) {
-  if (USE_MOCK) return okRes({ items: [], page, page_size: pageSize, total: 0 })
   return request({ url: '/community/reports/mine', method: 'GET', data: { page, page_size: pageSize } })
 }
 
 export async function getMyReportAppeals(page: number = 1, pageSize: number = 20) {
-  if (USE_MOCK) return okRes({ items: [], page, page_size: pageSize, total: 0 })
   return request({ url: '/community/report-appeals/mine', method: 'GET', data: { page, page_size: pageSize } })
 }
 
 export async function createReportAppeal(reportId: number, reason: string) {
-  if (USE_MOCK) return okRes({ success: true, report_id: reportId, reason })
   return request({ url: '/community/reports/' + reportId + '/appeals', method: 'POST', data: { reason } })
 }
 
 export async function getThreadedComments(dynamicId: number, cursor: string = '', pageSize: number = 20) {
-  if (USE_MOCK) {
-    const post = findDynamic(dynamicId)
-    const all = post != null && post.comments != null ? post.comments as any[] : []
-    const roots: any[] = []
-    for (let i = 0; i < all.length; i++) {
-      const row = all[i]
-      if (row.replyTo == null && row.parent_id == null) {
-        const root = mapComment(row)
-        const previews: any[] = []
-        for (let j = 0; j < all.length && previews.length < 3; j++) {
-          const reply = all[j]
-          if (reply.replyTo == row.id || reply.parent_id == row.id || reply.rootId == row.id) previews.push(mapComment(reply))
-        }
-        root.replies = previews
-        root.replyCount = previews.length
-        roots.push(root)
-      }
-    }
-    return okRes({ items: roots.slice(0, pageSize), next_cursor: null, has_more: false })
-  }
   const res = await request({ url: '/community/posts/' + dynamicId + '/comments/page', method: 'GET', data: { cursor: cursor == '' ? null : cursor, page_size: pageSize } })
   if (!res.success || res.data == null) return res
   const raw = res.data as any
@@ -3425,7 +1906,6 @@ export async function getThreadedComments(dynamicId: number, cursor: string = ''
 }
 
 export async function getCommentReplies(commentId: number, cursor: string = '', pageSize: number = 20) {
-  if (USE_MOCK) return okRes({ items: [], next_cursor: null, has_more: false })
   const res = await request({ url: '/community/comments/' + commentId + '/replies', method: 'GET', data: { cursor: cursor == '' ? null : cursor, page_size: pageSize } })
   if (!res.success || res.data == null) return res
   const raw = res.data as any

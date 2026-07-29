@@ -147,7 +147,7 @@
 							</view>
 							<view class="match-info">
 								<text class="match-title">AI 匹配度分析</text>
-								<text class="match-desc">MBTI高度契合 · 兴趣重合度高 · 三观相近</text>
+								<text class="match-desc">基于公开资料与共同兴趣生成参考</text>
 							</view>
 						</view>
 
@@ -206,8 +206,13 @@
 						<text class="pinned-title">置顶推荐</text>
 						<view class="quality-badge"><text class="quality-text">优质</text></view>
 					</view>
+<<<<<<< HEAD
 					<view class="want-top-btn">
 						<text class="want-top-icon">↑</text>
+=======
+					<view class="want-top-btn" @tap="openTopPlacement">
+						<text class="ic ic-sys ic-zhankai want-top-icon"></text>
+>>>>>>> sync/upstream-main-751a9f4
 						<text class="want-top-text">我要置顶</text>
 					</view>
 				</view>
@@ -576,6 +581,12 @@
 		<!-- ====== Sheets & Modals ====== -->
 		<XsaSheet :visible="aiVisible" title="AI 合拍度解读" @close="aiVisible = false">
 			<view class="ai-sheet">
+<<<<<<< HEAD
+=======
+				<view class="ai-context-row">
+					<text>仅使用双方已确认且公开的资料与兴趣信息，不展示或推断人格测试结果。</text>
+				</view>
+>>>>>>> sync/upstream-main-751a9f4
 				<view class="ai-score-big"><text>92%</text></view>
 				<view class="ai-bars"><view v-for="b in aiBars" :key="b.label" class="ai-bar"><view class="ai-bar-head"><text>{{ b.label }}</text><text>{{ b.value }}%</text></view><view class="ai-bar-trk"><view class="ai-bar-fill" :style="{ width: b.value + '%' }"></view></view></view></view>
 				<view class="ai-tip"><text>基于公开资料与兴趣交集生成，不代表平台承诺结果。建议从共同兴趣或城市周末安排开始聊。</text></view>
@@ -657,6 +668,21 @@
 	const navTabs = ['推荐', '广场', '会员专区']
 
 	const switchTab = (index: number) => { currentTab.value = index }
+<<<<<<< HEAD
+=======
+	const openVipPage = () => {
+		uni.navigateTo({
+			url: '/pages/profile/vip',
+			fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) }
+		})
+	}
+	const openTopPlacement = () => {
+		uni.navigateTo({
+			url: '/pages/index/top-placement',
+			fail: () => { uni.showToast({ title: '置顶页面打开失败，请重试', icon: 'none' }) }
+		})
+	}
+>>>>>>> sync/upstream-main-751a9f4
 	const onHistory = () => {}
 	const onSearch = () => {}
 
@@ -1124,6 +1150,10 @@
    AI Sheet
    ============================================================ */
 .ai-sheet { display: flex; flex-direction: column; gap: 16px; }
+<<<<<<< HEAD
+=======
+.ai-context-row { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 12px; line-height: 1.6; color: var(--muted); }
+>>>>>>> sync/upstream-main-751a9f4
 .ai-score-big text { font-size: 48px; font-weight: 900; color: var(--accent2); font-family: var(--serif); }
 .ai-score-big { text-align: center; }
 .ai-bars { display: flex; flex-direction: column; gap: 10px; }

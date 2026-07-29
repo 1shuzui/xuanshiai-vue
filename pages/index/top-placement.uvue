@@ -1,0 +1,112 @@
+<template>
+	<view class="top-page">
+		<view class="top-nav">
+			<view class="nav-back" @tap="goBack"><text class="nav-back-icon">‹</text></view>
+			<text class="nav-title">我要置顶</text>
+			<view class="nav-placeholder"></view>
+		</view>
+
+		<scroll-view scroll-y class="top-scroll" :show-scrollbar="false">
+			<view v-if="loading" class="state-panel"><text>正在读取置顶状态...</text></view>
+			<view v-else-if="paymentSuccess && successOrder != null" class="success-panel">
+				<view class="success-mark"><text>✓</text></view>
+				<text class="success-title">置顶已开启</text>
+				<text class="success-copy">支付已确认，你的资料将进入广场置顶推荐。</text>
+				<view class="remaining-card"><text class="remaining-label">剩余置顶</text><text class="remaining-days">{{ successOrder.remainingDays }} 天</text><text class="remaining-copy">有效期至 {{ formatDate(successOrder.expiresAt) }}</text></view>
+				<view class="success-order"><text>套餐 · {{ successOrder.planName }}</text><text>¥{{ successOrder.amount }}</text></view>
+				<view class="success-order"><text>订单号</text><text>{{ successOrder.orderNo }}</text></view>
+				<view class="success-action" @tap="goBack"><text>返回广场</text></view>
+			</view>
+			<view v-else class="purchase-content">
+					<view class="hero-banner">
+						<view class="hero-line"></view>
+						<text class="hero-title">让更多人看到你</text>
+						<text class="hero-copy">置顶推荐列表，曝光量提升 3-5 倍</text>
+						<view class="feature-row"><view class="feature-pill"><text class="feature-pill-icon">↑</text><text>优先展示</text></view><view class="feature-pill"><text class="feature-pill-icon">◎</text><text>精准触达</text></view><view class="feature-pill"><text class="feature-pill-icon">✦</text><text>快速触达</text></view></view>
+					</view>
+
+				<view v-if="activeStatus.active" class="active-status"><text>当前剩余置顶 {{ activeStatus.remainingDays }} 天</text><text class="active-status-copy">继续购买会在现有有效期基础上延长</text></view>
+
+				<view class="plans-section">
+					<text class="section-title">选择置顶套餐</text>
+					<view class="plans-row">
+						<view v-for="(plan, index) in plans" :key="plan.id" class="plan-card" :class="{ selected: selectedPlanIndex === index }" @tap="selectPlan(index)">
+							<text class="plan-tag">{{ plan.tag }}</text><text class="plan-name">{{ plan.name }}</text><text class="plan-price">¥{{ plan.price }}</text><text class="plan-days">{{ plan.days }}天</text>
+						</view>
+					</view>
+				</view>
+
+				<view class="benefits-section"><view class="benefit-heading"><text class="heading-dot"></text><text>置顶专属权益</text><text class="heading-dot"></text></view><view class="benefit-icons"><view v-for="item in benefits" :key="item.title" class="benefit-item"><view class="benefit-icon"><text>{{ item.icon }}</text></view><text>{{ item.title }}</text><text class="benefit-desc">{{ item.desc }}</text></view></view></view>
+				<view class="notice-card"><text class="notice-title">温馨提示</text><text class="notice-copy">置顶用于提升资料展示机会，不承诺匹配或关系结果。购买后可随时查看剩余有效天数。</text></view>
+				<view class="bottom-space"></view>
+			</view>
+		</scroll-view>
+
+		<view v-if="!loading && !paymentSuccess" class="footer-safe"><view class="total-row"><text>合计</text><text class="total-price">¥{{ selectedPlan.price }}</text><text class="total-days">/{{ selectedPlan.days }}天</text></view><view class="pay-button" :class="{ disabled: paying }" @tap="openPayment"><text>{{ paying ? '支付确认中…' : '立即支付开启置顶' }}</text></view></view>
+		<XsaPaymentSheet :visible="paymentVisible" :amount="selectedPlan.price" :loading="paying" @close="closePayment" @confirm="confirmPayment" />
+	</view>
+</template>
+
+<script setup lang="uts">
+import { getTopPlacementStatus, payTopPlacement, TopPlacementPlan, TopPlacementOrder } from '@/api/top-placement.uts'
+import XsaPaymentSheet from '@/components/XsaPaymentSheet.uvue'
+
+const plans: TopPlacementPlan[] = [
+	{ id: 'top-3', name: '3天体验', days: 3, price: 29, tag: '轻量体验', recommended: false },
+	{ id: 'top-7', name: '7天置顶', days: 7, price: 49, tag: '推荐', recommended: true },
+	{ id: 'top-30', name: '30天尊享', days: 30, price: 168, tag: '长期曝光', recommended: false }
+]
+const benefits = [
+	{ icon: '↑', title: '优先展示', desc: '推荐列表置顶' },
+	{ icon: '◎', title: '精准触达', desc: '推送给高意向用户' },
+	{ icon: '✦', title: '快速触达', desc: '更多用户看到你' }
+]
+const selectedPlanIndex = ref(1)
+const activeStatus = ref<any>({ active: false, remainingDays: 0, expiresAt: 0 })
+const loading = ref(true)
+const paymentVisible = ref(false)
+const paying = ref(false)
+const paymentSuccess = ref(false)
+const successOrder = ref<TopPlacementOrder | null>(null)
+const selectedPlan = computed(() => plans[selectedPlanIndex.value])
+
+const loadStatus = async () => {
+	loading.value = true
+	try {
+		const result = await getTopPlacementStatus()
+		activeStatus.value = result.success && result.data != null ? result.data : { active: false, remainingDays: 0, expiresAt: 0 }
+	} catch (e) {
+		activeStatus.value = { active: false, remainingDays: 0, expiresAt: 0 }
+	} finally { loading.value = false }
+}
+const selectPlan = (index: number) => { if (!paying.value) selectedPlanIndex.value = index }
+const openPayment = () => { if (!paying.value) paymentVisible.value = true }
+const closePayment = () => { if (!paying.value) paymentVisible.value = false }
+const confirmPayment = async () => {
+	if (paying.value) return
+	try {
+		paying.value = true
+		const result = await payTopPlacement(selectedPlan.value)
+		if (!result.success || result.data == null) { uni.showToast({ title: result.message, icon: 'none' }); return }
+		successOrder.value = result.data
+		paymentVisible.value = false
+		paymentSuccess.value = true
+	} catch (e) { uni.showToast({ title: '付款确认失败，请稍后重试', icon: 'none' }) } finally { paying.value = false }
+}
+const formatDate = (timestamp: number): string => {
+	const date = new Date(timestamp)
+	return String(date.getFullYear()) + '年' + String(date.getMonth() + 1) + '月' + String(date.getDate()) + '日'
+}
+const goBack = () => { uni.navigateBack({}) }
+onMounted(() => { loadStatus() })
+</script>
+
+<style scoped>
+.top-page { min-height: 100vh; background: #FAF7F0; color: #1A1A1A; }
+.top-nav { position: relative; z-index: 2; flex-shrink: 0; height: 88px; padding: 44px 16px 0; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: space-between; background: #FAF7F0; }.nav-back { width: 40px; height: 40px; display: flex; flex-direction: row; align-items: center; justify-content: center; color: #627A5F; font-size: 22px; }.nav-back-icon { font-family: Arial, sans-serif; font-size: 34px; font-weight: 300; line-height: 34px; transform: translateY(-1px); }.nav-title { font-size: 17px; font-weight: 600; }.nav-placeholder { width: 40px; }
+.top-scroll { height: calc(100vh - 88px); }.purchase-content { display: flex; flex-direction: column; gap: 12px; padding-bottom: 360rpx; }.hero-banner { display: flex; flex-direction: column; gap: 8px; padding: 20px 24px; background: linear-gradient(135deg, #E8EDE4, #DCE5D6 50%, #F0EBE0); }.hero-line { width: 60px; height: 3px; border-radius: 2px; background: #C9A96E; }.hero-title { font-family: 'Playfair Display'; font-size: 26px; font-weight: 700; }.hero-copy { color: #4B5563; font-size: 13px; }.feature-row { display: flex; flex-direction: row; align-items: center; gap: 8px; padding-top: 8px; color: #627A5F; font-size: 11px; }.feature-pill { flex: 1; min-width: 0; height: 28px; padding: 0 6px; border-radius: 8px; background: rgba(255,255,255,.58); border: 1px solid #DCE8D8; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; }.feature-pill-icon { color: #C9A96E; font-size: 13px; }
+.active-status { margin: 12px 16px 0; padding: 12px 14px; border-radius: 12px; background: #E2EBE0; color: #627A5F; display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }.active-status-copy { color: #4B5563; font-size: 11px; font-weight: 400; }.plans-section { padding: 20px 16px 14px; background: #FAF7F0; }.section-title { display: block; margin-bottom: 14px; font-size: 17px; font-weight: 600; }.plans-row { display: flex; flex-direction: row; gap: 8px; }.plan-card { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; padding: 12px 10px 10px; border: 1px solid #DCE8D8; border-radius: 12px; background: #F8F9F6; text-align: center; }.plan-card.selected { border: 2px solid #C9A96E; background-color: #F8F9F6; }.plan-tag { display: inline-block; min-height: 16px; padding: 3px 8px; border-radius: 999px; background: #C9A96E; color: #FFFFFF; font-size: 10px; font-weight: 600; }.plan-name { display: block; margin-top: 8px; font-size: 14px; font-weight: 600; }.plan-price { display: block; margin-top: 5px; font-size: 26px; font-weight: 700; }.plan-days { display: flex; align-items: center; justify-content: center; width: 100%; height: 28px; margin-top: 8px; border-radius: 6px; background: #FBF6EF; color: #4B5563; font-size: 11px; }
+.benefits-section { padding: 8px 16px 16px; background: #FAF7F0; }.benefit-heading { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 12px; font-size: 17px; font-weight: 600; }.heading-dot { width: 6px; height: 6px; border-radius: 50%; background: #C9A96E; }.benefit-icons { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 8px; margin-top: 16px; }.benefit-item { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; width: auto; color: #4B5563; font-size: 11px; text-align: center; }.benefit-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #E2EBE0; color: #627A5F; font-size: 23px; }.benefit-desc { color: #A0B0A2; font-size: 10px; text-align: center; }.notice-card { margin: 0 16px; padding: 16px; border-radius: 16px; background: #F8F9F6; border: 1px solid #DCE8D8; display: flex; flex-direction: column; gap: 8px; }.notice-title { font-size: 14px; font-weight: 600; }.notice-copy { color: #4B5563; font-size: 12px; line-height: 1.6; }.bottom-space { height: 12px; }
+.footer-safe { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(env(safe-area-inset-bottom) + 14px); background: rgba(250,247,240,.98); border-top: 1px solid #DCE8D8; box-shadow: 0 -4px 12px rgba(98,122,95,.06); }.total-row { display: flex; align-items: baseline; justify-content: center; gap: 4px; color: #4B5563; font-size: 14px; }.total-price { color: #1A1A1A; font-size: 28px; font-weight: 700; }.total-days { color: #A0B0A2; font-size: 12px; }.pay-button { height: 50px; margin-top: 8px; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: linear-gradient(90deg, #E6EBD8, #E8CFA5); color: #1A1A1A; font-size: 17px; font-weight: 700; }.pay-button.disabled { opacity: .56; }
+.state-panel, .success-panel { margin: 32px 16px; padding: 36px 20px; border-radius: 20px; background: #F8F9F6; border: 1px solid #DCE8D8; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; color: #4B5563; font-size: 14px; }.success-mark { width: 76px; height: 76px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #E2EBE0; border: 2px solid #A8C0A5; color: #627A5F; font-size: 38px; font-weight: 700; }.success-title { color: #1A1A1A; font-family: 'Playfair Display'; font-size: 28px; font-weight: 700; }.success-copy { color: #4B5563; font-size: 13px; line-height: 1.6; }.remaining-card { width: 100%; padding: 18px 12px; border-radius: 14px; background: linear-gradient(135deg, #E8EDE4, #F0EBE0); display: flex; flex-direction: column; gap: 4px; }.remaining-label { color: #627A5F; font-size: 12px; }.remaining-days { color: #1A1A1A; font-size: 30px; font-weight: 700; }.remaining-copy { color: #4B5563; font-size: 11px; }.success-order { width: 100%; padding: 12px 0; border-top: 1px solid #DCE8D8; display: flex; justify-content: space-between; gap: 12px; color: #4B5563; font-size: 12px; text-align: left; }.success-order text:last-child { color: #1A1A1A; }.success-action { width: 100%; height: 50px; border-radius: 20px; background: linear-gradient(90deg, #E6EBD8, #E8CFA5); color: #1A1A1A; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; }
+</style>

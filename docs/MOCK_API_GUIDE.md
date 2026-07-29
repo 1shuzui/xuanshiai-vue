@@ -23,10 +23,9 @@ const response = await getRecommendUser()
 `api/config.uts` 当前设置 `USE_MOCK = false`，用于既有 HTTP 联调：
 
 - `true`：`request()` 返回 API 调用参数中的 `mockData`。
-- `false` 且 `API_CONFIG.useHttp = true`：HTTP 请求 FastAPI（`API_BASE_URL` + `API_PREFIX`，Bearer token）。
-- `false` 且 `useHttp = false`：回退 `uniCloud.callFunction`（`spaceId` 仍为占位）。
+- `false`：`request()` 调用 `uniCloud.callFunction`。
 
-社区联调路径对照与变更时间线见 [`COMMUNITY_HTTP_CHANGELOG.md`](./COMMUNITY_HTTP_CHANGELOG.md)。不要把“关闭 Mock”描述成“一键完成上线”。
+配置中的 `spaceId` 是占位值，现有真实请求分支也没有形成完整的生产接口契约。不要把“关闭 Mock”描述成“一键完成上线”。
 
 消息、父母端和情感实验室没有跟随全局开关静默切换，而是使用显式模块开关：
 
@@ -59,11 +58,17 @@ Mock 与真实接口至少对齐字段名、类型、分页、状态码、错误
 
 | 模块 | 主要能力 |
 |---|---|
+<<<<<<< HEAD
 | `user.uts` | 推荐、广场、详情、我的资料；`likeUser` / `applyToMeet` 已 Mock+HTTP 双路径（social like / discovery applications） |
 | `message.uts` | 会话/申请分页、聊天权限、全部已读、聊天记录、发送与失败重试；当前 `MESSAGE_USE_MOCK=true`，真实消息接口待联调 |
 | `parent.uts` | 父母上下文、单子女资料、推荐、喜欢、申请与隐私裁剪；当前 `PARENT_USE_MOCK=true`，真实关系主体未联调 |
 | `emotionLab.uts` | MBTI 摘要、固定会话快照、保存/提交、手动类型和资料来源；当前使用已授权的 60 题 `mbti-core@2` 快照与 1–7 级量表，Mock 仅替代离线存储与传输 |
 | `community.uts` | 动态列表（tab/filter 分页 `list+hasMore`；关注 all 真路径并集）、详情、删帖/删评、话题、纸飞机收发/我的、活动、Banner、通知、配额、发布/评论、点赞/收藏/关注/取关、举报/拉黑、同城城市；`USE_MOCK=false` 时走 FastAPI |
+=======
+| `user.uts` | 推荐、广场、详情、我的资料、喜欢、申请认识 |
+| `message.uts` | 消息列表、聊天记录、发送消息、认识申请 |
+| `community.uts` | 动态列表（tab/filter 分页 `list+hasMore`）、详情、话题列表分页 `getTopicList`、话题详情排序、话题加入、纸飞机收发、活动报名与我的活动、Banner、通知已读/未读数、配额、发布/评论、点赞/收藏/关注、举报/拉黑、同城城市 |
+>>>>>>> sync/upstream-main-751a9f4
 | `matchmaker.uts` | 服务红娘、志愿红娘、AI 推荐、套餐、预约 |
 
 ### 社区列表约定（Mock）
@@ -73,7 +78,7 @@ Mock 与真实接口至少对齐字段名、类型、分页、状态码、错误
 - 二级筛选：
   - follow：`all | following | likedUsers`（likedUsers = 用户级喜欢，不是帖子点赞）
   - city：`all | hot | latest`
-  - discover：`all | mbti | alumni | hometown`
+  - discover：`all | mbti | alumni`
 - `getTopicList({ sort, page, pageSize, excludeIds })` → `{ list, page, pageSize, total, hasMore }`
 - `getTopicDetail(topicId, sort)` 支持 `hot | latest`
 - 会话态：`mockBlockedUserIds`、`mockApplyStates`、`mockLikedUserIds`、`mockCurrentCity`

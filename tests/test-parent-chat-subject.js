@@ -1,0 +1,26 @@
+const assert = require('assert')
+const fs = require('fs')
+const path = require('path')
+
+const root = path.join(__dirname, '..')
+const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
+
+const chat = read('pages/chat/detail.uvue')
+const messageApi = read('api/message.uts')
+const parentApi = read('api/parent.uts')
+
+assert.match(chat, /getParentContext/, 'chat must resolve the active parent context')
+assert.match(chat, /getParentAccessGate/, 'chat must enforce the parent access gate')
+assert.match(chat, /mode: 'parent', childId: context\.child\.id/, 'parent chat must derive its acting child subject')
+assert.match(chat, /isParentMode\.value \? 'protected' : 'standard'/, 'parent chat reads must select protected scope')
+assert.match(chat, /getChatMessages\([\s\S]*?subject[\s\S]*?\)/, 'parent chat reads must carry the child subject')
+assert.match(chat, /sendMessageApi\([\s\S]*?newClientCommandId\('chat-message'\),[\s\S]*?subject[\s\S]*?\)/, 'parent chat sends must carry an explicit subject and idempotency key')
+assert.match(chat, /isParentMode && msg\.type !== 'text'/, 'parent chat must protect non-text message content')
+assert.match(chat, /:parent-context="activeParentContext"/, 'parent reports must use the active parent context')
+assert.match(chat, /onShow\(\(\) => \{[\s\S]*?loadChatMessages\(\)/, 'chat must revalidate the parent subject when shown')
+assert.match(messageApi, /function parentBackendUnavailable/, 'message API must fail closed when parent backend access is unavailable')
+assert.match(messageApi, /actingChildId/, 'message API must serialize the authorized child claim')
+assert.match(parentApi, /export async function getParentMessages/, 'parent message entry point must remain available')
+assert.match(parentApi, /getMessageList\('protected', subject\)/, 'parent message list must use the protected subject scope')
+
+console.log('PASS parent chat child-subject isolation contract')

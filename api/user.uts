@@ -92,13 +92,17 @@ function extractHttpMessage(res: any, fallback: string): string {
 }
 
 const CHAT_FEATURE_UNLOCK_STORAGE_KEY = 'xsa_chat_feature_unlocks_v1'
+const PROFILE_UNLOCK_STORAGE_KEY = 'xsa_profile_unlocks_v1'
 export const CHAT_FEATURE_UNLOCK_COST = 80
+export const PROFILE_UNLOCK_COST = 50
 let chatFeatureUnlocksLoaded = false
+let profileUnlocksLoaded = false
 const chatFeatureUnlocks: any = {
   album: false,
   camera: false,
   profile: false
 }
+const profileUnlocks: any = {}
 
 function restoreChatFeatureUnlocks() {
   if (chatFeatureUnlocksLoaded) return
@@ -124,6 +128,48 @@ function saveChatFeatureUnlocks() {
     profile: chatFeatureUnlocks.profile == true,
     points: mockMeProfile.points
   })
+  try {
+    const profileSaved = uni.getStorageSync(PROFILE_UNLOCK_STORAGE_KEY) as any
+    if (profileSaved != null && typeof profileSaved === 'object') {
+      profileSaved.points = mockMeProfile.points
+      uni.setStorageSync(PROFILE_UNLOCK_STORAGE_KEY, profileSaved)
+    }
+  } catch (e) {}
+}
+
+function restoreProfileUnlocks() {
+  if (profileUnlocksLoaded) return
+  profileUnlocksLoaded = true
+  try {
+    const saved = uni.getStorageSync(PROFILE_UNLOCK_STORAGE_KEY) as any
+    if (saved == null || typeof saved !== 'object') return
+    const unlockedUserIds = saved.unlockedUserIds as any
+    if (unlockedUserIds != null && typeof unlockedUserIds === 'object') {
+      const keys = Object.keys(unlockedUserIds)
+      keys.forEach((key: string) => {
+        profileUnlocks[key] = unlockedUserIds[key] == true
+      })
+    }
+    if (saved.points != null && Number(saved.points) >= 0) {
+      mockMeProfile.points = Number(saved.points)
+    }
+  } catch (e) {
+    console.error('恢复资料解锁状态失败', e)
+  }
+}
+
+function saveProfileUnlocks() {
+  uni.setStorageSync(PROFILE_UNLOCK_STORAGE_KEY, {
+    unlockedUserIds: profileUnlocks,
+    points: mockMeProfile.points
+  })
+  try {
+    const chatSaved = uni.getStorageSync(CHAT_FEATURE_UNLOCK_STORAGE_KEY) as any
+    if (chatSaved != null && typeof chatSaved === 'object') {
+      chatSaved.points = mockMeProfile.points
+      uni.setStorageSync(CHAT_FEATURE_UNLOCK_STORAGE_KEY, chatSaved)
+    }
+  } catch (e) {}
 }
 
 /** 获取聊天页的付费功能解锁状态及当前积分余额。 */
@@ -191,6 +237,83 @@ export async function unlockChatFeature(feature: string) {
     method: 'POST',
     data: { feature: feature },
     mockData: { success: true, feature: feature, points: mockMeProfile.points, cost: CHAT_FEATURE_UNLOCK_COST }
+<<<<<<< HEAD
+=======
+  })
+}
+
+/** 获取某位用户资料的解锁状态。资料解锁按目标用户单独保存。 */
+export async function getUserProfileUnlockStatus(userId: number) {
+  restoreProfileUnlocks()
+  const key = '' + userId
+  return request({
+    url: '/user/profile-unlocks',
+    cloudFunctionName: 'user',
+    action: 'getProfileUnlockStatus',
+    method: 'GET',
+    data: { userId: userId },
+    mockData: {
+      unlocked: profileUnlocks[key] == true,
+      points: mockMeProfile.points,
+      cost: PROFILE_UNLOCK_COST
+    }
+  })
+}
+
+/** 消耗 50 积分解锁一位用户的全部资料，包括 VIP 专属内容。 */
+export async function unlockUserProfile(userId: number) {
+  restoreProfileUnlocks()
+  const key = '' + userId
+  if (profileUnlocks[key] == true) {
+    return request({
+      url: '/user/profile-unlocks',
+      cloudFunctionName: 'user',
+      action: 'unlockProfile',
+      method: 'POST',
+      data: { userId: userId },
+      mockData: {
+        success: true,
+        alreadyUnlocked: true,
+        userId: userId,
+        points: mockMeProfile.points,
+        cost: PROFILE_UNLOCK_COST
+      }
+    })
+  }
+
+  if (mockMeProfile.points < PROFILE_UNLOCK_COST) {
+    return request({
+      url: '/user/profile-unlocks',
+      cloudFunctionName: 'user',
+      action: 'unlockProfile',
+      method: 'POST',
+      data: { userId: userId },
+      mockData: {
+        success: false,
+        code: 'INSUFFICIENT_POINTS',
+        message: '积分不足，无法解锁全部资料',
+        points: mockMeProfile.points,
+        cost: PROFILE_UNLOCK_COST
+      }
+    })
+  }
+
+  mockMeProfile.points -= PROFILE_UNLOCK_COST
+  profileUnlocks[key] = true
+  saveProfileUnlocks()
+  return request({
+    url: '/user/profile-unlocks',
+    cloudFunctionName: 'user',
+    action: 'unlockProfile',
+    method: 'POST',
+    data: { userId: userId },
+    mockData: {
+      success: true,
+      userId: userId,
+      points: mockMeProfile.points,
+      cost: PROFILE_UNLOCK_COST
+    }
+>>>>>>> sync/upstream-main-751a9f4
   })
 }
 

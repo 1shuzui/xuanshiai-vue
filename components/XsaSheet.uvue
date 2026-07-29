@@ -1,5 +1,9 @@
 <template>
+<<<<<<< HEAD
 		<view class="xsa-sheet-overlay" :class="{ open: visible, 'large-text': largeText }" @click="handleOverlayClick">
+=======
+	<view class="xsa-sheet-overlay" :class="{ open: visible, 'large-text': largeText }" @click="handleOverlayClick">
+>>>>>>> sync/upstream-main-751a9f4
 		<view class="xsa-sheet" :class="{ tall: tall }" @click.stop>
 			<view class="handle" v-if="showHandle"></view>
 			<view class="sheet-header" v-if="title">
@@ -108,7 +112,8 @@ const handleOverlayClick = () => {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: center;
+	position: relative;
 	padding: 0 18px;
 	border-bottom: 1px solid var(--line);
 }
@@ -122,6 +127,9 @@ const handleOverlayClick = () => {
 
 
 .close-btn {
+	position: absolute;
+	top: 7px;
+	right: 18px;
 	width: 40px;
 	height: 40px;
 	border-radius: 50%;

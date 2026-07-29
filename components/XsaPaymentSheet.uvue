@@ -1,0 +1,76 @@
+<template>
+	<view v-if="visible" class="payment-mask" @tap="handleMaskTap">
+		<view class="payment-sheet" @tap.stop>
+			<view class="payment-handle"></view>
+			<view class="payment-title-row">
+				<text class="payment-title">选择支付方式</text>
+				<text class="payment-close" @tap="close">×</text>
+			</view>
+			<view class="payment-option" :class="{ selected: paymentSelected }" @tap="togglePayment">
+				<view class="payment-option-left">
+					<view class="wechat-icon"><text class="ic ic-home ic-hello payment-icon"></text></view>
+					<view class="payment-copy"><text class="payment-name">微信支付</text><text class="payment-desc">推荐使用，安全快捷</text></view>
+				</view>
+				<view class="payment-check" :class="{ checked: paymentSelected }"><text v-if="paymentSelected" class="ic ic-sys ic-tijiaoqueren payment-check-icon"></text></view>
+			</view>
+			<view class="payment-total"><text>合计</text><text class="payment-total-price">¥{{ amount }}</text></view>
+			<button class="payment-confirm" :class="{ disabled: loading }" @tap="confirm">{{ loading ? '支付确认中…' : confirmText }}</button>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+interface Props {
+	visible: boolean
+	amount: number
+	loading?: boolean
+	confirmText?: string
+	closeOnOverlay?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	visible: false,
+	amount: 0,
+	loading: false,
+	confirmText: '确认支付',
+	closeOnOverlay: true
+})
+
+const emit = defineEmits<{
+	close: []
+	confirm: []
+}>()
+
+const paymentSelected = ref(true)
+const close = () => { if (!props.loading) emit('close') }
+const handleMaskTap = () => { if (props.closeOnOverlay) close() }
+const togglePayment = () => { if (!props.loading) paymentSelected.value = !paymentSelected.value }
+const confirm = () => {
+	if (!paymentSelected.value) {
+		uni.showToast({ title: '请选择支付方式', icon: 'none' })
+		return
+	}
+	emit('confirm')
+}
+</script>
+
+<style scoped>
+.payment-mask { position: fixed; z-index: 100; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; justify-content: flex-end; background-color: rgba(0, 0, 0, 0.7); }
+.payment-sheet { display: flex; flex-direction: column; gap: 20px; padding: 24px 20px calc(32px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; background-color: #FAF7F0; }
+.payment-handle { align-self: flex-start; width: 40px; height: 4px; margin-bottom: 4px; border-radius: 2px; background-color: #E0DDD6; }
+.payment-title-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.payment-title { font-size: 18px; font-weight: 600; color: #000000; }
+.payment-close { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #627A5F; font-size: 28px; line-height: 40px; text-align: center; }
+.payment-option { display: flex; flex-direction: row; align-items: center; justify-content: space-between; height: 64px; padding: 0 16px; border: 2rpx solid #DCE8D8; background-color: #FFFFFF; }
+.payment-option.selected { border-color: #C7DDC1; }
+.payment-option-left { display: flex; flex-direction: row; align-items: center; gap: 14px; }
+.wechat-icon { display: flex; flex-direction: row; align-items: center; justify-content: center; width: 40px; height: 40px; background-color: #E2EBE0; }
+.payment-icon { font-size: 24px; color: #627A5F; }
+.payment-copy { display: flex; flex-direction: column; gap: 4px; }.payment-name { font-size: 15px; color: #1A1A1A; }.payment-desc { font-size: 12px; color: #4B5563; }
+.payment-check { display: flex; flex-direction: row; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid #B8C9B4; background-color: #FFFFFF; }.payment-check.checked { border-color: #627A5F; background-color: #627A5F; }.payment-check-icon { font-size: 14px; color: #FFFFFF; }
+.payment-total { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; font-size: 15px; color: #1A1A1A; }.payment-total-price { font-size: 28px; font-weight: 700; color: #1A1A1A; }
+.payment-confirm { width: 100%; height: 50px; border: 0; border-radius: 20px; background: linear-gradient(90deg, #E6EBD8, #E8CFA5); color: #1A1A1A; font-size: 17px; font-weight: 700; }.payment-confirm.disabled { opacity: .56; }
+@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/系统通用/iconfont.woff') format('woff'); }
+.ic { font-style: normal; -webkit-font-smoothing: antialiased; }.ic-home { font-family: "iconfont-home" !important; }.ic-sys { font-family: "iconfont-sys" !important; }.ic-hello:before { content: "\\e62f"; }.ic-tijiaoqueren:before { content: "\\e627"; }
+</style>

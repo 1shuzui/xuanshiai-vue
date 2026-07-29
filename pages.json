@@ -78,6 +78,13 @@
 			}
 		},
 		{
+			"path": "pages/index/top-placement",
+			"style": {
+				"navigationBarTitleText": "我要置顶",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/profile/profile",
 			"style": {
 				"navigationBarTitleText": "我的",

@@ -30,13 +30,18 @@
 - 社区主 Tab：**关注 / 同城 / 发现**；二级筛选随主 Tab 切换：
   - 关注：`全部 / 关注 / 喜欢`（喜欢 = 用户级喜欢关系，不是帖子点赞）
   - 同城：`全部 / 热门 / 最新`
-  - 发现：`全部 / MBTI / 校友 / 同乡`（TOPIC 面板仅在「发现·全部」）
+  - 发现：`全部 / MBTI / 校友`（TOPIC 面板仅在「发现·全部」；MBTI 上方有情感实验室四入口占位，点击敬请期待）
 - 已有 `Xsa*` 组件含 `XsaDynamicCard`、`XsaApplySheet`、`XsaReportSheet` 等；实名门槛见 `utils/realNameGate.uts`（`passed|missing|reviewing|rejected`，兼容 pending/failed）。
 - 认证门槛：常规社区互动、申请认识、参与话题 / 带话题发布均仅要求实名通过；双重认证仅作展示加分。
+<<<<<<< HEAD
 - 已有 `api/` 与 `mock/` 分层；**社区 API 已支持 Mock / FastAPI 双路径**（`config.uts` + `request.uts` HTTP Bearer + `community.uts` map*）；当前工作树全局 `USE_MOCK = true` 用于端侧 Mock 浏览，消息、父母端、情感实验室仍由各自模块开关走 Mock。
 - 申请认识：`applyToMeet` Mock 幂等（重复申请 `success:false`）；**真路径** `POST /discovery/applications/{id}` + 刷新 quotas；409 → failRes。喜欢用户：`likeUser` 真路径 `PUT|DELETE /users/{id}/like`，likes 列表 `page_size≤50` 分页预检。
 - 社区 API 另导出：删帖/删评/取关/我的纸飞机；关注 Tab「全部」真路径 **`mode=following_and_liked`**（关注∪用户级喜欢，BE 分页；原客户端假并集已撤）。
 - **联调总账：** [`COMMUNITY_HTTP_CHANGELOG.md`](./COMMUNITY_HTTP_CHANGELOG.md)；**对抗审查：** [`COMMUNITY_ADVERSARIAL_REVIEW.md`](./COMMUNITY_ADVERSARIAL_REVIEW.md)。
+=======
+- 已有 `api/` 与 `mock/` 分层；社区 API 支持分页 list+hasMore、结构化 publish/comment/paperPlane、通知已读、拉黑过滤、同城城市；当前 `USE_MOCK = true`。
+- 申请认识：`applyToMeet` 与 `mockApplyStates` 幂等（pending/accepted 不重复扣次）；首页与社区统一 `XsaApplySheet`。
+>>>>>>> sync/upstream-main-751a9f4
 - 2026-07-24：社区动态卡字段密度、发布页话题/声明/视频/表情、通知三栏已按设计实现（Mock + 页面渐进增强）；真机视频上传与 COS 仍属二期。
 - 用户肖像资源位于 `static/portraits/`。
 - HTML 参考 `design-demos/community-shell/` 已冻结，不再作为实现主线。
@@ -44,7 +49,7 @@
 ## 2. 运行与构建状态
 
 - 2026-07-24 结构验证：`node tests/test-mock-system.js` 与 `node tests/test-community-flow.js` 均 exit 0；`git diff --check` 无错误（仅有 CRLF 提示）。工作区根目录 graphify 见 `../graphify-out/`（本项目目录内无独立 `graphify-out/`）。
-- **HBuilderX 端侧编译：** 2026-07-25 关 Mock 后以 CLI `launch mp-weixin --compile true` 重新生成 `unpackage/dist/dev/mp-weixin`（产物 HTTP-only）；微信开发者工具已打开该目录。H5 冒烟预览端口为本机 `http://localhost:8080`（`:5173` 不是本工程 UI）。
+- **HBuilderX 端侧编译（本会话已执行，2026-07-23 17:57 产物）：** 以 HBuilderX CLI `launch mp-weixin --compile true` 重新生成 `unpackage/dist/dev/mp-weixin`；社区子页与 `api/community.js` 同步刷新；微信开发者工具可导入该目录。H5 冒烟预览端口为本机 `http://localhost:8080`（`:5173` 不是本工程 UI）。
 - **社区列表曾报“网络异常”：** 根因不是真实网络失败，而是 UTS 编译对象属性简写时丢掉局部变量（`normalizeListQuery` 返回 `{ tab }` 被编成裸 `tab` → ReferenceError → 页面 catch 文案）。源码已改为 `resolveTabValue` + 显式 `tab: tabName` 等属性名；产物中可见 `tab: tabName_1`。同类对象简写在 `.uts` 中应避免。
 - npm CLI 当前未通过：默认会读取不存在的 `src/manifest.json`；手动指定项目根目录后，又会在解析 `App.uvue` 时失败。`npm run build:mp-weixin` / `dev:mp-weixin` 不能作为端侧验收结论。
 - 因此当前应以 HBuilderX 作为端侧编译入口，并分别在浏览器和微信开发者工具验证；旧 `unpackage` 不能代替本次重新编译。
@@ -58,8 +63,9 @@
 
 聊天详情页已经存在，但产品规则仍是“先申请认识、双方同意后再建立沟通”。不得把现有页面理解为允许陌生人直接私信。
 
-## 4. 当前后端 / 联调状态
+## 4. 当前后端状态
 
+<<<<<<< HEAD
 - `api/request.uts`：当 `USE_MOCK=true` 时走 mock；当前 `false` 且 `API_CONFIG.useHttp=true`，走 FastAPI HTTP（Bearer）；`useHttp=false` 才回退 `uniCloud.callFunction`。
 - 仓库默认 `API_BASE_URL=http://127.0.0.1:8000`（真机/同网段联调请本地改为局域网 IP）；token 存 `xsa_access_token`。
 - 社区模块主链路与旁路（like/apply）**适配器 + 审查 P0 缺陷已修**。
@@ -72,6 +78,12 @@
 - Mock 应按模块逐步退役，不删除作为契约样例的有效数据；当前全局开关为 HTTP 联调态，联调结束后应恢复项目约定默认值，且勿把个人局域网 IP 当生产配置提交。
 - 消息、父母端与情感实验室不能随全局开关自动宣称已联调；关闭各自模块开关前，必须完成真实接口、鉴权、失败状态、主体语义和隐私字段联调。
 - 仍后置：媒体上传、消息页 applications 真路径、聊天 sessions FE、纸飞机 reply 幂等、区级筛选/完整 regions 选择器、自动化 E2E 入库；见 changelog / 审查台账 deferred。
+=======
+- `api/request.uts` 的真实分支调用 `uniCloud.callFunction`。
+- `api/config.uts` 中的 `spaceId` 当前是占位值，现有请求封装没有完成完整生产联调说明。
+- 因此不能只把 `USE_MOCK` 改为 `false` 就宣称真实接口完成。
+- Mock 应按模块逐步退役，不删除作为契约样例的有效数据。
+>>>>>>> sync/upstream-main-751a9f4
 
 ## 5. 配置与产品边界差异
 

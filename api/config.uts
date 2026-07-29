@@ -1,6 +1,7 @@
 /**
  * API 配置文件
  *
+<<<<<<< HEAD
  * 🧪 当前端侧回归使用 USE_MOCK = true
  * 🚀 完成真实接口联调后才改为 false，并配置可达的 API_BASE_URL
  */
@@ -15,14 +16,30 @@ export const USE_MOCK = true
 // 本机联调示例：http://127.0.0.1:8000
 // 真机/模拟器请改为可访问的局域网 IP；BE 需监听 0.0.0.0:8000
 // 本机真联调：8000 被其他服务占用，本会话 BE 在 8001
+=======
+ * 上游社区接口默认走本机 FastAPI；情感实验室与父母端各自维护显式 Mock 边界。
+ */
+
+// ⚠️ 唯一需要修改的开关：启用/禁用 Mock 数据
+// 关闭全局 Mock 后，社区与通用业务走真实 HTTP；不要把模块级 Mock 当成生产后端。
+// 不要只靠关 Mock 宣称生产完成
+export const USE_MOCK = false
+
+// FastAPI 服务根地址（不含 /api/v1）
+// 本机联调服务使用 8001，真机需改为可访问的局域网地址。
+>>>>>>> sync/upstream-main-751a9f4
 export const API_BASE_URL = 'http://127.0.0.1:8001'
 
 // 后端数据库恢复前，角色申请单独使用本地 Mock，避免提交时等待不可达的 API。
 // MySQL 和 FastAPI 恢复后改为 false，即会重新写入后端数据库。
 export const ROLE_APPLICATION_USE_MOCK = true
 
+<<<<<<< HEAD
 // 纸飞机的“获取次数”接口尚未在 FastAPI 中提供，暂使用本地 Mock，避免在小程序中请求超时。
 // 后端补齐 POST /community/paper-planes/chances 后改为 false。
+=======
+// 纸飞机次数接口尚未在本机后端提供，保持独立 Mock，避免主流程超时。
+>>>>>>> sync/upstream-main-751a9f4
 export const PAPER_PLANE_CHANCE_USE_MOCK = true
 
 // 真机联调时将 API_BASE_URL 改为此局域网地址，并确认 8001 已向本地子网放行。
@@ -40,13 +57,12 @@ export const ONBOARDING_COMPLETED_KEY = 'xsa_onboarding_completed'
 
 // API 基础配置
 export const API_CONFIG = {
-  // uniCloud 云函数配置（旧链路，useHttp=false 时使用）
+  // 旧云函数链路配置；当前请求默认走 FastAPI HTTP。
   cloudFunction: {
     timeout: 60000,
     spaceId: 'your-space-id'
   },
 
-  // 是否走 FastAPI HTTP（推荐联调路径）；false 时回退 uniCloud
   useHttp: true,
 
   // 请求超时配置
@@ -101,4 +117,22 @@ export function buildApiUrl(path: string): string {
   if (p.indexOf('/api/') == 0) return API_BASE_URL + p
   if (p.charAt(0) != '/') p = '/' + p
   return API_BASE_URL + API_PREFIX + p
+}
+
+/** 将后端返回的公开媒体路径转换为小程序可加载的绝对地址。 */
+export function resolveMediaUrl(value: any): string {
+  if (value == null) return ''
+  const p = '' + value
+  if (p == '') return ''
+  if (
+    p.indexOf('http://') == 0 ||
+    p.indexOf('https://') == 0 ||
+    p.indexOf('data:') == 0 ||
+    p.indexOf('blob:') == 0 ||
+    p.indexOf('wxfile://') == 0 ||
+    p.indexOf('/static/') == 0 ||
+    p.indexOf('mock://') == 0
+  ) return p
+  if (p.charAt(0) == '/') return API_BASE_URL + p
+  return p
 }

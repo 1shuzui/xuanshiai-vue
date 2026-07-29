@@ -1,5 +1,6 @@
 <template>
 	<view class="chat-page" :class="{ 'parent-mode': isParentMode }">
+<<<<<<< HEAD
 		<view class="permission-state" v-if="permissionLoading">
 			<text class="state-title">正在确认聊天权限...</text>
 		</view>
@@ -13,6 +14,26 @@
 				@click="retryPermission"
 			>重新确认</XsaButton>
 		</view>
+=======
+		<!-- 消息列表 -->
+		<scroll-view
+			class="message-list"
+			scroll-y
+			:scroll-into-view="scrollToView"
+			scroll-with-animation
+		>
+			<view
+				class="message-item"
+				:class="{ 'multi-selecting': multiSelectMode }"
+				v-for="(msg, index) in messages"
+				:key="index"
+				:id="'msg-' + index"
+			>
+				<!-- 时间线 -->
+				<view class="time-divider" v-if="msg.showTime">
+					<text class="time-text">{{ msg.time }}</text>
+				</view>
+>>>>>>> sync/upstream-main-751a9f4
 
 		<template v-else>
 			<scroll-view
@@ -42,6 +63,7 @@
 					<view class="time-divider" v-if="message.showTime">
 						<text class="time-text">{{ message.time }}</text>
 					</view>
+<<<<<<< HEAD
 
 					<view class="message-wrapper" :class="message.isMine ? 'mine' : 'other'">
 						<view
@@ -52,10 +74,25 @@
 							<text class="protected-avatar-text">隐私</text>
 						</view>
 						<image
+=======
+					<view
+						class="message-wrapper"
+						:class="msg.isMine ? 'mine' : 'other'"
+					>
+					<!-- 对方头像 -->
+	<view class="avatar protected-avatar" v-if="!msg.isMine && isParentMode">
+		<text>隐私</text>
+	</view>
+	<image
+>>>>>>> sync/upstream-main-751a9f4
 							class="avatar"
 							:src="message.avatar"
 							mode="aspectFill"
+<<<<<<< HEAD
 							v-else-if="!message.isMine"
+=======
+							v-else-if="!msg.isMine"
+>>>>>>> sync/upstream-main-751a9f4
 							@click="openPeerProfile"
 						></image>
 
@@ -94,6 +131,15 @@
 									@click="retryFailedMessage(message)"
 								>{{ message.errorMessage != null && message.errorMessage != '' ? message.errorMessage + '，点击重试' : '发送失败，点击重试' }}</text>
 						</view>
+<<<<<<< HEAD
+=======
+						<!-- 父母端不显示受保护的媒体和联系方式。 -->
+						<view class="protected-message" v-if="isParentMode && msg.type !== 'text'">
+							<text>内容已保护</text>
+						</view>
+						<!-- 文本消息 -->
+						<text class="text-content" v-else-if="msg.type === 'text'">{{ msg.content }}</text>
+>>>>>>> sync/upstream-main-751a9f4
 
 						<view class="avatar protected-avatar" v-if="message.isMine && isParentMode">
 							<text class="protected-avatar-text">子女</text>
@@ -102,8 +148,70 @@
 							class="avatar"
 							:src="message.avatar"
 							mode="aspectFill"
+<<<<<<< HEAD
 							v-else-if="message.isMine"
 						></image>
+=======
+							@click.stop="handleImageClick(msg)"
+							v-else-if="msg.type === 'image'"
+						></image>
+
+						<!-- 语音消息 -->
+						<view class="voice-content" v-else-if="msg.type === 'voice'">
+							<text class="icon">🔊</text>
+							<text class="duration">{{ msg.duration }}''</text>
+						</view>
+
+						<!-- 联系方式交换申请 -->
+						<view
+							class="wechat-request-card"
+							:class="msg.requestStatus"
+							v-if="!isParentMode && isContactRequestType(msg.type)"
+						>
+							<view class="wechat-request-head">
+								<view class="wechat-request-mark">
+									<view class="request-bubble request-bubble-main"></view>
+									<view class="request-bubble request-bubble-small"></view>
+								</view>
+								<text class="wechat-request-title">{{ getContactRequestTitle(msg) }}</text>
+							</view>
+							<text class="wechat-request-copy">{{ getContactRequestCopy(msg) }}</text>
+							<view class="wechat-contact" v-if="msg.requestStatus === 'accepted'">
+								<text class="wechat-contact-label">{{ getContactLabel(msg) }}</text>
+								<text class="wechat-contact-value">{{ formatContactValue(msg) }}</text>
+							</view>
+							<view class="wechat-request-footer">
+								<view
+									class="wechat-request-actions"
+									v-if="!msg.isMine && msg.requestStatus === 'pending'"
+								>
+									<button class="request-action request-reject" @click.stop="respondContactRequest(msg, 'reject')">拒绝</button>
+									<button class="request-action request-accept" @click.stop="respondContactRequest(msg, 'accept')">同意</button>
+								</view>
+								<button
+									class="request-action request-copy"
+									v-else-if="msg.requestStatus === 'accepted'"
+									@click.stop="copyContactValue(msg)"
+								>{{ getCopyButtonText(msg) }}</button>
+								<view class="wechat-request-status" v-else>
+									<view class="request-status-dot" :class="msg.requestStatus"></view>
+									<text>{{ getContactRequestStatusText(msg) }}</text>
+								</view>
+							</view>
+						</view>
+					</view>
+
+					<!-- 我的头像 -->
+						<view class="avatar protected-avatar" v-if="msg.isMine && isParentMode">
+							<text>子女</text>
+						</view>
+						<image
+							class="avatar"
+							:src="msg.avatar"
+							mode="aspectFill"
+							v-else-if="msg.isMine"
+					></image>
+>>>>>>> sync/upstream-main-751a9f4
 					</view>
 				</view>
 			</scroll-view>
@@ -124,6 +232,7 @@
 						<text class="icon">{{ showMore ? '×' : '+' }}</text>
 					</button>
 				</view>
+<<<<<<< HEAD
 
 				<view class="more-actions" v-if="showMore">
 						<view class="menu-grid">
@@ -142,6 +251,105 @@
 							<view class="menu-item" v-if="!isParentMode && !isPaperPlaneConversation" @click="openContactExchange">
 								<view class="menu-icon">⌁</view>
 								<text class="menu-text">联系方式</text>
+=======
+				<button class="quote-close-button" aria-label="取消引用" @click="clearQuote">×</button>
+			</view>
+			<button
+				class="paste-action"
+				v-if="pasteVisible"
+				@click.stop="pasteClipboard"
+			>粘贴</button>
+			<view class="input-wrapper">
+					<button class="tool-btn voice-tool-btn" v-if="!isParentMode" @click="sendVoice">
+					<view class="voice-mic">
+						<view class="voice-mic-head"></view>
+						<view class="voice-mic-bracket"></view>
+						<view class="voice-mic-stem"></view>
+						<view class="voice-mic-base"></view>
+					</view>
+				</button>
+				<input
+					class="input"
+					type="text"
+					:value="inputText"
+					@input="onInput"
+					@longpress.stop="showPasteAction"
+					placeholder="说点什么..."
+					confirm-type="send"
+					@confirm="sendMessage"
+				/>
+					<button class="tool-btn" @click="showMoreMenu">
+					<text class="icon">+</text>
+				</button>
+				<button class="send-btn" @click="sendMessage">发送</button>
+			</view>
+		</view>
+		<view class="multi-action-bar" v-else>
+			<text class="multi-selected-count">已选择 {{ selectedMessageIds.length }} 条</text>
+			<view class="multi-action-buttons">
+				<button class="multi-action-button danger" :disabled="selectedMessageIds.length === 0" @click="deleteMultiSelectedMessages">删除</button>
+				<button class="multi-action-button" @click="exitMultiSelect">取消</button>
+			</view>
+		</view>
+
+		<!-- 更多功能菜单 -->
+		<view class="more-menu" v-if="showMore" @click="closeMoreMenu">
+			<view class="menu-content" @click.stop>
+				<view class="menu-grid">
+					<view class="menu-item" v-if="!isParentMode" @click="chooseImage">
+						<view class="menu-icon menu-icon-album">
+							<view class="album-card album-card-back"></view>
+							<view class="album-card album-card-front">
+								<view class="album-sun"></view>
+								<view class="album-hill"></view>
+							</view>
+						</view>
+						<text class="menu-text">相册</text>
+					</view>
+					<view class="menu-item" v-if="!isParentMode" @click="takePhoto">
+						<view class="menu-icon menu-icon-camera">
+							<view class="camera-top"></view>
+							<view class="camera-body">
+								<view class="camera-lens"></view>
+							</view>
+						</view>
+						<text class="menu-text">拍照</text>
+					</view>
+					<view
+						class="menu-item"
+						v-if="!isParentMode"
+						:class="{ disabled: wechatExchangeDisabled }"
+						@click="requestWechatExchange"
+					>
+						<view class="menu-icon menu-icon-wechat">
+							<view class="chat-bubble chat-bubble-main">
+								<view class="chat-dot"></view>
+								<view class="chat-dot"></view>
+								<view class="chat-dot"></view>
+							</view>
+							<view class="chat-bubble chat-bubble-small"></view>
+						</view>
+						<text class="menu-text">交换微信</text>
+					</view>
+<view
+							class="menu-item"
+							v-if="!isParentMode"
+							:class="{ disabled: phoneExchangeDisabled }"
+							@click="requestPhoneExchange"
+						>
+							<view class="menu-icon menu-icon-phone">
+								<view class="mobile-phone">
+									<view class="mobile-speaker"></view>
+									<view class="mobile-screen"></view>
+									<view class="mobile-home"></view>
+								</view>
+							</view>
+							<text class="menu-text">交换电话</text>
+						</view>
+						<view class="menu-item" @click="openChatReport">
+							<view class="menu-icon">
+								<text class="icon">⚑</text>
+>>>>>>> sync/upstream-main-751a9f4
 							</view>
 							<view class="menu-item" v-if="!isPaperPlaneConversation" @click="openChatReport">
 							<view class="menu-icon">⚑</view>
@@ -155,11 +363,19 @@
 			<XsaReportSheet
 			:visible="reportVisible"
 			target-type="chatUser"
+<<<<<<< HEAD
 			:target-id="userId"
 			:user-id="userId"
 			:large-text="isParentMode"
 			:parent-mode="isParentMode"
 			:parent-context="activeParentContext"
+=======
+				:target-id="userId"
+				:user-id="userId"
+				:large-text="isParentMode"
+				:parent-mode="isParentMode"
+				:parent-context="activeParentContext"
+>>>>>>> sync/upstream-main-751a9f4
 			@close="reportVisible = false"
 				@reported="reportVisible = false"
 			/>
@@ -198,6 +414,7 @@
 </template>
 
 <script setup lang="uts">
+<<<<<<< HEAD
 	import XsaButton from '@/components/XsaButton.uvue'
 	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
 	import XsaSheet from '@/components/XsaSheet.uvue'
@@ -217,6 +434,29 @@
 		sendPaperPlaneMessage,
 		readPaperPlaneConversation
 	} from '@/api'
+=======
+// 导入 API
+		import {
+			getChatMessages,
+			sendMessage as sendMessageApi,
+			getPaperPlaneMessages,
+			sendPaperPlaneMessage,
+			readPaperPlaneConversation,
+			handleContactExchangeRequest,
+			getChatFeatureUnlocks,
+			unlockChatFeature,
+			getParentContext,
+			getParentAccessGate
+		} from '@/api';
+		import type { MessageSubject, ParentContext } from '@/api'
+		import XsaReportSheet from '@/components/XsaReportSheet.uvue'
+		import {
+		createMatchedConversation,
+		getMatchedConversation,
+		updateConversationPreview,
+		MATCH_GREETING
+	} from '@/utils/conversation.uts';
+>>>>>>> sync/upstream-main-751a9f4
 
 	const messages = ref([] as any[])
 	const inputText = ref('')
@@ -258,6 +498,7 @@
 	let voiceRecorder: any = null
 	let discardVoiceRecording = false
 
+<<<<<<< HEAD
 	onMounted(() => {
 		setupVoiceRecorder()
 		const pages = getCurrentPages()
@@ -289,6 +530,139 @@
 		}
 		verifyChatPermission()
 	})
+=======
+	// 消息列表（改为空数组）
+		let messages = ref([])
+
+	let inputText = ref('')
+	let pasteVisible = ref(false)
+		let showMore = ref(false)
+		let messageActionMenuVisible = ref(false)
+		let selectedChatMessage = ref<any>(null)
+		let actionMenuLeft = ref(8)
+		let actionMenuTop = ref(8)
+		let multiSelectMode = ref(false)
+		let selectedMessageIds = ref([] as any[])
+		let quotedMessage = ref<any>(null)
+		let scrollToView = ref('')
+		let loading = ref(false)
+		let userId = ref(0)
+		let paperPlaneConversationId = ref(0)
+		let peerName = ref('对方')
+		let peerAvatar = ref('/static/portraits/profile-woman-main.jpg')
+let contactExchangeRecords = ref([] as any[])
+			let contactExchangeDailyKeys = ref([] as any[])
+			let reportVisible = ref(false)
+			let chatFeatureUnlocks = ref({ album: false, camera: false, profile: false } as any)
+			const isParentMode = ref(false)
+			const activeParentContext = ref(null as ParentContext | null)
+			const activeMessageSubject = ref({ mode: 'self' } as MessageSubject)
+
+		const wechatExchangeDisabled = computed(() => {
+			return isContactExchangeDisabled('wechat')
+		})
+
+		const phoneExchangeDisabled = computed(() => {
+			return isContactExchangeDisabled('phone')
+		})
+
+		const isContactExchangeDisabled = (contactType: string): boolean => {
+			const dailyKey = `${contactType}:${userId.value}:${getDateKey()}`
+			if (contactExchangeDailyKeys.value.indexOf(dailyKey) >= 0) return true
+			const list = messages.value as any[]
+			for (let index = 0; index < list.length; index++) {
+				const message = list[index]
+				if (
+					isContactRequestType(message.type) &&
+					message.contactType === contactType &&
+					message.isMine === true &&
+					message.requestDate === getDateKey()
+				) return true
+			}
+			return false
+		};
+
+		const newClientCommandId = (prefix: string): string => {
+			return prefix + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000000)
+		}
+
+		const resolveCurrentMessageSubject = async (): Promise<MessageSubject | null> => {
+			const storedMode = uni.getStorageSync('xsa_onboarding_mode')
+			if (storedMode == null || String(storedMode) != 'parent') {
+				isParentMode.value = false
+				activeParentContext.value = null
+				activeMessageSubject.value = { mode: 'self' } as MessageSubject
+				return activeMessageSubject.value
+			}
+
+			const contextRes = await getParentContext()
+			if (contextRes == null || contextRes.success != true || contextRes.data == null) {
+				messages.value = []
+				uni.showToast({ title: contextRes != null && contextRes.message != null ? contextRes.message : '父母端授权已失效', icon: 'none' })
+				return null
+			}
+			const context = contextRes.data as ParentContext
+			const gate = getParentAccessGate(context)
+			if (gate == null || gate.allowed != true || context.child == null || context.child.id <= 0) {
+				messages.value = []
+				uni.showToast({ title: gate != null && gate.message != null ? gate.message : '父母端授权已失效', icon: 'none' })
+				return null
+			}
+			isParentMode.value = true
+			activeParentContext.value = context
+			activeMessageSubject.value = { mode: 'parent', childId: context.child.id } as MessageSubject
+			return activeMessageSubject.value
+		}
+
+		const initializeChat = async () => {
+		// 获取 URL 参数中的 userId
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = currentPage.options
+		if (options && options.userName) {
+			peerName.value = decodeURIComponent(options.userName)
+			uni.setNavigationBarTitle({
+				title: peerName.value
+			})
+		}
+		if (options && options.paperPlaneLabel) {
+			peerName.value = decodeURIComponent(options.paperPlaneLabel)
+			uni.setNavigationBarTitle({ title: peerName.value })
+		}
+		if (options && options.paperPlaneConversationId) {
+			const parsedConversationId = parseInt(options.paperPlaneConversationId)
+			if (parsedConversationId > 0) {
+				paperPlaneConversationId.value = parsedConversationId
+					const subject = await resolveCurrentMessageSubject()
+					if (subject == null) return
+					if (isParentMode.value) {
+						uni.showToast({ title: '父母端不支持纸飞机匿名会话', icon: 'none' })
+						uni.navigateBack()
+						return
+					}
+					loadPaperPlaneMessages()
+					return
+			}
+		}
+if (options && options.userId) {
+				userId.value = parseInt(options.userId)
+					const subject = await resolveCurrentMessageSubject()
+					if (subject == null) return
+					if (!isParentMode.value) loadChatFeatureUnlocks()
+					loadContactExchangeState()
+					loadChatMessages()
+				}
+		}
+
+		onMounted(() => {
+			initializeChat()
+		})
+
+		onShow(() => {
+			if (paperPlaneConversationId.value > 0 || userId.value <= 0) return
+			loadChatMessages()
+		})
+>>>>>>> sync/upstream-main-751a9f4
 
 	onShow(() => {
 		if (!isPaperPlaneConversation.value && userId.value > 0) verifyChatPermission()
@@ -475,6 +849,7 @@
 		}
 	}
 
+<<<<<<< HEAD
 	const isPermissionRequestCurrent = (
 		requestId: number,
 		requestVersion: number,
@@ -495,6 +870,122 @@
 			if (!Number.isFinite(userId.value) || Math.floor(userId.value) != userId.value || userId.value <= 0) {
 				clearChatSensitiveState('无效的聊天对象', true)
 				return
+=======
+		// 加载聊天记录
+		const loadChatMessages = async () => {
+			try {
+				loading.value = true
+				const subject = await resolveCurrentMessageSubject()
+				if (subject == null) return
+				const matchedConversation = getMatchedConversation(userId.value)
+				if (
+					!isParentMode.value &&
+					matchedConversation != null &&
+					matchedConversation.source === 'application' &&
+					matchedConversation.greetingMessage != null
+				) {
+					peerAvatar.value = matchedConversation.avatar
+					const greeting = matchedConversation.greetingMessage
+					messages.value = [{
+						id: greeting.id,
+						type: 'text',
+						content: MATCH_GREETING,
+						time: formatTime(greeting.time),
+						showTime: false,
+						isMine: greeting.isMine === true,
+						avatar: greeting.avatar != null && greeting.avatar.length > 0
+							? greeting.avatar
+							: (greeting.isMine === true ? '/static/portraits/profile-man-light.jpg' : matchedConversation.avatar)
+					}]
+					scrollToBottom()
+					return
+				}
+				const res = await getChatMessages(
+					userId.value,
+					isParentMode.value ? 'protected' : 'standard',
+					subject
+				)
+				if (res.success) {
+					const list = res.data as any[]
+					if (list.length > 0) {
+						const firstOther = list.find((m: any) => m.isMine != true)
+						if (firstOther != null && firstOther.senderAvatar != null) {
+							peerAvatar.value = firstOther.senderAvatar
+						}
+					}
+					const mapped = list.map((msg: any, idx: number) => ({
+						id: msg.id,
+						type: msg.type,
+						content: msg.content,
+						time: msg.timeLabel != null ? msg.timeLabel : formatTime(msg.time),
+						showTime: msg.showTime == true || idx == 0,
+						isMine: msg.isMine,
+							avatar: isParentMode.value ? '' : msg.senderAvatar,
+						requestStatus: msg.requestStatus != null ? msg.requestStatus : 'pending',
+						contactType: msg.contactType != null ? msg.contactType : (msg.type === 'phone-request' ? 'phone' : 'wechat'),
+						contactValue: msg.contactValue != null ? msg.contactValue : '',
+						requestDate: msg.requestDate != null ? msg.requestDate : getDateKey(msg.time),
+						quoteName: msg.quoteName != null ? msg.quoteName : '',
+						quoteText: msg.quoteText != null ? msg.quoteText : '',
+						editableContent: msg.editableContent != null ? msg.editableContent : '',
+						originalQuoteName: msg.originalQuoteName != null ? msg.originalQuoteName : '',
+						originalQuoteText: msg.originalQuoteText != null ? msg.originalQuoteText : ''
+					}))
+					const records = contactExchangeRecords.value as any[]
+					records.forEach((record: any) => {
+						if (record.userId != userId.value) return
+						const existing = mapped.find((item: any) => item.id == record.id && isContactRequestType(item.type))
+						if (existing != null) {
+							if (existing.requestStatus === 'pending' && record.requestStatus !== 'pending') {
+								existing.requestStatus = record.requestStatus
+							}
+							if ((existing.contactValue == null || existing.contactValue.length == 0) && record.contactValue != null) {
+								existing.contactValue = record.contactValue
+							}
+						} else {
+							mapped.push({
+								id: record.id,
+								type: record.type,
+								content: record.content,
+								time: record.time,
+								showTime: false,
+								isMine: record.isMine,
+								avatar: record.avatar,
+								requestStatus: record.requestStatus,
+								contactType: record.contactType,
+								contactValue: record.contactValue,
+								requestDate: record.requestDate
+							})
+						}
+					})
+					if (
+						matchedConversation != null &&
+						matchedConversation.source === 'contact-exchange' &&
+						mapped.findIndex((message: any) => message.content === MATCH_GREETING) < 0
+					) {
+						mapped.unshift({
+							id: matchedConversation.greetingMessage.id,
+							type: 'text',
+							content: MATCH_GREETING,
+							time: formatTime(matchedConversation.greetingMessage.time),
+							showTime: false,
+							isMine: matchedConversation.greetingMessage.isMine === true,
+							avatar: matchedConversation.greetingMessage.avatar != null
+								&& matchedConversation.greetingMessage.avatar.length > 0
+								? matchedConversation.greetingMessage.avatar
+								: (matchedConversation.greetingMessage.isMine === true
+									? '/static/portraits/profile-man-light.jpg'
+									: matchedConversation.avatar)
+						})
+					}
+					messages.value = mapped
+					scrollToBottom()
+				}
+			} catch (error) {
+				console.error('获取聊天记录失败', error)
+			} finally {
+				loading.value = false
+>>>>>>> sync/upstream-main-751a9f4
 			}
 			if (!await confirmRoleAccess()) return
 			if (requestId != permissionRequestSequence) return
@@ -735,6 +1226,7 @@
 		}
 	}
 
+<<<<<<< HEAD
 	const deliverMessage = async (message: any) => {
 		if (message.status === 'sending') return
 		const expectedSubjectKey = message.subjectKey != null ? String(message.subjectKey) : ''
@@ -754,6 +1246,11 @@
 		if (!stillAllowed) {
 			message.status = 'failed'
 			message.errorMessage = '聊天权限确认失败'
+=======
+	// 发送消息
+		const sendMessage = async () => {
+		if (!inputText.value.trim()) {
+>>>>>>> sync/upstream-main-751a9f4
 			return
 		}
 		const subject = activeMessageSubject.value
@@ -792,6 +1289,7 @@
 		}
 	}
 
+<<<<<<< HEAD
 	const sendMessage = async () => {
 		const content = inputText.value.trim()
 		if (content == '' || sendingText.value || !chatAllowed.value) return
@@ -892,6 +1390,19 @@
 				type: type,
 				content: filePath,
 				mediaId: null,
+=======
+			const content = inputText.value
+			const subject = paperPlaneConversationId.value > 0
+				? ({ mode: 'self' } as MessageSubject)
+				: await resolveCurrentMessageSubject()
+			if (subject == null) return
+		pasteVisible.value = false
+			const currentQuote = quotedMessage.value
+			const newMsg = {
+				id: Date.now(),
+				type: 'text',
+				content: content,
+>>>>>>> sync/upstream-main-751a9f4
 				time: getCurrentTime(),
 				showTime: false,
 				isMine: true,
@@ -910,9 +1421,93 @@
 				message.errorMessage = '媒体上传失败'
 				return
 			}
+<<<<<<< HEAD
 			if (uploadRes == null || uploadRes.success != true || uploadRes.data == null || Number(uploadRes.data.id) <= 0) {
 				message.status = 'failed'
 				message.errorMessage = responseMessage(uploadRes, '媒体上传失败')
+=======
+
+			// 调用发送消息接口
+			try {
+				const res = await sendMessageApi(
+					userId.value,
+					content,
+					'text',
+					newClientCommandId('chat-message'),
+					subject
+				)
+				if (res.success) {
+					if (res.data != null && res.data.messageId != null) {
+						newMsg.id = res.data.messageId
+					}
+					// 仅普通演示会话补一条本地回复；父母端只显示受授权子女的实际线程。
+					if (isParentMode.value) return
+					setTimeout(() => {
+						const replies = ['听起来不错！', '我也这么觉得。', '有道理，我们可以约个时间详细聊聊。', '好的，期待和你见面。', '这个想法很棒！']
+						const i = Math.floor(Math.random() * replies.length)
+						const replyContent = replies[i]
+						messages.value.push({
+							id: Date.now() + 1,
+							type: 'text',
+							content: replyContent,
+							time: getCurrentTime(),
+							showTime: false,
+							isMine: false,
+							avatar: peerAvatar.value
+						})
+						updateConversationPreview(userId.value, replyContent, Date.now(), 'text')
+						scrollToBottom()
+					}, 1600)
+				} else {
+					messages.value = (messages.value as any[]).filter((item: any) => item.id != newMsg.id)
+					uni.showToast({ title: res.message != null ? res.message : '发送失败，请重试', icon: 'none' })
+				}
+			} catch (error) {
+				console.error('发送消息失败', error)
+				uni.showToast({
+					title: '发送失败',
+					icon: 'none'
+				})
+			}
+		}
+
+	// 预览图片
+	const previewImage = (url: string) => {
+		const images = messages.value
+			.filter(msg => msg.type === 'image')
+			.map(msg => msg.content)
+
+		uni.previewImage({
+			current: url,
+			urls: images
+		})
+	}
+
+	// 显示更多菜单
+	const showMoreMenu = () => {
+		showMore.value = true
+	}
+
+// 关闭更多菜单
+		const closeMoreMenu = () => {
+			showMore.value = false
+		}
+
+		const loadChatFeatureUnlocks = async () => {
+			try {
+				const res = await getChatFeatureUnlocks()
+				if (res != null && res.success && res.data != null) {
+					chatFeatureUnlocks.value = res.data as any
+				}
+			} catch (error) {
+				console.error('获取聊天功能解锁状态失败', error)
+			}
+		}
+
+		const ensureChatFeatureUnlocked = (feature: string, label: string, action: () => void) => {
+			if (chatFeatureUnlocks.value[feature] == true) {
+				action()
+>>>>>>> sync/upstream-main-751a9f4
 				return
 			}
 			message.mediaId = Number(uploadRes.data.id)
@@ -934,6 +1529,7 @@
 			})
 		}
 
+<<<<<<< HEAD
 		const chooseChatVideo = () => {
 			if (isParentMode.value) return
 			uni.chooseVideo({
@@ -1019,6 +1615,55 @@
 		const closeContactExchange = () => {
 			contactVisible.value = false
 			contactError.value = ''
+=======
+		// 拍摄：首次使用需消耗 80 积分解锁。
+		const takePhoto = () => {
+			ensureChatFeatureUnlocked('camera', '拍摄', () => openImagePicker('camera'))
+		}
+
+		// 点击对方头像：首次查看主页需消耗 80 积分解锁。
+		const openPeerProfile = () => {
+			if (userId.value <= 0) {
+				uni.showToast({ title: '暂时无法获取对方资料', icon: 'none' })
+				return
+			}
+			if (isParentMode.value) {
+				uni.navigateTo({ url: '/pages/parent/user-detail?id=' + userId.value })
+				return
+			}
+			ensureChatFeatureUnlocked('profile', '查看对方主页', () => {
+				uni.navigateTo({
+					url: '/pages/user/detail?userId=' + userId.value
+				})
+			})
+		}
+
+		const openChatReport = async () => {
+			closeMoreMenu()
+			const subject = await resolveCurrentMessageSubject()
+			if (subject == null) return
+			reportVisible.value = true
+		}
+
+	const getMessageSummary = (message: any): string => {
+		if (message.type === 'text') return message.content != null ? message.content.toString() : ''
+		if (message.type === 'image') return '[图片]'
+		if (message.type === 'voice') return '[语音]'
+		if (message.type === 'phone-request') return `[电话申请] ${getContactRequestCopy(message)}`
+		if (message.type === 'wechat-request') return `[微信申请] ${getContactRequestCopy(message)}`
+		return '[消息]'
+	}
+
+	const canRevokeMessage = (message: any): boolean => {
+		return !isParentMode.value && message != null && message.isMine === true && !isContactRequestType(message.type)
+	}
+
+	const handleChatMessageLongPress = (message: any, index: number) => {
+		if (isParentMode.value || message == null) return
+		if (multiSelectMode.value) {
+			toggleMessageSelection(message)
+			return
+>>>>>>> sync/upstream-main-751a9f4
 		}
 
 		const onContactValueInput = (event: InputEvent) => {
@@ -1031,6 +1676,7 @@
 			return exchange.requestedByMe == true ? '等待对方确认' : '等待你的确认'
 		}
 
+<<<<<<< HEAD
 		const submitContactExchange = async () => {
 			if (contactSubmitting.value || isParentMode.value) return
 			const subject = activeMessageSubject.value
@@ -1044,6 +1690,318 @@
 				if (res == null || res.success != true) {
 					contactError.value = responseMessage(res, '联系方式请求发送失败')
 					return
+=======
+	const quoteSelectedMessage = () => {
+		if (selectedChatMessage.value == null) return
+		const message = selectedChatMessage.value
+		quotedMessage.value = {
+			id: message.id,
+			name: message.isMine === true ? '我' : peerName.value,
+			text: getMessageSummary(message)
+		}
+		closeMessageActionMenu()
+	}
+
+	const clearQuote = () => {
+		quotedMessage.value = null
+	}
+
+	const startMultiSelect = () => {
+		if (selectedChatMessage.value == null) return
+		const messageId = selectedChatMessage.value.id
+		multiSelectMode.value = true
+		selectedMessageIds.value = [messageId]
+		closeMessageActionMenu()
+	}
+
+	const exitMultiSelect = () => {
+		multiSelectMode.value = false
+		selectedMessageIds.value = []
+	}
+
+	const isMessageSelected = (message: any): boolean => {
+		return selectedMessageIds.value.indexOf(message.id) >= 0
+	}
+
+	const toggleMessageSelection = (message: any) => {
+		const index = selectedMessageIds.value.indexOf(message.id)
+		if (index >= 0) {
+			selectedMessageIds.value.splice(index, 1)
+		} else {
+			selectedMessageIds.value.push(message.id)
+		}
+		selectedMessageIds.value = selectedMessageIds.value.slice()
+	}
+
+	const handleMessageBubbleClick = (message: any) => {
+		if (multiSelectMode.value) toggleMessageSelection(message)
+	}
+
+	const handleImageClick = (message: any) => {
+		if (multiSelectMode.value) {
+			toggleMessageSelection(message)
+			return
+		}
+		previewImage(message.content)
+	}
+
+	const preserveContactRequestLimitAfterDelete = (message: any) => {
+		if (!isContactRequestType(message.type) || message.isMine !== true) return
+		const contactType = message.contactType != null
+			? message.contactType.toString()
+			: (message.type === 'phone-request' ? 'phone' : 'wechat')
+		const requestDate = message.requestDate != null ? message.requestDate.toString() : getDateKey()
+		const dailyKey = `${contactType}:${userId.value}:${requestDate}`
+		if (contactExchangeDailyKeys.value.indexOf(dailyKey) < 0) {
+			contactExchangeDailyKeys.value.push(dailyKey)
+		}
+	}
+
+	const deleteMessagesByIds = (messageIds: any[]) => {
+		const currentMessages = messages.value as any[]
+		const removedMessages = currentMessages.filter((message: any) => messageIds.indexOf(message.id) >= 0)
+		removedMessages.forEach((message: any) => preserveContactRequestLimitAfterDelete(message))
+		contactExchangeRecords.value = (contactExchangeRecords.value as any[]).filter((record: any) => {
+			return record.userId != userId.value || messageIds.indexOf(record.id) < 0
+		})
+		try {
+			uni.setStorageSync(CONTACT_EXCHANGE_RECORDS_KEY, contactExchangeRecords.value)
+			uni.setStorageSync(CONTACT_EXCHANGE_DAILY_KEY, contactExchangeDailyKeys.value)
+		} catch (error) {
+			console.error(error)
+		}
+		messages.value = currentMessages.filter((message: any) => messageIds.indexOf(message.id) < 0)
+		if (quotedMessage.value != null && messageIds.indexOf(quotedMessage.value.id) >= 0) {
+			quotedMessage.value = null
+		}
+	}
+
+	const deleteSelectedChatMessage = () => {
+		if (selectedChatMessage.value == null) return
+		const messageId = selectedChatMessage.value.id
+		closeMessageActionMenu()
+		deleteMessagesByIds([messageId])
+		uni.showToast({ title: '消息已删除', icon: 'none' })
+	}
+
+	const deleteMultiSelectedMessages = () => {
+		if (selectedMessageIds.value.length == 0) return
+		const messageIds = selectedMessageIds.value.slice()
+		deleteMessagesByIds(messageIds)
+		exitMultiSelect()
+		uni.showToast({ title: '已删除选中消息', icon: 'none' })
+	}
+
+	const revokeSelectedMessage = () => {
+		if (selectedChatMessage.value == null) return
+		const selectedMessage = selectedChatMessage.value
+		if (!canRevokeMessage(selectedMessage)) return
+		const messageId = selectedMessage.id
+		releaseContactRequestAfterRevoke(selectedMessage)
+		const currentMessages = messages.value as any[]
+		const messageIndex = currentMessages.findIndex((message: any) => message.id == messageId)
+		if (messageIndex >= 0) {
+			currentMessages.splice(messageIndex, 1, {
+				id: Date.now(),
+				type: 'revoke-notice',
+				content: '',
+				time: selectedMessage.time,
+				showTime: false,
+				isMine: true,
+				avatar: '',
+				editableContent: selectedMessage.content != null ? selectedMessage.content.toString() : '',
+				originalQuoteName: selectedMessage.quoteName != null ? selectedMessage.quoteName : '',
+				originalQuoteText: selectedMessage.quoteText != null ? selectedMessage.quoteText : ''
+			})
+			messages.value = currentMessages.slice()
+		}
+		closeMessageActionMenu()
+	}
+
+	const reeditRevokedMessage = (message: any) => {
+		if (message == null || message.isMine !== true) return
+		inputText.value = message.editableContent != null ? message.editableContent.toString() : ''
+		if (message.originalQuoteText != null && message.originalQuoteText.length > 0) {
+			quotedMessage.value = {
+				id: message.id,
+				name: message.originalQuoteName != null ? message.originalQuoteName : '',
+				text: message.originalQuoteText
+			}
+		} else {
+			quotedMessage.value = null
+		}
+		if (multiSelectMode.value) exitMultiSelect()
+	}
+
+// 发送语音
+	const sendVoice = () => {
+		uni.showToast({
+			title: '长按录音',
+			icon: 'none'
+		})
+	}
+
+		const requestContactExchange = async (contactType: string) => {
+			if (isParentMode.value) return
+		if (isContactExchangeDisabled(contactType)) return
+		const contactName = contactType === 'phone' ? '电话' : '微信'
+		const requestMessage: any = {
+			id: Date.now(),
+			type: `${contactType}-request`,
+			content: `您已向对方发起交换${contactName}申请，等待对方确认…`,
+			requestStatus: 'pending',
+			contactType: contactType,
+			contactValue: '',
+			requestDate: getDateKey(),
+			time: getCurrentTime(),
+			showTime: false,
+			isMine: true,
+			avatar: '/static/portraits/profile-man-light.jpg'
+		}
+		messages.value.push(requestMessage)
+		updateConversationPreview(userId.value, requestMessage.content, Date.now(), requestMessage.type)
+		closeMoreMenu()
+		scrollToBottom()
+		try {
+			const res = await sendMessageApi(
+				userId.value,
+				requestMessage.content,
+				`${contactType}-request`,
+				newClientCommandId('contact-request'),
+				{ mode: 'self' } as MessageSubject
+			)
+			if (!res.success) {
+				messages.value = (messages.value as any[]).filter((item: any) => item.id != requestMessage.id)
+				uni.showToast({ title: '申请发送失败，请重试', icon: 'none' })
+				return
+			}
+			if (res.data != null && res.data.messageId != null) {
+				requestMessage.id = res.data.messageId
+			}
+			markContactRequestSentToday(contactType)
+			persistContactRequest(requestMessage)
+		} catch (error) {
+			messages.value = (messages.value as any[]).filter((item: any) => item.id != requestMessage.id)
+			uni.showToast({ title: '申请发送失败，请重试', icon: 'none' })
+		}
+	}
+
+	const requestWechatExchange = () => {
+		requestContactExchange('wechat')
+	}
+
+	const requestPhoneExchange = () => {
+		requestContactExchange('phone')
+	}
+
+	const getContactRequestTitle = (message: any): string => {
+		return message.contactType === 'phone' ? '交换电话申请' : '交换微信申请'
+	}
+
+	const getContactRequestCopy = (message: any): string => {
+		const contactName = message.contactType === 'phone' ? '电话' : '微信'
+		if (message.requestStatus === 'accepted') return `已成功交换${contactName}`
+		if (message.requestStatus === 'rejected') {
+			return message.isMine ? `对方已拒绝交换${contactName}申请` : `已拒绝交换${contactName}申请`
+		}
+		return message.isMine
+			? `您已向对方发起交换${contactName}申请，等待对方确认…`
+			: `对方申请与您交换${contactName}`
+	}
+
+	const getContactRequestStatusText = (message: any): string => {
+		if (message.requestStatus === 'rejected') return message.isMine ? '对方已拒绝' : '已拒绝'
+		return '等待确认'
+	}
+
+	const formatContactValue = (message: any): string => {
+		const value = message.contactValue != null ? message.contactValue.toString() : ''
+		if (message.contactType === 'phone' && value.length >= 7) {
+			return `${value.slice(0, 3)}****${value.slice(value.length - 4)}`
+		}
+		return value
+	}
+
+	const getContactLabel = (message: any): string => {
+		return message.contactType === 'phone' ? '对方电话' : '对方微信号'
+	}
+
+	const getCopyButtonText = (message: any): string => {
+		return message.contactType === 'phone' ? '复制电话' : '复制微信号'
+	}
+
+	const copyContactValue = (message: any) => {
+		if (multiSelectMode.value) {
+			toggleMessageSelection(message)
+			return
+		}
+		if (message.requestStatus !== 'accepted' || message.contactValue == null || message.contactValue.length == 0) return
+		uni.setClipboardData({
+			data: message.contactValue,
+			success: () => {
+				uni.showToast({ title: `${message.contactType === 'phone' ? '电话' : '微信号'}已复制`, icon: 'none' })
+			}
+		})
+	}
+
+	const ensureMatchedConversationAfterExchange = (message: any) => {
+		if (message.contactType !== 'wechat') return
+		const currentMessages = messages.value as any[]
+		const hasConversationContent = currentMessages.some((item: any) => {
+					return item.type === 'text' || item.type === 'image' || item.type === 'voice'
+		})
+		if (hasConversationContent) return
+		const result = createMatchedConversation(
+			userId.value,
+			peerName.value,
+			peerAvatar.value,
+			'contact-exchange',
+			false,
+			peerAvatar.value
+		)
+		if (result.created !== true || result.conversation == null) return
+		const greeting = result.conversation.greetingMessage
+		messages.value = [{
+			id: greeting.id,
+			type: 'text',
+			content: MATCH_GREETING,
+			time: formatTime(greeting.time),
+			showTime: false,
+			isMine: greeting.isMine === true,
+			avatar: greeting.avatar != null && greeting.avatar.length > 0 ? greeting.avatar : peerAvatar.value
+		}].concat(currentMessages)
+		scrollToBottom()
+	}
+
+	const respondContactRequest = async (message: any, action: string) => {
+		if (multiSelectMode.value) {
+			toggleMessageSelection(message)
+			return
+		}
+		if (message.requestStatus !== 'pending') return
+		const previousStatus = message.requestStatus
+		const previousContactValue = message.contactValue
+		message.requestStatus = action === 'accept' ? 'accepted' : 'rejected'
+		messages.value = (messages.value as any[]).slice()
+		try {
+			const res = await handleContactExchangeRequest(
+				message.id,
+				action,
+				newClientCommandId('contact-response'),
+				{ mode: 'self' } as MessageSubject
+			)
+			if (!res.success) {
+				message.requestStatus = previousStatus
+				messages.value = (messages.value as any[]).slice()
+				uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+				return
+			}
+			if (action === 'accept') {
+				if (res.data != null && res.data.contactValue != null) {
+					message.contactValue = res.data.contactValue
+				} else if (message.contactValue == null || message.contactValue.length == 0) {
+					message.contactValue = message.contactType === 'phone' ? '13812341234' : 'wanqing_art'
+>>>>>>> sync/upstream-main-751a9f4
 				}
 				contactValue.value = ''
 				await loadContactExchanges()
@@ -1144,11 +2102,785 @@
 </script>
 
 <style scoped>
+<<<<<<< HEAD
 	.chat-page {
 		height: 100vh;
 		display: flex;
 		flex-direction: column;
 		background: var(--canvas);
+=======
+.chat-page {
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	background: var(--canvas);
+}
+
+.message-list {
+	flex: 1;
+	padding: 16px;
+	overflow-y: auto;
+}
+
+.message-item {
+	margin-bottom: 16px;
+}
+
+.message-content-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+}
+
+.message-content-row .message-wrapper {
+	flex: 1;
+	min-width: 0;
+	width: auto;
+}
+
+.multi-select-toggle {
+	width: 32px;
+	height: 44px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.multi-select-check {
+	width: 22px;
+	height: 22px;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: var(--paper);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+}
+
+.multi-select-check.selected {
+	border-color: var(--accent2);
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.multi-select-check text {
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 20px;
+}
+
+.time-divider {
+	text-align: center;
+	margin-bottom: 16px;
+}
+
+.time-text {
+	display: inline-block;
+	padding: 4px 12px;
+	background: var(--line);
+	color: var(--muted);
+	border-radius: 999px;
+	font-size: 12px;
+}
+
+.revoke-system-row {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.revoke-system-notice {
+	width: auto;
+	min-height: 0;
+	padding: 4px 8px;
+	border-radius: 6px;
+	background: var(--line);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	box-sizing: border-box;
+}
+
+.revoke-system-text {
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--muted);
+}
+
+.revoke-reedit {
+	padding: 2px 0;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 18px;
+	color: var(--accent2);
+}
+
+.message-wrapper {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 8px;
+	width: 100%;
+}
+
+.message-wrapper.mine {
+	justify-content: flex-end;
+	flex-direction: row;
+}
+
+.message-wrapper.other {
+	justify-content: flex-start;
+}
+
+	.avatar {
+		width: 40px;
+	height: 40px;
+	border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.protected-avatar {
+		background: var(--bg-subtle);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.protected-avatar text,
+	.protected-message text {
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.protected-message {
+		min-width: 96px;
+		padding: 12px 16px;
+		border-radius: 8px;
+		background: var(--bg-subtle);
+	}
+
+	.chat-page.parent-mode .message-action-menu,
+	.chat-page.parent-mode .multi-action-bar {
+		display: none;
+	}
+
+.message-bubble {
+	max-width: 240px;
+	padding: 12px 16px;
+	border-radius: 12px;
+	word-break: break-all;
+	box-sizing: border-box;
+}
+
+.message-bubble.selected {
+	outline: 2px solid var(--accent2);
+	outline-offset: 2px;
+}
+
+.message-wrapper.other .message-bubble {
+	background: var(--surface);
+	color: var(--ink);
+}
+
+.message-wrapper.mine .message-bubble {
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.message-bubble.wechat-request,
+.message-bubble.phone-request {
+	width: auto;
+	flex: 1;
+	min-width: 0;
+	max-width: 300px;
+	padding: 0;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--sage-soft);
+	color: var(--ink);
+	box-shadow: var(--shadow-sm);
+	overflow: hidden;
+	box-sizing: border-box;
+	word-break: normal;
+}
+
+.message-wrapper.mine .message-bubble.wechat-request,
+.message-wrapper.mine .message-bubble.phone-request {
+	background: var(--sage-soft);
+	color: var(--ink);
+}
+
+.wechat-request-card {
+	display: flex;
+	flex-direction: column;
+}
+
+.wechat-request-card.rejected {
+	background: var(--warm);
+	color: var(--muted);
+}
+
+.wechat-request-card.rejected .wechat-request-mark {
+	background: var(--bg-subtle);
+}
+
+.wechat-request-card.rejected .wechat-request-title,
+.wechat-request-card.rejected .wechat-request-copy {
+	color: var(--muted);
+}
+
+.wechat-request-head {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 14px 8px;
+}
+
+.wechat-request-mark {
+	position: relative;
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	background: var(--sage-soft);
+	flex-shrink: 0;
+}
+
+.request-bubble {
+	position: absolute;
+	border: 2px solid var(--accent2);
+	border-radius: 999px;
+	background: var(--paper);
+	box-sizing: border-box;
+}
+
+.request-bubble-main {
+	left: 6px;
+	top: 7px;
+	width: 17px;
+	height: 13px;
+}
+
+.request-bubble-small {
+	right: 5px;
+	bottom: 6px;
+	width: 13px;
+	height: 10px;
+}
+
+.wechat-request-title {
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 20px;
+	color: var(--ink);
+}
+
+.wechat-request-copy {
+	padding: 0 14px 14px;
+	font-size: 13px;
+	line-height: 20px;
+	color: var(--ink2);
+}
+
+.wechat-contact {
+	margin: 0 14px 14px;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--surface);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.wechat-contact-label {
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--muted);
+}
+
+.wechat-contact-value {
+	min-width: 0;
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 18px;
+	color: var(--accent2);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wechat-request-footer {
+	min-height: 44px;
+	padding: 7px 12px;
+	border-top: 1px solid var(--line);
+	background: var(--paper);
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	box-sizing: border-box;
+}
+
+.wechat-request-actions {
+	width: 100%;
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.request-action {
+	min-width: 68px;
+	height: 32px;
+	margin: 0;
+	padding: 0 14px;
+	border-radius: 6px;
+	font-size: 12px;
+	line-height: 32px;
+	box-sizing: border-box;
+}
+
+.request-action::after {
+	border: 0;
+}
+
+.request-reject {
+	border: 1px solid var(--line);
+	background: var(--surface);
+	color: var(--ink2);
+}
+
+.request-accept {
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.request-copy {
+	min-width: 92px;
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.wechat-request-status {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--ink2);
+}
+
+.request-status-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--accent);
+}
+
+.request-status-dot.accepted {
+	background: var(--sage);
+}
+
+.request-status-dot.rejected {
+	background: var(--muted);
+}
+
+.quoted-message {
+	min-width: 0;
+	margin-bottom: 6px;
+}
+
+.quoted-message-inline {
+	display: block;
+	max-width: 208px;
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.message-wrapper.mine .quoted-message-inline {
+	color: var(--text-invert);
+	opacity: 0.72;
+}
+
+.text-content {
+	font-size: 15px;
+	line-height: 1.4;
+}
+
+.image-content {
+	display: block;
+	max-width: 200px;
+	max-height: 200px;
+	border-radius: 8px;
+}
+
+.voice-content {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 80px;
+}
+
+.voice-content .icon {
+	font-size: 18px;
+}
+
+.voice-content .duration {
+	font-size: 14px;
+}
+
+.input-bar {
+	position: relative;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+	padding: 8px 16px;
+	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+.paste-action {
+	position: absolute;
+	left: 58px;
+	bottom: 58px;
+	min-width: 64px;
+	height: 36px;
+	margin: 0;
+	padding: 0 14px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface);
+	box-shadow: var(--shadow-sm);
+	color: var(--accent2);
+	font-size: 13px;
+	line-height: 36px;
+	text-align: center;
+	z-index: 3;
+}
+
+.paste-action::after {
+	border: 0;
+}
+
+.quote-preview {
+	min-height: 38px;
+	margin-bottom: 8px;
+	padding: 5px 5px 5px 10px;
+	border-left: 2px solid var(--accent2);
+	border-radius: 4px;
+	background: var(--paper);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	box-sizing: border-box;
+}
+
+.quote-preview-copy {
+	min-width: 0;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.quote-preview-name {
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 15px;
+	color: var(--accent2);
+}
+
+.quote-preview-text {
+	font-size: 11px;
+	line-height: 15px;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.quote-close-button {
+	width: 34px;
+	height: 34px;
+	margin: 0;
+	padding: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--muted);
+	font-size: 22px;
+	line-height: 34px;
+	flex-shrink: 0;
+}
+
+.quote-close-button::after {
+	border: 0;
+}
+
+.input-wrapper {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.tool-btn {
+	width: 36px;
+	height: 36px;
+	background: var(--paper);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.tool-btn .icon {
+	font-size: 20px;
+	color: var(--ink2);
+}
+
+.voice-tool-btn {
+	background: var(--paper);
+	border: 1px solid var(--line);
+}
+
+.voice-mic {
+	position: relative;
+	width: 22px;
+	height: 22px;
+}
+
+.voice-mic-head {
+	position: absolute;
+	left: 7px;
+	top: 1px;
+	width: 8px;
+	height: 13px;
+	border: 2px solid var(--accent2);
+	border-radius: 999px;
+	box-sizing: border-box;
+}
+
+.voice-mic-bracket {
+	position: absolute;
+	left: 4px;
+	top: 7px;
+	width: 14px;
+	height: 10px;
+	border: 2px solid var(--accent2);
+	border-top: 0;
+	border-radius: 0 0 8px 8px;
+	box-sizing: border-box;
+}
+
+.voice-mic-stem {
+	position: absolute;
+	left: 10px;
+	top: 16px;
+	width: 2px;
+	height: 4px;
+	background: var(--accent2);
+	border-radius: 999px;
+}
+
+.voice-mic-base {
+	position: absolute;
+	left: 6px;
+	top: 19px;
+	width: 10px;
+	height: 2px;
+	background: var(--accent2);
+	border-radius: 999px;
+}
+
+.input {
+	flex: 1;
+	height: 36px;
+	background: var(--paper);
+	border-radius: 18px;
+	padding: 0 16px;
+	font-size: 14px;
+	color: var(--ink);
+}
+
+.send-btn {
+	min-width: 52px;
+	padding: 0 12px;
+	height: 36px;
+	background: var(--accent);
+	color: var(--text-invert);
+	border-radius: 18px;
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+.message-action-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 45;
+	background: transparent;
+}
+
+.message-action-menu {
+	position: fixed;
+	z-index: 46;
+	height: 44px;
+	border-radius: 6px;
+	background: var(--ink);
+	color: var(--paper);
+	box-shadow: var(--shadow-lg);
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+.message-action-menu.five-action-menu {
+	width: 250px;
+}
+
+.message-action-menu.four-action-menu {
+	width: 204px;
+}
+
+.message-action-item {
+	min-width: 0;
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-right: 1px solid var(--ink2);
+}
+
+.message-action-item:last-child {
+	border-right: 0;
+}
+
+.message-action-item:active {
+	background: var(--ink2);
+}
+
+.message-action-item text {
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--paper);
+	white-space: nowrap;
+}
+
+.multi-action-bar {
+	min-height: 58px;
+	padding: 8px 16px;
+	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+	border-top: 1px solid var(--line);
+	background: var(--surface);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	box-sizing: border-box;
+}
+
+.multi-selected-count {
+	font-size: 13px;
+	line-height: 20px;
+	color: var(--ink2);
+}
+
+.multi-action-buttons {
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+}
+
+.multi-action-button {
+	min-width: 64px;
+	height: 36px;
+	margin: 0;
+	padding: 0 12px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--paper);
+	color: var(--ink2);
+	font-size: 12px;
+	line-height: 36px;
+	box-sizing: border-box;
+}
+
+.multi-action-button::after {
+	border: 0;
+}
+
+.multi-action-button.danger {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.multi-action-button[disabled] {
+	opacity: 0.45;
+}
+
+.more-menu {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	z-index: 999;
+}
+
+.menu-content {
+	background: var(--surface);
+	border-radius: 16px 16px 0 0;
+	padding: 24px;
+	padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.menu-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20px;
+}
+
+.menu-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+.menu-item.disabled {
+	opacity: 0.42;
+	pointer-events: none;
+}
+
+.menu-icon {
+	position: relative;
+	width: 56px;
+	height: 56px;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	flex-shrink: 0;
+>>>>>>> sync/upstream-main-751a9f4
 	}
 
 	.permission-state, .chat-loading, .chat-error {
