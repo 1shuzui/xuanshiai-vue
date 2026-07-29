@@ -356,7 +356,6 @@
 			uni.showToast({ title: '请填写关系期待', icon: 'none' })
 			return
 		}
-
 		isCustomSubmitting.value = true
 		try {
 			const result = saveCustomServiceApplicationDraft({

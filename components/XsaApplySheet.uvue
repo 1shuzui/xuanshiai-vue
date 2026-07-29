@@ -15,7 +15,7 @@
 			></textarea>
 			<text class="count">{{ message.length }}/120</text>
 			<view class="tips">
-				<text class="tip">· 需要实名认证</text>
+				<text class="tip">· 仅需实名认证；学历不作为拦截条件</text>
 				<text class="tip">· 未双方同意前不可交换联系方式</text>
 				<text class="tip">· 次数用尽可用积分加次，会员权益仅作说明</text>
 			</view>
@@ -89,49 +89,41 @@
 			uni.showToast({ title: '请填写申请附言', icon: 'none' })
 			return
 		}
-		const ok = await guardRealName('apply')
-		if (!ok) return
-		if (remain.value <= 0) {
-			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
-			return
-		}
-		submitting.value = true
-		try {
-			const res = await applyToMeet(props.userId, text)
-			// 仅 data.success===true 视为成功；409 等为 failRes
-			const data = res != null ? res.data : null
-			const bizOk =
-				res != null && res.success == true && data != null && data.success == true
-			if (bizOk) {
-				if (data.remain != null) {
-					remain.value = data.remain
-				}
-				// remain==null 禁止本地 remain-1
-				const toastTitle =
-					data.quotaRefreshFailed == true
-						? '申请已发送，额度同步失败请下拉刷新'
-						: '申请已发送'
-				uni.showToast({ title: toastTitle, icon: data.quotaRefreshFailed == true ? 'none' : 'success' })
-				emit('success', data)
-				emit('close')
-			} else {
-				const msg =
-					data != null && data.message != null
-						? data.message
-						: res != null && res.message != null
-							? res.message
-							: '发送失败，请重试'
-				uni.showToast({ title: msg, icon: 'none' })
-				if (data != null && data.remain != null) {
-					remain.value = data.remain
-				}
+const ok = await guardRealName('apply')
+			if (!ok) return
+			if (remain.value <= 0) {
+				uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+				return
 			}
-		} catch (e) {
-			uni.showToast({ title: '网络异常，请重试', icon: 'none' })
-		} finally {
-			submitting.value = false
+			submitting.value = true
+			try {
+				const res = await applyToMeet(props.userId, text)
+				// request 外层 success 恒 true；业务成败看 data.success
+				const data = res != null ? res.data : null
+				const bizOk = res != null && res.success && (data == null || data.success != false)
+				if (bizOk) {
+					if (data != null && data.remain != null) {
+						remain.value = data.remain
+					} else {
+						remain.value = Math.max(0, remain.value - 1)
+					}
+					uni.showToast({ title: '申请已发送', icon: 'success' })
+					emit('success', data)
+					emit('close')
+				} else {
+					const msg =
+						data != null && data.message != null ? data.message : '发送失败，请重试'
+					uni.showToast({ title: msg, icon: 'none' })
+					if (data != null && data.remain != null) {
+						remain.value = data.remain
+					}
+				}
+			} catch (e) {
+				uni.showToast({ title: '网络异常，请重试', icon: 'none' })
+			} finally {
+				submitting.value = false
+			}
 		}
-	}
 </script>
 
 <style scoped>
@@ -198,13 +190,13 @@
 		line-height: 1.5;
 	}
 
-	.actions {
-		display: flex;
+.actions {
+			display: flex;
 		flex-direction: row;
-		gap: 10px;
-		margin-top: 6px;
-		padding-bottom: 8px;
-	}
+			gap: 10px;
+			margin-top: 6px;
+			padding-bottom: 8px;
+		}
 
 	.btn {
 		flex: 1;

@@ -281,10 +281,14 @@ const mapDetailUser = (raw: any, id: number) => {
 	const constellation = textValue(source.constellation, '天秤座')
 	const hometown = textValue(source.hometown, '浙江杭州')
 	const income = textValue(source.income, textValue(source.salary, '30-50万'))
+	const marriage = textValue(source.marriage, '未填写')
+	const mbti = textValue(source.mbti, '未填写')
+	const activeStatus = textValue(source.activeStatus, '未填写')
 	const mappedInfo = [
 		[{ label: '年龄', value: age + '岁' }, { label: '身高', value: height }, { label: '体重', value: weight }],
 		[{ label: '星座', value: constellation }, { label: '学历', value: edu }, { label: '职业', value: job }],
-		[{ label: '现居', value: city }, { label: '家乡', value: hometown }, { label: '收入', value: income }]
+		[{ label: '现居', value: city }, { label: '家乡', value: hometown }, { label: '收入', value: income }],
+		[{ label: '婚姻', value: marriage }, { label: 'MBTI', value: mbti }, { label: '状态', value: activeStatus }]
 	]
 	user.value = {
 		...user.value,

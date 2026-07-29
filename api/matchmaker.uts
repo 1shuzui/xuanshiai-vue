@@ -28,7 +28,6 @@ export async function getMockMatchmakerContact() {
     message: 'success'
   }
 }
-
 function toMatchmakerCard(item: any) {
   const successCount = item.success_count != null ? Number(item.success_count) : 0
   const cases: any[] = []

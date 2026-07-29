@@ -102,22 +102,12 @@
 						<scroll-view
 							v-if="customPlans.length > 0"
 							scroll-x
+							enhanced
 							:enable-flex="true"
-							:scroll-left="customPlanScrollLeft"
-							:scroll-with-animation="false"
 							class="custom-home-plan-scroll"
 							:show-scrollbar="false"
-							@scroll="handleCustomPlanScroll"
-							@touchstart="handleCustomPlanDragStart"
-							@touchmove="handleCustomPlanDragMove"
-							@touchend="handleCustomPlanDragEnd"
-							@touchcancel="handleCustomPlanDragEnd"
-							@mousedown="handleCustomPlanDragStart"
-							@mousemove="handleCustomPlanDragMove"
-							@mouseup="handleCustomPlanDragEnd"
-							@mouseleave="handleCustomPlanDragEnd"
 						>
-							<view class="custom-home-plan-list">
+							<view class="custom-home-plan-list" :style="'width: ' + customPlanListWidth + 'rpx;'">
 								<view v-for="item in customPlans" :key="item.id" class="custom-home-plan" :class="{ selected: selectedCustomPlanId === item.id }" @click="selectCustomPlan(item)">
 									<view v-if="selectedCustomPlanId === item.id" class="custom-home-plan-selected-badge"><text>已选</text></view>
 									<view class="custom-home-plan-title-row">
@@ -255,11 +245,6 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	const serviceMatchmakers = ref<any[]>([])
 	const customPlans = ref<any[]>([])
 	const selectedCustomPlanId = ref(0)
-	const customPlanScrollLeft = ref(0)
-	const isCustomPlanDragging = ref(false)
-	const customPlanDragStartX = ref(0)
-	const customPlanDragStartLeft = ref(0)
-	const customPlanDragDistance = ref(0)
 	const showAllServiceMatchmakers = ref(false)
 
 	const currentTabValue = computed(() => {
@@ -284,6 +269,13 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	const visibleServiceMatchmakers = computed(() => {
 		if (showAllServiceMatchmakers.value) return serviceMatchmakers.value
 		return serviceMatchmakers.value.slice(0, 3)
+	})
+
+	const customPlanListWidth = computed((): number => {
+		const count = customPlans.value.length
+		if (count == 0) return 0
+		if (count == 1) return 300
+		return count * 300 + (count - 1) * 14 + 32
 	})
 
 	onMounted(() => {
@@ -316,8 +308,10 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	const loadServiceMatchmakers = async () => {
 		try {
 			const res = await getServiceMatchmakers()
-			if (res.success) {
+			if (res.success && res.data != null) {
 				serviceMatchmakers.value = res.data as any[]
+			} else if (loadError.value.length == 0) {
+				loadError.value = '网络连接不可用，请检查网络后重新加载。'
 			}
 		} catch (e) {
 			if (loadError.value.length == 0) {
@@ -329,8 +323,10 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	const loadCustomContent = async () => {
 		try {
 			const planRes = await getCustomPlans()
-			if (planRes.success) {
+			if (planRes.success && planRes.data != null) {
 				customPlans.value = planRes.data as any[]
+			} else if (loadError.value.length == 0) {
+				loadError.value = '网络连接不可用，请检查网络后重新加载。'
 			}
 		} catch (e) {
 			if (loadError.value.length == 0) {
@@ -361,52 +357,6 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 		})
 	}
 
-	const getCustomPlanPointerX = (event: any): number => {
-		if (event == null) return 0
-		if (event.touches != null && event.touches.length > 0) {
-			const touch = event.touches[0]
-			if (touch.pageX != null) return Number(touch.pageX)
-			if (touch.clientX != null) return Number(touch.clientX)
-			if (touch.x != null) return Number(touch.x)
-		}
-		if (event.changedTouches != null && event.changedTouches.length > 0) {
-			const touch = event.changedTouches[0]
-			if (touch.pageX != null) return Number(touch.pageX)
-			if (touch.clientX != null) return Number(touch.clientX)
-			if (touch.x != null) return Number(touch.x)
-		}
-		if (event.pageX != null) return Number(event.pageX)
-		if (event.clientX != null) return Number(event.clientX)
-		if (event.detail != null && event.detail.x != null) return Number(event.detail.x)
-		return 0
-	}
-
-	const handleCustomPlanScroll = (event: any) => {
-		if (event != null && event.detail != null && event.detail.scrollLeft != null) {
-			customPlanScrollLeft.value = Number(event.detail.scrollLeft)
-		}
-	}
-
-	const handleCustomPlanDragStart = (event: any) => {
-		isCustomPlanDragging.value = true
-		customPlanDragStartX.value = getCustomPlanPointerX(event)
-		customPlanDragStartLeft.value = customPlanScrollLeft.value
-		customPlanDragDistance.value = 0
-	}
-
-	const handleCustomPlanDragMove = (event: any) => {
-		if (!isCustomPlanDragging.value) return
-		const offset = getCustomPlanPointerX(event) - customPlanDragStartX.value
-		customPlanDragDistance.value = Math.abs(offset)
-		if (customPlanDragDistance.value > 1) {
-			customPlanScrollLeft.value = Math.max(0, customPlanDragStartLeft.value - offset)
-		}
-	}
-
-	const handleCustomPlanDragEnd = () => {
-		isCustomPlanDragging.value = false
-	}
-
 	const goCustomPlans = () => {
 		uni.navigateTo({
 			url: '/pages/matchmaker/custom'
@@ -414,10 +364,6 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	}
 
 	const selectCustomPlan = (item : any) => {
-		if (customPlanDragDistance.value > 6) {
-			customPlanDragDistance.value = 0
-			return
-		}
 		selectedCustomPlanId.value = item.id
 	}
 
@@ -582,7 +528,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	}
 
 	.service-page-content {
-		padding-bottom: calc(env(safe-area-inset-bottom) + 56rpx);
+		padding-bottom: calc(env(safe-area-inset-bottom) + 144rpx);
 	}
 
 	.ai-page-content {
@@ -693,10 +639,9 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	.custom-home-mark { width: 44rpx; height: 44rpx; border-radius: 50%; background: var(--accent-bg); color: var(--accent2); display: flex; align-items: center; justify-content: center; font-size: 22rpx; font-weight: 800; }
 	.custom-home-value-title { font-size: 24rpx; font-weight: 800; color: var(--ink); }.custom-home-value-copy { font-size: 18rpx; line-height: 1.5; color: var(--muted); }
 	.custom-home-services { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; }.custom-home-service { min-height: 144rpx; padding: 18rpx; border-radius: 16rpx; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 7rpx; }.custom-home-service-index { font-size: 18rpx; color: var(--accent2); font-weight: 800; }.custom-home-service-title { font-size: 25rpx; font-weight: 800; color: var(--ink); }.custom-home-service-copy { font-size: 19rpx; line-height: 1.45; color: var(--muted); }
-	.custom-home-process-scroll, .custom-home-plan-scroll { width: 100%; margin: 0 -32rpx; padding: 0 32rpx; }.custom-home-process-list, .custom-home-plan-list { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: flex-start; gap: 14rpx; padding-right: 32rpx; }.custom-home-process { width: 128rpx; flex-shrink: 0; display: flex; flex-direction: column; gap: 8rpx; }.custom-home-process-mark { width: 50rpx; height: 50rpx; border-radius: 50%; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 18rpx; font-weight: 800; }.custom-home-process-title { font-size: 23rpx; font-weight: 800; color: var(--ink); }.custom-home-process-copy { font-size: 18rpx; color: var(--muted); }
-	.custom-home-plan-scroll { cursor: grab; user-select: none; }
-	.custom-home-plan-scroll:active { cursor: grabbing; }
-	.custom-home-plan { position: relative; width: 236rpx; min-height: 220rpx; flex-shrink: 0; padding: 22rpx; border-radius: 16rpx; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 9rpx; box-sizing: border-box; transition: 0.2s; }.custom-home-plan.selected { border-color: #238C81; background: linear-gradient(145deg, #F7FFFD 0%, #D7F0EB 100%); box-shadow: 0 10rpx 24rpx rgba(35, 140, 129, 0.18); transform: translateY(-3rpx); }.custom-home-plan-title-row { display: flex; flex-direction: row; align-items: center; gap: 8rpx; min-height: 34rpx; padding-right: 46rpx; }.custom-home-plan-name { font-size: 28rpx; font-family: var(--serif); font-weight: 700; color: var(--ink); white-space: nowrap; }.custom-home-plan-recommend { padding: 3rpx 8rpx; border: 1px solid #9FD1C9; border-radius: 999rpx; background: #EDF8F5; color: var(--accent2); font-size: 16rpx; font-weight: 800; line-height: 1.25; white-space: nowrap; }.custom-home-plan-selected-badge { position: absolute; top: 12rpx; right: 12rpx; padding: 6rpx 11rpx; border-radius: 999rpx; background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%); box-shadow: 0 4rpx 10rpx rgba(0, 117, 101, 0.24); color: var(--paper); font-size: 17rpx; font-weight: 800; line-height: 1.2; }.custom-home-plan-price { font-size: 40rpx; color: var(--brown); font-weight: 800; }.custom-home-plan.selected .custom-home-plan-price { color: var(--accent2); }.custom-home-plan-duration { font-size: 18rpx; color: var(--muted); }.custom-home-plan-feature { font-size: 21rpx; color: var(--accent2); font-weight: 800; }.custom-home-plan-copy { font-size: 18rpx; line-height: 1.45; color: var(--muted); }
+	.custom-home-process-scroll, .custom-home-plan-scroll { width: 100%; margin: 0 -32rpx; padding: 0 32rpx; }.custom-home-process-list, .custom-home-plan-list { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: flex-start; gap: 14rpx; }.custom-home-process { width: 128rpx; flex-shrink: 0; display: flex; flex-direction: column; gap: 8rpx; }.custom-home-process-mark { width: 50rpx; height: 50rpx; border-radius: 50%; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 18rpx; font-weight: 800; }.custom-home-process-title { font-size: 23rpx; font-weight: 800; color: var(--ink); }.custom-home-process-copy { font-size: 18rpx; color: var(--muted); }
+	.custom-home-plan-list { box-sizing: border-box; }
+	.custom-home-plan { position: relative; width: 300rpx; min-height: 220rpx; flex-shrink: 0; padding: 22rpx; border-radius: 16rpx; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 9rpx; box-sizing: border-box; transition: 0.2s; }.custom-home-plan.selected { border-color: #238C81; background: linear-gradient(145deg, #F7FFFD 0%, #D7F0EB 100%); box-shadow: 0 10rpx 24rpx rgba(35, 140, 129, 0.18); transform: translateY(-3rpx); }.custom-home-plan-title-row { display: flex; flex-direction: row; align-items: center; gap: 8rpx; min-height: 34rpx; padding-right: 46rpx; }.custom-home-plan-name { font-size: 28rpx; font-family: var(--serif); font-weight: 700; color: var(--ink); white-space: nowrap; }.custom-home-plan-recommend { padding: 3rpx 8rpx; border: 1px solid #9FD1C9; border-radius: 999rpx; background: #EDF8F5; color: var(--accent2); font-size: 16rpx; font-weight: 800; line-height: 1.25; white-space: nowrap; }.custom-home-plan-selected-badge { position: absolute; top: 12rpx; right: 12rpx; padding: 6rpx 11rpx; border-radius: 999rpx; background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%); box-shadow: 0 4rpx 10rpx rgba(0, 117, 101, 0.24); color: var(--paper); font-size: 17rpx; font-weight: 800; line-height: 1.2; }.custom-home-plan-price { font-size: 40rpx; color: var(--brown); font-weight: 800; }.custom-home-plan.selected .custom-home-plan-price { color: var(--accent2); }.custom-home-plan-duration { font-size: 18rpx; color: var(--muted); }.custom-home-plan-feature { font-size: 21rpx; color: var(--accent2); font-weight: 800; }.custom-home-plan-copy { font-size: 18rpx; line-height: 1.45; color: var(--muted); }
 
 	.plan-entry-card {
 		padding: 28rpx;

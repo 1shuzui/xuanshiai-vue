@@ -80,6 +80,12 @@
 		--shortcut-dynamic: #DDF2EC;
 		--shortcut-lab: #F6E8DE;
 
+		/* 社区互动状态 */
+		--like: #E85A6B;
+		--like-bg: rgba(232, 90, 107, 0.12);
+		--superlike: #F4B942;
+		--superlike-bg: rgba(244, 185, 66, 0.16);
+
 		/* 纸飞机工作台 */
 		--plane-purple: #7450C8;
 		--plane-purple-deep: #4D2E96;

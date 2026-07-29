@@ -36,328 +36,119 @@
 							<text class="camera-icon">📷</text>
 						</view>
 					</view>
-					<view class="avatar-info">
-						<text class="avatar-title">上传真实头像</text>
-						<text class="avatar-desc">正面高清照，衣着得体，提高推荐排名</text>
-					</view>
-				</view>
-				<text class="avatar-warning">⚠ 他人照片、看不清脸、P图过度、非人物照将无法通过审核</text>
-			</view>
-
-			<!-- 我的相册 -->
-			<view class="section-card">
-				<view class="card-header">
-					<text class="section-title">我的相册</text>
-					<text class="card-count">{{ formData.photos.length }}/9</text>
-				</view>
-				<view class="album-grid">
-					<view class="album-cell" v-for="(photo, index) in formData.photos" :key="index">
-						<image class="album-photo" :src="photo" mode="aspectFill"></image>
-						<view class="album-delete" @tap="deletePhoto(index)">
-							<text class="delete-icon">✕</text>
-						</view>
-					</view>
-					<view class="album-cell add-cell" v-if="formData.photos.length < 9" @tap="addPhoto">
-						<text class="add-icon">+</text>
+					<view class="photo-item add-btn" @click="addPhoto" v-if="formData.photos.length < 9">
+						<text class="icon">+</text>
+						<text class="text">添加照片</text>
 					</view>
 				</view>
 			</view>
 
-			<!-- 基础信息 - 预览卡（.pen: PNARb Profile Preview Card） -->
-			<view class="section-card profile-preview-card">
-				<view class="preview-card-header">
-					<text class="section-title">基础信息</text>
-					<view class="edit-badge" @tap="openBasicInfoEditor">
-						<text class="edit-badge-text">编辑</text>
-						<text class="edit-badge-arrow">›</text>
+			<!-- 基本信息 -->
+			<view class="section">
+				<text class="section-title">基本信息</text>
+				<view class="form-list">
+					<view class="form-item" @click="showPicker('nickname')">
+						<text class="label">昵称</text>
+						<input class="value" :value="formData.nickname" placeholder="请输入昵称" />
+						<text class="arrow">›</text>
 					</view>
-				</view>
-				<view class="preview-field-list">
-					<view class="preview-field">
-						<text class="preview-label">现居地</text>
-						<text class="preview-value">{{ formData.location || '未填写' }}</text>
+					<view class="form-item" @click="showPicker('gender')">
+						<text class="label">性别</text>
+						<text class="value">{{ formData.gender === 1 ? '男' : formData.gender === 2 ? '女' : '请选择' }}</text>
+						<text class="arrow">›</text>
 					</view>
-					<view class="preview-field">
-						<text class="preview-label">家乡</text>
-						<text class="preview-value">{{ formData.hometown || '未填写' }}</text>
+					<view class="form-item" @click="showPicker('birthday')">
+						<text class="label">生日</text>
+						<text class="value">{{ formData.birthday || '请选择' }}</text>
+						<text class="arrow">›</text>
 					</view>
-					<view class="preview-field">
-						<text class="preview-label">职业</text>
-						<text class="preview-value">{{ formData.company ? formData.occupation + ' · ' + formData.company : formData.occupation || '未填写' }}</text>
+					<view class="form-item" @click="showPicker('height')">
+						<text class="label">身高</text>
+						<text class="value">{{ formData.height ? formData.height + 'cm' : '请选择' }}</text>
+						<text class="arrow">›</text>
 					</view>
-					<view class="preview-field">
-						<text class="preview-label">收入</text>
-						<text class="preview-value">{{ formData.income || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">婚姻状况</text>
-						<text class="preview-value">{{ formData.maritalStatus || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">脱单目标</text>
-						<text class="preview-value">{{ formData.goal || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">微信号</text>
-						<text class="preview-value muted">仅作为紧急联系</text>
+					<view class="form-item" @click="showPicker('location')">
+						<text class="label">所在地</text>
+						<text class="value">{{ formData.location || '请选择' }}</text>
+						<text class="arrow">›</text>
 					</view>
 				</view>
 			</view>
 
-			<!-- 四重认证 -->
-			<view class="section-card">
-				<view class="card-header">
-					<text class="section-title">四重认证</text>
-					<text class="card-count accent">已完成 {{ completedCerts }}/4</text>
-				</view>
-				<view class="cert-item" v-for="cert in certs" :key="cert.label">
-					<view class="cert-icon-wrap" :class="{ 'cert-done': cert.done }">
-						<text class="cert-icon-text">{{ cert.icon }}</text>
+			<!-- 工作信息 -->
+			<view class="section">
+				<text class="section-title">工作信息</text>
+				<view class="form-list">
+					<view class="form-item" @click="showPicker('education')">
+						<text class="label">学历</text>
+						<text class="value">{{ formData.education || '请选择' }}</text>
+						<text class="arrow">›</text>
 					</view>
-					<view class="cert-text-wrap">
-						<text class="cert-label">{{ cert.label }}</text>
-						<text class="cert-desc">{{ cert.desc }}</text>
+					<view class="form-item" @click="showPicker('occupation')">
+						<text class="label">职业</text>
+						<text class="value">{{ formData.occupation || '请填写' }}</text>
+						<text class="arrow">›</text>
 					</view>
-					<view v-if="cert.done" class="cert-check">
-						<text class="check-icon">✓</text>
-					</view>
-					<view v-else class="cert-pending" @tap="goCertification(cert.key)">
-						<text class="pending-text">去认证</text>
-					</view>
-				</view>
-			</view>
-
-			<!-- 自我介绍 -->
-			<view class="section-card">
-				<text class="section-title">自我介绍</text>
-				<view class="intro-input-wrap">
-					<textarea
-						class="intro-textarea"
-						:value="formData.introduction"
-						placeholder="分享一下你的性格、爱好、生活态度...让TA更快了解你"
-						maxlength="500"
-						@input="onIntroInput"
-					></textarea>
-				</view>
-				<text class="intro-hint">超有趣的自我介绍会被更多人看见哦！完成后建议搭配照片验证</text>
-			</view>
-
-			<!-- 我的标签 -->
-			<view class="section-card tag-section">
-				<text class="section-title">我的标签</text>
-				<text class="tag-desc">选择最能代表你的个性标签（最多20个）</text>
-				<view class="tag-row" v-for="(row, ri) in tagRows" :key="ri">
-					<view
-						class="tag-item"
-						v-for="tag in row"
-						:key="tag"
-						:class="{ 'tag-selected': selectedTags.includes(tag) }"
-						@tap="toggleTag(tag)"
-					>
-						<text class="tag-text">{{ tag }}</text>
-					</view>
-				</view>
-				<view class="tag-add-btn" @tap="addCustomTag">
-					<text class="tag-add-text">+添加</text>
-				</view>
-			</view>
-
-			<!-- 关于我 - 问答 -->
-			<view class="section-card">
-				<text class="section-title">关于我</text>
-				<text class="qa-section-desc">你的回答将展示在个人主页，帮助对方更深入了解你</text>
-				<view class="qa-card" v-for="q in loveQuestions" :key="q.id" @tap="editQA(q)">
-					<text class="qa-question">{{ q.question }}</text>
-					<view class="qa-answer-row">
-						<text class="qa-answer-hint" v-if="!q.answer">点击填写你的回答...</text>
-						<text class="qa-answer-text" v-else>{{ q.answer }}</text>
-						<text class="qa-edit-icon">✎</text>
+					<view class="form-item" @click="showPicker('income')">
+						<text class="label">月收入</text>
+						<text class="value">{{ formData.income || '请选择' }}</text>
+						<text class="arrow">›</text>
 					</view>
 				</view>
 			</view>
 
-			<!-- 保存区域 -->
-			<view class="save-section">
-				<view class="save-buttons">
-					<view class="cancel-btn" @tap="onCancel">
-						<text class="cancel-text">取消</text>
+			<!-- 婚恋信息 -->
+			<view class="section">
+				<text class="section-title">婚恋信息</text>
+				<view class="form-list">
+					<view class="form-item" @click="showPicker('maritalStatus')">
+						<text class="label">婚姻状况</text>
+						<text class="value">{{ formData.maritalStatus || '请选择' }}</text>
+						<text class="arrow">›</text>
 					</view>
-					<view class="save-btn" @tap="handleSave">
-						<text class="save-text">保存</text>
+					<view class="form-item" @click="showPicker('housing')">
+						<text class="label">购房情况</text>
+						<text class="value">{{ formData.housing || '请选择' }}</text>
+						<text class="arrow">›</text>
 					</view>
 				</view>
-				<text class="safe-note">你的信息将受到严格保护，仅用于平台匹配</text>
 			</view>
 
-			<!-- 底部留白 -->
-			<view class="scroll-bottom-spacer"></view>
+			<!-- 个人介绍 -->
+			<view class="section">
+				<text class="section-title">个人介绍</text>
+				<textarea
+					class="textarea"
+					:value="formData.introduction"
+					placeholder="介绍一下你自己，让别人更了解你..."
+					maxlength="500"
+					@input="onIntroInput"
+				></textarea>
+				<text class="char-count">{{ formData.introduction.length }}/500</text>
+			</view>
+
+			<!-- 择偶要求 -->
+			<view class="section">
+				<text class="section-title">择偶要求</text>
+				<textarea
+					class="textarea"
+					:value="formData.requirement"
+					placeholder="描述你的择偶标准..."
+					maxlength="500"
+					@input="onRequirementInput"
+				></textarea>
+				<text class="char-count">{{ formData.requirement.length }}/500</text>
+			</view>
 		</scroll-view>
 
-		<!-- ==================== 基础信息详情编辑页（.pen: OzNuL Basic Info Section） ==================== -->
-		<view class="basic-info-sheet" v-if="basicInfoEditVisible">
-			<view class="sheet-mask" @tap="closeBasicInfoEditor"></view>
-			<view class="sheet-panel">
-				<!-- sheet 标题栏 -->
-				<view class="sheet-header">
-					<text class="sheet-back" @tap="closeBasicInfoEditor">取消</text>
-					<text class="sheet-title">基础信息</text>
-					<text class="sheet-done" @tap="closeBasicInfoEditor">完成</text>
-				</view>
-
-				<scroll-view class="sheet-body" scroll-y enhanced show-scrollbar="false">
-					<view class="form-card">
-						<!-- 昵称 -->
-						<view class="form-row" @tap="showFieldEditor('nickname')">
-							<text class="form-label">昵称</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.nickname }">{{ formData.nickname || '请输入昵称' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 性别 -->
-						<view class="form-row" @tap="showFieldEditor('gender')">
-							<text class="form-label">性别</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.genderLabel }">{{ formData.genderLabel || '男' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 生日 -->
-						<view class="form-row" @tap="showFieldEditor('birthday')">
-							<text class="form-label">生日</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.birthday }">{{ formData.birthday || '请选择出生日期' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 身高 -->
-						<view class="form-row" @tap="showFieldEditor('height')">
-							<text class="form-label">身高</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.height }">{{ formData.height ? formData.height + ' cm' : '165 cm' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 体重 -->
-						<view class="form-row" @tap="showFieldEditor('weight')">
-							<text class="form-label">体重</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.weight }">{{ formData.weight ? formData.weight + ' kg' : '48 kg' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 现居地 -->
-						<view class="form-row" @tap="showFieldEditor('location')">
-							<text class="form-label">现居地</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.location }">{{ formData.location || '北京' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 家乡 -->
-						<view class="form-row" @tap="showFieldEditor('hometown')">
-							<text class="form-label">家乡</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.hometown }">{{ formData.hometown || '杭州' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 婚姻状况 -->
-						<view class="form-row" @tap="showFieldEditor('maritalStatus')">
-							<text class="form-label">婚姻状况</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.maritalStatus }">{{ formData.maritalStatus || '未婚' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 学历 -->
-						<view class="form-row" @tap="showFieldEditor('education')">
-							<text class="form-label">学历</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.education }">{{ formData.education || '本科 · 北京大学' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 职业 -->
-						<view class="form-row" @tap="showFieldEditor('occupation')">
-							<text class="form-label">职业</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.occupation }">{{ formData.occupation || '产品经理' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 公司 -->
-						<view class="form-row" @tap="showFieldEditor('company')">
-							<text class="form-label">公司</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.company }">{{ formData.company || '字节跳动' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 收入 -->
-						<view class="form-row" @tap="showFieldEditor('income')">
-							<text class="form-label">收入</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.income }">{{ formData.income || '30-50万' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- MBTI -->
-						<view class="form-row" @tap="showFieldEditor('mbti')">
-							<text class="form-label">MBTI</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.mbti }">{{ formData.mbti || 'ENFJ' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 微信号 -->
-						<view class="form-row" @tap="showFieldEditor('wechat')">
-							<text class="form-label">微信号</text>
-							<view class="form-right">
-								<text class="form-value placeholder" v-if="!formData.wechat">仅作为紧急联系</text>
-								<text class="form-value" v-else>{{ formData.wechat }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-					</view>
-
-					<!-- 底部留白 -->
-					<view class="sheet-bottom-spacer"></view>
-				</scroll-view>
-			</view>
+		<!-- 底部保存按钮 -->
+		<view class="footer">
+			<button class="save-btn" @click="handleSave">保存</button>
 		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import { ref, computed } from 'vue'
-
 	// 表单数据
 	const formData = ref({
 		avatar: '/static/portraits/profile-woman-main.jpg',
@@ -474,11 +265,12 @@
 			sourceType: ['album', 'camera'],
 			success: (res) => {
 				formData.value.avatar = res.tempFilePaths[0]
+				// TODO: 上传图片到服务器
 			}
 		})
 	}
 
-	// 相册
+	// 添加照片
 	const addPhoto = () => {
 		const remaining = 9 - formData.value.photos.length
 		uni.chooseImage({
@@ -487,10 +279,12 @@
 			sourceType: ['album', 'camera'],
 			success: (res) => {
 				formData.value.photos.push(...res.tempFilePaths)
+				// TODO: 上传图片到服务器
 			}
 		})
 	}
 
+	// 删除照片
 	const deletePhoto = (index: number) => {
 		uni.showModal({
 			title: '提示',
@@ -503,9 +297,13 @@
 		})
 	}
 
-	// 基础信息编辑器
-	const openBasicInfoEditor = () => {
-		basicInfoEditVisible.value = true
+	// 显示选择器
+	const showPicker = (field: string) => {
+		// TODO: 根据不同字段显示不同的选择器
+		uni.showToast({
+			title: '选择器开发中',
+			icon: 'none'
+		})
 	}
 
 	const closeBasicInfoEditor = () => {
@@ -531,21 +329,40 @@
 	}
 
 	// 输入
+	// 输入事件
 	const onIntroInput = (e: InputEvent) => {
 		formData.value.introduction = e.detail.value
 	}
 
+	const onRequirementInput = (e: InputEvent) => {
+		formData.value.requirement = e.detail.value
+	}
+
 	// 保存
 	const handleSave = () => {
+		// 验证必填项
 		if (!formData.value.nickname) {
-			uni.showToast({ title: '请输入昵称', icon: 'none' })
+			uni.showToast({
+				title: '请输入昵称',
+				icon: 'none'
+			})
 			return
 		}
+
 		if (formData.value.gender === 0) {
-			uni.showToast({ title: '请选择性别', icon: 'none' })
+			uni.showToast({
+				title: '请选择性别',
+				icon: 'none'
+			})
 			return
 		}
-		uni.showToast({ title: '保存成功', icon: 'success' })
+
+		// TODO: 调用保存接口
+		uni.showToast({
+			title: '保存成功',
+			icon: 'success'
+		})
+
 		setTimeout(() => {
 			uni.navigateBack()
 		}, 1500)
@@ -555,93 +372,20 @@
 <style scoped>
 .edit-page {
 	min-height: 100vh;
-	background-color: var(--canvas);
-	display: flex;
-	flex-direction: column;
+	background: var(--canvas);
+	padding-bottom: 80px;
 }
 
-/* ==================== 导航栏 ==================== */
-.nav-bar {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	justify-content: center;
-	gap: 32rpx;
-	padding: 0 40rpx 24rpx 40rpx;
-}
-.nav-title {
-	font-size: 36rpx;
-	font-weight: 700;
-}
-.nav-title.active {
-	color: var(--ink);
-}
-.nav-title.muted {
-	color: var(--muted);
-}
-
-/* ==================== 滚动内容区 ==================== */
 .scroll-content {
-	flex: 1;
-	padding: 8rpx 32rpx 0 32rpx;
-}
-.scroll-bottom-spacer {
-	height: 60rpx;
+	height: calc(100vh - 80px);
 }
 
-/* ==================== 进度条 ==================== */
-.progress-section {
-	display: flex;
-	flex-direction: column;
-	gap: 20rpx;
-	padding: 24rpx 32rpx 8rpx 32rpx;
-	margin-bottom: 28rpx;
-}
-.progress-header {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-}
-.progress-label {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: var(--ink);
-}
-.progress-pct {
-	font-size: 28rpx;
-	font-weight: 700;
-	color: var(--accent);
-}
-.progress-bar-bg {
-	width: 100%;
-	height: 12rpx;
-	border-radius: 6rpx;
-	background-color: var(--warm);
-	overflow: hidden;
-}
-.progress-bar-fill {
-	height: 100%;
-	border-radius: 6rpx;
-	background: linear-gradient(90deg, var(--accent), var(--accent2));
-	transition: width 0.3s;
-}
-.progress-hint {
-	font-size: 22rpx;
-	color: var(--muted);
+.section {
+	margin-bottom: 12px;
+	padding: 20px 24px;
+	background: var(--surface);
 }
 
-/* ==================== 通用卡片 ==================== */
-.section-card {
-	display: flex;
-	flex-direction: column;
-	gap: 28rpx;
-	padding: 32rpx;
-	background-color: var(--surface);
-	border-radius: 40rpx;
-	box-shadow: var(--shadow-sm);
-	margin-bottom: 28rpx;
-}
 .section-title {
 	font-size: 32rpx;
 	font-weight: 700;
@@ -680,491 +424,179 @@
 .card-count {
 	font-size: 26rpx;
 	font-weight: 500;
-	color: var(--muted);
-}
-.card-count.accent {
-	color: var(--accent);
+	color: var(--ink);
+	margin-bottom: 16px;
 }
 
-/* ==================== 头像区 ==================== */
-.avatar-row {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 32rpx;
-}
-.avatar-circle {
+.avatar-upload {
 	position: relative;
-	width: 144rpx;
-	height: 144rpx;
-	border-radius: 50%;
-	overflow: visible;
-	flex-shrink: 0;
+	width: 100px;
+	height: 100px;
+	margin: 0 auto;
 }
-.avatar-img {
-	width: 144rpx;
-	height: 144rpx;
+
+.avatar {
+	width: 100%;
+	height: 100%;
 	border-radius: 50%;
 }
-.camera-badge {
+
+.upload-mask {
 	position: absolute;
 	bottom: 0;
+	left: 0;
 	right: 0;
-	width: 48rpx;
-	height: 48rpx;
-	border-radius: 50%;
-	background-color: var(--accent);
+	height: 32px;
+	background: rgba(0, 0, 0, 0.6);
+	border-radius: 0 0 50% 50%;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 }
-.camera-icon {
-	font-size: 24rpx;
+
+.upload-mask .icon {
+	font-size: 14px;
 	color: var(--text-invert);
 }
-.avatar-info {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 12rpx;
-}
-.avatar-title {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: var(--ink);
-}
-.avatar-desc {
-	font-size: 24rpx;
-	color: var(--muted);
-	line-height: 1.4;
-}
-.avatar-warning {
-	font-size: 22rpx;
-	color: #E88C5A;
-	line-height: 1.4;
+
+.upload-mask .text {
+	font-size: 10px;
+	color: var(--text-invert);
 }
 
-/* ==================== 相册 ==================== */
-.album-grid {
-	display: flex;
-	flex-direction: row;
-	gap: 16rpx;
+.photo-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
 }
-.album-cell {
+
+.photo-item {
 	position: relative;
-	flex: 1;
 	aspect-ratio: 1;
-	border-radius: 24rpx;
+	border-radius: 8px;
 	overflow: hidden;
-	background-color: var(--warm);
 }
-.album-photo {
+
+.photo {
 	width: 100%;
 	height: 100%;
 }
-.album-delete {
+
+.delete-btn {
 	position: absolute;
-	top: 8rpx;
-	right: 8rpx;
-	width: 40rpx;
-	height: 40rpx;
+	top: 4px;
+	right: 4px;
+	width: 24px;
+	height: 24px;
+	background: rgba(0, 0, 0, 0.6);
 	border-radius: 50%;
-	background-color: rgba(0, 0, 0, 0.5);
 	display: flex;
+		flex-direction: row;
 	align-items: center;
 	justify-content: center;
 }
-.delete-icon {
-	font-size: 24rpx;
-	color: #FFFFFF;
-}
-.add-cell {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.add-icon {
-	font-size: 64rpx;
-	color: var(--muted);
-	font-weight: 300;
-}
 
-/* ==================== 基础信息预览卡（.pen: PNARb） ==================== */
-.profile-preview-card {
-	position: relative;
-}
-.preview-card-header {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-}
-.edit-badge {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 4rpx;
-	padding: 12rpx 28rpx;
-	border-radius: 999rpx;
-	background-color: var(--warm);
-}
-.edit-badge-text {
-	font-size: 28rpx;
-	color: var(--muted);
-}
-.edit-badge-arrow {
-	font-size: 32rpx;
-	color: var(--muted);
-}
-.preview-field-list {
-	display: flex;
-	flex-direction: column;
-}
-.preview-field {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	padding: 16rpx 0;
-	border-bottom: 1px solid var(--warm);
-}
-.preview-field:last-child {
-	border-bottom: none;
-}
-.preview-label {
-	font-size: 26rpx;
-	color: var(--muted);
-}
-.preview-value {
-	font-size: 26rpx;
-	font-weight: 500;
-	color: var(--ink);
-}
-.preview-value.muted {
-	color: var(--muted);
-}
-
-/* ==================== 认证 ==================== */
-.cert-item {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 24rpx;
-	padding: 8rpx 0;
-}
-.cert-icon-wrap {
-	width: 80rpx;
-	height: 80rpx;
-	border-radius: 40rpx;
-	background-color: var(--warm);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-}
-.cert-icon-wrap.cert-done {
-	background-color: var(--accent-bg);
-}
-.cert-icon-text {
-	font-size: 36rpx;
-}
-.cert-text-wrap {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 4rpx;
-}
-.cert-label {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: var(--ink);
-}
-.cert-desc {
-	font-size: 22rpx;
-	color: var(--muted);
-}
-.cert-check {
-	width: 40rpx;
-	height: 40rpx;
-	flex-shrink: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.check-icon {
-	font-size: 36rpx;
-	font-weight: 700;
-	color: var(--accent);
-}
-.cert-pending {
-	padding: 10rpx 24rpx;
-	border-radius: 24rpx;
-	background-color: var(--accent-bg);
-	flex-shrink: 0;
-}
-.pending-text {
-	font-size: 24rpx;
-	font-weight: 600;
-	color: var(--accent2);
-}
-
-/* ==================== 自我介绍 ==================== */
-.intro-input-wrap {
-	padding: 24rpx;
-	border-radius: 24rpx;
-	background-color: var(--warm);
-	min-height: 200rpx;
-}
-.intro-textarea {
-	width: 100%;
-	min-height: 160rpx;
-	font-size: 26rpx;
-	color: var(--ink);
-	line-height: 1.5;
-}
-.intro-hint {
-	font-size: 22rpx;
-	color: var(--muted);
-	line-height: 1.4;
-}
-
-/* ==================== 标签 ==================== */
-.tag-section {
-	position: relative;
-	overflow: visible;
-}
-.tag-desc {
-	font-size: 24rpx;
-	color: var(--muted);
-	margin-top: -16rpx;
-}
-.tag-row {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	gap: 16rpx;
-}
-.tag-item {
-	padding: 12rpx 28rpx;
-	border-radius: 999rpx;
-	background-color: var(--warm);
-}
-.tag-item.tag-selected {
-	background-color: var(--accent-bg);
-}
-.tag-text {
-	font-size: 26rpx;
-	font-weight: 500;
-	color: var(--ink2);
-}
-.tag-item.tag-selected .tag-text {
-	color: var(--accent2);
-}
-.tag-add-btn {
-	padding: 12rpx 28rpx;
-	border-radius: 999rpx;
-	background-color: var(--accent-bg);
-	align-self: flex-end;
-}
-.tag-add-text {
-	font-size: 26rpx;
-	font-weight: 500;
-	color: var(--accent2);
-}
-
-/* ==================== 关于我 问答 ==================== */
-.qa-section-desc {
-	font-size: 24rpx;
-	color: var(--muted);
-	margin-top: -16rpx;
-}
-.qa-card {
-	display: flex;
-	flex-direction: column;
-	gap: 16rpx;
-	padding: 24rpx;
-	border-radius: 24rpx;
-	background-color: var(--warm);
-}
-.qa-question {
-	font-size: 26rpx;
-	font-weight: 600;
-	color: var(--ink);
-}
-.qa-answer-row {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-}
-.qa-answer-hint {
-	font-size: 24rpx;
-	color: var(--muted);
-}
-.qa-answer-text {
-	font-size: 24rpx;
-	color: var(--ink2);
-	flex: 1;
-}
-.qa-edit-icon {
-	font-size: 28rpx;
-	color: var(--accent);
-	margin-left: 16rpx;
-}
-
-/* ==================== 保存区域 ==================== */
-.save-section {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 24rpx;
-	padding: 16rpx 0;
-	margin-bottom: 28rpx;
-}
-.save-buttons {
-	display: flex;
-	flex-direction: row;
-	gap: 24rpx;
-	width: 100%;
-}
-.cancel-btn {
-	flex: 1;
-	height: 96rpx;
-	border-radius: 48rpx;
-	background-color: var(--warm);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.cancel-text {
-	font-size: 30rpx;
-	font-weight: 600;
-	color: var(--ink2);
-}
-.save-btn {
-	flex: 1;
-	height: 96rpx;
-	border-radius: 48rpx;
-	background-color: var(--accent);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	box-shadow: 0 8rpx 24rpx rgba(56, 152, 141, 0.25);
-}
-.save-text {
-	font-size: 30rpx;
-	font-weight: 700;
+.delete-btn .icon {
 	color: var(--text-invert);
-}
-.safe-note {
-	font-size: 22rpx;
-	color: var(--muted);
-	text-align: center;
+	font-size: 16px;
 }
 
-/* ==================== 基础信息编辑 Sheet（.pen: OzNuL） ==================== */
-.basic-info-sheet {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	z-index: 100;
+.add-btn {
+	background: var(--paper);
+	border: 1px dashed var(--line);
 	display: flex;
 	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
 }
-.sheet-mask {
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background-color: rgba(0, 0, 0, 0.4);
+
+.add-btn .icon {
+	font-size: 32px;
+	color: var(--muted);
 }
-.sheet-panel {
-	position: relative;
-	flex: 1;
-	margin-top: 120rpx;
-	background-color: var(--canvas);
-	border-radius: 40rpx 40rpx 0 0;
-	display: flex;
-	flex-direction: column;
+
+.add-btn .text {
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.form-list {
+	border-radius: 8px;
 	overflow: hidden;
 }
 
-.sheet-header {
+.form-item {
 	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
+		flex-direction: row;
 	align-items: center;
-	padding: 32rpx 32rpx 24rpx 32rpx;
-	background-color: var(--surface);
-	flex-shrink: 0;
-}
-.sheet-back {
-	font-size: 28rpx;
-	color: var(--muted);
-}
-.sheet-title {
-	font-size: 32rpx;
-	font-weight: 700;
-	color: var(--ink);
-}
-.sheet-done {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: var(--accent);
+	height: 52px;
+	border-bottom: 1px solid var(--line);
 }
 
-.sheet-body {
+.form-item:last-child {
+	border-bottom: none;
+}
+
+.form-item .label {
+	width: 80px;
+	font-size: 14px;
+	color: var(--ink);
+	flex-shrink: 0;
+}
+
+.form-item .value {
 	flex: 1;
-	padding: 0;
+	font-size: 14px;
+	color: var(--ink2);
+	text-align: right;
 }
 
-/* 表单卡片 */
-.form-card {
-	margin: 24rpx 32rpx;
-	padding: 0 32rpx;
-	background-color: var(--surface);
-	border-radius: 40rpx;
-	box-shadow: var(--shadow-sm);
-}
-.form-row {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	padding: 24rpx 0;
-}
-.form-label {
-	font-size: 28rpx;
-	color: var(--ink);
-	flex-shrink: 0;
-}
-.form-right {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 12rpx;
-}
-.form-value {
-	font-size: 28rpx;
+.form-item .arrow {
+	width: 20px;
+	font-size: 20px;
 	color: var(--muted);
 	text-align: right;
 }
-.form-value.placeholder {
-	color: var(--muted);
-}
-.form-arrow {
-	font-size: 36rpx;
-	color: var(--muted);
-}
-.form-divider {
-	height: 1px;
-	background-color: var(--warm);
+
+.textarea {
+	width: 100%;
+	min-height: 120px;
+	padding: 12px;
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	font-size: 14px;
+	color: var(--ink);
+	line-height: 1.6;
 }
 
-.sheet-bottom-spacer {
-	height: calc(60rpx + env(safe-area-inset-bottom));
+.char-count {
+	display: block;
+	text-align: right;
+	font-size: 12px;
+	color: var(--muted);
+	margin-top: 8px;
+}
+
+.footer {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 12px 24px;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+}
+
+.save-btn {
+	width: 100%;
+	height: 48px;
+	background: var(--accent);
+	color: var(--text-invert);
+	border-radius: 999px;
+	font-size: 16px;
+	font-weight: 500;
 }
 </style>

@@ -20,7 +20,9 @@ export {
   applyToMeet,
   likeUser,
   getChatFeatureUnlocks,
-  unlockChatFeature
+  unlockChatFeature,
+  getUserProfileUnlockStatus,
+  unlockUserProfile
 } from './user.uts'
 
 // 消息相关
@@ -55,6 +57,8 @@ export {
   signupActivity,
   getMyActivities,
   getCommunityBanners,
+  getFixedCommunityBanner,
+  ensureCommunityBanners,
   getCommunityNotifications,
   getUnreadNotificationCount,
   markNotificationRead,
@@ -63,12 +67,12 @@ export {
   purchasePaperPlaneChance,
   publishDynamic,
   likeDynamic,
+  deleteDynamic,
   collectDynamic,
   followUserFromCommunity,
   unfollowUserFromCommunity,
-  deleteDynamic,
-  deleteComment,
   commentDynamic,
+  deleteComment,
   reportContent,
   blockUser,
   getReportReasons,
