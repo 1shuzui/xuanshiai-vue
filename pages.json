@@ -125,6 +125,26 @@
 			}
 		},
 		{
+			"path": "pages/parent/parent",
+			"style": {
+				"navigationBarTitleText": "父母端",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/parent/user-detail",
+			"style": {
+				"navigationBarTitleText": "资料详情",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/emotion-lab/emotion-lab",
+			"style": {
+				"navigationBarTitleText": "情感实验室"
+			}
+		},
+		{
 			"path": "pages/chat/detail",
 			"style": {
 				"navigationBarTitleText": "聊天"

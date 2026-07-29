@@ -1,5 +1,5 @@
 <template>
-	<view class="xsa-tabs">
+		<view class="xsa-tabs" :class="{ 'large-text': largeText }">
 		<view class="tabs-header" :class="variant">
 			<view
 				v-for="(tab, index) in tabs"
@@ -26,11 +26,13 @@
 interface Props {
 	tabs: string[];
 	modelValue: number;
-	variant?: 'default' | 'pill';
+		variant?: 'default' | 'pill';
+		largeText?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-	variant: 'default'
+		variant: 'default',
+		largeText: false
 });
 
 const emit = defineEmits<{
@@ -135,5 +137,11 @@ const handleTabClick = (index: number) => {
 .tabs-content {
 	flex: 1;
 	overflow: hidden;
+}
+
+.xsa-tabs.large-text .tabs-header.default .tab-item,
+.xsa-tabs.large-text .tabs-header.pill .tab-item {
+	min-height: 48px;
+	font-size: 16px;
 }
 </style>

@@ -1,0 +1,25 @@
+const assert = require('assert')
+const fs = require('fs')
+const path = require('path')
+
+const root = path.join(__dirname, '..')
+const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
+
+const config = read('api/config.uts')
+const login = read('pages/auth/login.uvue')
+const labApi = read('api/emotionLab.uts')
+const pages = read('pages.json')
+const profile = read('pages/profile/profile.uvue')
+const edit = read('pages/user/edit.uvue')
+
+assert.match(config, /export const CURRENT_USER_ID_KEY = 'xsa_user_id'/, 'shared user-id key must remain stable')
+assert.match(login, /setAuthTokens\('local_demo_access_token', 'local_demo_refresh_token'\)/, 'debug login must establish a session')
+assert.match(login, /uni\.setStorageSync\(CURRENT_USER_ID_KEY, 1\)/, 'debug login must persist the experiment subject')
+assert.match(labApi, /uni\.getStorageSync\(CURRENT_USER_ID_KEY\)/, 'emotion lab must resolve the same subject key')
+assert.match(labApi, /EMOTION_LAB_SUBJECT_REQUIRED/, 'emotion lab must fail closed without a subject')
+assert.ok(pages.includes('pages/emotion-lab/emotion-lab'), 'emotion-lab route must be registered')
+assert.ok(profile.includes("/pages/emotion-lab/emotion-lab"), 'profile page must link to emotion lab')
+assert.ok(edit.includes("/pages/emotion-lab/emotion-lab"), 'profile editor must link to emotion lab')
+assert.ok(edit.includes('getEmotionLabSummary'), 'profile editor must read the confirmed lab result')
+
+console.log('PASS debug login to emotion-lab subject contract')

@@ -5,7 +5,7 @@ const path = require('path')
 const filePath = path.join(__dirname, '..', 'api', 'community.uts')
 const source = fs.readFileSync(filePath, 'utf8')
 
-for (const name of ['getPaperPlanePeerName', 'upsertPaperPlaneConversation']) {
+for (const name of ['mapPaperPlane', 'mapPlaneConversation']) {
   const declarations = source.match(new RegExp(`^function\\s+${name}\\s*\\(`, 'gm')) || []
   assert.strictEqual(declarations.length, 1, `${name} must be declared exactly once`)
 }

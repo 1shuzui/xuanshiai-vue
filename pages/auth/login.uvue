@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="uts">
-	import { setAuthTokens } from '@/api/config.uts'
+	import { CURRENT_USER_ID_KEY, setAuthTokens } from '@/api/config.uts'
 
 	const authLoading = ref(false)
 
@@ -38,7 +38,7 @@
 		try {
 			setAuthTokens('local_demo_access_token', 'local_demo_refresh_token')
 			uni.setStorageSync('xsa_login_agreed', true)
-			uni.setStorageSync('xsa_user_id', 1)
+			uni.setStorageSync(CURRENT_USER_ID_KEY, 1)
 			return true
 		} catch (error) {
 			console.error('local demo login failed', error)

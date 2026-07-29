@@ -1,0 +1,250 @@
+<template>
+	<XsaSheet :visible="visible" title="申请认识" :large-text="true" @close="handleClose">
+		<view class="parent-apply-sheet">
+			<text class="apply-lead">对方本人同意后才能开始聊天。请写下具体、尊重的申请附言。</text>
+			<view class="quota-row">
+				<text class="quota-label">今日剩余申请次数</text>
+				<text class="quota-value">{{ remainingApplications }} 次</text>
+			</view>
+			<textarea
+				class="apply-input"
+				:value="message"
+				maxlength="120"
+				placeholder="例如：认真读过你的资料，想在双方同意后进一步了解。"
+				@input="onMessageInput"
+			></textarea>
+			<text class="apply-count">{{ message.length }}/120</text>
+			<view class="apply-tips">
+				<text class="apply-tip">父母实名认证与子女授权均有效时才可发送</text>
+				<text class="apply-tip">未双方同意前，不交换微信、电话或照片</text>
+				<text class="apply-tip">对方拒绝不会产生额外扣次</text>
+			</view>
+			<view class="apply-actions">
+				<button class="apply-button secondary" :disabled="submitting" @click="handleClose">取消</button>
+				<button
+				class="apply-button primary"
+				:disabled="submitting || message.trim().length == 0 || remainingApplications <= 0"
+				@click="handleSubmit"
+			>
+				{{ submitting ? '提交中' : remainingApplications <= 0 ? '今日次数已用完' : '确认发送' }}
+				</button>
+			</view>
+		</view>
+	</XsaSheet>
+</template>
+
+<script setup lang="uts">
+	import XsaSheet from '@/components/XsaSheet.uvue'
+	import type { ParentContext } from '@/api'
+	import { applyParentIntroduction, getParentAccessGate } from '@/api'
+
+	interface Props {
+		visible: boolean
+		candidateId: number
+		parentContext: ParentContext | null
+	}
+
+	const props = withDefaults(defineProps<Props>(), {
+		visible: false,
+		candidateId: 0,
+		parentContext: null
+	})
+
+	const emit = defineEmits<{
+		close: []
+		success: [payload: any]
+	}>()
+
+	const message = ref('')
+	const submitting = ref(false)
+	let componentActive = true
+	let submitAttempt = 0
+
+	const remainingApplications = computed(() => {
+		if (props.parentContext == null || props.parentContext.quota == null) return 0
+		return Math.max(0, Number(props.parentContext.quota.remainingApplications))
+	})
+
+	watch(() => props.visible, (visible: boolean) => {
+		if (visible) message.value = ''
+	})
+
+	onUnmounted(() => {
+		componentActive = false
+		submitAttempt += 1
+		submitting.value = false
+	})
+
+	const onMessageInput = (event: any) => {
+		message.value = event.detail.value
+	}
+
+	const handleClose = () => {
+		if (submitting.value || !componentActive) return
+		emit('close')
+	}
+
+		const handleSubmit = async () => {
+			if (submitting.value || !componentActive) return
+			if (remainingApplications.value <= 0) {
+				uni.showToast({ title: '今日申请次数已用完', icon: 'none' })
+				return
+			}
+		const note = message.value.trim()
+		if (note.length == 0) {
+			uni.showToast({ title: '请填写申请附言', icon: 'none' })
+			return
+		}
+		const storedMode = uni.getStorageSync('xsa_onboarding_mode')
+		if (storedMode == null || String(storedMode) != 'parent') {
+			uni.showToast({ title: '当前账号不是父母身份', icon: 'none' })
+			return
+		}
+		const gate = getParentAccessGate(props.parentContext)
+		if (gate == null || gate.allowed != true) {
+			uni.showToast({ title: gate != null ? gate.message : '父母端访问条件已失效', icon: 'none' })
+			return
+		}
+
+		const attempt = submitAttempt + 1
+		submitAttempt = attempt
+		submitting.value = true
+		try {
+			const result = await applyParentIntroduction(props.parentContext, props.candidateId, note)
+			if (!componentActive || attempt != submitAttempt) return
+			const data = result != null ? result.data : null
+			if (result == null || result.success != true || data == null || data.success != true) {
+				const errorMessage = result != null && result.message != null
+					? String(result.message)
+					: '申请失败，请重试'
+				uni.showToast({ title: errorMessage, icon: 'none' })
+				return
+			}
+			if (
+				data.internalDemo == true ||
+				(props.parentContext != null && props.parentContext.dataMode == 'mock')
+			) {
+				uni.showModal({
+					title: '内部演示',
+					content: '当前父母与子女关系为内部演示，此响应不代表已向真实用户发送申请。',
+					showCancel: false,
+					confirmText: '知道了'
+				})
+			} else {
+				uni.showToast({ title: '申请认识已送达', icon: 'success' })
+			}
+			emit('success', data)
+			emit('close')
+		} catch (error) {
+			if (componentActive && attempt == submitAttempt) {
+				uni.showToast({ title: '网络异常，请稍后重试', icon: 'none' })
+			}
+		} finally {
+			if (componentActive && attempt == submitAttempt) submitting.value = false
+		}
+	}
+</script>
+
+<style scoped>
+	.parent-apply-sheet {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.apply-lead {
+		font-size: 16px;
+		line-height: 1.6;
+		color: var(--ink2);
+	}
+
+	.quota-row {
+		min-height: 48px;
+		padding: 8px 12px;
+		border-radius: 8px;
+		background: var(--warm);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.quota-label,
+	.quota-value {
+		font-size: 16px;
+		line-height: 1.45;
+	}
+
+	.quota-value {
+		font-weight: 700;
+		color: var(--accent2);
+	}
+
+	.apply-input {
+		box-sizing: border-box;
+		width: 100%;
+		min-height: 112px;
+		padding: 12px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		color: var(--ink);
+		font-size: 16px;
+		line-height: 1.55;
+	}
+
+	.apply-count {
+		align-self: flex-end;
+		font-size: 14px;
+		color: var(--muted);
+	}
+
+	.apply-tips {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.apply-tip {
+		font-size: 14px;
+		line-height: 1.55;
+		color: var(--ink2);
+	}
+
+	.apply-actions {
+		display: flex;
+		gap: 12px;
+		padding-bottom: 8px;
+	}
+
+	.apply-button {
+		min-width: 0;
+		min-height: 48px;
+		margin: 0;
+		padding: 0 14px;
+		border-radius: 8px;
+		font-size: 16px;
+		font-weight: 700;
+		line-height: 1.45;
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.apply-button.secondary {
+		border: 1px solid var(--line);
+		background: var(--paper);
+		color: var(--ink);
+	}
+
+	.apply-button.primary {
+		border: 1px solid var(--accent2);
+		background: var(--accent2);
+		color: var(--text-invert);
+	}
+
+	.apply-button[disabled] {
+		opacity: 0.5;
+	}
+</style>

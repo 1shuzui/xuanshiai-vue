@@ -1,5 +1,5 @@
 <template>
-	<view class="xsa-empty" :class="size">
+		<view class="xsa-empty" :class="[size, { 'large-text': largeText }]">
 		<!-- 图标 -->
 		<view class="empty-icon" v-if="icon">
 			<text class="icon-text">{{ icon }}</text>
@@ -34,13 +34,15 @@ interface Props {
 	actionText?: string; // 操作按钮文字
 	size?: 'small' | 'medium' | 'large'; // 尺寸
 	type?: 'default' | 'noData' | 'noNetwork' | 'noPermission'; // 预设类型
+	largeText?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
 	showAction: false,
 	actionText: '刷新',
 	size: 'medium',
-	type: 'default'
+	type: 'default',
+	largeText: false
 });
 
 const emit = defineEmits<{
@@ -152,5 +154,20 @@ const handleAction = () => {
 
 .btn-text {
 	display: block;
+}
+
+.xsa-empty.large-text .empty-text {
+	font-size: 16px;
+}
+
+.xsa-empty.large-text .empty-desc {
+	font-size: 14px;
+}
+
+.xsa-empty.large-text .action-btn {
+	min-height: 48px;
+	height: 48px;
+	font-size: 16px;
+	border-radius: 8px;
 }
 </style>

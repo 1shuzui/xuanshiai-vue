@@ -1,0 +1,1149 @@
+<template>
+	<view class="lab-page">
+		<view class="page-head">
+			<text class="page-title">情感实验室</text>
+			<text class="page-subtitle">MBTI 偏好记录</text>
+		</view>
+
+		<scroll-view class="lab-scroll" scroll-y>
+			<view v-if="loading" class="state-block">
+				<text class="state-title">正在加载</text>
+			</view>
+
+			<view v-else-if="errorMessage != ''" class="state-block">
+				<text class="state-title">暂时无法加载</text>
+				<text class="state-message">{{ errorMessage }}</text>
+				<button class="secondary-button compact-button" @click="loadSummary">重试</button>
+			</view>
+
+			<view v-else class="lab-content">
+				<view v-if="viewState == 'intro'" class="section assessment-section">
+					<view class="section-heading">
+						<view class="heading-copy">
+							<text class="section-title">MBTI 基础维度测试</text>
+							<text class="section-meta">版本 {{ assessmentVersion }}</text>
+						</view>
+						<view class="review-badge" :class="{ 'review-badge-verified': canStartAssessment }">
+							<text class="review-badge-text">{{ authorizationLabel }}</text>
+						</view>
+					</view>
+
+					<view v-if="!canStartAssessment" class="review-notice">
+						<text class="review-title">{{ startBlockTitle }}</text>
+						<text class="review-message">{{ startBlockMessage }}</text>
+					</view>
+
+					<button
+						class="primary-button"
+						:disabled="!canStartAssessment || starting || hasActiveDraft"
+						@click="handleStartAssessment"
+					>
+						{{ starting ? '正在创建...' : '开始 MBTI 测试' }}
+					</button>
+
+					<view v-if="hasActiveDraft" class="draft-panel">
+						<view class="draft-copy">
+							<text class="draft-title">有一份未完成记录</text>
+							<text class="section-meta">已保存 {{ answeredCount }} / {{ activeSession.questionIds.length }}</text>
+						</view>
+						<view class="inline-actions">
+							<button class="secondary-button inline-button" :disabled="discarding" @click="requestDiscardDraft">放弃本次测试</button>
+							<button class="primary-button inline-button" :disabled="discarding" @click="continueAssessment">继续测试</button>
+						</view>
+					</view>
+
+					<view v-if="completedResult != null" class="draft-panel">
+						<view class="draft-copy">
+							<text class="draft-title">最近结果 {{ completedResult.mbtiType }}</text>
+							<text class="section-meta">{{ completedResult.resultCopy.version }}</text>
+						</view>
+						<button class="secondary-button inline-button" @click="openResult">查看结果</button>
+					</view>
+
+					<button class="secondary-button manual-entry-button" @click="openManualSettings">手动设置 MBTI</button>
+				</view>
+
+				<view v-else-if="viewState == 'questions'" class="section question-section">
+					<view v-if="currentQuestion != null">
+						<view class="question-progress-row">
+							<text class="section-meta">第 {{ currentQuestionIndex + 1 }} / {{ activeSession.questionIds.length }} 题</text>
+							<text class="section-meta">已完成 {{ answeredCount }} 题</text>
+						</view>
+						<view class="question-track">
+							<view class="question-track-fill" :style="{ width: progressPercent + '%' }"></view>
+						</view>
+						<text class="question-text">{{ currentQuestion.text }}</text>
+						<view class="answer-list">
+							<button
+								v-for="option in currentOptions"
+								:key="option.value"
+								class="answer-option"
+								:class="{ 'answer-option-selected': currentAnswerValue == option.value }"
+								:disabled="savingAnswer"
+								@click="selectAnswer(option.value)"
+							>
+								{{ option.label }}
+							</button>
+						</view>
+						<text v-if="progressMessage != ''" class="save-message">{{ progressMessage }}</text>
+
+						<view class="question-actions">
+							<button class="secondary-button nav-button" :disabled="savingAnswer || currentQuestionIndex == 0" @click="previousQuestion">上一题</button>
+							<button
+								v-if="currentQuestionIndex < activeSession.questionIds.length - 1"
+								class="secondary-button nav-button"
+								:disabled="savingAnswer"
+								@click="nextQuestion"
+							>下一题</button>
+							<button
+								v-else
+								class="primary-button nav-button"
+								:disabled="!allAnswersComplete || savingAnswer || submitting"
+								@click="submitAssessment"
+							>{{ submitting ? '正在提交...' : '完整提交' }}</button>
+						</view>
+						<button class="text-button" :disabled="savingAnswer || submitting || discarding" @click="requestDiscardDraft">放弃本次测试</button>
+					</view>
+					<view v-else class="state-block compact-state">
+						<text class="state-title">没有可显示的题目</text>
+						<button class="secondary-button compact-button" @click="backToIntro">返回</button>
+					</view>
+				</view>
+
+				<view v-else-if="viewState == 'manual'" class="section manual-section">
+					<view class="section-heading">
+						<view class="heading-copy">
+							<text class="section-title">手动选择 16 型</text>
+							<text class="section-meta">资料来源将记录为用户自填</text>
+						</view>
+					</view>
+
+					<view class="type-grid">
+						<button
+							v-for="type in manualTypes"
+							:key="type"
+							class="type-option"
+							:class="{ 'type-option-selected': selectedType == type }"
+							@click="selectManualType(type)"
+						>
+							{{ type }}
+						</button>
+					</view>
+
+					<checkbox-group class="confirm-group" @change="handleManualConfirmChange">
+						<label class="confirm-row">
+							<checkbox value="confirmed" :checked="manualConfirmed" />
+							<text class="confirm-text">我确认将此自填类型同步到资料</text>
+						</label>
+					</checkbox-group>
+
+					<button
+						class="primary-button"
+						:disabled="selectedType == '' || !manualConfirmed || savingProfile"
+						@click="saveManualType"
+					>
+						{{ savingProfile ? '正在保存...' : '保存自填类型' }}
+					</button>
+
+					<view v-if="profileSource != null" class="saved-source">
+						<text class="saved-type">{{ profileSource.mbtiType }}</text>
+						<text class="saved-label">{{ profileSource.source == 'assessment' ? '测评记录' : '用户自填' }}</text>
+					</view>
+					<button class="text-button" @click="backToIntro">返回实验室</button>
+				</view>
+
+				<view v-else-if="viewState == 'result' && completedResult != null" class="section result-section">
+					<view class="section-heading">
+						<view class="heading-copy">
+							<text class="section-title">本次结果</text>
+							<text class="section-meta">{{ completedResult.resultCopy.version }}</text>
+						</view>
+						<text class="result-type">{{ completedResult.mbtiType }}</text>
+					</view>
+
+					<view class="dimension-list">
+						<view v-for="row in dimensionRows" :key="row.key" class="dimension-row">
+							<text class="dimension-pole">{{ row.left }} {{ row.leftScore }}</text>
+							<view class="dimension-track">
+								<view class="dimension-fill" :style="{ width: row.leftScore + '%' }"></view>
+							</view>
+							<text class="dimension-pole dimension-pole-right">{{ row.rightScore }} {{ row.right }}</text>
+						</view>
+					</view>
+
+					<text class="result-summary">{{ completedResult.resultCopy.summary }}</text>
+					<checkbox-group class="confirm-group" @change="handleAssessmentConfirmChange">
+						<label class="confirm-row">
+							<checkbox value="confirmed" :checked="assessmentConfirmed" />
+							<text class="confirm-text">我确认将本次结果同步到资料</text>
+						</label>
+					</checkbox-group>
+					<button
+						class="primary-button"
+						:disabled="!assessmentConfirmed || savingProfile"
+						@click="saveAssessmentType"
+					>
+						同步本次结果
+					</button>
+					<button class="text-button" @click="backToIntro">返回实验室</button>
+				</view>
+
+				<view v-if="disclaimerText != ''" class="disclaimer-band">
+					<text class="disclaimer-text">{{ disclaimerText }}</text>
+					<text v-if="disclaimerVersion != ''" class="disclaimer-version">文案版本 {{ disclaimerVersion }}</text>
+				</view>
+			</view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, computed, onMounted } from 'vue'
+	import {
+		getEmotionLabSummary,
+		startMbtiAssessment,
+		saveMbtiAnswer,
+		submitMbtiAssessment,
+		discardMbtiDraft,
+		setMyMbtiType
+	} from '@/api'
+
+	const loading = ref(true)
+	const starting = ref(false)
+	const savingAnswer = ref(false)
+	const submitting = ref(false)
+	const discarding = ref(false)
+	const savingProfile = ref(false)
+	const errorMessage = ref('')
+	const summary = ref(null as any)
+	const viewState = ref('intro')
+	const currentQuestionIndex = ref(0)
+	const progressMessage = ref('')
+	const selectedType = ref('')
+	const manualConfirmed = ref(false)
+	const assessmentConfirmed = ref(false)
+	const defaultScaleLabels: string[] = ['非常不符合', '比较不符合', '不确定', '比较符合', '非常符合']
+
+	const assessment = computed(() => {
+		if (summary.value == null || !Array.isArray(summary.value.assessments)) return null
+		return summary.value.assessments.length > 0 ? summary.value.assessments[0] : null
+	})
+
+	const assessmentVersion = computed(() => {
+		return assessment.value != null ? assessment.value.version : 'mbti-core@2'
+	})
+
+	const canStartAssessment = computed(() => {
+		if (assessment.value == null || assessment.value.authorization == null) return false
+		const status = '' + assessment.value.authorization.status
+		return assessment.value.canStart == true && (status == 'verified' || status == 'approved')
+	})
+
+	const authorizationLabel = computed(() => {
+		if (assessment.value != null && assessment.value.authorization != null) {
+			const status = '' + assessment.value.authorization.status
+			if (status == 'approved') return '内容已授权'
+			if (status == 'verified') return '内容已审核'
+			if (status == 'rejected') return '内容不可用'
+		}
+		return '内容授权待审核'
+	})
+
+	const startBlockTitle = computed(() => {
+		if (assessment.value != null && assessment.value.authorization != null) {
+			const status = '' + assessment.value.authorization.status
+			if (status == 'rejected') return '测试内容暂不可用'
+			if (status == 'verified' || status == 'approved') return '测试暂不可开始'
+		}
+		return '审核完成前不可开始'
+	})
+
+	const startBlockMessage = computed(() => {
+		if (assessment.value != null && assessment.value.authorization != null) {
+			const status = '' + assessment.value.authorization.status
+			if (status == 'rejected') return '该版本内容未通过复核，当前不会加载测试题。'
+			if (status == 'verified' || status == 'approved') return '当前版本暂未开放，请稍后再试。'
+		}
+		return '题库来源与使用范围尚未完成复核，当前不会加载任何测试题。'
+	})
+
+	const manualTypes = computed(() => {
+		if (summary.value == null || !Array.isArray(summary.value.manualTypes)) return [] as string[]
+		return summary.value.manualTypes as string[]
+	})
+
+	const profileSource = computed(() => {
+		return summary.value != null ? summary.value.profileSource : null
+	})
+
+	const activeSession = computed(() => {
+		return summary.value != null ? summary.value.activeSession : null
+	})
+
+	const hasActiveDraft = computed(() => {
+		return canStartAssessment.value && activeSession.value != null && activeSession.value.status == 'in_progress'
+	})
+
+	const answeredCount = computed(() => {
+		const session: any = activeSession.value
+		if (session == null || !Array.isArray(session.questionIds) || !Array.isArray(session.answers)) return 0
+		let count = 0
+		for (let i = 0; i < session.questionIds.length; i++) {
+			const questionId = '' + session.questionIds[i]
+			for (let j = 0; j < session.answers.length; j++) {
+				if (session.answers[j] != null && '' + session.answers[j].questionId == questionId) {
+					count += 1
+					break
+				}
+			}
+		}
+		return count
+	})
+
+	const currentQuestion = computed(() => {
+		const session: any = activeSession.value
+		if (session == null || !Array.isArray(session.questionIds) || !Array.isArray(session.questions)) return null as any
+		if (currentQuestionIndex.value < 0 || currentQuestionIndex.value >= session.questionIds.length) return null as any
+		const questionId = '' + session.questionIds[currentQuestionIndex.value]
+		for (let i = 0; i < session.questions.length; i++) {
+			const question: any = session.questions[i]
+			if (question != null && '' + question.id == questionId) return question
+		}
+		return null as any
+	})
+
+	const currentOptions = computed(() => {
+		const rows: any[] = []
+		const question: any = currentQuestion.value
+		if (question == null || !Array.isArray(question.options)) return rows
+		for (let i = 0; i < question.options.length; i++) {
+			const option: any = question.options[i]
+			const rawValue: any = option != null && typeof option == 'object' ? option.value : option
+			const value = Number(rawValue)
+			if (!Number.isFinite(value)) continue
+			let label = '' + rawValue
+			if (option != null && typeof option == 'object' && option.label != null) {
+				label = '' + option.label
+			} else if (question.options.length == defaultScaleLabels.length) {
+				label = defaultScaleLabels[i]
+			}
+			rows.push({ value: value, label: label })
+		}
+		return rows
+	})
+
+	const currentAnswerValue = computed(() => {
+		const session: any = activeSession.value
+		const question: any = currentQuestion.value
+		if (session == null || question == null || !Array.isArray(session.answers)) return 0
+		for (let i = 0; i < session.answers.length; i++) {
+			const answer: any = session.answers[i]
+			if (answer != null && '' + answer.questionId == '' + question.id) return Number(answer.value)
+		}
+		return 0
+	})
+
+	const progressPercent = computed(() => {
+		const session: any = activeSession.value
+		if (session == null || !Array.isArray(session.questionIds) || session.questionIds.length == 0) return 0
+		return Math.round(answeredCount.value / session.questionIds.length * 100)
+	})
+
+	const allAnswersComplete = computed(() => {
+		const session: any = activeSession.value
+		return session != null && Array.isArray(session.questionIds) && session.questionIds.length > 0 &&
+			answeredCount.value == session.questionIds.length
+	})
+
+	const completedResult = computed(() => {
+		if (activeSession.value == null) return null
+		const session: any = activeSession.value
+		return session.status == 'completed' ? session.result : null
+	})
+
+	const disclaimerText = computed(() => {
+		const result: any = completedResult.value
+		if (
+			result != null &&
+			result.resultCopy != null &&
+			typeof result.resultCopy.disclaimer == 'string' &&
+			result.resultCopy.disclaimer.trim() != ''
+		) {
+			return result.resultCopy.disclaimer
+		}
+		if (summary.value != null && typeof summary.value.disclaimer == 'string') {
+			return summary.value.disclaimer
+		}
+		return ''
+	})
+
+	const disclaimerVersion = computed(() => {
+		const result: any = completedResult.value
+		if (
+			result != null &&
+			result.resultCopy != null &&
+			typeof result.resultCopy.version == 'string'
+		) {
+			return result.resultCopy.version
+		}
+		if (summary.value != null && typeof summary.value.disclaimerVersion == 'string') {
+			return summary.value.disclaimerVersion
+		}
+		return ''
+	})
+
+	const dimensionRows = computed(() => {
+		const result: any = completedResult.value
+		const rows: any[] = []
+		if (result == null || result.dimensions == null) return rows
+		return [
+			{ key: 'EI', left: 'E', right: 'I', leftScore: result.dimensions.EI.E, rightScore: result.dimensions.EI.I },
+			{ key: 'SN', left: 'S', right: 'N', leftScore: result.dimensions.SN.S, rightScore: result.dimensions.SN.N },
+			{ key: 'TF', left: 'T', right: 'F', leftScore: result.dimensions.TF.T, rightScore: result.dimensions.TF.F },
+			{ key: 'JP', left: 'J', right: 'P', leftScore: result.dimensions.JP.J, rightScore: result.dimensions.JP.P }
+		]
+	})
+
+	const responseMessage = (res: any, fallback: string): string => {
+		return res != null && res.message != null ? '' + res.message : fallback
+	}
+
+	const applySessionSnapshot = (session: any) => {
+		if (summary.value != null) summary.value.activeSession = session
+	}
+
+	const hasAnswer = (session: any, questionId: string): boolean => {
+		if (session == null || !Array.isArray(session.answers)) return false
+		for (let i = 0; i < session.answers.length; i++) {
+			const answer: any = session.answers[i]
+			if (answer != null && '' + answer.questionId == questionId) return true
+		}
+		return false
+	}
+
+	const firstUnansweredIndex = (session: any): number => {
+		if (session == null || !Array.isArray(session.questionIds)) return 0
+		for (let i = 0; i < session.questionIds.length; i++) {
+			if (!hasAnswer(session, '' + session.questionIds[i])) return i
+		}
+		return session.questionIds.length > 0 ? session.questionIds.length - 1 : 0
+	}
+
+	const loadSummary = async () => {
+		loading.value = true
+		errorMessage.value = ''
+		try {
+			const res = await getEmotionLabSummary()
+			if (res.success == true && res.data != null) {
+				summary.value = res.data
+				if (res.data.profileSource != null) selectedType.value = res.data.profileSource.mbtiType
+			} else {
+				errorMessage.value = responseMessage(res, '请稍后重试')
+			}
+		} catch (error) {
+			errorMessage.value = '请稍后重试'
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const handleStartAssessment = async () => {
+		if (!canStartAssessment.value || assessment.value == null) return
+		if (hasActiveDraft.value) {
+			continueAssessment()
+			return
+		}
+		starting.value = true
+		try {
+			const res = await startMbtiAssessment(assessment.value.id)
+			if (res.success != true) {
+				uni.showToast({ title: responseMessage(res, '暂时无法开始测试'), icon: 'none' })
+				return
+			}
+			applySessionSnapshot(res.data)
+			continueAssessment()
+		} catch (error) {
+			uni.showToast({ title: '暂时无法开始测试', icon: 'none' })
+		} finally {
+			starting.value = false
+		}
+	}
+
+	const continueAssessment = () => {
+		if (!canStartAssessment.value) {
+			uni.showToast({ title: '当前测试内容不可继续', icon: 'none' })
+			return
+		}
+		const session: any = activeSession.value
+		if (session == null || session.status != 'in_progress') return
+		if (!Array.isArray(session.questionIds) || session.questionIds.length == 0) {
+			uni.showToast({ title: '当前没有可作答的题目', icon: 'none' })
+			return
+		}
+		currentQuestionIndex.value = firstUnansweredIndex(session)
+		progressMessage.value = ''
+		viewState.value = 'questions'
+	}
+
+	const openManualSettings = () => {
+		manualConfirmed.value = false
+		viewState.value = 'manual'
+	}
+
+	const openResult = () => {
+		if (completedResult.value == null) return
+		assessmentConfirmed.value = false
+		viewState.value = 'result'
+	}
+
+	const backToIntro = () => {
+		progressMessage.value = ''
+		manualConfirmed.value = false
+		assessmentConfirmed.value = false
+		viewState.value = 'intro'
+	}
+
+	const previousQuestion = () => {
+		if (savingAnswer.value || currentQuestionIndex.value <= 0) return
+		currentQuestionIndex.value -= 1
+		progressMessage.value = ''
+	}
+
+	const nextQuestion = () => {
+		const session: any = activeSession.value
+		if (savingAnswer.value || session == null || !Array.isArray(session.questionIds)) return
+		if (currentQuestionIndex.value >= session.questionIds.length - 1) return
+		currentQuestionIndex.value += 1
+		progressMessage.value = ''
+	}
+
+	const selectAnswer = async (value: number) => {
+		const session: any = activeSession.value
+		const question: any = currentQuestion.value
+		if (savingAnswer.value || submitting.value || session == null || question == null) return
+		savingAnswer.value = true
+		progressMessage.value = '正在保存...'
+		try {
+			const res = await saveMbtiAnswer('' + session.id, '' + question.id, value)
+			if (res.success == true && res.data != null) {
+				applySessionSnapshot(res.data)
+				progressMessage.value = '已保存'
+			} else {
+				progressMessage.value = '保存失败，请重试'
+				uni.showToast({ title: responseMessage(res, '保存失败，请重试'), icon: 'none' })
+			}
+		} catch (error) {
+			progressMessage.value = '保存失败，请重试'
+			uni.showToast({ title: '保存失败，请重试', icon: 'none' })
+		} finally {
+			savingAnswer.value = false
+		}
+	}
+
+	const orderedAnswers = (session: any): any[] => {
+		const rows: any[] = []
+		if (session == null || !Array.isArray(session.questionIds) || !Array.isArray(session.answers)) return rows
+		for (let i = 0; i < session.questionIds.length; i++) {
+			const questionId = '' + session.questionIds[i]
+			let savedAnswer: any = null
+			for (let j = 0; j < session.answers.length; j++) {
+				const candidate: any = session.answers[j]
+				if (candidate != null && '' + candidate.questionId == questionId) {
+					savedAnswer = candidate
+					break
+				}
+			}
+			if (savedAnswer == null) return [] as any[]
+			rows.push({ questionId: questionId, value: Number(savedAnswer.value) })
+		}
+		return rows
+	}
+
+	const submitAssessment = async () => {
+		const session: any = activeSession.value
+		if (submitting.value || savingAnswer.value || session == null || !allAnswersComplete.value) return
+		const answers: any[] = orderedAnswers(session)
+		if (answers.length != session.questionIds.length) {
+			uni.showToast({ title: '请完成全部题目后提交', icon: 'none' })
+			return
+		}
+		submitting.value = true
+		try {
+			const res = await submitMbtiAssessment('' + session.id, answers)
+			if (res.success == true && res.data != null) {
+				applySessionSnapshot(res.data)
+				assessmentConfirmed.value = false
+				progressMessage.value = ''
+				viewState.value = 'result'
+				uni.showToast({ title: '测试已完成', icon: 'success' })
+			} else {
+				uni.showToast({ title: responseMessage(res, '提交失败，请重试'), icon: 'none' })
+			}
+		} catch (error) {
+			uni.showToast({ title: '提交失败，请重试', icon: 'none' })
+		} finally {
+			submitting.value = false
+		}
+	}
+
+	const discardCurrentDraft = async (sessionId: string) => {
+		if (discarding.value) return
+		discarding.value = true
+		try {
+			const res = await discardMbtiDraft(sessionId)
+			if (res.success == true && res.data != null) {
+				applySessionSnapshot(res.data)
+				currentQuestionIndex.value = 0
+				progressMessage.value = ''
+				viewState.value = 'intro'
+				uni.showToast({ title: '本次测试已放弃', icon: 'none' })
+			} else {
+				uni.showToast({ title: responseMessage(res, '暂时无法放弃测试'), icon: 'none' })
+			}
+		} catch (error) {
+			uni.showToast({ title: '暂时无法放弃测试', icon: 'none' })
+		} finally {
+			discarding.value = false
+		}
+	}
+
+	const requestDiscardDraft = () => {
+		const session: any = activeSession.value
+		if (discarding.value || session == null || session.status != 'in_progress') return
+		const sessionId = '' + session.id
+		uni.showModal({
+			title: '放弃本次测试',
+			content: '已保存的答案将被清除，且无法恢复。',
+			cancelText: '继续作答',
+			confirmText: '确认放弃',
+			success: (res: any) => {
+				if (res.confirm == true) discardCurrentDraft(sessionId)
+			}
+		})
+	}
+
+	const selectManualType = (type: string) => {
+		selectedType.value = type
+		manualConfirmed.value = false
+	}
+
+	const handleManualConfirmChange = (event: any) => {
+		const values = event.detail != null && event.detail.value != null ? event.detail.value as string[] : [] as string[]
+		manualConfirmed.value = values.indexOf('confirmed') >= 0
+	}
+
+	const handleAssessmentConfirmChange = (event: any) => {
+		const values = event.detail != null && event.detail.value != null ? event.detail.value as string[] : [] as string[]
+		assessmentConfirmed.value = values.indexOf('confirmed') >= 0
+	}
+
+	const saveManualType = async () => {
+		if (selectedType.value == '' || !manualConfirmed.value) return
+		savingProfile.value = true
+		try {
+			const res = await setMyMbtiType({
+				mbtiType: selectedType.value,
+				source: 'self_reported',
+				confirmed: true
+			})
+			if (res.success == true) {
+				uni.showToast({ title: '已保存', icon: 'success' })
+				manualConfirmed.value = false
+				await loadSummary()
+			} else {
+				uni.showToast({ title: responseMessage(res, '保存失败，请重试'), icon: 'none' })
+			}
+		} catch (error) {
+			uni.showToast({ title: '保存失败，请重试', icon: 'none' })
+		} finally {
+			savingProfile.value = false
+		}
+	}
+
+	const saveAssessmentType = async () => {
+		if (!assessmentConfirmed.value || completedResult.value == null) return
+		savingProfile.value = true
+		try {
+			const res = await setMyMbtiType({
+				mbtiType: completedResult.value.mbtiType,
+				source: 'assessment',
+				confirmed: true,
+				resultId: completedResult.value.id
+			})
+			if (res.success == true) {
+				uni.showToast({ title: '已同步', icon: 'success' })
+				assessmentConfirmed.value = false
+				await loadSummary()
+			} else {
+				uni.showToast({ title: responseMessage(res, '同步失败，请重试'), icon: 'none' })
+			}
+		} catch (error) {
+			uni.showToast({ title: '同步失败，请重试', icon: 'none' })
+		} finally {
+			savingProfile.value = false
+		}
+	}
+
+	onMounted(() => {
+		loadSummary()
+	})
+</script>
+
+<style scoped>
+	.lab-page {
+		min-height: 100vh;
+		background: var(--canvas);
+		color: var(--ink);
+		display: flex;
+		flex-direction: column;
+	}
+
+	.page-head {
+		padding: 16px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.page-title {
+		font-family: var(--serif);
+		font-size: 22px;
+		font-weight: 700;
+	}
+
+	.page-subtitle,
+	.section-meta {
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.lab-scroll {
+		flex: 1;
+		height: 0;
+	}
+
+	.lab-content {
+		padding-bottom: 32px;
+	}
+
+	.section {
+		padding: 24px 16px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+	}
+
+	.section-heading {
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 16px;
+	}
+
+	.heading-copy {
+		min-width: 0;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.section-title {
+		font-size: 17px;
+		font-weight: 700;
+	}
+
+	.review-badge {
+		flex-shrink: 0;
+		padding: 4px 8px;
+		border: 1px solid var(--line);
+		border-radius: 4px;
+		background: var(--warm);
+	}
+
+	.review-badge-text {
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--ink2);
+	}
+
+	.review-badge-verified {
+		background: var(--accent-bg);
+		border-color: var(--accent);
+	}
+
+	.review-badge-verified .review-badge-text {
+		color: var(--accent2);
+	}
+
+	.review-notice {
+		padding: 12px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--paper);
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		margin-bottom: 16px;
+	}
+
+	.review-title {
+		font-size: 14px;
+		font-weight: 700;
+	}
+
+	.review-message,
+	.result-summary,
+	.state-message {
+		font-size: 13px;
+		line-height: 1.65;
+		color: var(--ink2);
+	}
+
+	.primary-button,
+	.secondary-button,
+	.type-option,
+	.answer-option,
+	.text-button {
+		margin: 0;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		letter-spacing: 0;
+	}
+
+	.primary-button::after,
+	.secondary-button::after,
+	.type-option::after,
+	.answer-option::after,
+	.text-button::after {
+		border: none;
+	}
+
+	.primary-button {
+		width: 100%;
+		height: 44px;
+		min-height: 44px;
+		background: var(--accent2);
+		color: var(--text-invert);
+		font-size: 14px;
+		font-weight: 700;
+	}
+
+	.primary-button[disabled] {
+		background: var(--warm);
+		color: var(--muted);
+		opacity: 1;
+	}
+
+	.secondary-button {
+		height: 44px;
+		min-height: 44px;
+		padding: 0 16px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		color: var(--ink);
+		font-size: 14px;
+	}
+
+	.secondary-button[disabled],
+	.text-button[disabled] {
+		color: var(--muted);
+		opacity: 0.55;
+	}
+
+	.compact-button {
+		width: auto;
+		margin-top: 16px;
+	}
+
+	.manual-entry-button {
+		width: 100%;
+		margin-top: 12px;
+	}
+
+	.draft-panel {
+		margin-top: 16px;
+		padding: 16px;
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		background: var(--paper);
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.draft-copy {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.draft-title {
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.inline-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+
+	.inline-button {
+		width: auto;
+		min-width: 0;
+		flex: 1;
+		height: 44px;
+		min-height: 44px;
+		padding: 0 8px;
+		font-size: 13px;
+	}
+
+	.question-section {
+		min-height: 430px;
+	}
+
+	.question-progress-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.question-track {
+		width: 100%;
+		height: 8px;
+		margin: 12px 0 24px;
+		background: var(--warm);
+		overflow: hidden;
+	}
+
+	.question-track-fill {
+		height: 8px;
+		background: var(--accent);
+	}
+
+	.question-text {
+		display: block;
+		font-size: 17px;
+		font-weight: 700;
+		line-height: 1.55;
+		color: var(--ink);
+	}
+
+	.answer-list {
+		margin-top: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.answer-option {
+		width: 100%;
+		min-height: 48px;
+		padding: 12px 16px;
+		justify-content: flex-start;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		color: var(--ink2);
+		font-size: 14px;
+		line-height: 1.45;
+		text-align: left;
+	}
+
+	.answer-option-selected {
+		background: var(--accent-bg);
+		border-color: var(--accent2);
+		color: var(--accent2);
+		font-weight: 700;
+	}
+
+	.answer-option[disabled] {
+		opacity: 0.7;
+	}
+
+	.save-message {
+		display: block;
+		margin-top: 12px;
+		font-size: 12px;
+		color: var(--accent2);
+	}
+
+	.question-actions {
+		margin-top: 16px;
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+
+	.nav-button {
+		width: auto;
+		min-width: 0;
+		flex: 1;
+		padding: 0 12px;
+	}
+
+	.text-button {
+		width: auto;
+		min-height: 44px;
+		margin: 12px auto 0;
+		padding: 0 12px;
+		background: transparent;
+		color: var(--muted);
+		font-size: 13px;
+	}
+
+	.compact-state {
+		min-height: 320px;
+		padding: 32px 0;
+	}
+
+	.type-grid {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-bottom: 16px;
+	}
+
+	.type-option {
+		width: 22%;
+		min-width: 0;
+		flex-grow: 1;
+		height: 48px;
+		min-height: 48px;
+		padding: 0;
+		background: var(--paper);
+		border: 1px solid var(--line);
+		color: var(--ink2);
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	.type-option-selected {
+		background: var(--accent-bg);
+		border-color: var(--accent2);
+		color: var(--accent2);
+	}
+
+	.confirm-group {
+		margin: 4px 0 16px;
+	}
+
+	.confirm-row {
+		min-height: 44px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.confirm-text {
+		flex: 1;
+		font-size: 13px;
+		line-height: 1.5;
+		color: var(--ink2);
+	}
+
+	.saved-source {
+		margin-top: 16px;
+		padding-top: 16px;
+		border-top: 1px solid var(--line);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.saved-type,
+	.result-type {
+		font-size: 20px;
+		font-weight: 800;
+		color: var(--accent2);
+	}
+
+	.saved-label {
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.dimension-list {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-bottom: 16px;
+	}
+
+	.dimension-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.dimension-pole {
+		width: 44px;
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--ink2);
+	}
+
+	.dimension-pole-right {
+		text-align: right;
+	}
+
+	.dimension-track {
+		flex: 1;
+		height: 8px;
+		background: var(--warm);
+		overflow: hidden;
+	}
+
+	.dimension-fill {
+		height: 8px;
+		background: var(--accent);
+	}
+
+	.result-summary {
+		display: block;
+		margin-bottom: 12px;
+	}
+
+	.disclaimer-band {
+		padding: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.disclaimer-text,
+	.disclaimer-version {
+		font-size: 11px;
+		line-height: 1.6;
+		color: var(--muted);
+	}
+
+	.state-block {
+		min-height: 240px;
+		padding: 32px 16px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+	}
+
+	.state-title {
+		font-size: 16px;
+		font-weight: 700;
+		margin-bottom: 8px;
+	}
+</style>

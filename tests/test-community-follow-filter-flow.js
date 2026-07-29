@@ -15,31 +15,16 @@ const unfollow = page.slice(unfollowStart, unfollowEnd)
 assert.match(
   unfollow,
   /syncFollowed\(userId, false\)\s*if \(currentTab\.value === 'follow'\) \{\s*await reload\(\)\s*\}/,
-  'unfollow must reload the active follow filter after updating the shared state',
+  'unfollow must refresh the active follow feed after shared-state synchronization',
 )
 
-const followFilterStart = api.indexOf("if (tab == 'follow')")
-const cityFilterStart = api.indexOf("} else if (tab == 'city')", followFilterStart)
-assert.ok(followFilterStart >= 0 && cityFilterStart > followFilterStart, 'follow filtering branch must exist')
-const followFilter = api.slice(followFilterStart, cityFilterStart)
-assert.match(followFilter, /filter == 'following'[\s\S]*?d\.followed == true/, '关注 filter must only use follow state')
-assert.match(followFilter, /const likedU = d\.user != null && isLikedUser\(d\.user\.id as number\)/, '全部 filter must identify saved users')
-assert.match(followFilter, /if \(!followed && !likedU\) continue/, '全部 filter must be the union of follow and saved users')
-
-const visibleInFollowTab = (item, filter) => {
-  if (filter === 'following') return item.followed
-  if (filter === 'likedUsers') return item.saved
-  if (filter === 'all') return item.followed || item.saved
-  throw new Error('unexpected filter')
-}
-
-const onlyFollowedAfterUnfollow = { followed: false, saved: false }
-assert.equal(visibleInFollowTab(onlyFollowedAfterUnfollow, 'all'), false, 'an unfollowed-only user must leave 全部')
-assert.equal(visibleInFollowTab(onlyFollowedAfterUnfollow, 'following'), false, 'an unfollowed-only user must leave 关注')
-
-const savedAndFollowedAfterUnfollow = { followed: false, saved: true }
-assert.equal(visibleInFollowTab(savedAndFollowedAfterUnfollow, 'all'), true, 'a saved user remains in 全部 after unfollow')
-assert.equal(visibleInFollowTab(savedAndFollowedAfterUnfollow, 'following'), false, 'a saved user must leave 关注 after unfollow')
-assert.equal(visibleInFollowTab(savedAndFollowedAfterUnfollow, 'likedUsers'), true, 'a saved user remains in 收藏 after unfollow')
+const modeStart = api.indexOf('function feedModeFromTab')
+const modeEnd = api.indexOf('/** 真路径拉一页帖子并 map */', modeStart)
+assert.ok(modeStart >= 0 && modeEnd > modeStart, 'live feed mode mapper must exist')
+const modes = api.slice(modeStart, modeEnd)
+assert.match(modes, /filter == 'following'.*mode: 'following'/s, '关注 filter must request followed users from the backend')
+assert.match(modes, /filter == 'likedUsers'.*mode: 'liked_users'/s, '收藏 filter must request saved users from the backend')
+assert.match(modes, /mode: 'following_and_liked'/, '全部 filter must request the backend union')
+assert.doesNotMatch(modes, /filterDynamics|isLikedUser/, 'the live feed must not fake union pagination on the client')
 
 console.log('PASS community follow and saved-user filter flow')

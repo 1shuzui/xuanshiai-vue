@@ -12,9 +12,9 @@ function includes(source, value, label) {
 }
 
 includes(chatPage, 'input-bar', 'chat input bar')
-includes(chatPage, 'showMore ? \'×\' : \'+\'', 'plus button should toggle into close icon')
-includes(chatPage, 'toggleMoreMenu', 'plus button toggle action')
-includes(chatPage, 'more-actions', 'expanded actions should render below input row')
+includes(chatPage, 'showMoreMenu', 'plus button should open the action menu')
+includes(chatPage, 'closeMoreMenu', 'action menu should have a close action')
+includes(chatPage, 'more-menu', 'expanded actions should render in the action menu')
 includes(chatPage, 'unlockChatFeature', 'chat feature unlock API')
 includes(chatPage, 'getChatFeatureUnlocks', 'chat feature unlock state API')
 includes(chatPage, 'ensureChatFeatureUnlocked', 'chat unlock gate')
@@ -27,7 +27,7 @@ includes(chatPage, 'openChatReport', 'report menu action')
 includes(chatPage, '举报', 'report menu label')
 assert.ok(!chatPage.includes('>资料</text>'), 'profile menu item should be replaced by report')
 assert.ok(
-  /\.message-wrapper\.mine\s*\{\s*justify-content:\s*flex-end;\s*\}/.test(chatPage),
+	/\.message-wrapper\.mine\s*\{[^}]*justify-content:\s*flex-end;/.test(chatPage),
   'own messages should align the bubble and avatar to the right'
 )
 assert.ok(
@@ -37,9 +37,9 @@ assert.ok(
 
 const voiceIndex = chatPage.indexOf('@click="sendVoice"')
 const inputIndex = chatPage.indexOf('class="input"')
-const toggleIndex = chatPage.indexOf('toggleMoreMenu')
-assert.ok(voiceIndex >= 0 && inputIndex >= 0 && toggleIndex >= 0, 'chat controls should exist')
-assert.ok(voiceIndex < inputIndex && inputIndex < toggleIndex, 'voice, input, and plus controls should be ordered left to right')
+const menuIndex = chatPage.indexOf('showMoreMenu')
+assert.ok(voiceIndex >= 0 && inputIndex >= 0 && menuIndex >= 0, 'chat controls should exist')
+assert.ok(voiceIndex < inputIndex && inputIndex < menuIndex, 'voice, input, and plus controls should be ordered left to right')
 
 includes(userApi, 'getChatFeatureUnlocks', 'chat feature unlock read API')
 includes(userApi, 'unlockChatFeature', 'chat feature unlock charge API')

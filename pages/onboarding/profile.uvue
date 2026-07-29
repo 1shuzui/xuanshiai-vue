@@ -15,7 +15,7 @@
 					:key="role.key"
 					class="role-card"
 					:class="role.tone"
-					@click="chooseRole(role.key)"
+			@tap="chooseRole(role.key)"
 				>
 					<view class="role-icon" :class="role.iconTone"><text>{{ role.icon }}</text></view>
 					<view class="role-copy">
@@ -102,7 +102,13 @@
 	const progressWidth = computed(() => Math.round(step.value / totalSteps * 100))
 
 	const chooseRole = (key: string) => {
-		if (key === 'parent' || key === 'matchmaker') {
+		if (key === 'parent') {
+			uni.setStorageSync('xsa_onboarding_mode', 'parent')
+			uni.setStorageSync('xsa_onboarding_completed', true)
+			uni.reLaunch({ url: '/pages/parent/parent' })
+			return
+		}
+		if (key === 'matchmaker') {
 			uni.showToast({ title: '该身份流程暂未开放', icon: 'none' })
 			return
 		}

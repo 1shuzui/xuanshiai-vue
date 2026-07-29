@@ -490,56 +490,6 @@ export const mockUserDetail = {
 }
 
 /** 当前登录用户（我的页 · 高保真 顾言澄） */
-/** 纸飞机私聊中的对方资料。 */
-export const mockPaperPlanePeerProfile = {
-  id: 8,
-  code: 'shen',
-  name: '沈知意',
-  age: 27,
-  gender: 2,
-  city: '南京',
-  height: '166cm',
-  weight: '52kg',
-  constellation: '双鱼座',
-  job: '图书编辑',
-  school: '南京师范大学 · 本科',
-  education: '本科',
-  mbti: 'INFJ',
-  online: '刚刚在线',
-  activeStatus: '认真营业',
-  distance: '距你约 4.6km',
-  recentActivity: '刚刚在线',
-  avatar: PORTRAIT.alt,
-  photos: [PORTRAIT.alt, PORTRAIT.community, PORTRAIT.main],
-  lifePhotos: [PORTRAIT.community, PORTRAIT.alt, PORTRAIT.main],
-  tags: ['阅读', '散步', '咖啡', '展览'],
-  intro: '喜欢在城市里慢慢走，也喜欢把读到的好句子记下来。期待认识愿意认真交流、一起分享日常的人。',
-  income: '15k-20k',
-  marriage: '未婚',
-  hometown: '江苏南京',
-  updated: '资料更新于 7 月 20 日',
-  expect: ['愿意真诚沟通，也尊重彼此的节奏', '对生活保持好奇和热情', '愿意一起把普通日子过得有意思'],
-  certifications: {
-    realName: true,
-    education: true,
-    avatar: true,
-    single: true,
-    property: false
-  },
-  qualificationTags: ['已实名', '学历认证', '头像认证', '单身认证'],
-  deepInfo: {
-    family: '家人在南京，关系亲近，也尊重彼此的独立空间。',
-    interests: '阅读、城市散步、看展、手冲咖啡。',
-    loveView: '好的关系是可以舒服地做自己，也愿意为彼此认真安排时间。',
-    singleReason: '希望先把自己照顾好，再遇见值得一起规划未来的人。',
-    idealPartner: '情绪稳定、有责任感，愿意沟通也懂得倾听。'
-  },
-  dynamics: {
-    latest: '今天更新',
-    summary: '最近在重读几本喜欢的书，也在慢慢记录城市里的夏天。'
-  }
-}
-
 export const mockMeProfile = {
   id: 9001,
   name: '顾言澄',
@@ -548,7 +498,7 @@ export const mockMeProfile = {
   city: '南京',
   job: '产品经理',
   school: '南京大学 · 本科',
-  mbti: 'INTJ',
+  mbti: '',
   hometown: '江苏南京',
   avatar: PORTRAIT.man,
   points: 680,
@@ -574,4 +524,113 @@ export const mockMeProfile = {
   introduction: '29 岁 · 南京 · 产品经理',
   remainApply: 2,
   tasksPending: 2
+}
+
+const MOCK_ME_MBTI_TYPES: string[] = [
+  'ENFJ', 'ENFP', 'ENTJ', 'ENTP',
+  'ESFJ', 'ESFP', 'ESTJ', 'ESTP',
+  'INFJ', 'INFP', 'INTJ', 'INTP',
+  'ISFJ', 'ISFP', 'ISTJ', 'ISTP'
+]
+
+const MOCK_ME_MBTI_STORAGE_PREFIX = 'xsa_mock_me_mbti_profile_v1:'
+const mockMeMbtiProfilesBySubject: any = {}
+
+function cloneMockMeValue(value: any): any {
+  if (value == null) return value
+  return JSON.parse(JSON.stringify(value))
+}
+
+function normalizeMockMeSubject(subjectId: string): string {
+  return subjectId != null ? String(subjectId).trim() : ''
+}
+
+function readMockMeMbtiSource(subjectId: string): any {
+  const key = normalizeMockMeSubject(subjectId)
+  if (key == '') return null
+  if (mockMeMbtiProfilesBySubject[key] != null) {
+    return cloneMockMeValue(mockMeMbtiProfilesBySubject[key])
+  }
+  try {
+    const stored = uni.getStorageSync(MOCK_ME_MBTI_STORAGE_PREFIX + encodeURIComponent(key))
+    if (stored != null && typeof stored == 'object') {
+      mockMeMbtiProfilesBySubject[key] = cloneMockMeValue(stored)
+      return cloneMockMeValue(stored)
+    }
+  } catch (error) {}
+  return null
+}
+
+function writeMockMeMbtiSource(subjectId: string, profileSource: any): void {
+  const key = normalizeMockMeSubject(subjectId)
+  if (key == '') throw new Error('MOCK_PROFILE_SUBJECT_REQUIRED: 缺少资料所属账号')
+  const storageKey = MOCK_ME_MBTI_STORAGE_PREFIX + encodeURIComponent(key)
+  if (profileSource == null) {
+    delete mockMeMbtiProfilesBySubject[key]
+    try {
+      uni.removeStorageSync(storageKey)
+    } catch (error) {}
+    return
+  }
+  const snapshot = cloneMockMeValue(profileSource)
+  const previousSnapshot = mockMeMbtiProfilesBySubject[key] != null
+    ? cloneMockMeValue(mockMeMbtiProfilesBySubject[key])
+    : null
+  mockMeMbtiProfilesBySubject[key] = snapshot
+  try {
+    uni.setStorageSync(storageKey, snapshot)
+  } catch (error) {
+    if (previousSnapshot != null) {
+      mockMeMbtiProfilesBySubject[key] = previousSnapshot
+    } else {
+      delete mockMeMbtiProfilesBySubject[key]
+    }
+    throw error
+  }
+}
+
+/** Return the visible Mock profile for one authenticated subject. */
+export function getMockMeMbtiProfileData(subjectId: string = ''): any {
+  const profile: any = cloneMockMeValue(mockMeProfile)
+  const profileSource = readMockMeMbtiSource(subjectId)
+  if (profileSource == null) {
+    profile.mbti = ''
+    profile.mbtiSource = null
+    profile.mbtiProfileSource = null
+    return profile
+  }
+  profile.mbti = profileSource.mbtiType
+  profile.mbtiSource = profileSource.source
+  profile.mbtiProfileSource = cloneMockMeValue(profileSource)
+  return profile
+}
+
+/** 情感实验室写入“我的资料”的唯一 Mock 数据边界。 */
+export function syncMockMeMbtiProfileData(profileSource: any, subjectId: string = ''): any {
+  const key = normalizeMockMeSubject(subjectId)
+  if (key == '') throw new Error('MOCK_PROFILE_SUBJECT_REQUIRED: 缺少资料所属账号')
+  if (profileSource == null) {
+    writeMockMeMbtiSource(key, null)
+    return {
+      mbti: '',
+      mbtiSource: null,
+      mbtiProfileSource: null
+    }
+  }
+
+  const mbtiType = profileSource.mbtiType != null ? '' + profileSource.mbtiType : ''
+  const source = profileSource.source != null ? '' + profileSource.source : ''
+  if (MOCK_ME_MBTI_TYPES.indexOf(mbtiType) < 0) {
+    throw new Error('MBTI_TYPE_INVALID: MBTI 类型无效')
+  }
+  if (source != 'assessment' && source != 'self_reported') {
+    throw new Error('PROFILE_SOURCE_INVALID: 资料来源无效')
+  }
+
+  writeMockMeMbtiSource(key, profileSource)
+  return {
+    mbti: mbtiType,
+    mbtiSource: source,
+    mbtiProfileSource: cloneMockMeValue(profileSource)
+  }
 }

@@ -1,6 +1,6 @@
 <template>
-	<XsaSheet :visible="visible" title="举报与屏蔽" @close="handleClose">
-		<view class="report-sheet">
+	<XsaSheet :visible="visible" title="举报与屏蔽" :large-text="largeText" @close="handleClose">
+		<view class="report-sheet" :class="{ 'large-text': largeText }">
 			<text class="lead">举报与屏蔽不要求认证。我们会尽快处理，不会向对方暴露你的身份。</text>
 
 			<text class="section-title">举报原因</text>
@@ -36,20 +36,33 @@
 
 <script setup lang="uts">
 	import XsaSheet from '@/components/XsaSheet.uvue'
-	import { getReportReasons, reportContent, blockUser } from '@/api'
+	import type { ParentContext } from '@/api'
+	import {
+		blockParentCandidate,
+		blockUser,
+		getReportReasons,
+		reportContent,
+		reportParentCandidate
+	} from '@/api'
 
 	interface Props {
 		visible: boolean
 		targetType: string
 		targetId: number
 		userId: number
+		largeText?: boolean
+		parentMode?: boolean
+		parentContext?: ParentContext | null
 	}
 
 	const props = withDefaults(defineProps<Props>(), {
 		visible: false,
 		targetType: 'post',
 		targetId: 0,
-		userId: 0
+		userId: 0,
+		largeText: false,
+		parentMode: false,
+		parentContext: null
 	})
 
 	const emit = defineEmits<{
@@ -115,18 +128,29 @@
 				uni.showToast({ title: '无法举报：缺少用户信息', icon: 'none' })
 				return
 			}
-			type = 'user'
-		}
-		submitting.value = true
-		try {
-			const res = await reportContent(
-				type,
-				reportId,
-				reasonId.value,
-				detail.value != null ? detail.value : ''
-			)
-			if (res.success) {
-				uni.showToast({ title: '举报已提交', icon: 'success' })
+				type = 'user'
+			}
+			if (props.parentMode && props.parentContext == null) {
+				uni.showToast({ title: '暂时无法确认父母身份，请重试', icon: 'none' })
+				return
+			}
+			submitting.value = true
+			try {
+				const reportDetail = detail.value != null ? detail.value : ''
+				const res = props.parentMode
+					? await reportParentCandidate(
+						props.parentContext,
+						reportId,
+						reasonId.value,
+						reportDetail
+					)
+					: await reportContent(type, reportId, reasonId.value, reportDetail)
+				if (res.success) {
+					const internalDemo = res.data != null && res.data.internalDemo == true
+					uni.showToast({
+						title: internalDemo ? '内部演示：举报已记录' : '举报已提交',
+						icon: internalDemo ? 'none' : 'success'
+					})
 				emit('reported')
 				emit('close')
 			} else {
@@ -156,12 +180,30 @@
 			confirmText: '屏蔽',
 			success: async (res) => {
 				if (!res.confirm) return
+				if (props.parentMode && props.parentContext == null) {
+					uni.showToast({ title: '暂时无法确认父母身份，请重试', icon: 'none' })
+					return
+				}
 				try {
-					const r = await blockUser(props.userId)
+					const r = props.parentMode
+						? await blockParentCandidate(props.parentContext, props.userId)
+						: await blockUser(props.userId)
 					if (r.success) {
-						uni.showToast({ title: '已屏蔽', icon: 'success' })
+						const internalDemo = r.data != null && r.data.internalDemo == true
+						uni.showToast({
+							title: internalDemo ? '内部演示：已隐藏用户' : '已屏蔽',
+							icon: internalDemo ? 'none' : 'success'
+						})
 						emit('blocked', props.userId)
 						emit('close')
+					} else {
+						const msg =
+							r.data != null && r.data.message != null
+								? r.data.message
+								: r.message != null
+									? r.message
+									: '屏蔽失败，请重试'
+						uni.showToast({ title: msg, icon: 'none' })
 					}
 				} catch (e) {
 					uni.showToast({ title: '操作失败', icon: 'none' })
@@ -248,6 +290,33 @@
 	.btn.primary {
 		background: var(--accent);
 		color: var(--text-invert);
+	}
+
+	.report-sheet.large-text .lead {
+		font-size: 16px;
+	}
+
+	.report-sheet.large-text .section-title,
+	.report-sheet.large-text .reason-item,
+	.report-sheet.large-text .detail-input,
+	.report-sheet.large-text .btn {
+		font-size: 16px;
+	}
+
+	.report-sheet.large-text .reason-item {
+		min-height: 48px;
+		display: flex;
+		align-items: center;
+	}
+
+	.report-sheet.large-text .detail-input {
+		min-height: 112px;
+	}
+
+	.report-sheet.large-text .btn {
+		height: auto;
+		min-height: 48px;
+		border-radius: 8px;
 	}
 
 	.btn[disabled] {

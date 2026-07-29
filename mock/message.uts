@@ -1,62 +1,64 @@
 /**
- * 消息相关 Mock 数据
- * 对齐 design-demos/final 消息中心 + chat.html
+ * 消息相关 Mock 数据与状态机
+ * Mock 行为保持在消息模块内，便于分页、权限和幂等场景稳定验收。
  */
 
 const PORTRAIT = {
   main: '/static/portraits/profile-woman-main.jpg',
+  alt: '/static/portraits/profile-woman-alt.jpg',
   community: '/static/portraits/profile-woman-community.jpg',
   man: '/static/portraits/profile-man-light.jpg'
 }
 
-/** 会话列表 */
-export const mockMessageList = [
+const CONVERSATION_SEED = [
   {
     id: 1,
+    conversationId: 'conversation-1',
     userId: 1,
     avatar: PORTRAIT.main,
     name: '苏晚晴',
-    lastMessage: '已成功交换微信',
-    time: Date.now() - 60 * 1000,
-    unreadCount: 0,
+    lastMessage: '你好，谢谢你认真看完我的资料。',
+    time: Date.now() - 2 * 60 * 1000,
+    unreadCount: 1,
     online: true,
-    messageType: 'wechat-request',
+    messageType: 'text',
     type: 'chat',
     matched: true,
     canChat: true
   },
   {
     id: 2,
-    userId: 2,
+    conversationId: 'conversation-8001',
+    userId: 8001,
     avatar: PORTRAIT.community,
-    name: '林知夏',
-    lastMessage: '你上次提到的那家书店，我也很喜欢。',
+    name: '红娘沈知意',
+    lastMessage: '我整理了 3 位与你关系目标接近的用户。',
     time: Date.now() - 24 * 60 * 60 * 1000,
     unreadCount: 0,
     online: false,
     messageType: 'text',
-    type: 'chat',
+    type: 'matchmaker',
     matched: true,
     canChat: true
   },
   {
     id: 3,
-    userId: 3,
+    conversationId: 'conversation-safety',
+    userId: 8002,
     avatar: PORTRAIT.man,
-    name: '周予安',
-    lastMessage: '周末天气不错，要不要一起去看展？',
+    name: '安全中心',
+    lastMessage: '首次见面请选择公共场所，请勿发生资金往来。',
     time: Date.now() - 3 * 24 * 60 * 60 * 1000,
     unreadCount: 0,
     online: false,
     messageType: 'text',
-    type: 'chat',
-    matched: true,
-    canChat: true
+    type: 'system',
+    matched: false,
+    canChat: false
   }
 ]
 
-/** 与苏晚晴的聊天详情（chat.html） */
-export const mockChatMessages = [
+const CHAT_SEED = [
   {
     id: 1,
     senderId: 1,
@@ -89,89 +91,10 @@ export const mockChatMessages = [
     type: 'text',
     time: Date.now() - 45 * 60 * 1000,
     isMine: false
-  },
-  {
-    id: 4,
-    senderId: 'me',
-    senderName: '我',
-    senderAvatar: PORTRAIT.man,
-    content: '我比较喜欢当代艺术和摄影展。最近在看一个关于城市记忆的摄影系列。',
-    type: 'text',
-    time: Date.now() - 40 * 60 * 1000,
-    isMine: true,
-    status: '已读'
-  },
-  {
-    id: 5,
-    senderId: 1,
-    senderName: '苏晚晴',
-    senderAvatar: PORTRAIT.main,
-    content: '听起来很有意思！我一直想找人一起逛展，这样可以交流不同的感受。',
-    type: 'text',
-    time: Date.now() - 35 * 60 * 1000,
-    isMine: false
-  },
-  {
-    id: 6,
-    senderId: 1,
-    senderName: '苏晚晴',
-    senderAvatar: PORTRAIT.main,
-    content: '/static/portraits/profile-woman-community.jpg',
-    type: 'image',
-    time: Date.now() - 34 * 60 * 1000,
-    isMine: false
-  },
-  {
-    id: 7,
-    senderId: 'me',
-    senderName: '我',
-    senderAvatar: PORTRAIT.man,
-    content: '这个想法很好！下周末我打算去看一个新开的展览，要不要一起？',
-    type: 'text',
-    time: Date.now() - 30 * 60 * 1000,
-    isMine: true,
-    status: '已读'
-  },
-  {
-    id: 8,
-    senderId: 1,
-    senderName: '苏晚晴',
-    senderAvatar: PORTRAIT.main,
-    content: '可以啊，是在哪里的展览？',
-    type: 'text',
-    time: Date.now() - 25 * 60 * 1000,
-    isMine: false
-  },
-  {
-    id: 9,
-    senderId: 1,
-    senderName: '苏晚晴',
-    senderAvatar: PORTRAIT.main,
-    content: '对方申请与您交换电话',
-    type: 'phone-request',
-    requestStatus: 'rejected',
-    contactType: 'phone',
-    contactValue: '13812341234',
-    time: Date.now() - 2 * 60 * 1000,
-    isMine: false
-  },
-  {
-    id: 10,
-    senderId: 'me',
-    senderName: '我',
-    senderAvatar: PORTRAIT.man,
-    content: '您已向对方发起交换微信申请，等待对方确认…',
-    type: 'wechat-request',
-    requestStatus: 'accepted',
-    contactType: 'wechat',
-    contactValue: 'wanqing_art',
-    time: Date.now() - 60 * 1000,
-    isMine: true
   }
 ]
 
-/** 认识申请 */
-export const mockApplications = [
+const APPLICATION_SEED = [
   {
     id: 1,
     userId: 1,
@@ -182,15 +105,15 @@ export const mockApplications = [
     job: '插画师',
     message: '你好，看到你也喜欢看展和城市散步，想认真认识一下。',
     time: Date.now() - 2 * 60 * 60 * 1000,
-    status: 'pending',
+    status: 'accepted',
     match: 92,
     direction: 'out',
-    statusText: '待回应'
+    statusText: '已同意'
   },
   {
     id: 2,
-    userId: 4,
-    avatar: '/static/portraits/profile-woman-alt.jpg',
+    userId: 2,
+    avatar: PORTRAIT.alt,
     name: '林雨桐',
     age: 28,
     city: '南京',
@@ -201,5 +124,610 @@ export const mockApplications = [
     match: 88,
     direction: 'in',
     statusText: '待处理'
+  },
+  {
+    id: 3,
+    userId: 3,
+    avatar: PORTRAIT.man,
+    name: '陈屿',
+    age: 30,
+    city: '苏州',
+    job: '工程师',
+    message: '谢谢你的认真表达，祝你之后一切顺利。',
+    time: Date.now() - 10 * 60 * 60 * 1000,
+    status: 'rejected',
+    match: 81,
+    direction: 'in',
+    statusText: '已拒绝'
+  },
+  {
+    id: 4,
+    userId: 4,
+    avatar: PORTRAIT.community,
+    name: '周知夏',
+    age: 27,
+    city: '上海',
+    job: '编辑',
+    message: '想从共同的阅读兴趣开始了解。',
+    time: Date.now() - 12 * 60 * 60 * 1000,
+    status: 'pending',
+    match: 86,
+    direction: 'out',
+    statusText: '待回应'
   }
 ]
+
+function cloneValue(value: any): any {
+  return JSON.parse(JSON.stringify(value))
+}
+
+function replaceList(target: any[], seed: any[]) {
+  target.splice(0, target.length)
+  const fresh = cloneValue(seed) as any[]
+  fresh.forEach((item: any) => target.push(item))
+}
+
+function normalizedPageSize(pageSize: number): number {
+  if (pageSize <= 0) return 20
+  return Math.min(pageSize, 50)
+}
+
+function cursorOffset(cursor: string): number {
+  if (cursor == null || cursor == '') return 0
+  const offset = parseInt(cursor)
+  return Number.isNaN(offset) || offset < 0 ? 0 : offset
+}
+
+function paginate(list: any[], cursor: string, pageSize: number): any {
+  const offset = cursorOffset(cursor)
+  const size = normalizedPageSize(pageSize)
+  const page = list.slice(offset, offset + size)
+  const nextOffset = offset + page.length
+  const hasMore = nextOffset < list.length
+  return {
+    list: cloneValue(page),
+    nextCursor: hasMore ? '' + nextOffset : '',
+    hasMore: hasMore,
+    total: list.length
+  }
+}
+
+export const mockMessageList = cloneValue(CONVERSATION_SEED) as any[]
+export const mockChatMessages = cloneValue(CHAT_SEED) as any[]
+export const mockApplications = cloneValue(APPLICATION_SEED) as any[]
+
+const selfChatMessagesByUser: any = {
+  '1': mockChatMessages
+}
+const selfSentMessagesByClientId: any = {}
+const selfApplicationCommandsByClientId: any = {}
+const selfContactExchanges: any[] = [{
+  id: 2001,
+  userId: 1,
+  requesterId: 1,
+  recipientId: 'self',
+  contactType: 'wechat',
+  contactValue: 'xsa_mock_suwanqing',
+  status: 'pending',
+  createdAt: Date.now() - 15 * 60 * 1000,
+  respondedAt: null
+}]
+const selfContactCommandsByClientId: any = {}
+const selfRevokeCommandsByClientId: any = {}
+const selfFailureOnce: any = {}
+
+const mockSubjectStates: any = {
+  'self': {
+    messageList: mockMessageList,
+    chatMessages: mockChatMessages,
+    applications: mockApplications,
+    chatMessagesByUser: selfChatMessagesByUser,
+    sentMessagesByClientId: selfSentMessagesByClientId,
+    applicationCommandsByClientId: selfApplicationCommandsByClientId,
+    contactExchanges: selfContactExchanges,
+    contactCommandsByClientId: selfContactCommandsByClientId,
+    revokeCommandsByClientId: selfRevokeCommandsByClientId,
+    failureOnce: selfFailureOnce,
+    messageIdSeed: 1000,
+    contactExchangeIdSeed: 2000
+  }
+}
+
+function clearObject(target: any) {
+  Object.keys(target).forEach((key: string) => {
+    delete target[key]
+  })
+}
+
+function normalizedMockSubjectKey(subjectKey: string): string {
+  if (subjectKey == null || subjectKey.trim() == '') return 'self'
+  return subjectKey.trim()
+}
+
+function createMockSubjectState(): any {
+  const chatMessages = cloneValue(CHAT_SEED) as any[]
+  return {
+    messageList: cloneValue(CONVERSATION_SEED) as any[],
+    chatMessages: chatMessages,
+    applications: cloneValue(APPLICATION_SEED) as any[],
+    chatMessagesByUser: { '1': chatMessages },
+    sentMessagesByClientId: {},
+    applicationCommandsByClientId: {},
+    contactExchanges: [{
+      id: 2001,
+      userId: 1,
+      requesterId: 1,
+      recipientId: 'self',
+      contactType: 'wechat',
+      contactValue: 'xsa_mock_suwanqing',
+      status: 'pending',
+      createdAt: Date.now() - 15 * 60 * 1000,
+      respondedAt: null
+    }],
+    contactCommandsByClientId: {},
+    revokeCommandsByClientId: {},
+    failureOnce: {},
+    messageIdSeed: 1000,
+    contactExchangeIdSeed: 2001
+  }
+}
+
+function getMockSubjectState(subjectKey: string = 'self'): any {
+  const key = normalizedMockSubjectKey(subjectKey)
+  if (mockSubjectStates[key] == null) {
+    mockSubjectStates[key] = createMockSubjectState()
+  }
+  return mockSubjectStates[key]
+}
+
+function consumeMockFailure(state: any, operation: string): boolean {
+  if (state.failureOnce[operation] != true) return false
+  delete state.failureOnce[operation]
+  return true
+}
+
+/** 仅用于 Mock 状态机验收；失败只生效一次且必须发生在状态变更前。 */
+export function failNextMockMessageOperation(operation: string, subjectKey: string = 'self') {
+  getMockSubjectState(subjectKey).failureOnce[operation] = true
+}
+
+function findConversation(state: any, userId: number): any {
+  return state.messageList.find((item: any) => item.userId == userId)
+}
+
+function ensureChatThread(state: any, userId: number): any[] {
+  const key = '' + userId
+  if (state.chatMessagesByUser[key] == null) {
+    state.chatMessagesByUser[key] = []
+  }
+  return state.chatMessagesByUser[key] as any[]
+}
+
+function ensureAcceptedConversation(state: any, application: any): any {
+  let conversation = findConversation(state, application.userId)
+  if (conversation == null) {
+    conversation = {
+      id: state.messageList.length + 1,
+      conversationId: 'conversation-' + application.userId,
+      userId: application.userId,
+      avatar: application.avatar,
+      name: application.name,
+      lastMessage: '你们已同意认识，可以开始聊天。',
+      time: Date.now(),
+      unreadCount: 0,
+      online: false,
+      messageType: 'text',
+      type: 'chat',
+      matched: true,
+      canChat: true
+    }
+    state.messageList.unshift(conversation)
+  } else {
+    conversation.matched = true
+    conversation.canChat = true
+    conversation.type = 'chat'
+  }
+  ensureChatThread(state, application.userId)
+  return conversation
+}
+
+function resetSelfMockState() {
+  replaceList(mockMessageList, CONVERSATION_SEED)
+  replaceList(mockChatMessages, CHAT_SEED)
+  replaceList(mockApplications, APPLICATION_SEED)
+  clearObject(selfChatMessagesByUser)
+  selfChatMessagesByUser['1'] = mockChatMessages
+  clearObject(selfSentMessagesByClientId)
+  clearObject(selfApplicationCommandsByClientId)
+  selfContactExchanges.splice(0, selfContactExchanges.length)
+  selfContactExchanges.push({
+    id: 2001,
+    userId: 1,
+    requesterId: 1,
+    recipientId: 'self',
+    contactType: 'wechat',
+    contactValue: 'xsa_mock_suwanqing',
+    status: 'pending',
+    createdAt: Date.now() - 15 * 60 * 1000,
+    respondedAt: null
+  })
+  clearObject(selfContactCommandsByClientId)
+  clearObject(selfRevokeCommandsByClientId)
+  clearObject(selfFailureOnce)
+  mockSubjectStates['self'].messageIdSeed = 1000
+  mockSubjectStates['self'].contactExchangeIdSeed = 2001
+}
+
+/** 恢复稳定初始状态；无主体参数时清除全部主体，供重复验收使用。 */
+export function resetMockMessageState(subjectKey: string = '') {
+  const key = subjectKey == null ? '' : subjectKey.trim()
+  if (key == '') {
+    resetSelfMockState()
+    const keys = Object.keys(mockSubjectStates)
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i] != 'self') delete mockSubjectStates[keys[i]]
+    }
+    return
+  }
+  const normalizedKey = normalizedMockSubjectKey(key)
+  if (normalizedKey == 'self') {
+    resetSelfMockState()
+    return
+  }
+  mockSubjectStates[normalizedKey] = createMockSubjectState()
+}
+
+export function getMockConversationPage(
+  cursor: string = '',
+  pageSize: number = 20,
+  subjectKey: string = 'self'
+): any {
+  const state = getMockSubjectState(subjectKey)
+  const result = paginate(state.messageList, cursor, pageSize)
+  result.unreadTotal = state.messageList.reduce((sum: number, item: any) => {
+    return sum + (item.unreadCount != null ? item.unreadCount : 0)
+  }, 0)
+  return result
+}
+
+export function getMockApplicationPage(
+  direction: string = 'incoming',
+  cursor: string = '',
+  pageSize: number = 20,
+  subjectKey: string = 'self'
+): any {
+  const state = getMockSubjectState(subjectKey)
+  const expected = direction == 'outgoing' ? 'out' : 'in'
+  const filtered = state.applications.filter((item: any) => item.direction == expected)
+  const result = paginate(filtered, cursor, pageSize)
+  result.direction = direction == 'outgoing' ? 'outgoing' : 'incoming'
+  result.pendingCount = expected == 'in'
+    ? state.applications.filter((item: any) => item.direction == 'in' && item.status == 'pending').length
+    : 0
+  return result
+}
+
+export function getMockChatPermission(userId: number, subjectKey: string = 'self'): any {
+  const state = getMockSubjectState(subjectKey)
+  const conversation = findConversation(state, userId)
+  const canChat = conversation != null && conversation.matched == true && conversation.canChat == true
+  return {
+    userId: userId,
+    conversationId: canChat ? conversation.conversationId : '',
+    canChat: canChat,
+    reason: canChat ? '' : '双方同意后才能开始聊天'
+  }
+}
+
+export function markAllMockMessagesRead(subjectKey: string = 'self'): any {
+  const state = getMockSubjectState(subjectKey)
+  if (consumeMockFailure(state, 'markAllRead')) {
+    return { success: false, code: 'MOCK_FAILURE', message: '全部已读失败，请重试' }
+  }
+  let updatedCount = 0
+  state.messageList.forEach((item: any) => {
+    const count = item.unreadCount != null ? item.unreadCount : 0
+    updatedCount += count
+    item.unreadCount = 0
+  })
+  return {
+    success: true,
+    updatedCount: updatedCount,
+    unreadTotal: 0
+  }
+}
+
+export function handleMockApplication(
+  applicationId: number,
+  action: string,
+  clientCommandId: string = '',
+  subjectKey: string = 'self'
+): any {
+  const state = getMockSubjectState(subjectKey)
+  // 仅保留给既有 Mock 直调测试；公开 API 会在到达此处前拒绝空命令 ID。
+  const commandId = clientCommandId == null || clientCommandId.trim() == ''
+    ? 'legacy-direct:' + applicationId + ':' + action
+    : clientCommandId.trim()
+  const existingCommand = state.applicationCommandsByClientId[commandId]
+  if (existingCommand != null) {
+    if (existingCommand.applicationId != applicationId || existingCommand.action != action) {
+      return {
+        success: false,
+        code: 'IDEMPOTENCY_CONFLICT',
+        message: '申请操作唯一标识已被其它操作使用'
+      }
+    }
+    return cloneValue(existingCommand.result)
+  }
+  const application = state.applications.find((item: any) => item.id == applicationId)
+  if (application == null) {
+    return { success: false, code: 'NOT_FOUND', message: '申请不存在或已失效' }
+  }
+  if (application.direction != 'in') {
+    return { success: false, code: 'FORBIDDEN_ACTION', message: '只能处理收到的申请' }
+  }
+  if (application.status != 'pending') {
+    return { success: false, code: 'ALREADY_HANDLED', message: '该申请已处理' }
+  }
+  if (action != 'accept' && action != 'reject') {
+    return { success: false, code: 'INVALID_ACTION', message: '不支持的处理方式' }
+  }
+  if (consumeMockFailure(state, 'handleApplication')) {
+    return { success: false, code: 'MOCK_FAILURE', message: '申请处理失败，请重试' }
+  }
+
+  application.status = action == 'accept' ? 'accepted' : 'rejected'
+  application.statusText = action == 'accept' ? '已同意' : '已拒绝'
+  let conversation: any = null
+  if (action == 'accept') {
+    conversation = ensureAcceptedConversation(state, application)
+  }
+  const result = {
+    success: true,
+    application: cloneValue(application),
+    conversation: conversation != null ? cloneValue(conversation) : null,
+    canChat: action == 'accept'
+  }
+  state.applicationCommandsByClientId[commandId] = {
+    applicationId: applicationId,
+    action: action,
+    result: cloneValue(result)
+  }
+  return result
+}
+
+export function getMockChatMessages(userId: number, subjectKey: string = 'self'): any[] {
+  const state = getMockSubjectState(subjectKey)
+  const thread = state.chatMessagesByUser['' + userId]
+  return thread != null ? cloneValue(thread) as any[] : []
+}
+
+export function sendMockMessage(
+  userId: number,
+  content: string,
+  type: string = 'text',
+  clientMessageId: string = '',
+  subjectKey: string = 'self'
+): any {
+  const state = getMockSubjectState(subjectKey)
+  const permission = getMockChatPermission(userId, subjectKey)
+  if (permission.canChat != true) {
+    return { success: false, code: 'CHAT_NOT_ALLOWED', message: permission.reason }
+  }
+  if (clientMessageId == null || clientMessageId.trim() == '') {
+    return { success: false, code: 'CLIENT_MESSAGE_ID_REQUIRED', message: '缺少消息唯一标识' }
+  }
+  const resolvedClientMessageId = clientMessageId.trim()
+  if (type == 'text' && content.trim() == '') {
+    return { success: false, code: 'EMPTY_MESSAGE', message: '消息内容不能为空' }
+  }
+
+  const dedupeKey = userId + ':' + resolvedClientMessageId
+  const existing = state.sentMessagesByClientId[dedupeKey]
+  if (existing != null) {
+    if (existing.content != content || existing.type != type) {
+      return {
+        success: false,
+        code: 'IDEMPOTENCY_CONFLICT',
+        message: '消息唯一标识已被其它内容使用'
+      }
+    }
+    return {
+      success: true,
+      messageId: existing.id,
+      message: cloneValue(existing),
+      deduplicated: true
+    }
+  }
+  if (consumeMockFailure(state, 'sendMessage')) {
+    return { success: false, code: 'MOCK_FAILURE', message: '发送失败，请重试' }
+  }
+
+  state.messageIdSeed += 1
+  const message = {
+    id: state.messageIdSeed,
+    senderId: 'me',
+    senderName: '我',
+    senderAvatar: PORTRAIT.man,
+    content: content,
+    type: type,
+    time: Date.now(),
+    isMine: true,
+    status: '已发送',
+    clientMessageId: resolvedClientMessageId
+  }
+  ensureChatThread(state, userId).push(message)
+  state.sentMessagesByClientId[dedupeKey] = message
+
+  const conversation = findConversation(state, userId)
+  if (conversation != null) {
+    conversation.lastMessage = type == 'text' ? content : '[' + type + ']'
+    conversation.messageType = type
+    conversation.time = message.time
+  }
+  return {
+    success: true,
+    messageId: message.id,
+    message: cloneValue(message),
+    deduplicated: false
+  }
+}
+
+function mockContactExchangeResponse(exchange: any): any {
+  const accepted = exchange.status == 'accepted'
+  const requestedByMe = exchange.requesterId == 'self'
+  return {
+    id: exchange.id,
+    userId: exchange.userId,
+    contactType: exchange.contactType,
+    status: exchange.status,
+    requestedByMe: requestedByMe,
+    // Pending and rejected requests must never expose the submitted value.
+    contactValue: accepted ? exchange.contactValue : null,
+    createdAt: exchange.createdAt,
+    respondedAt: exchange.respondedAt
+  }
+}
+
+export function getMockContactExchanges(userId: number, subjectKey: string = 'self'): any {
+  const state = getMockSubjectState(subjectKey)
+  const permission = getMockChatPermission(userId, subjectKey)
+  if (permission.canChat != true) {
+    return { success: false, code: 'CHAT_NOT_ALLOWED', message: permission.reason }
+  }
+  const list = state.contactExchanges
+    .filter((item: any) => item.userId == userId)
+    .map((item: any) => mockContactExchangeResponse(item))
+  return { success: true, list: list }
+}
+
+export function createMockContactExchange(
+  userId: number,
+  contactType: string,
+  contactValue: string,
+  clientCommandId: string,
+  subjectKey: string = 'self'
+): any {
+  const state = getMockSubjectState(subjectKey)
+  const permission = getMockChatPermission(userId, subjectKey)
+  if (permission.canChat != true) {
+    return { success: false, code: 'CHAT_NOT_ALLOWED', message: permission.reason }
+  }
+  if (contactType != 'phone' && contactType != 'wechat') {
+    return { success: false, code: 'INVALID_CONTACT_TYPE', message: '不支持的联系方式类型' }
+  }
+  const commandId = clientCommandId != null ? clientCommandId.trim() : ''
+  if (commandId == '') {
+    return { success: false, code: 'CLIENT_COMMAND_ID_REQUIRED', message: '缺少操作唯一标识' }
+  }
+  const payloadKey = userId + ':' + contactType + ':' + contactValue
+  const existing = state.contactCommandsByClientId[commandId]
+  if (existing != null) {
+    if (existing.payloadKey != payloadKey) {
+      return { success: false, code: 'IDEMPOTENCY_CONFLICT', message: '操作唯一标识已被其它请求使用' }
+    }
+    return cloneValue(existing.result)
+  }
+  if (consumeMockFailure(state, 'createContactExchange')) {
+    return { success: false, code: 'MOCK_FAILURE', message: '联系方式请求发送失败，请重试' }
+  }
+  const value = contactType == 'phone' ? '13800001001' : contactValue.trim()
+  if ((contactType == 'wechat' && value.length < 6) || value.length > 64) {
+    return { success: false, code: 'INVALID_CONTACT_VALUE', message: '请填写有效的微信号' }
+  }
+  state.contactExchangeIdSeed += 1
+  const exchange = {
+    id: state.contactExchangeIdSeed,
+    userId: userId,
+    requesterId: 'self',
+    recipientId: userId,
+    contactType: contactType,
+    contactValue: value,
+    status: 'pending',
+    createdAt: Date.now(),
+    respondedAt: null
+  }
+  state.contactExchanges.unshift(exchange)
+  const result = { success: true, exchange: mockContactExchangeResponse(exchange) }
+  state.contactCommandsByClientId[commandId] = { payloadKey: payloadKey, result: cloneValue(result) }
+  return result
+}
+
+export function respondMockContactExchange(
+  exchangeId: number,
+  action: string,
+  clientCommandId: string,
+  subjectKey: string = 'self'
+): any {
+  const state = getMockSubjectState(subjectKey)
+  const commandId = clientCommandId != null ? clientCommandId.trim() : ''
+  if (commandId == '') {
+    return { success: false, code: 'CLIENT_COMMAND_ID_REQUIRED', message: '缺少操作唯一标识' }
+  }
+  const payloadKey = exchangeId + ':' + action
+  const existing = state.contactCommandsByClientId[commandId]
+  if (existing != null) {
+    if (existing.payloadKey != payloadKey) {
+      return { success: false, code: 'IDEMPOTENCY_CONFLICT', message: '操作唯一标识已被其它请求使用' }
+    }
+    return cloneValue(existing.result)
+  }
+  const exchange = state.contactExchanges.find((item: any) => item.id == exchangeId)
+  if (exchange == null || exchange.recipientId != 'self') {
+    return { success: false, code: 'FORBIDDEN_ACTION', message: '只能处理收到的联系方式交换请求' }
+  }
+  if (exchange.status != 'pending') {
+    return { success: false, code: 'ALREADY_HANDLED', message: '联系方式交换请求已处理' }
+  }
+  if (action != 'accept' && action != 'reject') {
+    return { success: false, code: 'INVALID_ACTION', message: '不支持的处理方式' }
+  }
+  if (consumeMockFailure(state, 'respondContactExchange')) {
+    return { success: false, code: 'MOCK_FAILURE', message: '联系方式请求处理失败，请重试' }
+  }
+  exchange.status = action == 'accept' ? 'accepted' : 'rejected'
+  exchange.respondedAt = Date.now()
+  const result = { success: true, exchange: mockContactExchangeResponse(exchange) }
+  state.contactCommandsByClientId[commandId] = { payloadKey: payloadKey, result: cloneValue(result) }
+  return result
+}
+
+export function revokeMockMessage(
+  messageId: number,
+  clientCommandId: string,
+  subjectKey: string = 'self'
+): any {
+  const state = getMockSubjectState(subjectKey)
+  const commandId = clientCommandId != null ? clientCommandId.trim() : ''
+  if (commandId == '') {
+    return { success: false, code: 'CLIENT_COMMAND_ID_REQUIRED', message: '缺少撤回操作唯一标识' }
+  }
+  const existing = state.revokeCommandsByClientId[commandId]
+  if (existing != null) {
+    if (existing.messageId != messageId) {
+      return { success: false, code: 'IDEMPOTENCY_CONFLICT', message: '撤回操作唯一标识已被其它消息使用' }
+    }
+    return cloneValue(existing.result)
+  }
+  let target: any = null
+  const threadKeys = Object.keys(state.chatMessagesByUser)
+  for (let i = 0; i < threadKeys.length; i++) {
+    const candidate = state.chatMessagesByUser[threadKeys[i]].find((item: any) => item.id == messageId)
+    if (candidate != null) {
+      target = candidate
+      break
+    }
+  }
+  if (target == null || target.isMine != true || target.revoked == true) {
+    return { success: false, code: 'NOT_FOUND', message: '消息不存在或无法撤回' }
+  }
+  if (consumeMockFailure(state, 'revokeMessage')) {
+    return { success: false, code: 'MOCK_FAILURE', message: '撤回失败，请重试' }
+  }
+  target.revoked = true
+  target.type = 'text'
+  target.content = '消息已撤回'
+  const result = { success: true, messageId: messageId }
+  state.revokeCommandsByClientId[commandId] = { messageId: messageId, result: cloneValue(result) }
+  return result
+}

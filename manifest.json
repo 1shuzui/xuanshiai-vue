@@ -8,10 +8,10 @@
     /* 快应用特有相关 */
     "quickapp" : {},
     /* 小程序特有相关 */
-"mp-weixin" : {
-			"appid" : "wxb5f4e639f4eb2591",
-	        "setting" : {
-	            "urlCheck" : false,
+	"mp-weixin" : {
+		"appid" : "wx744472d3e3e7f825",
+        "setting" : {
+            "urlCheck" : false,
             "es6" : true,
             "minified" : true
         },

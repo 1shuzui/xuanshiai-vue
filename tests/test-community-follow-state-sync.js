@@ -22,14 +22,15 @@ assert.match(page, /syncFollowed\(userId, false\)/, 'successful unfollow must up
 assert.match(
   page,
   /onShow\(\(\) => \{\s*loadUnread\(\)\s*if \(dynamicList\.value\.length > 0\) \{\s*reload\(\)\s*\}/,
-  'community page must refresh any populated tab after returning from detail',
+  'community page must refresh populated feeds after returning from detail',
 )
 
 const unfollowStart = api.indexOf('export async function unfollowUserFromCommunity')
 const unfollowEnd = api.indexOf('/** 删除自己的动态 */', unfollowStart)
 assert.ok(unfollowStart >= 0 && unfollowEnd > unfollowStart, 'unfollow API block must exist')
 const unfollow = api.slice(unfollowStart, unfollowEnd)
-assert.match(unfollow, /const followTabIndex = .*indexOf\('follow'\)/, 'mock unfollow must locate the follow tab')
-assert.match(unfollow, /\.splice\(followTabIndex, 1\)/, 'mock unfollow must remove the follow tab')
+assert.match(unfollow, /url: '\/users\/' \+ userId \+ '\/follow'/, 'unfollow must target the live follow endpoint')
+assert.match(unfollow, /method: 'DELETE'/, 'unfollow must use DELETE')
+assert.match(unfollow, /followed: false/, 'unfollow response must confirm the resulting state')
 
 console.log('PASS community follow-state synchronization contract')

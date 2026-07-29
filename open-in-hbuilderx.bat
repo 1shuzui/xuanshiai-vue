@@ -2,8 +2,8 @@
 setlocal
 
 set "PROJECT_DIR=%~dp0"
-set "HBUILDER_CLI=D:\xuanshiai_runtime\hbuilderx\HBuilderX\cli.exe"
-set "HBUILDER_EXE=D:\xuanshiai_runtime\hbuilderx\HBuilderX\HBuilderX.exe"
+set "HBUILDER_CLI=D:\HBuilderX\cli.exe"
+set "HBUILDER_EXE=D:\HBuilderX\HBuilderX.exe"
 
 if not exist "%HBUILDER_CLI%" (
   echo HBuilderX CLI was not found at:

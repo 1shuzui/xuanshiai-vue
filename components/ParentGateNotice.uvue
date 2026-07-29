@@ -1,0 +1,127 @@
+<template>
+	<view class="gate-notice" :class="{ ready: gate.allowed === true }">
+		<text class="gate-title">资料访问条件</text>
+		<view class="gate-row">
+			<text class="gate-state">{{ gate.parentVerified ? '✓' : '1' }}</text>
+			<view class="gate-copy">
+				<text class="gate-label">父母实名认证</text>
+				<text class="gate-desc">{{ gate.parentVerified ? '已完成' : '完成后才能继续' }}</text>
+			</view>
+		</view>
+		<view class="gate-row">
+			<text class="gate-state">{{ gate.childAuthorized ? '✓' : '2' }}</text>
+			<view class="gate-copy">
+				<text class="gate-label">子女授权</text>
+				<text class="gate-desc">{{ childAuthorizationCopy }}</text>
+			</view>
+		</view>
+		<button v-if="gate.allowed !== true" class="gate-action" @click="requestAction">去完成</button>
+	</view>
+</template>
+
+	<script setup lang="uts">
+		interface ParentGateView {
+			allowed: boolean
+			parentVerified: boolean
+			childAuthorized: boolean
+			code: string
+			message: string
+		}
+
+		interface Props {
+			gate: ParentGateView
+		}
+
+	const props = withDefaults(defineProps<Props>(), {
+			gate: () => ({
+				allowed: false,
+				parentVerified: false,
+				childAuthorized: false,
+				code: 'PARENT_CONTEXT_REQUIRED',
+				message: '请先加载父母端资料'
+			})
+	})
+
+		const emit = defineEmits<{
+			action: [gate: ParentGateView]
+		}>()
+
+		const childAuthorizationCopy = computed(() => {
+			if (props.gate.childAuthorized) return '已取得且在有效期内'
+			if (props.gate.code == 'CHILD_AUTHORIZATION_EXPIRED') return '已过期，需由子女重新授权'
+			return '需由子女明确同意'
+		})
+
+		const requestAction = () => emit('action', props.gate)
+</script>
+
+<style scoped>
+	.gate-notice {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 16px;
+		background: var(--warm);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+	}
+
+	.gate-notice.ready {
+		background: var(--sage-soft);
+	}
+
+	.gate-title {
+		font-size: 20px;
+		font-family: var(--serif);
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.gate-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.gate-state {
+		width: 32px;
+		height: 32px;
+		border-radius: 999px;
+		background: var(--surface);
+		color: var(--accent2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 16px;
+		font-weight: 800;
+	}
+
+	.gate-copy {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.gate-label {
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	.gate-desc {
+		font-size: 14px;
+		color: var(--ink2);
+	}
+
+	.gate-action {
+		min-height: 48px;
+		margin: 0;
+		border-radius: 8px;
+		background: var(--accent);
+		color: var(--text-invert);
+		font-size: 16px;
+		font-weight: 700;
+		line-height: 48px;
+	}
+</style>

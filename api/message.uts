@@ -1,17 +1,33 @@
 /**
- * Message APIs.
- * Mock mode keeps the local demo data. Real mode talks to FastAPI social and
- * discovery endpoints, while preserving the page-facing data shape.
+ * 消息相关 API
+ * 新接口提供分页、权限与已读闭环；旧导出继续保留供既有调用方兼容。
  */
 
 import { request } from './request.uts'
-import { USE_MOCK } from './config.uts'
-import { mockMessageList, mockChatMessages, mockApplications } from '@/mock'
+import { buildApiUrl, getAccessToken } from './config.uts'
+import {
+  getMockConversationPage,
+  getMockApplicationPage,
+  getMockChatPermission,
+  markAllMockMessagesRead,
+  handleMockApplication,
+  getMockChatMessages,
+  sendMockMessage,
+  revokeMockMessage,
+  getMockContactExchanges,
+  createMockContactExchange,
+  respondMockContactExchange
+} from '@/mock/message.uts'
 
-const DEFAULT_PEER_AVATAR = '/static/portraits/profile-woman-main.jpg'
-const DEFAULT_ME_AVATAR = '/static/portraits/profile-man-light.jpg'
+/** 消息切片独立使用可变 Mock，避免受全局联调开关影响。 */
+export const MESSAGE_USE_MOCK = true
 
-function okRes(data: any): any {
+export type MessageSubject = {
+  mode: 'self' | 'parent'
+  childId?: number
+}
+
+function okResponse(data: any): any {
   return {
     success: true,
     data: data,
@@ -20,320 +36,1010 @@ function okRes(data: any): any {
   }
 }
 
-function failRes(message: string, code: any = -1): any {
+function failResponse(message: string, code: any = -1, data: any = null): any {
   return {
     success: false,
-    data: null,
+    data: data,
     code: code,
     message: message
   }
 }
 
-function timestampFrom(value: any): number {
-  if (value == null) return Date.now()
-  if (typeof value === 'number') return value as number
-  const parsed = Date.parse('' + value)
-  return Number.isNaN(parsed) ? Date.now() : parsed
-}
-
-function formatTimeLabel(value: any): string {
-  const timestamp = timestampFrom(value)
-  const date = new Date(timestamp)
-  const hours = date.getHours().toString().padStart(2, '0')
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  return `${hours}:${minutes}`
-}
-
-function backendTypeFrom(type: string): number {
-  if (type == 'image') return 2
-  if (type == 'voice') return 3
-  if (type == 'wechat-request') return 5
-  if (type == 'phone-request') return 6
-  return 1
-}
-
-function frontendTypeFrom(type: any): string {
-  const raw = Number(type)
-  if (raw == 2) return 'image'
-  if (raw == 3) return 'voice'
-  if (raw == 5) return 'wechat-request'
-  if (raw == 6) return 'phone-request'
-  return 'text'
-}
-
-function previewTypeFrom(message: string): string {
-  if (message == '[媒体消息]') return 'image'
-  if (message == '[语音]') return 'voice'
-  if (message.indexOf('交换微信') >= 0) return 'wechat-request'
-  if (message.indexOf('交换电话') >= 0) return 'phone-request'
-  return 'text'
-}
-
-function mapSession(row: any): any {
-  const target = row != null && row.target != null ? row.target : {}
-  const targetId = target.user_id != null ? Number(target.user_id) : 0
-  const lastMessage = row.last_message != null ? '' + row.last_message : ''
-  return {
-    id: row.id != null ? Number(row.id) : targetId,
-    sessionId: row.id != null ? Number(row.id) : 0,
-    userId: targetId,
-    avatar: target.avatar != null && ('' + target.avatar).length > 0 ? '' + target.avatar : DEFAULT_PEER_AVATAR,
-    name: target.nickname != null && ('' + target.nickname).length > 0 ? '' + target.nickname : `用户${targetId}`,
-    lastMessage: lastMessage,
-    time: timestampFrom(row.last_message_time),
-    unreadCount: row.unread_count != null ? Number(row.unread_count) : 0,
-    online: false,
-    messageType: previewTypeFrom(lastMessage),
-    type: 'chat',
-    matched: true,
-    canChat: true
+/** Cloud-function failures reject while HTTP/Mock resolve; normalize both for fail-closed UI handling. */
+async function messageRequest(options: any) {
+  try {
+    return await request(options)
+  } catch (error: any) {
+    return failResponse(
+      error != null && error.message != null ? '' + error.message : '请求失败',
+      error != null && error.code != null ? error.code : -1,
+      error != null && error.data != null ? error.data : null
+    )
   }
 }
 
-function mapMessage(row: any, peerUserId: number, index: number): any {
-  const type = frontendTypeFrom(row.type)
-  const mine = row.from_user_id != null && Number(row.from_user_id) != peerUserId
-  const content = type == 'image' || type == 'voice'
-    ? (row.media_url != null ? '' + row.media_url : '')
-    : (row.content != null ? '' + row.content : '')
-  return {
-    id: row.id != null ? Number(row.id) : Date.now() + index,
-    sessionId: row.session_id != null ? Number(row.session_id) : 0,
-    senderId: row.from_user_id != null ? Number(row.from_user_id) : 0,
-    senderName: mine ? '我' : `用户${peerUserId}`,
-    senderAvatar: mine ? DEFAULT_ME_AVATAR : DEFAULT_PEER_AVATAR,
+/** 将 HTTP 200 内的业务失败提升为统一失败，避免页面误判成功。 */
+function normalizeBusinessResponse(res: any): any {
+  if (res == null) return failResponse('请求失败')
+  if (res.success != true) return res
+  const data = res.data
+  if (data != null && data.success === false) {
+    return failResponse(
+      data.message != null ? '' + data.message : '操作失败',
+      data.code != null ? data.code : -1,
+      data
+    )
+  }
+  return res
+}
+
+function businessData(res: any): any {
+  if (
+    res != null &&
+    res.data != null &&
+    res.data.success == true &&
+    res.data.data != null
+  ) return res.data.data
+  return res != null ? res.data : null
+}
+
+function normalizePageResponse(res: any, fallback: string): any {
+  if (res == null || res.success != true) return res
+  const data = businessData(res)
+  if (data == null || !Array.isArray(data.list)) {
+    return failResponse(fallback, 'INVALID_PAGE_RESPONSE', data)
+  }
+  return okResponse(data)
+}
+
+const PROTECTED_MEDIA_FIELDS: string[] = [
+  'url',
+  'src',
+  'path',
+  'imageUrl',
+  'thumbnailUrl',
+  'fileUrl',
+  'attachmentUrl',
+  'mediaUrl',
+  'audioUrl',
+  'videoUrl',
+  'downloadUrl',
+  'resourceUrl',
+  'photoUrl',
+  'avatarUrl',
+  'preview',
+  'previewUrl',
+  'cover',
+  'coverUrl',
+  'poster',
+  'posterUrl',
+  'image_url',
+  'thumbnail_url',
+  'file_url',
+  'attachment_url',
+  'media_url',
+  'audio_url',
+  'video_url',
+  'download_url',
+  'resource_url',
+  'photo_url',
+  'avatar_url',
+  'preview_url',
+  'cover_url',
+  'poster_url'
+]
+
+const PROTECTED_MEDIA_OBJECT_FIELDS: string[] = [
+  'image',
+  'file',
+  'attachment',
+  'attachments',
+  'media',
+  'files',
+  'resource',
+  'resources'
+]
+
+function normalizeProtectedKey(key: any): any {
+  if (key == null) return ''
+  return String(key).toLowerCase().split('_').join('').split('-').join('')
+}
+
+function isProtectedIdentityField(key: any): boolean {
+  const normalized = normalizeProtectedKey(key)
+  return normalized == 'avatar' ||
+    normalized == 'avatarurl' ||
+    normalized == 'clearavatar' ||
+    normalized == 'senderavatar' ||
+    normalized == 'receiveravatar' ||
+    normalized == 'photo' ||
+    normalized == 'photourl' ||
+    normalized == 'clearphoto' ||
+    normalized == 'portrait' ||
+    normalized == 'portraiturl' ||
+    normalized == 'headimage' ||
+    normalized == 'headimageurl' ||
+    normalized == 'profileimage' ||
+    normalized == 'profileimageurl' ||
+    normalized == 'photos' ||
+    normalized == 'gallery' ||
+    normalized == 'album' ||
+    normalized == 'avatars'
+}
+
+function isProtectedMediaField(key: any): boolean {
+  const normalized = normalizeProtectedKey(key)
+  return normalized == 'url' ||
+    normalized == 'src' ||
+    normalized == 'path' ||
+    normalized == 'imageurl' ||
+    normalized == 'thumbnailurl' ||
+    normalized == 'fileurl' ||
+    normalized == 'attachmenturl' ||
+    normalized == 'mediaurl' ||
+    normalized == 'audiourl' ||
+    normalized == 'videourl' ||
+    normalized == 'downloadurl' ||
+    normalized == 'resourceurl' ||
+    normalized == 'preview' ||
+    normalized == 'previewurl' ||
+    normalized == 'cover' ||
+    normalized == 'coverurl' ||
+    normalized == 'poster' ||
+    normalized == 'posterurl' ||
+    normalized == 'thumbnail'
+}
+
+function isProtectedMediaObjectField(key: any): boolean {
+  const normalized = normalizeProtectedKey(key)
+  return normalized == 'image' ||
+    normalized == 'file' ||
+    normalized == 'attachment' ||
+    normalized == 'attachments' ||
+    normalized == 'media' ||
+    normalized == 'files' ||
+    normalized == 'resource' ||
+    normalized == 'resources'
+}
+
+function looksLikeMediaUrl(value: any): boolean {
+  if (typeof value != 'string' || value == '') return false
+  const normalized = value.trim().toLowerCase()
+  return normalized.indexOf('://') >= 0 ||
+    normalized.indexOf('data:') == 0 ||
+    normalized.indexOf('blob:') == 0 ||
+    normalized.indexOf('file:') == 0 ||
+    normalized.indexOf('wxfile:') == 0 ||
+    normalized.indexOf('/') == 0 ||
+    normalized.indexOf('./') == 0 ||
+    normalized.indexOf('../') == 0 ||
+    normalized.indexOf('private/') == 0 ||
+    normalized.indexOf('media/') == 0 ||
+    normalized.indexOf('images/') == 0 ||
+    normalized.indexOf('photos/') == 0 ||
+    normalized.indexOf('uploads/') == 0 ||
+    normalized.indexOf('assets/') == 0 ||
+    normalized.indexOf('static/') == 0 ||
+    normalized.indexOf('.jpg') >= 0 ||
+    normalized.indexOf('.jpeg') >= 0 ||
+    normalized.indexOf('.png') >= 0 ||
+    normalized.indexOf('.webp') >= 0 ||
+    normalized.indexOf('.gif') >= 0 ||
+    normalized.indexOf('.heic') >= 0 ||
+    normalized.indexOf('.mp3') >= 0 ||
+    normalized.indexOf('.wav') >= 0 ||
+    normalized.indexOf('.mp4') >= 0 ||
+    normalized.indexOf('.mov') >= 0
+}
+
+/**
+ * Protected responses are recursively scrubbed so future schema additions cannot
+ * accidentally expose clear identity or media URLs. Text, status and identifiers
+ * remain available to the page.
+ */
+function sanitizeProtectedValue(value: any, key: any = ''): any {
+  if (value == null) return value
+  if (isProtectedIdentityField(key) || isProtectedMediaField(key)) {
+    return typeof value == 'string' ? '' : null
+  }
+  if (isProtectedMediaObjectField(key)) return null
+  if (typeof value == 'string') return looksLikeMediaUrl(value) ? '' : value
+  if (Array.isArray(value)) {
+    const sanitizedList: any[] = []
+    for (let i = 0; i < value.length; i++) {
+      sanitizedList.push(sanitizeProtectedValue(value[i], ''))
+    }
+    return sanitizedList
+  }
+  if (typeof value == 'object') {
+    const sanitizedObject: any = {}
+    const keys = Object.keys(value)
+    for (let i = 0; i < keys.length; i++) {
+      const childKey = keys[i]
+      sanitizedObject[childKey] = sanitizeProtectedValue(value[childKey], childKey)
+    }
+    return sanitizedObject
+  }
+  return value
+}
+
+function protectSubjectResponse(response: any, subjectContext: any): any {
+  if (subjectContext == null || subjectContext.mode != 'parent' || response == null) return response
+  return sanitizeProtectedValue(response, '')
+}
+
+function isIdentityContainerField(key: any): boolean {
+  const normalized = normalizeProtectedKey(key)
+  return normalized == 'sender' ||
+    normalized == 'receiver' ||
+    normalized == 'author' ||
+    normalized == 'peer' ||
+    normalized == 'profile' ||
+    normalized == 'owner' ||
+    normalized == 'actor'
+}
+
+function hasProtectedPayload(value: any, key: any = '', identityContainer: boolean = false): boolean {
+  if (value == null) return false
+  const insideIdentity = identityContainer || isIdentityContainerField(key)
+  if (isProtectedIdentityField(key)) return false
+  if (!insideIdentity && (isProtectedMediaField(key) || isProtectedMediaObjectField(key))) return true
+  if (typeof value == 'string') return !insideIdentity && looksLikeMediaUrl(value)
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      if (hasProtectedPayload(value[i], '', insideIdentity)) return true
+    }
+    return false
+  }
+  if (typeof value == 'object') {
+    const keys = Object.keys(value)
+    for (let i = 0; i < keys.length; i++) {
+      const childKey = keys[i]
+      if (hasProtectedPayload(value[childKey], childKey, insideIdentity)) return true
+    }
+  }
+  return false
+}
+
+function hasProtectedMessageContent(item: any): boolean {
+  if (item == null) return false
+  const type = item.type != null ? String(item.type).toLowerCase() : ''
+  if (type != '' && type != 'text') return true
+  if (item.content != null && typeof item.content != 'string') return true
+  if (looksLikeMediaUrl(item.content)) return true
+  const keys = Object.keys(item)
+  for (let i = 0; i < keys.length; i++) {
+    const field = keys[i]
+    if (field == 'content' || isProtectedIdentityField(field)) continue
+    if (hasProtectedPayload(item[field], field, false)) return true
+  }
+  return false
+}
+
+function protectAvatarList(list: any[]): any[] {
+  const protectedList: any[] = []
+  for (let i = 0; i < list.length; i++) {
+    const item = list[i]
+    if (item == null) continue
+    const sanitizedItem = sanitizeProtectedValue(item, '')
+    protectedList.push({
+      ...sanitizedItem,
+      avatar: '',
+      avatarUrl: '',
+      avatar_url: '',
+      photoUrl: '',
+      photo_url: '',
+      clearAvatar: '',
+      senderAvatar: '',
+      receiverAvatar: '',
+      protectedAvatar: true
+    })
+  }
+  return protectedList
+}
+
+/** Protected chat responses must never retain avatar or attachment URLs. */
+function protectMessageList(list: any[]): any[] {
+  const protectedList: any[] = []
+  for (let i = 0; i < list.length; i++) {
+    const item = list[i]
+    if (item == null) continue
+    const protectedContent = hasProtectedMessageContent(item)
+    const sanitizedItem = sanitizeProtectedValue(item, '')
+    const protectedItem: any = {
+      ...sanitizedItem,
+      avatar: '',
+      avatarUrl: '',
+      avatar_url: '',
+      photoUrl: '',
+      photo_url: '',
+      clearAvatar: '',
+      senderAvatar: '',
+      receiverAvatar: '',
+      protectedAvatar: true,
+      protectedContent: protectedContent,
+      content: protectedContent ? '' : item.content
+    }
+    for (let j = 0; j < PROTECTED_MEDIA_FIELDS.length; j++) {
+      protectedItem[PROTECTED_MEDIA_FIELDS[j]] = ''
+    }
+    for (let j = 0; j < PROTECTED_MEDIA_OBJECT_FIELDS.length; j++) {
+      protectedItem[PROTECTED_MEDIA_OBJECT_FIELDS[j]] = null
+    }
+    protectedList.push(protectedItem)
+  }
+  return protectedList
+}
+
+function protectSendResult(result: any): any {
+  if (result == null) return result
+  const protectedResult = sanitizeProtectedValue(result, '')
+  if (result.message != null && typeof result.message == 'object') {
+    const messages = protectMessageList([result.message])
+    protectedResult.message = messages.length > 0 ? messages[0] : null
+  }
+  return protectedResult
+}
+
+function protectApplicationResult(result: any): any {
+  if (result == null) return result
+  const protectedResult = sanitizeProtectedValue(result, '')
+  if (result.application != null) {
+    const applications = protectAvatarList([result.application])
+    protectedResult.application = applications.length > 0 ? applications[0] : null
+  }
+  if (result.conversation != null) {
+    const conversations = protectAvatarList([result.conversation])
+    protectedResult.conversation = conversations.length > 0 ? conversations[0] : null
+  }
+  return protectedResult
+}
+
+function protectPageAvatars(page: any, privacyScope: string): any {
+  if (privacyScope != 'protected' || page == null || !Array.isArray(page.list)) return page
+  page.list = protectAvatarList(page.list as any[])
+  return page
+}
+
+function isPositiveInteger(value: number): boolean {
+  return Number.isFinite(value) && Math.floor(value) == value && value > 0
+}
+
+function resolveMessageSubject(subject: MessageSubject | null = null): any {
+  if (subject == null) {
+    return { valid: true, mode: 'self', childId: null, key: 'self' }
+  }
+  if (subject.mode == 'self') {
+    return { valid: true, mode: 'self', childId: null, key: 'self' }
+  }
+  if (subject.mode != 'parent') {
+    return { valid: false, message: '无效的消息主体', code: 'INVALID_MESSAGE_SUBJECT' }
+  }
+  const childId = subject.childId != null ? subject.childId : 0
+  if (!isPositiveInteger(childId)) {
+    return { valid: false, message: '父母消息主体缺少有效子女授权', code: 'ACTING_CHILD_REQUIRED' }
+  }
+  return { valid: true, mode: 'parent', childId: childId, key: 'parent:' + childId }
+}
+
+function messageSubjectFailure(subjectContext: any): any {
+  return failResponse(subjectContext.message, subjectContext.code)
+}
+
+/** Parent acting-subject APIs remain Mock-only until their audited backend exists. */
+function parentBackendUnavailable(subjectContext: any): any | null {
+  if (!MESSAGE_USE_MOCK && subjectContext.mode == 'parent') {
+    return failResponse(
+      '父母端消息后端尚未开放，不能代子女使用普通用户接口',
+      'PARENT_BACKEND_NOT_AVAILABLE'
+    )
+  }
+  return null
+}
+
+function effectivePrivacyScope(privacyScope: string, subjectContext: any): string {
+  return subjectContext.mode == 'parent' ? 'protected' : privacyScope
+}
+
+/**
+ * The subject fields are claims only. The real message service must authenticate
+ * the parent account and authorize actingChildId for every read and mutation.
+ */
+function appendMessageSubject(data: any, subjectContext: any): any {
+  data.subjectMode = subjectContext.mode
+  data.actingChildId = subjectContext.mode == 'parent' ? subjectContext.childId : null
+  return data
+}
+
+function normalizedPageSize(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 20
+  return Math.min(Math.floor(value), 50)
+}
+
+function normalizeCommandResponse(res: any, fallback: string, code: string): any {
+  if (res == null || res.success != true) return res
+  const data = businessData(res)
+  if (data == null || data.success != true) {
+    if (data != null && data.success == false) {
+      return failResponse(
+        data.message != null ? '' + data.message : fallback,
+        data.code != null ? data.code : code,
+        data
+      )
+    }
+    return failResponse(fallback, code, data)
+  }
+  return okResponse(data)
+}
+
+function normalizeApplicationResult(result: any, action: string): any {
+  const expectedStatus = action == 'accept' ? 'accepted' : 'rejected'
+  const expectedCanChat = action == 'accept'
+  if (
+    result == null ||
+    result.success != true ||
+    result.application == null ||
+    result.application.status != expectedStatus ||
+    typeof result.canChat != 'boolean' ||
+    result.canChat != expectedCanChat
+  ) {
+    return failResponse('申请处理响应无效', 'INVALID_APPLICATION_RESPONSE', result)
+  }
+  return okResponse(result)
+}
+
+/** 游标分页获取会话。data: { list, nextCursor, hasMore, total, unreadTotal } */
+export async function getConversationPage(
+  cursor: string = '',
+  pageSize: number = 20,
+  privacyScope: string = 'standard',
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
+  const size = normalizedPageSize(pageSize)
+  if (MESSAGE_USE_MOCK) {
+    return protectSubjectResponse(
+      okResponse(protectPageAvatars(
+        getMockConversationPage(cursor, size, subjectContext.key),
+        photoScope
+      )),
+      subjectContext
+    )
+  }
+  const requestData: any = { cursor: cursor, pageSize: size, photoScope: photoScope }
+  appendMessageSubject(requestData, subjectContext)
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/list',
+    method: 'GET',
+    data: requestData
+  }))
+  const pageResponse = normalizePageResponse(normalized, '消息分页响应无效')
+  if (pageResponse == null || pageResponse.success != true) {
+    return protectSubjectResponse(pageResponse, subjectContext)
+  }
+  pageResponse.data = protectPageAvatars(pageResponse.data, photoScope)
+  return protectSubjectResponse(pageResponse, subjectContext)
+}
+
+/** 按收到/发出分页获取申请。 */
+export async function getApplicationPage(
+  direction: string = 'incoming',
+  cursor: string = '',
+  pageSize: number = 20,
+  privacyScope: string = 'standard',
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
+  if (direction != 'incoming' && direction != 'outgoing') {
+    return failResponse('不支持的申请方向', 'INVALID_APPLICATION_DIRECTION')
+  }
+  const size = normalizedPageSize(pageSize)
+  const normalizedDirection = direction
+  if (MESSAGE_USE_MOCK) {
+    return protectSubjectResponse(
+      okResponse(protectPageAvatars(
+        getMockApplicationPage(normalizedDirection, cursor, size, subjectContext.key),
+        photoScope
+      )),
+      subjectContext
+    )
+  }
+  const requestData: any = {
+    direction: normalizedDirection,
+    cursor: cursor,
+    pageSize: size,
+    photoScope: photoScope
+  }
+  appendMessageSubject(requestData, subjectContext)
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/applications',
+    method: 'GET',
+    data: requestData
+  }))
+  const pageResponse = normalizePageResponse(normalized, '申请分页响应无效')
+  if (pageResponse == null || pageResponse.success != true) {
+    return protectSubjectResponse(pageResponse, subjectContext)
+  }
+  pageResponse.data = protectPageAvatars(pageResponse.data, photoScope)
+  return protectSubjectResponse(pageResponse, subjectContext)
+}
+
+/** 进入会话和加载详情前均需调用；任何不明确结果都视为不可聊天。 */
+export async function getChatPermission(userId: number, subject: MessageSubject | null = null) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (MESSAGE_USE_MOCK) {
+    const permission = getMockChatPermission(userId, subjectContext.key)
+    return typeof permission.canChat == 'boolean'
+      ? protectSubjectResponse(okResponse(permission), subjectContext)
+      : protectSubjectResponse(failResponse('聊天权限响应无效', 'INVALID_PERMISSION_RESPONSE', permission), subjectContext)
+  }
+  const requestData: any = { userId: userId }
+  appendMessageSubject(requestData, subjectContext)
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/chat/permission',
+    method: 'GET',
+    data: requestData
+  }))
+  if (normalized == null || normalized.success != true) {
+    return protectSubjectResponse(normalized, subjectContext)
+  }
+  const permission = businessData(normalized)
+  if (permission == null || typeof permission.canChat != 'boolean') {
+    return protectSubjectResponse(
+      failResponse('聊天权限响应无效', 'INVALID_PERMISSION_RESPONSE', permission),
+      subjectContext
+    )
+  }
+  return protectSubjectResponse(okResponse(permission), subjectContext)
+}
+
+/** 将全部会话标为已读。 */
+export async function markAllMessagesRead(subject: MessageSubject | null = null) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (MESSAGE_USE_MOCK) {
+    return protectSubjectResponse(
+      normalizeCommandResponse(
+        okResponse(markAllMockMessagesRead(subjectContext.key)),
+        '全部已读响应无效',
+        'INVALID_READ_ALL_RESPONSE'
+      ),
+      subjectContext
+    )
+  }
+  const requestData: any = {}
+  appendMessageSubject(requestData, subjectContext)
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/read-all',
+    method: 'POST',
+    data: requestData
+  }))
+  return protectSubjectResponse(
+    normalizeCommandResponse(normalized, '全部已读响应无效', 'INVALID_READ_ALL_RESPONSE'),
+    subjectContext
+  )
+}
+
+/** 旧导出兼容：返回完整会话数组；父母调用方必须请求 protected scope。 */
+export async function getMessageList(
+  privacyScope: string = 'standard',
+  subject: MessageSubject | null = null
+) {
+  const res = await getConversationPage('', 50, privacyScope, subject)
+  if (res.success != true || res.data == null) return res
+  return protectSubjectResponse(
+    okResponse(res.data.list != null ? res.data.list : []),
+    resolveMessageSubject(subject)
+  )
+}
+
+/** 获取聊天详情；API 层同样 fail-closed。 */
+export async function getChatMessages(
+  userId: number,
+  privacyScope: string = 'standard',
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
+  const permissionRes = await getChatPermission(userId, subject)
+  const permission = permissionRes != null ? permissionRes.data : null
+  if (permissionRes == null || permissionRes.success != true) {
+    return protectSubjectResponse(
+      permissionRes != null ? permissionRes : failResponse('聊天权限检查失败', 'CHAT_PERMISSION_FAILED'),
+      subjectContext
+    )
+  }
+  if (permission == null || permission.canChat != true) {
+    const reason = permission != null && permission.reason != null
+      ? '' + permission.reason
+      : '双方同意后才能开始聊天'
+    return protectSubjectResponse(failResponse(reason, 'CHAT_NOT_ALLOWED', permission), subjectContext)
+  }
+  if (MESSAGE_USE_MOCK) {
+    const messages = getMockChatMessages(userId, subjectContext.key)
+    return protectSubjectResponse(
+      okResponse(photoScope == 'protected' ? protectMessageList(messages) : messages),
+      subjectContext
+    )
+  }
+  const requestOptions: any = {
+    url: '/message/chat',
+    method: 'GET',
+    data: { userId: userId, photoScope: privacyScope }
+  }
+  requestOptions.data.photoScope = photoScope
+  appendMessageSubject(requestOptions.data, subjectContext)
+  const normalized = normalizeBusinessResponse(await messageRequest(requestOptions))
+  if (normalized == null || normalized.success != true) {
+    return protectSubjectResponse(normalized, subjectContext)
+  }
+  const data = businessData(normalized)
+  if (!Array.isArray(data)) {
+    return protectSubjectResponse(failResponse('聊天记录响应无效', 'INVALID_CHAT_RESPONSE', data), subjectContext)
+  }
+  return protectSubjectResponse(
+    okResponse(photoScope == 'protected' ? protectMessageList(data as any[]) : data),
+    subjectContext
+  )
+}
+
+/**
+ * 发送消息。clientMessageId 在首次发送和单条重试时保持不变，用于服务端去重。
+ * 空 ID 会被拒绝；页面重试必须复用同一 ID。
+ */
+export async function sendMessage(
+  userId: number,
+  content: string,
+  type: string = 'text',
+  clientMessageId: string = '',
+  subject: MessageSubject | null = null,
+  mediaId: number | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (type != 'text' && type != 'image' && type != 'voice' && type != 'video') {
+    return failResponse('不支持的消息类型', 'INVALID_MESSAGE_TYPE')
+  }
+  if (typeof content != 'string' || (type == 'text' && content.trim() == '')) {
+    return failResponse('消息内容不能为空', 'EMPTY_MESSAGE')
+  }
+  if (type != 'text' && (!isPositiveInteger(mediaId != null ? mediaId : 0) || content.trim() != '')) {
+    return failResponse('媒体消息必须引用已上传媒体且不能附带文本', 'INVALID_MEDIA_MESSAGE')
+  }
+  if (clientMessageId == null || clientMessageId.trim() == '') {
+    return failResponse('缺少消息唯一标识', 'CLIENT_MESSAGE_ID_REQUIRED')
+  }
+  if (clientMessageId.length > 128) {
+    return failResponse('消息唯一标识过长', 'INVALID_CLIENT_MESSAGE_ID')
+  }
+  const resolvedClientMessageId = clientMessageId.trim()
+  const permissionRes = await getChatPermission(userId, subject)
+  const permission = permissionRes != null ? permissionRes.data : null
+  if (permissionRes == null || permissionRes.success != true) {
+    return protectSubjectResponse(
+      permissionRes != null ? permissionRes : failResponse('聊天权限检查失败', 'CHAT_PERMISSION_FAILED'),
+      subjectContext
+    )
+  }
+  if (permission == null || permission.canChat != true) {
+    return protectSubjectResponse(
+      failResponse(
+        permission != null && permission.reason != null ? '' + permission.reason : '双方同意后才能开始聊天',
+        'CHAT_NOT_ALLOWED',
+        permission
+      ),
+      subjectContext
+    )
+  }
+  if (MESSAGE_USE_MOCK) {
+    if (type != 'text') {
+      return failResponse('Mock 模式不上传本地媒体，请切换真实后端后重试', 'MOCK_MEDIA_UPLOAD_NOT_SUPPORTED')
+    }
+    const result = sendMockMessage(userId, content, type, resolvedClientMessageId, subjectContext.key)
+    if (result.success != true) {
+      return protectSubjectResponse(failResponse(result.message, result.code, result), subjectContext)
+    }
+    const protectedResult = subjectContext.mode == 'parent'
+      ? protectSendResult(result)
+      : result
+    return protectSubjectResponse(
+      normalizeCommandResponse(okResponse(protectedResult), '发送消息响应无效', 'INVALID_SEND_RESPONSE'),
+      subjectContext
+    )
+  }
+  const requestData: any = {
+    userId: userId,
     content: content,
     type: type,
-    time: timestampFrom(row.created_at),
-    timeLabel: formatTimeLabel(row.created_at),
-    isMine: mine,
-    showTime: index == 0,
-    requestStatus: 'pending',
-    contactType: type == 'phone-request' ? 'phone' : 'wechat',
-    contactValue: '',
-    requestDate: getDateKey(timestampFrom(row.created_at))
+    clientMessageId: resolvedClientMessageId,
+    mediaId: type == 'text' ? null : mediaId
   }
-}
-
-function getDateKey(timestamp: number): string {
-  const date = new Date(timestamp)
-  const year = date.getFullYear()
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const day = date.getDate().toString().padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-async function getSessionsPage(): Promise<any> {
-  return await request({
-    url: '/chat/sessions',
-    method: 'GET',
-    data: { page: 1, page_size: 50 }
-  })
-}
-
-async function resolveSessionByTargetUser(targetUserId: number): Promise<any> {
-  const sessionsRes = await getSessionsPage()
-  if (!sessionsRes.success || sessionsRes.data == null) return sessionsRes
-  const items = sessionsRes.data.items != null ? (sessionsRes.data.items as any[]) : []
-  for (let i = 0; i < items.length; i++) {
-    const row = items[i]
-    if (row != null && row.target != null && Number(row.target.user_id) == targetUserId) {
-      return okRes(row)
-    }
-  }
-  return failRes('当前没有可用聊天会话', 'SESSION_NOT_FOUND')
-}
-
-function mapApplication(row: any, direction: string): any {
-  const otherId = direction == 'in'
-    ? (row.from_user_id != null ? Number(row.from_user_id) : 0)
-    : (row.to_user_id != null ? Number(row.to_user_id) : 0)
-  const status = row.status != null ? Number(row.status) : 0
-  let statusText = '待回应'
-  if (status == 1) statusText = '已同意'
-  if (status == 2) statusText = '已拒绝'
-  if (status == 3) statusText = '已过期'
-  return {
-    id: row.id != null ? Number(row.id) : otherId,
-    userId: otherId,
-    name: `用户${otherId}`,
-    avatar: DEFAULT_PEER_AVATAR,
-    message: row.message != null && ('' + row.message).length > 0 ? '' + row.message : '申请认识',
-    direction: direction,
-    status: status == 1 ? 'accepted' : (status == 2 ? 'rejected' : 'pending'),
-    accepted: status == 1,
-    matched: status == 1,
-    statusText: statusText,
-    time: timestampFrom(row.created_at)
-  }
-}
-
-/**
- * Get chat session list.
- */
-export async function getMessageList() {
-  if (USE_MOCK) {
-    return request({
-      url: '/message/list',
-      method: 'GET',
-      mockData: mockMessageList
-    })
-  }
-
-  const res = await getSessionsPage()
-  if (!res.success) return res
-  const items = res.data != null && res.data.items != null ? (res.data.items as any[]) : []
-  const list: any[] = []
-  for (let i = 0; i < items.length; i++) {
-    list.push(mapSession(items[i]))
-  }
-  return okRes(list)
-}
-
-/**
- * Get chat messages by peer user id. The backend uses session id, so this
- * resolves the session first to keep the current page route compatible.
- */
-export async function getChatMessages(userId: number) {
-  if (USE_MOCK) {
-    return request({
-      url: '/message/chat',
-      method: 'GET',
-      data: { userId },
-      mockData: mockChatMessages
-    })
-  }
-
-  const sessionRes = await resolveSessionByTargetUser(userId)
-  if (!sessionRes.success || sessionRes.data == null) {
-    if (sessionRes.code == 'SESSION_NOT_FOUND') return okRes([])
-    return sessionRes
-  }
-  const sessionId = Number(sessionRes.data.id)
-  const res = await request({
-    url: '/chat/sessions/' + sessionId + '/messages',
-    method: 'GET',
-    data: { page: 1, page_size: 50 }
-  })
-  if (!res.success) return res
-  const arr = res.data != null && Array.isArray(res.data) ? (res.data as any[]) : []
-  const list: any[] = []
-  for (let i = 0; i < arr.length; i++) {
-    list.push(mapMessage(arr[i], userId, i))
-  }
-  return okRes(list)
-}
-
-/**
- * Send a message by peer user id. Backend messages are posted to chat session.
- */
-export async function sendMessage(userId: number, content: string, type: string = 'text') {
-  if (USE_MOCK) {
-    return request({
-      url: '/message/send',
-      method: 'POST',
-      data: { userId, content, type },
-      mockData: { success: true, messageId: Date.now() }
-    })
-  }
-
-  const sessionRes = await resolveSessionByTargetUser(userId)
-  if (!sessionRes.success || sessionRes.data == null) return sessionRes
-  const sessionId = Number(sessionRes.data.id)
-  const backendType = backendTypeFrom(type)
-  const isMedia = backendType == 2 || backendType == 3
-  const res = await request({
-    url: '/chat/sessions/' + sessionId + '/messages',
+  appendMessageSubject(requestData, subjectContext)
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/send',
     method: 'POST',
-    data: {
-      type: backendType,
-      content: isMedia ? null : content,
-      media_url: isMedia ? content : null
-    }
-  })
-  if (!res.success) return res
-  const raw = res.data
-  return okRes({
-    success: true,
-    messageId: raw != null && raw.id != null ? Number(raw.id) : Date.now(),
-    message: raw
-  })
+    data: requestData
+  }))
+  const commandResponse = normalizeCommandResponse(normalized, '发送消息响应无效', 'INVALID_SEND_RESPONSE')
+  if (commandResponse != null && commandResponse.success == true && subjectContext.mode == 'parent') {
+    commandResponse.data = protectSendResult(commandResponse.data)
+  }
+  return protectSubjectResponse(commandResponse, subjectContext)
 }
 
-/**
- * Contact exchange is not a dedicated backend endpoint yet. Keep the current
- * local interaction contract so the frontend does not call removed mock routes.
- */
-export async function handleContactExchangeRequest(
-  requestId: number,
-  action: string,
-  contactType: string = 'wechat'
+/** 旧导出兼容：合并收到和发出的申请；父母调用方必须请求 protected scope。 */
+export async function getApplications(
+  privacyScope: string = 'standard',
+  subject: MessageSubject | null = null
 ) {
-  return okRes({
-    status: action == 'accept' ? 'accepted' : 'rejected',
-    contactType: contactType,
-    contactValue: action == 'accept'
-      ? (contactType == 'phone' ? '13812341234' : 'wanqing_art')
-      : ''
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
+  if (MESSAGE_USE_MOCK) {
+    const incoming = getMockApplicationPage('incoming', '', 50, subjectContext.key)
+    const outgoing = getMockApplicationPage('outgoing', '', 50, subjectContext.key)
+    const list = incoming.list.concat(outgoing.list)
+    return protectSubjectResponse(
+      okResponse(photoScope == 'protected' ? protectAvatarList(list) : list),
+      subjectContext
+    )
+  }
+  const incoming = await getApplicationPage('incoming', '', 50, photoScope, subject)
+  if (incoming == null || incoming.success != true || incoming.data == null) return incoming
+  const outgoing = await getApplicationPage('outgoing', '', 50, photoScope, subject)
+  if (outgoing == null || outgoing.success != true || outgoing.data == null) return outgoing
+  return protectSubjectResponse(
+    okResponse((incoming.data.list as any[]).concat(outgoing.data.list as any[])),
+    subjectContext
+  )
+}
+
+function validCommandId(value: string, label: string): any {
+  const id = value != null ? value.trim() : ''
+  if (id == '') return failResponse('缺少' + label + '唯一标识', 'CLIENT_COMMAND_ID_REQUIRED')
+  if (id.length > 128) return failResponse(label + '唯一标识过长', 'INVALID_CLIENT_COMMAND_ID')
+  return id
+}
+
+/** Uploads a real chat attachment and returns its backend media ID. */
+export async function uploadChatMedia(
+  userId: number,
+  filePath: string,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (filePath == null || filePath.trim() == '') return failResponse('请选择要发送的媒体', 'EMPTY_FILE')
+  if (MESSAGE_USE_MOCK) {
+    return failResponse('Mock 模式不上传本地媒体，请切换真实后端后重试', 'MOCK_MEDIA_UPLOAD_NOT_SUPPORTED')
+  }
+  const permissionRes = await getChatPermission(userId, subject)
+  if (permissionRes == null || permissionRes.success != true || permissionRes.data == null || permissionRes.data.canChat != true) {
+    return permissionRes != null ? permissionRes : failResponse('聊天权限检查失败', 'CHAT_PERMISSION_FAILED')
+  }
+  const token = getAccessToken()
+  return await new Promise<any>((resolve) => {
+    uni.uploadFile({
+      url: buildApiUrl('/message/media/uploads'),
+      filePath: filePath,
+      name: 'file',
+      formData: { peerUserId: '' + userId },
+      header: token != '' ? { Authorization: 'Bearer ' + token } : {},
+      success: (res: any) => {
+        let data: any = null
+        try {
+          data = JSON.parse('' + res.data)
+        } catch (error) {
+          resolve(failResponse('上传响应解析失败', 'INVALID_UPLOAD_RESPONSE'))
+          return
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300 && data != null && isPositiveInteger(Number(data.id))) {
+          resolve(okResponse({
+            id: Number(data.id),
+            mediaType: data.mediaType != null ? data.mediaType : data.media_type,
+            url: data.url != null ? data.url : data.file_url
+          }))
+          return
+        }
+        const detail = data != null && data.detail != null ? '' + data.detail : '媒体上传失败，请重试'
+        resolve(failResponse(detail, res.statusCode))
+      },
+      fail: () => resolve(failResponse('媒体上传失败，请检查网络', 'UPLOAD_FAILED'))
+    })
   })
 }
 
-/**
- * Get incoming and outgoing match applications.
- */
-export async function getApplications() {
-  if (USE_MOCK) {
-    return request({
-      url: '/message/applications',
-      method: 'GET',
-      mockData: mockApplications
-    })
+export async function revokeMessage(
+  messageId: number,
+  clientCommandId: string,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(messageId)) return failResponse('无效的消息', 'INVALID_MESSAGE_ID')
+  const commandId = validCommandId(clientCommandId, '撤回操作')
+  if (typeof commandId != 'string') return commandId
+  if (MESSAGE_USE_MOCK) {
+    const result = revokeMockMessage(messageId, commandId, subjectContext.key)
+    return result.success == true ? okResponse(result) : failResponse(result.message, result.code, result)
   }
-
-  const incomingRes = await request({
-    url: '/discovery/applications/incoming',
-    method: 'GET',
-    data: { page: 1, page_size: 50 }
-  })
-  const outgoingRes = await request({
-    url: '/discovery/applications/outgoing',
-    method: 'GET',
-    data: { page: 1, page_size: 50 }
-  })
-  if (!incomingRes.success) return incomingRes
-  if (!outgoingRes.success) return outgoingRes
-
-  const incoming = incomingRes.data != null && incomingRes.data.items != null ? (incomingRes.data.items as any[]) : []
-  const outgoing = outgoingRes.data != null && outgoingRes.data.items != null ? (outgoingRes.data.items as any[]) : []
-  const list: any[] = []
-  for (let i = 0; i < incoming.length; i++) list.push(mapApplication(incoming[i], 'in'))
-  for (let i = 0; i < outgoing.length; i++) list.push(mapApplication(outgoing[i], 'out'))
-  return okRes(list)
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/messages/' + messageId,
+    method: 'DELETE',
+    data: { clientCommandId: commandId }
+  }))
+  return normalizeCommandResponse(normalized, '撤回消息响应无效', 'INVALID_REVOKE_RESPONSE')
 }
 
-/**
- * Accept or reject a match application.
- */
-export async function handleApplication(applicationId: number, action: string) {
-  if (USE_MOCK) {
-    return request({
-      url: '/message/application/handle',
-      method: 'POST',
-      data: { applicationId, action },
-      mockData: { success: true }
-    })
+export async function getContactExchanges(
+  userId: number,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (MESSAGE_USE_MOCK) {
+    const result = getMockContactExchanges(userId, subjectContext.key)
+    return result.success == true ? okResponse(result.list) : failResponse(result.message, result.code, result)
   }
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/contact-exchanges', method: 'GET', data: { userId: userId }
+  }))
+  if (normalized == null || normalized.success != true) return normalized
+  const data = businessData(normalized)
+  if (data == null || !Array.isArray(data.list)) return failResponse('联系方式响应无效', 'INVALID_CONTACT_RESPONSE', data)
+  return okResponse(data.list)
+}
 
-  const endpoint = action == 'accept' ? 'accept' : 'reject'
-  const data = action == 'accept' ? {} : { reason: '暂时不合适' }
-  const res = await request({
-    url: '/discovery/applications/' + applicationId + '/' + endpoint,
+export async function createContactExchange(
+  userId: number,
+  contactType: string,
+  contactValue: string,
+  clientCommandId: string,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
+  if (contactType != 'phone' && contactType != 'wechat') return failResponse('不支持的联系方式类型', 'INVALID_CONTACT_TYPE')
+  const commandId = validCommandId(clientCommandId, '联系方式操作')
+  if (typeof commandId != 'string') return commandId
+  if (MESSAGE_USE_MOCK) {
+    const result = createMockContactExchange(userId, contactType, contactValue, commandId, subjectContext.key)
+    return result.success == true ? okResponse(result.exchange) : failResponse(result.message, result.code, result)
+  }
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/contact-exchanges', method: 'POST', data: {
+      userId: userId, contactType: contactType, contactValue: contactValue, clientCommandId: commandId
+    }
+  }))
+  if (normalized == null || normalized.success != true) return normalized
+  return okResponse(businessData(normalized))
+}
+
+export async function respondContactExchange(
+  exchangeId: number,
+  action: string,
+  clientCommandId: string,
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(exchangeId)) return failResponse('无效的联系方式请求', 'INVALID_CONTACT_EXCHANGE')
+  if (action != 'accept' && action != 'reject') return failResponse('不支持的处理方式', 'INVALID_ACTION')
+  const commandId = validCommandId(clientCommandId, '联系方式操作')
+  if (typeof commandId != 'string') return commandId
+  if (MESSAGE_USE_MOCK) {
+    const result = respondMockContactExchange(exchangeId, action, commandId, subjectContext.key)
+    return result.success == true ? okResponse(result.exchange) : failResponse(result.message, result.code, result)
+  }
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/contact-exchanges/' + exchangeId + '/respond', method: 'POST',
+    data: { action: action, clientCommandId: commandId }
+  }))
+  if (normalized == null || normalized.success != true) return normalized
+  return okResponse(businessData(normalized))
+}
+
+/** Compatibility alias retained for callers of the former placeholder export. */
+export async function handleContactExchangeRequest(
+  exchangeId: number,
+  action: string,
+  clientCommandId: string,
+  subject: MessageSubject | null = null
+) {
+  return respondContactExchange(exchangeId, action, clientCommandId, subject)
+}
+
+/** 处理收到的申请；稳定命令 ID 防止重试造成重复状态变更。 */
+export async function handleApplication(
+  applicationId: number,
+  action: string,
+  clientCommandId: string = '',
+  subject: MessageSubject | null = null
+) {
+  const subjectContext = resolveMessageSubject(subject)
+  if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
+  const parentBackendFailure = parentBackendUnavailable(subjectContext)
+  if (parentBackendFailure != null) return parentBackendFailure
+  if (!isPositiveInteger(applicationId)) return failResponse('无效的申请', 'INVALID_APPLICATION')
+  if (action != 'accept' && action != 'reject') return failResponse('不支持的处理方式', 'INVALID_ACTION')
+  if (clientCommandId == null || clientCommandId.trim() == '') {
+    return failResponse('缺少申请操作唯一标识', 'CLIENT_COMMAND_ID_REQUIRED')
+  }
+  if (clientCommandId.length > 128) {
+    return failResponse('申请操作唯一标识过长', 'INVALID_CLIENT_COMMAND_ID')
+  }
+  const resolvedClientCommandId = clientCommandId.trim()
+  if (MESSAGE_USE_MOCK) {
+    const result = handleMockApplication(
+      applicationId,
+      action,
+      resolvedClientCommandId,
+      subjectContext.key
+    )
+    if (result.success != true) {
+      return protectSubjectResponse(failResponse(result.message, result.code, result), subjectContext)
+    }
+    return protectSubjectResponse(
+      normalizeApplicationResult(
+        subjectContext.mode == 'parent' ? protectApplicationResult(result) : result,
+        action
+      ),
+      subjectContext
+    )
+  }
+  const requestData: any = {
+    applicationId: applicationId,
+    action: action,
+    clientCommandId: resolvedClientCommandId
+  }
+  appendMessageSubject(requestData, subjectContext)
+  const normalized = normalizeBusinessResponse(await messageRequest({
+    url: '/message/application/handle',
     method: 'POST',
-    data: data
-  })
-  if (!res.success) return res
-  return okRes({
-    success: true,
-    application: res.data
-  })
+    data: requestData
+  }))
+  if (normalized == null || normalized.success != true) {
+    return protectSubjectResponse(normalized, subjectContext)
+  }
+  const result = businessData(normalized)
+  return protectSubjectResponse(
+    normalizeApplicationResult(
+      subjectContext.mode == 'parent' ? protectApplicationResult(result) : result,
+      action
+    ),
+    subjectContext
+  )
 }

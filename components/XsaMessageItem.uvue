@@ -1,13 +1,16 @@
 <template>
 	<view
 		class="xsa-message-item"
-		:class="{ pinned: message.pinned === true }"
+		:class="{ 'large-text': largeText, pinned: message.pinned === true }"
 		@click="handleClick"
 		@longpress.stop="handleLongPress"
 	>
 		<!-- 头像 -->
 		<view class="avatar-wrapper">
-			<image class="avatar" :src="message.avatar" mode="aspectFill"></image>
+			<view class="avatar protected-avatar" v-if="protectPhoto">
+				<view class="protected-avatar-mark"></view>
+			</view>
+			<image class="avatar" v-else :src="message.avatar" mode="aspectFill"></image>
 		</view>
 
 		<!-- 消息内容 -->
@@ -27,6 +30,9 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 在线状态 -->
+		<view class="online-dot" v-if="message.online"></view>
 	</view>
 </template>
 
@@ -44,16 +50,20 @@ interface Message {
 	time: string | number; // 时间戳或字符串
 	unreadCount?: number;
 	online?: boolean;
-	type?: string;
-	messageType?: 'text' | 'image' | 'voice' | 'wechat-request' | 'phone-request'; // 消息类型
 	pinned?: boolean;
+	messageType?: 'text' | 'image' | 'voice'; // 消息类型
 }
 
 interface Props {
-	message: Message;
+		message: Message;
+		largeText?: boolean;
+		protectPhoto?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+	largeText: false,
+	protectPhoto: false
+});
 
 const emit = defineEmits<{
 	click: [message: Message];
@@ -77,10 +87,6 @@ const lastMessageText = computed(() => {
 		return '[图片]';
 	} else if (msg.messageType === 'voice') {
 		return '[语音]';
-	} else if (msg.messageType === 'wechat-request') {
-		return '[微信申请]';
-	} else if (msg.messageType === 'phone-request') {
-		return '[电话申请]';
 	}
 
 	return msg.lastMessage != null ? msg.lastMessage.toString() : '';
@@ -95,7 +101,6 @@ const formatTime = computed(() => {
 		return time;
 	}
 
-	// 最近一天显示相对时间，更早消息使用紧凑日期
 	const date = new Date(time);
 	const elapsed = Math.max(0, Date.now() - time);
 	const minute = 60 * 1000;
@@ -111,17 +116,15 @@ const formatTime = computed(() => {
 	if (elapsed < day) {
 		return `${Math.floor(elapsed / hour)}小时前`;
 	}
-
-	const now = new Date();
-	const month = (date.getMonth() + 1).toString().padStart(2, '0');
-	const dateDay = date.getDate().toString().padStart(2, '0');
 	if (elapsed < 2 * day) {
 		return '昨天';
 	}
-	if (date.getFullYear() === now.getFullYear()) {
-		return `${month}/${dateDay}`;
-	}
-	return `${date.getFullYear()}/${month}/${dateDay}`;
+	const now = new Date();
+	const month = (date.getMonth() + 1).toString().padStart(2, '0');
+	const dateDay = date.getDate().toString().padStart(2, '0');
+	return date.getFullYear() === now.getFullYear()
+		? `${month}/${dateDay}`
+		: `${date.getFullYear()}/${month}/${dateDay}`;
 });
 
 // 点击消息项
@@ -150,8 +153,8 @@ const handleLongPress = () => {
 	margin: 0;
 	padding: 2px 20px 2px 16px;
 	box-sizing: border-box;
-	border-bottom: 1px solid var(--line);
 	background: transparent;
+	border-bottom: 1px solid var(--line);
 	transition: background 0.18s;
 }
 
@@ -175,6 +178,22 @@ const handleLongPress = () => {
 	width: 50px;
 	height: 50px;
 	border-radius: 50%;
+	overflow: hidden;
+}
+
+.protected-avatar {
+	background: var(--warm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.protected-avatar-mark {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: var(--accent-bg);
+	filter: blur(5px);
 }
 
 .unread-badge {
@@ -184,6 +203,7 @@ const handleLongPress = () => {
 	background: var(--accent);
 	border-radius: 999px;
 	display: flex;
+	flex-direction: row;
 	align-items: center;
 	justify-content: center;
 }
@@ -270,5 +290,22 @@ const handleLongPress = () => {
 	font-weight: 500;
 }
 
+.xsa-message-item.large-text .name {
+	font-size: 16px;
+}
+
+.xsa-message-item.large-text .time,
+.xsa-message-item.large-text .last-message {
+	font-size: 14px;
+}
+
 /* 在线状态 */
+.online-dot {
+	width: 8px;
+	height: 8px;
+	background: var(--sage);
+	border-radius: 50%;
+	flex-shrink: 0;
+	margin-left: -4px;
+}
 </style>

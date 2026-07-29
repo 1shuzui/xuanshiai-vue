@@ -1,0 +1,84 @@
+const PARENT_PORTRAITS = {
+	womanAlt: '/static/portraits/profile-woman-alt.jpg'
+}
+
+/** Single-child parent context for internal review only. */
+export const mockParentContext = {
+	id: 'parent_context_001',
+	mode: 'parent',
+	dataMode: 'mock',
+	parent: {
+		id: 9101,
+		name: '周妈妈',
+		avatar: PARENT_PORTRAITS.womanAlt,
+		realNameStatus: 'passed'
+	},
+	child: {
+		id: 9201,
+		displayName: '周女士的女儿',
+		birthYear: 1997,
+		city: '南京',
+		job: '产品经理',
+		introduction: '生活规律，认真对待长期关系，也尊重彼此的独立空间。',
+		authorizationStatus: 'granted',
+		authorizationExpiresAt: '2099-12-31T23:59:59+08:00',
+		profileProgress: 86
+	},
+	quota: {
+		dailyTotal: 3,
+		remainingApplications: 2
+	},
+	releaseGate: {
+		productionReady: false,
+		code: 'PARENT_RELATIONSHIP_BACKEND_REQUIRED',
+		message: '当前为内部演示数据，正式发布前需完成真实父母与子女关系授权，并由服务端返回父母端专用的隐私字段。'
+	}
+}
+
+function cloneChild(child: any): any {
+	if (child == null) return null
+	return {
+		id: child.id,
+		displayName: child.displayName,
+		birthYear: child.birthYear,
+		city: child.city,
+		job: child.job,
+		introduction: child.introduction,
+		authorizationStatus: child.authorizationStatus,
+		authorizationExpiresAt: child.authorizationExpiresAt,
+		profileProgress: child.profileProgress
+	}
+}
+
+export function getMockParentContextData(): any {
+	return {
+		id: mockParentContext.id,
+		mode: mockParentContext.mode,
+		dataMode: mockParentContext.dataMode,
+		parent: { ...mockParentContext.parent },
+		child: cloneChild(mockParentContext.child),
+		quota: { ...mockParentContext.quota },
+		releaseGate: { ...mockParentContext.releaseGate }
+	}
+}
+
+export function updateMockParentChildProfileData(profile: any): any {
+	const child = mockParentContext.child
+	child.displayName = profile.displayName
+	child.birthYear = profile.birthYear
+	child.city = profile.city
+	child.job = profile.job
+	child.introduction = profile.introduction
+	let progress = 60
+	if (profile.job.length > 0) progress += 20
+	if (profile.introduction.length > 0) progress += 20
+	child.profileProgress = progress
+	return cloneChild(child)
+}
+
+export function syncMockParentRemainingApplicationsData(remainingApplications: number): number {
+	const total = Math.max(0, Number(mockParentContext.quota.dailyTotal))
+	const remaining = Math.min(total, Math.max(0, Number(remainingApplications)))
+	mockParentContext.quota.remainingApplications = remaining
+	return remaining
+}

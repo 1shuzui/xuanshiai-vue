@@ -1,5 +1,5 @@
 <template>
-	<view class="chat-page">
+	<view class="chat-page" :class="{ 'parent-mode': isParentMode }">
 		<!-- 消息列表 -->
 		<scroll-view
 			class="message-list"
@@ -37,11 +37,14 @@
 						:class="msg.isMine ? 'mine' : 'other'"
 					>
 					<!-- 对方头像 -->
-<image
+	<view class="avatar protected-avatar" v-if="!msg.isMine && isParentMode">
+		<text>隐私</text>
+	</view>
+	<image
 							class="avatar"
 							:src="msg.avatar"
 							mode="aspectFill"
-							v-if="!msg.isMine"
+							v-else-if="!msg.isMine"
 							@click="openPeerProfile"
 						></image>
 
@@ -56,8 +59,12 @@
 						<view class="quoted-message" v-if="msg.quoteText != null && msg.quoteText.length > 0">
 							<text class="quoted-message-inline">{{ msg.quoteName }}：{{ msg.quoteText }}</text>
 						</view>
+						<!-- 父母端不显示受保护的媒体和联系方式。 -->
+						<view class="protected-message" v-if="isParentMode && msg.type !== 'text'">
+							<text>内容已保护</text>
+						</view>
 						<!-- 文本消息 -->
-						<text class="text-content" v-if="msg.type === 'text'">{{ msg.content }}</text>
+						<text class="text-content" v-else-if="msg.type === 'text'">{{ msg.content }}</text>
 
 						<!-- 图片消息 -->
 						<image
@@ -65,11 +72,11 @@
 							:src="msg.content"
 							mode="aspectFill"
 							@click.stop="handleImageClick(msg)"
-							v-if="msg.type === 'image'"
+							v-else-if="msg.type === 'image'"
 						></image>
 
 						<!-- 语音消息 -->
-						<view class="voice-content" v-if="msg.type === 'voice'">
+						<view class="voice-content" v-else-if="msg.type === 'voice'">
 							<text class="icon">🔊</text>
 							<text class="duration">{{ msg.duration }}''</text>
 						</view>
@@ -78,7 +85,7 @@
 						<view
 							class="wechat-request-card"
 							:class="msg.requestStatus"
-							v-if="isContactRequestType(msg.type)"
+							v-if="!isParentMode && isContactRequestType(msg.type)"
 						>
 							<view class="wechat-request-head">
 								<view class="wechat-request-mark">
@@ -114,11 +121,14 @@
 					</view>
 
 					<!-- 我的头像 -->
-					<image
-						class="avatar"
-						:src="msg.avatar"
-						mode="aspectFill"
-						v-if="msg.isMine"
+						<view class="avatar protected-avatar" v-if="msg.isMine && isParentMode">
+							<text>子女</text>
+						</view>
+						<image
+							class="avatar"
+							:src="msg.avatar"
+							mode="aspectFill"
+							v-else-if="msg.isMine"
 					></image>
 					</view>
 				</view>
@@ -159,7 +169,7 @@
 				@click.stop="pasteClipboard"
 			>粘贴</button>
 			<view class="input-wrapper">
-				<button class="tool-btn voice-tool-btn" @click="sendVoice">
+					<button class="tool-btn voice-tool-btn" v-if="!isParentMode" @click="sendVoice">
 					<view class="voice-mic">
 						<view class="voice-mic-head"></view>
 						<view class="voice-mic-bracket"></view>
@@ -177,7 +187,7 @@
 					confirm-type="send"
 					@confirm="sendMessage"
 				/>
-				<button class="tool-btn" @click="showMoreMenu">
+					<button class="tool-btn" @click="showMoreMenu">
 					<text class="icon">+</text>
 				</button>
 				<button class="send-btn" @click="sendMessage">发送</button>
@@ -195,7 +205,7 @@
 		<view class="more-menu" v-if="showMore" @click="closeMoreMenu">
 			<view class="menu-content" @click.stop>
 				<view class="menu-grid">
-					<view class="menu-item" @click="chooseImage">
+					<view class="menu-item" v-if="!isParentMode" @click="chooseImage">
 						<view class="menu-icon menu-icon-album">
 							<view class="album-card album-card-back"></view>
 							<view class="album-card album-card-front">
@@ -205,7 +215,7 @@
 						</view>
 						<text class="menu-text">相册</text>
 					</view>
-					<view class="menu-item" @click="takePhoto">
+					<view class="menu-item" v-if="!isParentMode" @click="takePhoto">
 						<view class="menu-icon menu-icon-camera">
 							<view class="camera-top"></view>
 							<view class="camera-body">
@@ -216,6 +226,7 @@
 					</view>
 					<view
 						class="menu-item"
+						v-if="!isParentMode"
 						:class="{ disabled: wechatExchangeDisabled }"
 						@click="requestWechatExchange"
 					>
@@ -231,6 +242,7 @@
 					</view>
 <view
 							class="menu-item"
+							v-if="!isParentMode"
 							:class="{ disabled: phoneExchangeDisabled }"
 							@click="requestPhoneExchange"
 						>
@@ -257,8 +269,11 @@
 		<XsaReportSheet
 			:visible="reportVisible"
 			target-type="chatUser"
-			:target-id="userId"
-			:user-id="userId"
+				:target-id="userId"
+				:user-id="userId"
+				:large-text="isParentMode"
+				:parent-mode="isParentMode"
+				:parent-context="activeParentContext"
 			@close="reportVisible = false"
 			@reported="reportVisible = false"
 		/>
@@ -274,8 +289,11 @@
 			readPaperPlaneConversation,
 			handleContactExchangeRequest,
 			getChatFeatureUnlocks,
-			unlockChatFeature
+			unlockChatFeature,
+			getParentContext,
+			getParentAccessGate
 		} from '@/api';
+		import type { MessageSubject, ParentContext } from '@/api'
 		import XsaReportSheet from '@/components/XsaReportSheet.uvue'
 		import {
 		createMatchedConversation,
@@ -310,6 +328,9 @@ let contactExchangeRecords = ref([] as any[])
 			let contactExchangeDailyKeys = ref([] as any[])
 			let reportVisible = ref(false)
 			let chatFeatureUnlocks = ref({ album: false, camera: false, profile: false } as any)
+			const isParentMode = ref(false)
+			const activeParentContext = ref(null as ParentContext | null)
+			const activeMessageSubject = ref({ mode: 'self' } as MessageSubject)
 
 		const wechatExchangeDisabled = computed(() => {
 			return isContactExchangeDisabled('wechat')
@@ -335,8 +356,39 @@ let contactExchangeRecords = ref([] as any[])
 			return false
 		};
 
-	// 页面加载时获取数据
-	onMounted(() => {
+		const newClientCommandId = (prefix: string): string => {
+			return prefix + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000000)
+		}
+
+		const resolveCurrentMessageSubject = async (): Promise<MessageSubject | null> => {
+			const storedMode = uni.getStorageSync('xsa_onboarding_mode')
+			if (storedMode == null || String(storedMode) != 'parent') {
+				isParentMode.value = false
+				activeParentContext.value = null
+				activeMessageSubject.value = { mode: 'self' } as MessageSubject
+				return activeMessageSubject.value
+			}
+
+			const contextRes = await getParentContext()
+			if (contextRes == null || contextRes.success != true || contextRes.data == null) {
+				messages.value = []
+				uni.showToast({ title: contextRes != null && contextRes.message != null ? contextRes.message : '父母端授权已失效', icon: 'none' })
+				return null
+			}
+			const context = contextRes.data as ParentContext
+			const gate = getParentAccessGate(context)
+			if (gate == null || gate.allowed != true || context.child == null || context.child.id <= 0) {
+				messages.value = []
+				uni.showToast({ title: gate != null && gate.message != null ? gate.message : '父母端授权已失效', icon: 'none' })
+				return null
+			}
+			isParentMode.value = true
+			activeParentContext.value = context
+			activeMessageSubject.value = { mode: 'parent', childId: context.child.id } as MessageSubject
+			return activeMessageSubject.value
+		}
+
+		const initializeChat = async () => {
 		// 获取 URL 参数中的 userId
 		const pages = getCurrentPages()
 		const currentPage = pages[pages.length - 1]
@@ -355,17 +407,35 @@ let contactExchangeRecords = ref([] as any[])
 			const parsedConversationId = parseInt(options.paperPlaneConversationId)
 			if (parsedConversationId > 0) {
 				paperPlaneConversationId.value = parsedConversationId
-				loadPaperPlaneMessages()
-				return
+					const subject = await resolveCurrentMessageSubject()
+					if (subject == null) return
+					if (isParentMode.value) {
+						uni.showToast({ title: '父母端不支持纸飞机匿名会话', icon: 'none' })
+						uni.navigateBack()
+						return
+					}
+					loadPaperPlaneMessages()
+					return
 			}
 		}
 if (options && options.userId) {
 				userId.value = parseInt(options.userId)
-				loadChatFeatureUnlocks()
-				loadContactExchangeState()
-				loadChatMessages()
-			}
-	})
+					const subject = await resolveCurrentMessageSubject()
+					if (subject == null) return
+					if (!isParentMode.value) loadChatFeatureUnlocks()
+					loadContactExchangeState()
+					loadChatMessages()
+				}
+		}
+
+		onMounted(() => {
+			initializeChat()
+		})
+
+		onShow(() => {
+			if (paperPlaneConversationId.value > 0 || userId.value <= 0) return
+			loadChatMessages()
+		})
 
 		const loadPaperPlaneMessages = async () => {
 			try {
@@ -397,8 +467,11 @@ if (options && options.userId) {
 		const loadChatMessages = async () => {
 			try {
 				loading.value = true
+				const subject = await resolveCurrentMessageSubject()
+				if (subject == null) return
 				const matchedConversation = getMatchedConversation(userId.value)
 				if (
+					!isParentMode.value &&
 					matchedConversation != null &&
 					matchedConversation.source === 'application' &&
 					matchedConversation.greetingMessage != null
@@ -419,7 +492,11 @@ if (options && options.userId) {
 					scrollToBottom()
 					return
 				}
-				const res = await getChatMessages(userId.value)
+				const res = await getChatMessages(
+					userId.value,
+					isParentMode.value ? 'protected' : 'standard',
+					subject
+				)
 				if (res.success) {
 					const list = res.data as any[]
 					if (list.length > 0) {
@@ -435,7 +512,7 @@ if (options && options.userId) {
 						time: msg.timeLabel != null ? msg.timeLabel : formatTime(msg.time),
 						showTime: msg.showTime == true || idx == 0,
 						isMine: msg.isMine,
-						avatar: msg.senderAvatar,
+							avatar: isParentMode.value ? '' : msg.senderAvatar,
 						requestStatus: msg.requestStatus != null ? msg.requestStatus : 'pending',
 						contactType: msg.contactType != null ? msg.contactType : (msg.type === 'phone-request' ? 'phone' : 'wechat'),
 						contactValue: msg.contactValue != null ? msg.contactValue : '',
@@ -624,12 +701,16 @@ if (options && options.userId) {
 	}
 
 	// 发送消息
-	const sendMessage = async () => {
+		const sendMessage = async () => {
 		if (!inputText.value.trim()) {
 			return
 		}
 
-		const content = inputText.value
+			const content = inputText.value
+			const subject = paperPlaneConversationId.value > 0
+				? ({ mode: 'self' } as MessageSubject)
+				: await resolveCurrentMessageSubject()
+			if (subject == null) return
 		pasteVisible.value = false
 			const currentQuote = quotedMessage.value
 			const newMsg = {
@@ -670,12 +751,19 @@ if (options && options.userId) {
 
 			// 调用发送消息接口
 			try {
-				const res = await sendMessageApi(userId.value, content, 'text')
+				const res = await sendMessageApi(
+					userId.value,
+					content,
+					'text',
+					newClientCommandId('chat-message'),
+					subject
+				)
 				if (res.success) {
 					if (res.data != null && res.data.messageId != null) {
 						newMsg.id = res.data.messageId
 					}
-					// 高保真演示：自动回复
+					// 仅普通演示会话补一条本地回复；父母端只显示受授权子女的实际线程。
+					if (isParentMode.value) return
 					setTimeout(() => {
 						const replies = ['听起来不错！', '我也这么觉得。', '有道理，我们可以约个时间详细聊聊。', '好的，期待和你见面。', '这个想法很棒！']
 						const i = Math.floor(Math.random() * replies.length)
@@ -692,6 +780,9 @@ if (options && options.userId) {
 						updateConversationPreview(userId.value, replyContent, Date.now(), 'text')
 						scrollToBottom()
 					}, 1600)
+				} else {
+					messages.value = (messages.value as any[]).filter((item: any) => item.id != newMsg.id)
+					uni.showToast({ title: res.message != null ? res.message : '发送失败，请重试', icon: 'none' })
 				}
 			} catch (error) {
 				console.error('发送消息失败', error)
@@ -803,6 +894,10 @@ if (options && options.userId) {
 				uni.showToast({ title: '暂时无法获取对方资料', icon: 'none' })
 				return
 			}
+			if (isParentMode.value) {
+				uni.navigateTo({ url: '/pages/parent/user-detail?id=' + userId.value })
+				return
+			}
 			ensureChatFeatureUnlocked('profile', '查看对方主页', () => {
 				uni.navigateTo({
 					url: '/pages/user/detail?userId=' + userId.value
@@ -810,8 +905,10 @@ if (options && options.userId) {
 			})
 		}
 
-		const openChatReport = () => {
+		const openChatReport = async () => {
 			closeMoreMenu()
+			const subject = await resolveCurrentMessageSubject()
+			if (subject == null) return
 			reportVisible.value = true
 		}
 
@@ -825,11 +922,11 @@ if (options && options.userId) {
 	}
 
 	const canRevokeMessage = (message: any): boolean => {
-		return message != null && message.isMine === true && !isContactRequestType(message.type)
+		return !isParentMode.value && message != null && message.isMine === true && !isContactRequestType(message.type)
 	}
 
 	const handleChatMessageLongPress = (message: any, index: number) => {
-		if (message == null) return
+		if (isParentMode.value || message == null) return
 		if (multiSelectMode.value) {
 			toggleMessageSelection(message)
 			return
@@ -1030,7 +1127,8 @@ if (options && options.userId) {
 		})
 	}
 
-	const requestContactExchange = async (contactType: string) => {
+		const requestContactExchange = async (contactType: string) => {
+			if (isParentMode.value) return
 		if (isContactExchangeDisabled(contactType)) return
 		const contactName = contactType === 'phone' ? '电话' : '微信'
 		const requestMessage: any = {
@@ -1051,7 +1149,13 @@ if (options && options.userId) {
 		closeMoreMenu()
 		scrollToBottom()
 		try {
-			const res = await sendMessageApi(userId.value, requestMessage.content, `${contactType}-request`)
+			const res = await sendMessageApi(
+				userId.value,
+				requestMessage.content,
+				`${contactType}-request`,
+				newClientCommandId('contact-request'),
+				{ mode: 'self' } as MessageSubject
+			)
 			if (!res.success) {
 				messages.value = (messages.value as any[]).filter((item: any) => item.id != requestMessage.id)
 				uni.showToast({ title: '申请发送失败，请重试', icon: 'none' })
@@ -1166,7 +1270,12 @@ if (options && options.userId) {
 		message.requestStatus = action === 'accept' ? 'accepted' : 'rejected'
 		messages.value = (messages.value as any[]).slice()
 		try {
-			const res = await handleContactExchangeRequest(message.id, action, message.contactType)
+			const res = await handleContactExchangeRequest(
+				message.id,
+				action,
+				newClientCommandId('contact-response'),
+				{ mode: 'self' } as MessageSubject
+			)
 			if (!res.success) {
 				message.requestStatus = previousStatus
 				messages.value = (messages.value as any[]).slice()
@@ -1341,12 +1450,37 @@ if (options && options.userId) {
 	justify-content: flex-start;
 }
 
-.avatar {
-	width: 40px;
+	.avatar {
+		width: 40px;
 	height: 40px;
 	border-radius: 50%;
-	flex-shrink: 0;
-}
+		flex-shrink: 0;
+	}
+
+	.protected-avatar {
+		background: var(--bg-subtle);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.protected-avatar text,
+	.protected-message text {
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.protected-message {
+		min-width: 96px;
+		padding: 12px 16px;
+		border-radius: 8px;
+		background: var(--bg-subtle);
+	}
+
+	.chat-page.parent-mode .message-action-menu,
+	.chat-page.parent-mode .multi-action-bar {
+		display: none;
+	}
 
 .message-bubble {
 	max-width: 240px;

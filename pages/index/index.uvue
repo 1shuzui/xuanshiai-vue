@@ -140,7 +140,7 @@
 							</view>
 							<view class="match-info">
 								<text class="match-title">AI 匹配度分析</text>
-								<text class="match-desc">MBTI高度契合 · 兴趣重合度高 · 三观相近</text>
+								<text class="match-desc">基于公开资料与共同兴趣生成参考</text>
 							</view>
 						</view>
 
@@ -644,10 +644,8 @@
 		<!-- ====== Sheets & Modals ====== -->
 		<XsaSheet :visible="aiVisible" title="AI 合拍度解读" @close="aiVisible = false">
 			<view class="ai-sheet">
-				<view class="ai-mbti-row">
-					<view class="ai-mbti-card"><text class="ai-mbti-label">你的 MBTI</text><text class="ai-mbti-type">INFP</text></view>
-					<text class="ai-mbti-x">×</text>
-					<view class="ai-mbti-card you"><text class="ai-mbti-label">TA 的 MBTI</text><text class="ai-mbti-type">ENFJ</text></view>
+				<view class="ai-context-row">
+					<text>仅使用双方已确认且公开的资料与兴趣信息，不展示或推断人格测试结果。</text>
 				</view>
 				<view class="ai-score-big"><text>92%</text></view>
 				<view class="ai-bars"><view v-for="b in aiBars" :key="b.label" class="ai-bar"><view class="ai-bar-head"><text>{{ b.label }}</text><text>{{ b.value }}%</text></view><view class="ai-bar-trk"><view class="ai-bar-fill" :style="{ width: b.value + '%' }"></view></view></view></view>
@@ -1264,12 +1262,7 @@
    AI Sheet
    ============================================================ */
 .ai-sheet { display: flex; flex-direction: column; gap: 16px; }
-.ai-mbti-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
-.ai-mbti-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 20px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
-.ai-mbti-card.you { background: var(--accent-bg); border-color: var(--accent); }
-.ai-mbti-label { font-size: 10px; color: var(--muted); }
-.ai-mbti-type { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--accent2); }
-.ai-mbti-x { font-size: 18px; color: var(--ink2); }
+.ai-context-row { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 12px; line-height: 1.6; color: var(--muted); }
 .ai-score-big text { font-size: 48px; font-weight: 900; color: var(--accent2); font-family: var(--serif); }
 .ai-score-big { text-align: center; }
 .ai-bars { display: flex; flex-direction: column; gap: 10px; }

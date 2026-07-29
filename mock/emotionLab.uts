@@ -1,0 +1,744 @@
+/**
+ * 情感实验室 MBTI 领域 Mock。
+ * 已授权题库与正式题库使用同一稳定 ID、极性和 1-7 级量表；Mock 仅替代存储与传输。
+ */
+
+import {
+  createMockMbtiQuestionBank,
+  MOCK_MBTI_RESULT_SUMMARIES
+} from './mbtiQuestionBank.uts'
+
+export const MBTI_TYPES: string[] = [
+  'ENFJ', 'ENFP', 'ENTJ', 'ENTP',
+  'ESFJ', 'ESFP', 'ESTJ', 'ESTP',
+  'INFJ', 'INFP', 'INTJ', 'INTP',
+  'ISFJ', 'ISFP', 'ISTJ', 'ISTP'
+]
+
+const CURRENT_RESULT_COPY_VERSION = 'mbti-result-copy@2'
+const RESULT_COPY_BY_VERSION: any = {
+  'mbti-result-copy@2': {
+    disclaimer: '结果仅用于自我了解，不构成心理诊断或专业建议。'
+  }
+}
+
+export const MBTI_RESULT_COPY: any = {
+  version: CURRENT_RESULT_COPY_VERSION,
+  disclaimer: RESULT_COPY_BY_VERSION[CURRENT_RESULT_COPY_VERSION].disclaimer
+}
+
+export const mockMbtiAssessmentDefinition: any = {
+  id: 'mbti-core',
+  version: 'mbti-core@2',
+  kind: 'mbti',
+  title: 'MBTI 基础维度测试',
+  authorization: {
+    status: 'approved',
+    label: '内容已授权',
+    reviewedAt: null
+  },
+  canStart: true,
+  questionCount: 60,
+  scale: { min: 1, max: 7 },
+  dimensions: ['EI', 'SN', 'TF', 'JP'],
+  tieBreak: 'first_pole',
+  resultCopyVersion: MBTI_RESULT_COPY.version
+}
+
+export const mockMbtiQuestionBank: any[] = createMockMbtiQuestionBank()
+
+export const EMOTION_LAB_STORAGE_PREFIX = 'xsa_emotion_lab_state_v1:'
+const CURRENT_SESSION_SCHEMA_VERSION = 2
+let storageAdapter: any = null
+let subjectResolver: any = null
+let profileWriter: any = null
+let sessionSequence: number = 0
+const memoryStorage: any = {}
+
+function clone(value: any): any {
+  if (value == null) return value
+  return JSON.parse(JSON.stringify(value))
+}
+
+function fail(code: string, message: string): void {
+  throw new Error(code + ': ' + message)
+}
+
+function now(): number {
+  return Date.now()
+}
+
+function defaultSubjectState(subjectId: string): any {
+  return {
+    schemaVersion: 1,
+    subjectId: subjectId,
+    activeSession: null,
+    profileSource: null,
+    completedResults: {}
+  }
+}
+
+function currentSubjectId(): string {
+  if (subjectResolver == null) {
+    fail('EMOTION_LAB_SUBJECT_REQUIRED', '请先登录后使用情感实验室')
+  }
+  let resolved: any = null
+  try {
+    resolved = subjectResolver()
+  } catch (error) {
+    fail('EMOTION_LAB_SUBJECT_REQUIRED', '请先登录后使用情感实验室')
+  }
+  const value = resolved != null ? String(resolved).trim() : ''
+  if (value == '') fail('EMOTION_LAB_SUBJECT_REQUIRED', '请先登录后使用情感实验室')
+  return value
+}
+
+function subjectStorageKey(subjectId: string): string {
+  return EMOTION_LAB_STORAGE_PREFIX + encodeURIComponent(subjectId)
+}
+
+function readStoredValue(key: string): any {
+  try {
+    if (storageAdapter != null && storageAdapter.getItem != null) {
+      return storageAdapter.getItem(key)
+    }
+    return memoryStorage[key] != null ? clone(memoryStorage[key]) : null
+  } catch (error) {
+    fail('EMOTION_LAB_STORAGE_READ_FAILED', '无法读取测试进度')
+  }
+  return null
+}
+
+function writeStoredValue(key: string, value: any): void {
+  try {
+    if (storageAdapter != null && storageAdapter.setItem != null) {
+      storageAdapter.setItem(key, clone(value))
+      return
+    }
+    memoryStorage[key] = clone(value)
+  } catch (error) {
+    fail('EMOTION_LAB_STORAGE_WRITE_FAILED', '无法保存测试进度')
+  }
+}
+
+function readSubjectState(): any {
+  const subjectId = currentSubjectId()
+  const stored = readStoredValue(subjectStorageKey(subjectId))
+  if (stored == null || typeof stored != 'object' || stored.subjectId != subjectId) {
+    return defaultSubjectState(subjectId)
+  }
+  return {
+    schemaVersion: 1,
+    subjectId: subjectId,
+    activeSession: stored.activeSession != null ? clone(stored.activeSession) : null,
+    profileSource: stored.profileSource != null ? clone(stored.profileSource) : null,
+    completedResults: stored.completedResults != null && typeof stored.completedResults == 'object'
+      ? clone(stored.completedResults)
+      : {}
+  }
+}
+
+function writeSubjectState(state: any): void {
+  const subjectId = currentSubjectId()
+  if (state == null || state.subjectId != subjectId) {
+    fail('EMOTION_LAB_SUBJECT_MISMATCH', '测试状态不属于当前账号')
+  }
+  writeStoredValue(subjectStorageKey(subjectId), state)
+}
+
+function syncProfileBoundary(profileSource: any): void {
+  if (profileWriter == null) return
+  profileWriter(clone(profileSource), currentSubjectId())
+}
+
+export function configureEmotionLabMockRuntime(adapter: any, resolver: any, writer: any): void {
+  storageAdapter = adapter
+  subjectResolver = resolver
+  profileWriter = writer
+}
+
+function isValidMbtiType(value: string): boolean {
+  return MBTI_TYPES.indexOf(value) >= 0
+}
+
+function isAssessmentAuthorized(definition: any): boolean {
+  if (definition == null || definition.authorization == null) return false
+  const status: string = definition.authorization.status != null
+    ? '' + definition.authorization.status
+    : ''
+  return status == 'verified' || status == 'approved'
+}
+
+function scoringKeyMap(snapshot: any): any {
+  const map: any = {}
+  if (snapshot == null || !Array.isArray(snapshot.scoringKeys)) {
+    fail('SESSION_SNAPSHOT_INVALID', '测试会话计分快照无效')
+  }
+  for (let i = 0; i < snapshot.scoringKeys.length; i++) {
+    const key = snapshot.scoringKeys[i]
+    const questionId = key != null && typeof key.questionId == 'string' ? key.questionId : ''
+    if (questionId == '' || questionId != questionId.trim() || map[questionId] != null) {
+      fail('SESSION_SNAPSHOT_INVALID', '测试会话题目 ID 无效')
+    }
+    if (!Array.isArray(key.optionValues) || key.optionValues.length == 0) {
+      fail('SESSION_SNAPSHOT_INVALID', '测试会话选项值快照无效')
+    }
+    const allowedSeen: any = {}
+    for (let j = 0; j < key.optionValues.length; j++) {
+      const optionValue = key.optionValues[j]
+      if (
+        typeof optionValue != 'number' ||
+        !Number.isFinite(optionValue) ||
+        Math.floor(optionValue) != optionValue ||
+        optionValue < key.scaleMin ||
+        optionValue > key.scaleMax ||
+        allowedSeen['' + optionValue] == true
+      ) {
+        fail('SESSION_SNAPSHOT_INVALID', '测试会话选项值快照无效')
+      }
+      allowedSeen['' + optionValue] = true
+    }
+    map[questionId] = key
+  }
+  return map
+}
+
+function validateQuestionBank(definition: any, questions: any[]): void {
+  if (definition == null || definition.kind != 'mbti') {
+    fail('ASSESSMENT_DEFINITION_INVALID', '仅支持 MBTI 测试定义')
+  }
+  if (typeof definition.id != 'string' || definition.id.trim() == '' || definition.id != definition.id.trim()) {
+    fail('ASSESSMENT_ID_INVALID', '测试定义必须使用稳定字符串 ID')
+  }
+  if (typeof definition.version != 'string' || definition.version.trim() == '' || definition.version != definition.version.trim()) {
+    fail('ASSESSMENT_VERSION_INVALID', '测试定义必须提供版本号')
+  }
+  if (
+    typeof definition.resultCopyVersion != 'string' ||
+    definition.resultCopyVersion.trim() == '' ||
+    definition.resultCopyVersion != definition.resultCopyVersion.trim()
+  ) {
+    fail('RESULT_COPY_VERSION_REQUIRED', '测试定义必须提供结果文案版本')
+  }
+  if (RESULT_COPY_BY_VERSION[definition.resultCopyVersion] == null) {
+    fail('RESULT_COPY_VERSION_UNSUPPORTED', '结果文案版本未注册')
+  }
+  if (!isAssessmentAuthorized(definition)) {
+    fail('ASSESSMENT_REVIEW_REQUIRED', '测试内容尚未通过授权审核')
+  }
+  if (!Array.isArray(questions) || questions.length == 0) {
+    fail('QUESTION_BANK_EMPTY', '题库为空')
+  }
+  if (
+    typeof definition.questionCount != 'number' ||
+    !Number.isFinite(definition.questionCount) ||
+    Math.floor(definition.questionCount) != definition.questionCount ||
+    definition.questionCount < 1
+  ) {
+    fail('QUESTION_COUNT_INVALID', '测试定义题目数量无效')
+  }
+  if (definition.questionCount != questions.length) {
+    fail('QUESTION_COUNT_MISMATCH', '测试定义题目数量与题库不一致')
+  }
+  if (
+    definition.scale == null ||
+    typeof definition.scale.min != 'number' ||
+    typeof definition.scale.max != 'number' ||
+    !Number.isFinite(definition.scale.min) ||
+    !Number.isFinite(definition.scale.max) ||
+    Math.floor(definition.scale.min) != definition.scale.min ||
+    Math.floor(definition.scale.max) != definition.scale.max ||
+    definition.scale.min >= definition.scale.max
+  ) {
+    fail('ASSESSMENT_SCALE_INVALID', '测试定义量表范围无效')
+  }
+
+  const seen: any = {}
+  const dimensions: any = { EI: 0, SN: 0, TF: 0, JP: 0 }
+  for (let i = 0; i < questions.length; i++) {
+    const question = questions[i]
+    const id = question != null && typeof question.id == 'string' ? question.id : ''
+    if (id == '') fail('QUESTION_ID_REQUIRED', '题目必须使用稳定字符串 ID')
+    if (id != id.trim()) fail('QUESTION_ID_WHITESPACE', '题目 ID 首尾不得包含空白')
+    if (seen[id] == true) fail('QUESTION_ID_DUPLICATE', '题目 ID 不得重复')
+    seen[id] = true
+
+    if (typeof question.text != 'string' || question.text.trim() == '') {
+      fail('QUESTION_TEXT_REQUIRED', '题目必须提供非空题文')
+    }
+
+    if (dimensions[question.dimension] == null) {
+      fail('QUESTION_DIMENSION_INVALID', '题目维度不受支持')
+    }
+    if (typeof question.direction != 'number' || (question.direction != 1 && question.direction != -1)) {
+      fail('QUESTION_DIRECTION_INVALID', '题目方向必须为 1 或 -1')
+    }
+    if (
+      typeof question.scaleMin != 'number' ||
+      typeof question.scaleMax != 'number' ||
+      !Number.isFinite(question.scaleMin) ||
+      !Number.isFinite(question.scaleMax) ||
+      Math.floor(question.scaleMin) != question.scaleMin ||
+      Math.floor(question.scaleMax) != question.scaleMax ||
+      question.scaleMin >= question.scaleMax
+    ) {
+      fail('QUESTION_SCALE_INVALID', '题目量表范围无效')
+    }
+    if (question.scaleMin != definition.scale.min || question.scaleMax != definition.scale.max) {
+      fail('QUESTION_SCALE_MISMATCH', '题目量表范围必须与测试定义一致')
+    }
+    if (!Array.isArray(question.options) || question.options.length == 0) {
+      fail('QUESTION_OPTIONS_REQUIRED', '题目必须提供非空选项')
+    }
+    const optionValues: any = {}
+    for (let j = 0; j < question.options.length; j++) {
+      const option = question.options[j]
+      const optionValue = option != null && typeof option == 'object' ? option.value : option
+      if (
+        typeof optionValue != 'number' ||
+        !Number.isFinite(optionValue) ||
+        Math.floor(optionValue) != optionValue
+      ) {
+        fail('QUESTION_OPTION_INVALID', '题目选项值必须为整数')
+      }
+      if (optionValue < question.scaleMin || optionValue > question.scaleMax) {
+        fail('QUESTION_OPTION_OUT_OF_RANGE', '题目选项值超出量表范围')
+      }
+      const optionKey = '' + optionValue
+      if (optionValues[optionKey] == true) {
+        fail('QUESTION_OPTION_DUPLICATE', '题目选项值不得重复')
+      }
+      optionValues[optionKey] = true
+    }
+    dimensions[question.dimension] += 1
+  }
+
+  const dimensionKeys: string[] = ['EI', 'SN', 'TF', 'JP']
+  for (let i = 0; i < dimensionKeys.length; i++) {
+    if (dimensions[dimensionKeys[i]] == 0) {
+      fail('QUESTION_DIMENSION_INCOMPLETE', '每个 MBTI 维度至少需要一题')
+    }
+  }
+}
+
+function unavailableDraftCode(snapshot: any): string {
+  if (snapshot == null || snapshot.status != 'in_progress') return ''
+  if (snapshot.schemaVersion != CURRENT_SESSION_SCHEMA_VERSION) return 'SESSION_SNAPSHOT_UNSUPPORTED'
+  if (!isAssessmentAuthorized(mockMbtiAssessmentDefinition)) return 'ASSESSMENT_REVIEW_REQUIRED'
+  if (mockMbtiAssessmentDefinition.canStart != true) return 'ASSESSMENT_NOT_OPEN'
+  if (
+    snapshot.definitionId != mockMbtiAssessmentDefinition.id ||
+    snapshot.definitionVersion != mockMbtiAssessmentDefinition.version
+  ) {
+    return 'ASSESSMENT_VERSION_UNAVAILABLE'
+  }
+  return ''
+}
+
+function clearUnavailableDraft(state: any): string {
+  const code = unavailableDraftCode(state != null ? state.activeSession : null)
+  if (code == '') return ''
+  state.activeSession = null
+  writeSubjectState(state)
+  return code
+}
+
+function requireAvailableDraft(state: any): void {
+  const code = clearUnavailableDraft(state)
+  if (code == 'ASSESSMENT_REVIEW_REQUIRED') {
+    fail(code, '测试内容授权状态已变化，请重新确认后开始')
+  }
+  if (code == 'ASSESSMENT_NOT_OPEN') {
+    fail(code, '测试当前尚未开放')
+  }
+  if (code == 'ASSESSMENT_VERSION_UNAVAILABLE') {
+    fail(code, '测试版本已变化，请重新开始')
+  }
+  if (code == 'SESSION_SNAPSHOT_UNSUPPORTED') {
+    fail(code, '测试草稿版本已失效，请重新开始')
+  }
+}
+
+function canonicalAnswers(snapshot: any, answers: any): any[] {
+  if (!Array.isArray(answers)) fail('ANSWERS_INVALID', '答案必须为数组')
+  if (snapshot == null || !Array.isArray(snapshot.questionIds)) {
+    fail('SESSION_SNAPSHOT_INVALID', '测试会话题目快照无效')
+  }
+
+  const keys = scoringKeyMap(snapshot)
+  const seen: any = {}
+  const values: any = {}
+  for (let i = 0; i < answers.length; i++) {
+    const answer = answers[i]
+    const questionId = answer != null && typeof answer.questionId == 'string' ? answer.questionId : ''
+    if (questionId == '') fail('ANSWER_QUESTION_ID_INVALID', '答案必须引用稳定字符串题目 ID')
+    if (questionId != questionId.trim()) {
+      fail('ANSWER_QUESTION_ID_WHITESPACE', '答案题目 ID 首尾不得包含空白')
+    }
+    if (seen[questionId] == true) fail('ANSWER_DUPLICATE', '同一题不能重复提交')
+    seen[questionId] = true
+
+    const key = keys[questionId]
+    if (key == null) fail('ANSWER_NOT_IN_SNAPSHOT', '答案不属于当前题目快照')
+    const value = answer != null && typeof answer.value == 'number' ? answer.value : NaN
+    if (!Number.isFinite(value) || Math.floor(value) != value || value < key.scaleMin || value > key.scaleMax) {
+      fail('ANSWER_OUT_OF_RANGE', '答案超出题目量表范围')
+    }
+    if (key.optionValues.indexOf(value) < 0) {
+      fail('ANSWER_OPTION_NOT_ALLOWED', '答案不属于题目允许选项')
+    }
+    values[questionId] = value
+  }
+
+  const ordered: any[] = []
+  const snapshotIds: any = {}
+  for (let i = 0; i < snapshot.questionIds.length; i++) {
+    const questionId = snapshot.questionIds[i]
+    if (
+      typeof questionId != 'string' ||
+      questionId == '' ||
+      questionId != questionId.trim() ||
+      snapshotIds[questionId] == true ||
+      keys[questionId] == null
+    ) {
+      fail('SESSION_SNAPSHOT_INVALID', '测试会话题目 ID 快照无效')
+    }
+    snapshotIds[questionId] = true
+    if (values[questionId] != null) {
+      ordered.push({ questionId: questionId, value: values[questionId] })
+    }
+  }
+  return ordered
+}
+
+function sameAnswers(left: any[], right: any[]): boolean {
+  if (left.length != right.length) return false
+  for (let i = 0; i < left.length; i++) {
+    if (left[i].questionId != right[i].questionId || left[i].value != right[i].value) return false
+  }
+  return true
+}
+
+function resultCopyFor(type: string, version: string): any {
+  const copy = RESULT_COPY_BY_VERSION[version]
+  if (copy == null) fail('RESULT_COPY_VERSION_UNSUPPORTED', '结果文案版本未注册')
+  return {
+    version: version,
+    title: type + ' · MBTI 偏好结果',
+    summary: MOCK_MBTI_RESULT_SUMMARIES[type] != null
+      ? MOCK_MBTI_RESULT_SUMMARIES[type]
+      : '四个字母记录你在四组维度上的当前偏好，不代表能力高低或固定人格。',
+    disclaimer: copy.disclaimer
+  }
+}
+
+function scoreSnapshot(snapshot: any): any {
+  const poles: any = {
+    EI: ['E', 'I'],
+    SN: ['S', 'N'],
+    TF: ['T', 'F'],
+    JP: ['J', 'P']
+  }
+  const answerMap: any = {}
+  for (let i = 0; i < snapshot.answers.length; i++) {
+    answerMap[snapshot.answers[i].questionId] = snapshot.answers[i].value
+  }
+
+  const dimensions: any = {}
+  let mbtiType: string = ''
+  const dimensionKeys: string[] = ['EI', 'SN', 'TF', 'JP']
+  for (let i = 0; i < dimensionKeys.length; i++) {
+    const dimension = dimensionKeys[i]
+    let firstRaw = 0
+    let possible = 0
+    for (let j = 0; j < snapshot.scoringKeys.length; j++) {
+      const key = snapshot.scoringKeys[j]
+      if (key.dimension != dimension) continue
+      const value = answerMap[key.questionId]
+      const span = key.scaleMax - key.scaleMin
+      const contribution = key.direction == 1
+        ? value - key.scaleMin
+        : key.scaleMax - value
+      firstRaw += contribution
+      possible += span
+    }
+    if (possible == 0) fail('QUESTION_DIMENSION_INCOMPLETE', '计分快照缺少维度')
+
+    const firstScore = Math.round(firstRaw / possible * 100)
+    const secondScore = 100 - firstScore
+    const pair = poles[dimension]
+    const dimensionScore: any = {}
+    dimensionScore[pair[0]] = firstScore
+    dimensionScore[pair[1]] = secondScore
+    dimensions[dimension] = dimensionScore
+    mbtiType += firstScore >= secondScore ? pair[0] : pair[1]
+  }
+
+  return {
+    id: 'mbti-result:' + snapshot.id,
+    sessionId: snapshot.id,
+    assessmentId: snapshot.definitionId,
+    assessmentVersion: snapshot.definitionVersion,
+    source: 'assessment',
+    mbtiType: mbtiType,
+    dimensions: dimensions,
+    resultCopy: resultCopyFor(mbtiType, snapshot.resultCopyVersion),
+    completedAt: now()
+  }
+}
+
+export function createMbtiSessionSnapshot(definition: any, questions: any[], suppliedSessionId: string = ''): any {
+  validateQuestionBank(definition, questions)
+  if (definition.canStart != true) {
+    fail('ASSESSMENT_NOT_OPEN', '测试当前尚未开放')
+  }
+  if (suppliedSessionId != '' && suppliedSessionId != suppliedSessionId.trim()) {
+    fail('SESSION_ID_INVALID', '测试会话 ID 首尾不得包含空白')
+  }
+  sessionSequence += 1
+  const sessionId = suppliedSessionId != ''
+    ? suppliedSessionId
+    : 'mbti-session-' + now() + '-' + sessionSequence
+  const publicQuestions: any[] = []
+  const scoringKeys: any[] = []
+  const questionIds: any[] = []
+
+  for (let i = 0; i < questions.length; i++) {
+    const question = questions[i]
+    const questionId: string = question.id
+    const optionValues: number[] = []
+    for (let j = 0; j < question.options.length; j++) {
+      const option: any = question.options[j]
+      const optionValue: number = option != null && typeof option == 'object' ? option.value : option
+      optionValues.push(optionValue)
+    }
+    questionIds.push(questionId)
+    publicQuestions.push({
+      id: questionId,
+      text: question.text,
+      options: clone(question.options)
+    })
+    scoringKeys.push({
+      questionId: questionId,
+      dimension: question.dimension,
+      direction: question.direction,
+      scaleMin: question.scaleMin,
+      scaleMax: question.scaleMax,
+      optionValues: optionValues
+    })
+  }
+
+  const createdAt = now()
+  return {
+    schemaVersion: CURRENT_SESSION_SCHEMA_VERSION,
+    id: sessionId,
+    definitionId: definition.id,
+    definitionVersion: definition.version,
+    resultCopyVersion: definition.resultCopyVersion,
+    kind: 'mbti',
+    status: 'in_progress',
+    questionIds: questionIds,
+    questions: publicQuestions,
+    scoringKeys: scoringKeys,
+    answers: [],
+    result: null,
+    createdAt: createdAt,
+    updatedAt: createdAt
+  }
+}
+
+export function saveMbtiSnapshotAnswers(snapshot: any, answers: any): any {
+  if (snapshot == null) fail('SESSION_NOT_FOUND', '测试会话不存在')
+  if (snapshot.status == 'completed') fail('SESSION_ALREADY_COMPLETED', '测试已经提交')
+  if (snapshot.status == 'discarded') fail('SESSION_DISCARDED', '测试会话已放弃')
+
+  const incoming = canonicalAnswers(snapshot, answers)
+  const existing = canonicalAnswers(snapshot, snapshot.answers)
+  const merged: any = {}
+  for (let i = 0; i < existing.length; i++) {
+    merged[existing[i].questionId] = existing[i].value
+  }
+  for (let i = 0; i < incoming.length; i++) {
+    merged[incoming[i].questionId] = incoming[i].value
+  }
+
+  const saved = clone(snapshot)
+  saved.answers = []
+  for (let i = 0; i < saved.questionIds.length; i++) {
+    const questionId = saved.questionIds[i]
+    if (merged[questionId] != null) saved.answers.push({ questionId: questionId, value: merged[questionId] })
+  }
+  saved.updatedAt = now()
+  return saved
+}
+
+export function submitMbtiSessionSnapshot(snapshot: any, answers: any): any {
+  if (snapshot == null) fail('SESSION_NOT_FOUND', '测试会话不存在')
+  const submitted = canonicalAnswers(snapshot, answers)
+  if (submitted.length != snapshot.questionIds.length) {
+    fail('ANSWERS_INCOMPLETE', '提交请求必须包含全部题目答案')
+  }
+
+  if (snapshot.status == 'completed') {
+    if (!sameAnswers(snapshot.answers, submitted)) {
+      fail('SESSION_ALREADY_COMPLETED', '已完成测试不能更改答案')
+    }
+    return clone(snapshot)
+  }
+  if (snapshot.status == 'discarded') fail('SESSION_DISCARDED', '测试会话已放弃')
+
+  const saved = saveMbtiSnapshotAnswers(snapshot, submitted)
+  if (saved.answers.length != saved.questionIds.length) {
+    fail('ANSWERS_INCOMPLETE', '必须完成全部题目后提交')
+  }
+  saved.status = 'completed'
+  saved.result = scoreSnapshot(saved)
+  saved.updatedAt = saved.result.completedAt
+  return saved
+}
+
+export function discardMbtiSessionSnapshot(snapshot: any): any {
+  if (snapshot == null) fail('SESSION_NOT_FOUND', '测试会话不存在')
+  if (snapshot.status == 'completed') fail('SESSION_ALREADY_COMPLETED', '已完成测试不能放弃')
+  const discarded = clone(snapshot)
+  discarded.status = 'discarded'
+  discarded.answers = []
+  discarded.updatedAt = now()
+  return discarded
+}
+
+export function toPublicSessionSnapshot(snapshot: any): any {
+  if (snapshot == null) return null
+  return {
+    schemaVersion: snapshot.schemaVersion,
+    id: snapshot.id,
+    definitionId: snapshot.definitionId,
+    definitionVersion: snapshot.definitionVersion,
+    resultCopyVersion: snapshot.resultCopyVersion,
+    kind: snapshot.kind,
+    status: snapshot.status,
+    questionIds: clone(snapshot.questionIds),
+    questions: clone(snapshot.questions),
+    answers: clone(snapshot.answers),
+    result: clone(snapshot.result),
+    createdAt: snapshot.createdAt,
+    updatedAt: snapshot.updatedAt
+  }
+}
+
+export function getEmotionLabSummaryData(): any {
+  const state = readSubjectState()
+  clearUnavailableDraft(state)
+  return {
+    assessments: [clone(mockMbtiAssessmentDefinition)],
+    manualTypes: clone(MBTI_TYPES),
+    activeSession: toPublicSessionSnapshot(state.activeSession),
+    profileSource: clone(state.profileSource),
+    disclaimer: MBTI_RESULT_COPY.disclaimer,
+    disclaimerVersion: MBTI_RESULT_COPY.version
+  }
+}
+
+export function startEmotionLabSessionData(assessmentId: string = 'mbti-core'): any {
+  if (assessmentId != mockMbtiAssessmentDefinition.id) {
+    fail('ASSESSMENT_NOT_FOUND', '测试定义不存在')
+  }
+  const state = readSubjectState()
+  if (state.activeSession != null && state.activeSession.status == 'in_progress') {
+    fail('SESSION_ALREADY_ACTIVE', '已有未完成测试，请先继续或放弃')
+  }
+  state.activeSession = createMbtiSessionSnapshot(mockMbtiAssessmentDefinition, mockMbtiQuestionBank)
+  writeSubjectState(state)
+  return toPublicSessionSnapshot(state.activeSession)
+}
+
+export function saveEmotionLabAnswersData(sessionId: string, answers: any[]): any {
+  const state = readSubjectState()
+  if (state.activeSession == null || state.activeSession.id != sessionId) {
+    fail('SESSION_NOT_FOUND', '测试会话不存在')
+  }
+  requireAvailableDraft(state)
+  state.activeSession = saveMbtiSnapshotAnswers(state.activeSession, answers)
+  writeSubjectState(state)
+  return toPublicSessionSnapshot(state.activeSession)
+}
+
+export function submitEmotionLabSessionData(sessionId: string, answers: any[]): any {
+  const state = readSubjectState()
+  if (state.activeSession == null || state.activeSession.id != sessionId) {
+    fail('SESSION_NOT_FOUND', '测试会话不存在')
+  }
+  requireAvailableDraft(state)
+  state.activeSession = submitMbtiSessionSnapshot(state.activeSession, answers)
+  if (state.activeSession.result != null) {
+    state.completedResults[state.activeSession.result.id] = clone(state.activeSession.result)
+  }
+  writeSubjectState(state)
+  return toPublicSessionSnapshot(state.activeSession)
+}
+
+export function setEmotionLabProfileSourceData(payload: any): any {
+  if (payload == null || payload.confirmed != true) {
+    fail('PROFILE_SYNC_CONFIRMATION_REQUIRED', '同步资料前需要明确确认')
+  }
+  const mbtiType = payload.mbtiType != null ? '' + payload.mbtiType : ''
+  if (!isValidMbtiType(mbtiType)) fail('MBTI_TYPE_INVALID', 'MBTI 类型无效')
+
+  const source = payload.source != null ? '' + payload.source : ''
+  if (source != 'self_reported' && source != 'assessment') {
+    fail('PROFILE_SOURCE_INVALID', '资料来源无效')
+  }
+
+  let assessmentVersion: string | null = null
+  let resultId: string | null = null
+  const state = readSubjectState()
+  if (source == 'assessment') {
+    const requestedResultId = payload.resultId != null
+      ? String(payload.resultId)
+      : payload.result != null && payload.result.id != null
+        ? String(payload.result.id)
+        : ''
+    const result = requestedResultId != '' ? state.completedResults[requestedResultId] : null
+    if (
+      result == null ||
+      result.source != 'assessment' ||
+      result.mbtiType != mbtiType ||
+      result.id != requestedResultId
+    ) {
+      fail('ASSESSMENT_RESULT_REQUIRED', '同步测评结果需要有效结果记录')
+    }
+    if (payload.result != null && JSON.stringify(payload.result) != JSON.stringify(result)) {
+      fail('ASSESSMENT_RESULT_MISMATCH', '测评结果记录与已完成会话不一致')
+    }
+    assessmentVersion = result.assessmentVersion
+    resultId = result.id
+  }
+
+  const nextProfileSource: any = {
+    mbtiType: mbtiType,
+    source: source,
+    assessmentVersion: assessmentVersion,
+    resultId: resultId,
+    confirmedAt: now()
+  }
+  const previousProfileSource = clone(state.profileSource)
+  syncProfileBoundary(nextProfileSource)
+  state.profileSource = nextProfileSource
+  try {
+    writeSubjectState(state)
+  } catch (error) {
+    syncProfileBoundary(previousProfileSource)
+    throw error
+  }
+  return clone(nextProfileSource)
+}
+
+export function discardEmotionLabSessionData(sessionId: string): any {
+  const state = readSubjectState()
+  if (state.activeSession == null || state.activeSession.id != sessionId) {
+    fail('SESSION_NOT_FOUND', '测试会话不存在')
+  }
+  state.activeSession = discardMbtiSessionSnapshot(state.activeSession)
+  writeSubjectState(state)
+  return toPublicSessionSnapshot(state.activeSession)
+}

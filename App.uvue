@@ -1,4 +1,31 @@
 <script setup lang="uts">
+	let parentRouteRedirecting = false
+
+	const enforceParentRoute = () => {
+		const storedMode = uni.getStorageSync('xsa_onboarding_mode')
+		if (storedMode == null || String(storedMode) != 'parent' || parentRouteRedirecting) return
+
+		const pages = getCurrentPages()
+		const currentPage = pages.length > 0 ? pages[pages.length - 1] : null
+		const route = currentPage != null && currentPage.route != null ? String(currentPage.route) : ''
+		if (
+			route == '' ||
+			route == 'pages/parent/parent' ||
+			route == 'pages/parent/user-detail' ||
+			route == 'pages/profile/certification' ||
+			route == 'pages/chat/detail' ||
+			route == 'pages/auth/login' ||
+			route == 'pages/auth/register' ||
+			route == 'pages/onboarding/profile'
+		) return
+
+		parentRouteRedirecting = true
+		uni.reLaunch({
+			url: '/pages/parent/parent',
+			complete: () => { parentRouteRedirecting = false }
+		})
+	}
+
 	// #ifdef APP-ANDROID || APP-HARMONY
 	let firstBackTime = 0
 	// #endif
@@ -9,6 +36,8 @@
 
 	onShow(() => {
 		console.log('App Show')
+		enforceParentRoute()
+		setTimeout(() => enforceParentRoute(), 0)
 	})
 
 	onHide(() => {

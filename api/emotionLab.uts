@@ -1,0 +1,271 @@
+/** 情感实验室 MBTI API 与跨端数据契约。 */
+
+import { request } from './request.uts'
+import { CURRENT_USER_ID_KEY } from './config.uts'
+import {
+  getEmotionLabSummaryData,
+  startEmotionLabSessionData,
+  saveEmotionLabAnswersData,
+  submitEmotionLabSessionData,
+  setEmotionLabProfileSourceData,
+  discardEmotionLabSessionData,
+  configureEmotionLabMockRuntime
+} from '@/mock/emotionLab.uts'
+import { syncMockMeMbtiProfileData } from '@/mock/user.uts'
+
+export type AssessmentDefinition = {
+  id: string
+  version: string
+  kind: 'mbti'
+  title: string
+  authorization: {
+    status: 'unverified' | 'verified' | 'approved' | 'rejected'
+    label: string
+    reviewedAt: number | null
+  }
+  canStart: boolean
+  questionCount: number
+  scale: { min: number, max: number }
+  dimensions: string[]
+  tieBreak: 'first_pole'
+  resultCopyVersion: string
+}
+
+export type ResultCopy = {
+  version: string
+  title: string
+  summary: string
+  disclaimer: string
+}
+
+export type MbtiDimensionKey = 'EI' | 'SN' | 'TF' | 'JP'
+
+export type AssessmentQuestionSnapshot = {
+  id: string
+  text: string
+  options: any[]
+}
+
+export type MbtiAnswer = {
+  questionId: string
+  value: number
+}
+
+export type MbtiDimensions = {
+  EI: { E: number, I: number }
+  SN: { S: number, N: number }
+  TF: { T: number, F: number }
+  JP: { J: number, P: number }
+}
+
+export type MbtiResult = {
+  id: string
+  sessionId: string
+  assessmentId: string
+  assessmentVersion: string
+  source: 'assessment'
+  mbtiType: string
+  dimensions: MbtiDimensions
+  resultCopy: ResultCopy
+  completedAt: number
+}
+
+export type AssessmentSessionSnapshot = {
+  schemaVersion: number
+  id: string
+  definitionId: string
+  definitionVersion: string
+  resultCopyVersion: string
+  kind: 'mbti'
+  status: 'in_progress' | 'completed' | 'discarded'
+  questionIds: string[]
+  questions: AssessmentQuestionSnapshot[]
+  answers: MbtiAnswer[]
+  result: MbtiResult | null
+  createdAt: number
+  updatedAt: number
+}
+
+export type SessionSnapshot = AssessmentSessionSnapshot
+
+export type ProfileMbtiSource = {
+  mbtiType: string
+  source: 'assessment' | 'self_reported'
+  assessmentVersion: string | null
+  resultId: string | null
+  confirmedAt: number
+}
+
+export type SetMyMbtiTypePayload = {
+  mbtiType: string
+  source: 'assessment' | 'self_reported'
+  confirmed: boolean
+  resultId?: string
+}
+
+// 已授权题库与 FastAPI 契约均已就绪；当前保留 Mock 以支持端侧离线浏览，完成环境联调后再切换。
+export const EMOTION_LAB_USE_MOCK = true
+
+function readEmotionLabStorage(key: string): any {
+  return uni.getStorageSync(key)
+}
+
+function writeEmotionLabStorage(key: string, value: any): void {
+  uni.setStorageSync(key, value)
+}
+
+function removeEmotionLabStorage(key: string): void {
+  uni.removeStorageSync(key)
+}
+
+function resolveEmotionLabSubject(): string {
+  try {
+    const storedUserId = uni.getStorageSync(CURRENT_USER_ID_KEY)
+    const userId = storedUserId != null ? String(storedUserId).trim() : ''
+    if (userId != '') return 'user:' + userId
+  } catch (error) {}
+  throw new Error('EMOTION_LAB_SUBJECT_REQUIRED: 请先登录后使用情感实验室')
+}
+
+function syncEmotionLabProfile(profileSource: any, subjectId: string): any {
+  return syncMockMeMbtiProfileData(profileSource, subjectId)
+}
+
+const emotionLabStorageAdapter: any = {
+  getItem: readEmotionLabStorage,
+  setItem: writeEmotionLabStorage,
+  removeItem: removeEmotionLabStorage
+}
+
+configureEmotionLabMockRuntime(
+  emotionLabStorageAdapter,
+  resolveEmotionLabSubject,
+  syncEmotionLabProfile
+)
+
+function ok(data: any): any {
+  return { success: true, data: data, code: 0, message: 'success' }
+}
+
+function failed(error: any): any {
+  const message = error != null && error.message != null ? '' + error.message : '操作失败'
+  const separator = message.indexOf(':')
+  const code = separator > 0 ? message.slice(0, separator) : 'EMOTION_LAB_ERROR'
+  return { success: false, data: null, code: code, message: message }
+}
+
+export async function getEmotionLabSummary() {
+  if (EMOTION_LAB_USE_MOCK) {
+    try {
+      return ok(getEmotionLabSummaryData())
+    } catch (error) {
+      return failed(error)
+    }
+  }
+  return request({
+    url: '/emotion-lab/summary',
+    method: 'GET',
+    mockData: null
+  })
+}
+
+export async function startEmotionLabSession(assessmentId: string = 'mbti-core') {
+  if (EMOTION_LAB_USE_MOCK) {
+    try {
+      return ok(startEmotionLabSessionData(assessmentId))
+    } catch (error) {
+      return failed(error)
+    }
+  }
+  return request({
+    url: '/emotion-lab/sessions',
+    method: 'POST',
+    data: { assessmentId: assessmentId },
+    mockData: null
+  })
+}
+
+export async function saveEmotionLabAnswers(sessionId: string, answers: MbtiAnswer[]) {
+  if (EMOTION_LAB_USE_MOCK) {
+    try {
+      return ok(saveEmotionLabAnswersData(sessionId, answers))
+    } catch (error) {
+      return failed(error)
+    }
+  }
+  return request({
+    url: '/emotion-lab/sessions/' + encodeURIComponent(sessionId) + '/answers',
+    method: 'PUT',
+    data: { answers: answers },
+    mockData: null
+  })
+}
+
+export async function submitEmotionLabSession(sessionId: string, answers: MbtiAnswer[]) {
+  if (EMOTION_LAB_USE_MOCK) {
+    try {
+      return ok(submitEmotionLabSessionData(sessionId, answers))
+    } catch (error) {
+      return failed(error)
+    }
+  }
+  return request({
+    url: '/emotion-lab/sessions/' + encodeURIComponent(sessionId) + '/submit',
+    method: 'POST',
+    data: { answers: answers },
+    mockData: null
+  })
+}
+
+export async function setEmotionLabProfileSource(payload: SetMyMbtiTypePayload) {
+  if (EMOTION_LAB_USE_MOCK) {
+    try {
+      return ok(setEmotionLabProfileSourceData(payload))
+    } catch (error) {
+      return failed(error)
+    }
+  }
+  return request({
+    url: '/emotion-lab/profile-source',
+    method: 'PUT',
+    data: payload,
+    mockData: null
+  })
+}
+
+export async function discardEmotionLabSession(sessionId: string) {
+  if (EMOTION_LAB_USE_MOCK) {
+    try {
+      return ok(discardEmotionLabSessionData(sessionId))
+    } catch (error) {
+      return failed(error)
+    }
+  }
+  return request({
+    url: '/emotion-lab/sessions/' + encodeURIComponent(sessionId) + '/discard',
+    method: 'POST',
+    data: {},
+    mockData: null
+  })
+}
+
+/** 公开业务命名；下方旧名称保留为兼容层。 */
+export async function startMbtiAssessment(assessmentId: string = 'mbti-core') {
+  return startEmotionLabSession(assessmentId)
+}
+
+export async function saveMbtiAnswer(sessionId: string, questionId: string, value: number) {
+  return saveEmotionLabAnswers(sessionId, [{ questionId: questionId, value: value }])
+}
+
+export async function submitMbtiAssessment(sessionId: string, answers: MbtiAnswer[]) {
+  return submitEmotionLabSession(sessionId, answers)
+}
+
+export async function setMyMbtiType(payload: SetMyMbtiTypePayload) {
+  return setEmotionLabProfileSource(payload)
+}
+
+export async function discardMbtiDraft(sessionId: string) {
+  return discardEmotionLabSession(sessionId)
+}
