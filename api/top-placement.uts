@@ -1,0 +1,79 @@
+import { mockTopPlacementPaymentOrders } from '@/mock/top-placement.uts'
+
+export type TopPlacementPlan = {
+  id: string
+  name: string
+  days: number
+  price: number
+  tag: string
+  recommended: boolean
+}
+
+export type TopPlacementOrder = {
+  orderNo: string
+  planId: string
+  planName: string
+  amount: number
+  days: number
+  purchasedAt: string
+  expiresAt: number
+  paymentStatus: string
+  remainingDays: number
+}
+
+const STORAGE_KEY = 'xsa_top_placement_orders_v1'
+
+function remainingDays(expiresAt: number): number {
+  if (expiresAt <= Date.now()) return 0
+  return Math.max(0, Math.ceil((expiresAt - Date.now()) / 86400000))
+}
+
+function restoreOrders(): void {
+  try {
+    const saved = uni.getStorageSync(STORAGE_KEY)
+    if (saved != null && Array.isArray(saved)) {
+      mockTopPlacementPaymentOrders.splice(0, mockTopPlacementPaymentOrders.length)
+      const records = saved as any[]
+      for (let i = 0; i < records.length; i++) mockTopPlacementPaymentOrders.push(records[i])
+    }
+  } catch (e) {}
+}
+
+function persistOrders(): void {
+  try { uni.setStorageSync(STORAGE_KEY, mockTopPlacementPaymentOrders) } catch (e) {}
+}
+
+export async function getTopPlacementStatus() {
+  restoreOrders()
+  let latest: any = null
+  for (let i = 0; i < mockTopPlacementPaymentOrders.length; i++) {
+    const item = mockTopPlacementPaymentOrders[i]
+    if (item != null && item.paymentStatus == 'paid' && (latest == null || Number(item.expiresAt) > Number(latest.expiresAt))) latest = item
+  }
+  if (latest == null) return { success: true, data: { active: false, remainingDays: 0, expiresAt: 0 }, code: 0, message: '暂无置顶' }
+  const remain = remainingDays(Number(latest.expiresAt))
+  return { success: true, data: { active: remain > 0, remainingDays: remain, expiresAt: Number(latest.expiresAt), orderNo: String(latest.orderNo), planName: String(latest.planName) }, code: 0, message: remain > 0 ? '置顶生效中' : '置顶已过期' }
+}
+
+export async function payTopPlacement(plan: TopPlacementPlan) {
+  if (plan == null || plan.days <= 0 || plan.price < 0 || plan.id.length == 0) return { success: false, data: null, code: 400, message: '置顶套餐无效' }
+  restoreOrders()
+  const status = await getTopPlacementStatus()
+  const now = Date.now()
+  const baseExpiry = status.data.expiresAt > now ? status.data.expiresAt : now
+  const expiresAt = baseExpiry + plan.days * 86400000
+  const order: TopPlacementOrder = {
+    orderNo: 'MOCK-TOP-' + String(now),
+    planId: plan.id,
+    planName: plan.name,
+    amount: plan.price,
+    days: plan.days,
+    purchasedAt: new Date(now).toISOString(),
+    expiresAt: expiresAt,
+    paymentStatus: 'paid',
+    remainingDays: remainingDays(expiresAt)
+  }
+  mockTopPlacementPaymentOrders.unshift(order)
+  persistOrders()
+  return { success: true, data: order, code: 0, message: '支付成功，置顶已开启' }
+}

@@ -578,11 +578,7 @@ const checkUpdate = () => {
 
 // 关于我们
 const showAbout = () => {
-	uni.showModal({
-		title: '关于宣誓爱',
-		content: '宣誓爱 v1.0.0\n真诚婚恋交友平台\n为每一份真心寻找归宿',
-		showCancel: false
-	})
+	uni.navigateTo({ url: '/pages/about/about' })
 }
 
 // 帮助中心

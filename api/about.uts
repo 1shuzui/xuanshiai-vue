@@ -1,0 +1,39 @@
+/**
+ * 关于我们 API
+ * USE_MOCK=true 走本地 mock；false 时走 FastAPI `/api/v1`
+ */
+
+import { USE_MOCK } from './config.uts'
+import { mockArticles, articleContentMap } from '@/mock/about'
+
+export interface ArticleListItem {
+	title: string
+	type: string
+	clickable: boolean
+}
+
+export interface ArticleDetail {
+	title: string
+	content: string
+	updatedAt: string
+}
+
+/** 获取文章列表 */
+export function getArticles(): Promise<{ success: boolean, data: ArticleListItem[] }> {
+	if (USE_MOCK) {
+		return Promise.resolve({ success: true, data: mockArticles })
+	}
+	// TODO: 接入后端后替换
+	return Promise.resolve({ success: true, data: mockArticles })
+}
+
+/** 获取单篇文章详情 */
+export function getArticle(type: string): Promise<{ success: boolean, data: ArticleDetail | null }> {
+	if (USE_MOCK) {
+		const detail = articleContentMap[type] ?? null
+		return Promise.resolve({ success: detail != null, data: detail })
+	}
+	// TODO: 接入后端后替换
+	const detail = articleContentMap[type] ?? null
+	return Promise.resolve({ success: detail != null, data: detail })
+}
