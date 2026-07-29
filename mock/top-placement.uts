@@ -1,0 +1,2 @@
+/** 置顶购买 Mock 记录，仅用于开发、联调和演示。 */
+export const mockTopPlacementPaymentOrders: any[] = []
