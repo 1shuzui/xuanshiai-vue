@@ -349,6 +349,8 @@ assert.ok(
 )
 includes(applicationTabs, 'protected-avatar-mark', 'parent applications should replace identifying photos')
 includes(conversationList, ':protect-photo="protectPhotos"', 'parent conversations should protect each avatar')
+includes(messageCenter, '@click="openEmotionLab"', 'emotion-lab shortcut binds the navigation action')
+includes(messageCenter, 'const openEmotionLab = () =>', 'emotion-lab shortcut exposes a navigation action')
 includes(messageCenter, "url: '/pages/emotion-lab/emotion-lab'", 'emotion-lab shortcut uses the registered page')
 excludes(messageCenter, '情感实验室尚未完成账号与结果绑定', 'emotion-lab shortcut is not a dead-end hint')
 excludes(messageCenter, "openHint('情感实验室", 'fake emotion-lab success hint')
