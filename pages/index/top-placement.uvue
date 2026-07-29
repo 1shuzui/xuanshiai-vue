@@ -22,7 +22,7 @@
 						<view class="hero-line"></view>
 						<text class="hero-title">让更多人看到你</text>
 						<text class="hero-copy">置顶推荐列表，曝光量提升 3-5 倍</text>
-						<view class="feature-row"><view class="feature-pill"><text class="feature-pill-icon">↑</text><text>优先展示</text></view><view class="feature-pill"><text class="feature-pill-icon">◎</text><text>精准触达</text></view><view class="feature-pill"><text class="feature-pill-icon">✦</text><text>快速触达</text></view></view>
+						<view class="feature-row"><view class="feature-pill"><text class="feature-pill-icon">↑</text><text>优先展示</text></view><view class="feature-pill"><text class="feature-pill-icon">◎</text><text>精准触达</text></view><view class="feature-pill"><text class="feature-pill-icon">✦</text><text>更多匹配</text></view></view>
 					</view>
 
 				<view v-if="activeStatus.active" class="active-status"><text>当前剩余置顶 {{ activeStatus.remainingDays }} 天</text><text class="active-status-copy">继续购买会在现有有效期基础上延长</text></view>
@@ -59,7 +59,7 @@ const plans: TopPlacementPlan[] = [
 const benefits = [
 	{ icon: '↑', title: '优先展示', desc: '推荐列表置顶' },
 	{ icon: '◎', title: '精准触达', desc: '推送给高意向用户' },
-	{ icon: '✦', title: '快速触达', desc: '更多用户看到你' }
+	{ icon: '✦', title: '更多匹配', desc: '更多用户看到你' }
 ]
 const selectedPlanIndex = ref(1)
 const activeStatus = ref<any>({ active: false, remainingDays: 0, expiresAt: 0 })

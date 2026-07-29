@@ -523,7 +523,7 @@
 	}
 
 	const onPreview = () => {
-		uni.navigateTo({ url: '/pages/user/detail?own=true' })
+		uni.navigateTo({ url: '/pages/user/detail?own=true&preview=true' })
 	}
 
 	const onCancel = () => {
