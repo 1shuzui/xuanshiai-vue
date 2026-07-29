@@ -36,6 +36,7 @@
 					@comment="goPost"
 					@collect="onCollect"
 					@follow="onFollow"
+					@unfollow="onUnfollow"
 					@apply="onApply"
 					@more="onMore"
 					@open="goPost"
@@ -78,7 +79,8 @@ import {
 			leaveTopic,
 			likeDynamic,
 			collectDynamic,
-			followUserFromCommunity
+			followUserFromCommunity,
+			unfollowUserFromCommunity
 		} from '@/api'
 		import { guardRealName } from '@/utils/realNameGate.uts'
 
@@ -326,6 +328,30 @@ const applyParticipation = (joined: boolean, participantCount: any) => {
 			})
 			uni.showToast({ title: '已关注', icon: 'none' })
 		}
+	}
+
+	const onUnfollow = (userId: number) => {
+		uni.showModal({
+			content: '确定取消关注吗？',
+			cancelText: '取消',
+			cancelColor: '#000000',
+			confirmText: '确定',
+			confirmColor: '#38988D',
+			success: async (modalRes: any) => {
+				if (!modalRes.confirm) return
+				try {
+					const res = await unfollowUserFromCommunity(userId)
+					if (res.success) {
+						posts.value.forEach((p: any) => {
+							if (p.user != null && p.user.id == userId) p.followed = false
+						})
+						uni.showToast({ title: '已取消关注', icon: 'none' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				}
+			}
+		})
 	}
 
 	const onApply = (userId: number, _dynamicId: number) => {

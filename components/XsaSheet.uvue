@@ -104,8 +104,10 @@ const handleOverlayClick = () => {
 .sheet-header {
 	height: 54px;
 	display: flex;
+	flex-direction: row;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: center;
+	position: relative;
 	padding: 0 18px;
 	border-bottom: 1px solid var(--line);
 }
@@ -118,6 +120,9 @@ const handleOverlayClick = () => {
 }
 
 .close-btn {
+	position: absolute;
+	top: 7px;
+	right: 18px;
 	width: 40px;
 	height: 40px;
 	border-radius: 50%;

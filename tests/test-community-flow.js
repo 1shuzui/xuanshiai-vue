@@ -1,7 +1,7 @@
 /**
  * 社区闭环 Mock / 路由 / 实名门槛 静态校验
  * 不启动小程序，仅校验源码与 Mock 约定
- * 主 Tab：关注 / 同城 / 发现；关注页喜欢=用户级喜欢动态
+ * 主 Tab：关注 / 同城 / 发现；关注页收藏=用户级收藏动态
  */
 
 const fs = require('fs')
@@ -414,8 +414,8 @@ if (communityMain.includes('getUnreadNotificationCount') || communityMain.includ
   fail('通知未读角标未接入')
 }
 
-// 6.1 二级标签与喜欢用户语义
-console.log('\n6.1 二级标签 / 喜欢用户 / 话题页...')
+// 6.1 二级标签与收藏用户语义
+console.log('\n6.1 二级标签 / 收藏用户 / 话题页...')
 const filterKeys = [
   "key: 'all'",
   "key: 'following'",
@@ -431,10 +431,10 @@ if (filterKeys.every((k) => communityMain.includes(k))) {
 } else {
   fail('二级标签键缺失')
 }
-if (communityMain.includes("label: '喜欢'") && communityMain.includes('likedUsers')) {
-  ok('关注页含「喜欢」二级标签（用户级）')
+if (communityMain.includes("label: '收藏'") && communityMain.includes('likedUsers')) {
+	ok('关注页含「收藏」二级标签（用户级）')
 } else {
-  fail('关注页喜欢标签缺失')
+	fail('关注页收藏标签缺失')
 }
 if (communityMain.includes("currentTab === 'discover' && currentFilter === 'all'")) {
   ok('TOPIC 轮播仅在发现·全部展示')

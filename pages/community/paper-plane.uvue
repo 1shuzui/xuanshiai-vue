@@ -290,10 +290,6 @@
 
 	const paperPlaneImages = ref<PaperPlaneMedia[]>([])
 	const inFlightMedia = ref<PaperPlaneMedia[]>([])
-	const pendingSendKey = ref('')
-	const pendingSendFingerprint = ref('')
-	const pendingReplyKey = ref('')
-	const pendingReplyFingerprint = ref('')
 
 	const loadPaperPlaneProfile = () => {
 		try {
@@ -395,8 +391,6 @@
 		const seconds = recordSeconds.value % 60
 		return (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds
 	})
-	let recordTimer: any = null
-	let recorderManager: any = null
 
 	onMounted(() => {
 		setupRecorder()
@@ -812,22 +806,10 @@
 		return draft.value.trim() + '|' + ids.join(',')
 	}
 
-	const discardPendingSendKey = () => {
-		if (pendingSendKey.value != '') discardCommunityCreateKey(pendingSendKey.value)
-		pendingSendKey.value = ''
-		pendingSendFingerprint.value = ''
-	}
-
 	const invalidatePendingSendKey = () => {
 		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != paperPlaneSendFingerprint()) {
 			discardPendingSendKey()
 		}
-	}
-
-	const discardPendingReplyKey = () => {
-		if (pendingReplyKey.value != '') discardCommunityCreateKey(pendingReplyKey.value)
-		pendingReplyKey.value = ''
-		pendingReplyFingerprint.value = ''
 	}
 
 	const invalidatePendingReplyKey = () => {

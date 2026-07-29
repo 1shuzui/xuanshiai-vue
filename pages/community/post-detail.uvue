@@ -14,6 +14,7 @@
 					@comment="focusComment"
 					@collect="onCollect"
 					@follow="onFollow"
+					@unfollow="onUnfollow"
 					@apply="onApply"
 					@more="onMore"
 					@topic="goTopic"
@@ -89,6 +90,7 @@ import {
 			likeComment,
 			collectDynamic,
 			followUserFromCommunity,
+			unfollowUserFromCommunity,
 			commentDynamic,
 			deleteComment,
 			getThreadedComments,
@@ -174,10 +176,6 @@ const load = async () => {
 			} finally {
 				loading.value = false
 			}
-		} catch (e) {
-			console.error(e)
-		} finally {
-			loading.value = false
 		}
 
 	const commentFingerprint = (text: string) => postId.value + '|' + text + '|' + (replyTarget.value != null ? replyTarget.value.id : 0)
@@ -319,13 +317,48 @@ const submitComment = async () => {
 			}
 		}
 
+	const syncFollowed = (userId: number, followed: boolean) => {
+		const current = post.value as any
+		if (current == null || current.user == null || current.user.id != userId) return
+
+		post.value = { ...current, followed: followed }
+	}
+
 	const onFollow = async (userId: number) => {
 		const ok = await guardRealName('follow')
 		if (!ok) return
-		const res = await followUserFromCommunity(userId)
-		if (res.success && post.value != null) {
-			post.value.followed = true
+
+		try {
+			const res = await followUserFromCommunity(userId)
+			if (res.success) {
+				syncFollowed(userId, true)
+				uni.showToast({ title: '已关注', icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '关注失败，请重试', icon: 'none' })
 		}
+	}
+
+	const onUnfollow = (userId: number) => {
+		uni.showModal({
+			content: '确定取消关注吗？',
+			cancelText: '取消',
+			cancelColor: '#000000',
+			confirmText: '确定',
+			confirmColor: '#38988D',
+			success: async (modalRes: any) => {
+				if (!modalRes.confirm) return
+				try {
+					const res = await unfollowUserFromCommunity(userId)
+					if (res.success) {
+						syncFollowed(userId, false)
+						uni.showToast({ title: '已取消关注', icon: 'none' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				}
+			}
+		})
 	}
 
 const onApply = (userId: number) => {

@@ -1281,7 +1281,7 @@ export async function getMyPaperPlanes() {
   return okRes(list)
 }
 
-function getPaperPlanePeerName(plane: any): string {
+function getPaperPlanePeerNameV2(plane: any): string {
   if (plane != null && plane.name != null && ('' + plane.name).length > 0) {
     return '' + plane.name
   }
@@ -1322,7 +1322,7 @@ function upsertPaperPlaneConversation(plane: any, content: string) {
 }
 
 /** 获取由纸飞机回复形成的聊天列表。 */
-export async function getPaperPlaneConversations() {
+async function getPaperPlaneConversationsLegacy() {
   restorePaperPlaneState()
   const list = cloneList(mockPaperPlaneConversations as any[])
   list.forEach((item: any) => {
@@ -1340,7 +1340,7 @@ export async function getPaperPlaneConversations() {
 }
 
 /** 获取当前用户最近五天扔出的纸飞机。 */
-export async function getSentPaperPlanes() {
+async function getSentPaperPlanesLegacy() {
   restorePaperPlaneState()
   const cutoff = Date.now() - 5 * 24 * 60 * 60 * 1000
   const list = (mockPaperPlanes as any[]).filter((plane: any) => {
@@ -1360,7 +1360,7 @@ export async function getSentPaperPlanes() {
 }
 
 /** 获取纸飞机聊天列表的未读消息总数。 */
-export async function getPaperPlaneUnreadCount() {
+async function getPaperPlaneUnreadCountLegacy() {
   restorePaperPlaneState()
   const list = mockPaperPlaneConversations as any[]
   let count = 0
@@ -1377,7 +1377,7 @@ export async function getPaperPlaneUnreadCount() {
 }
 
 /** 查看会话后清除该会话的未读数。 */
-export async function markPaperPlaneConversationRead(conversationId: number) {
+async function markPaperPlaneConversationReadLegacy(conversationId: number) {
   restorePaperPlaneState()
   const list = mockPaperPlaneConversations as any[]
   for (let i = 0; i < list.length; i++) {
@@ -1397,7 +1397,7 @@ export async function markPaperPlaneConversationRead(conversationId: number) {
   })
 }
 
-export async function getPaperPlaneMessages(conversationId: number) {
+async function getPaperPlaneMessagesLegacy(conversationId: number) {
   if (USE_MOCK) {
     restorePaperPlaneState()
     const list = mockPaperPlaneConversations as any[]
@@ -1426,7 +1426,7 @@ export async function getPaperPlaneMessages(conversationId: number) {
   return okRes(res.data != null && Array.isArray(res.data) ? res.data : [])
 }
 
-export async function sendPaperPlaneMessage(conversationId: number, content: string) {
+async function sendPaperPlaneMessageLegacy(conversationId: number, content: string) {
   const text = content != null ? ('' + content).trim() : ''
   if (text == '') return failRes('消息内容不能为空', 'EMPTY_CONTENT')
   if (USE_MOCK) {
@@ -1469,11 +1469,11 @@ export async function sendPaperPlaneMessage(conversationId: number, content: str
   return okRes({ success: true, message: res.data })
 }
 
-export async function readPaperPlaneConversation(conversationId: number) {
+async function readPaperPlaneConversationLegacy(conversationId: number) {
   return markPaperPlaneConversationRead(conversationId)
 }
 
-export async function endPaperPlaneConversation(conversationId: number) {
+async function endPaperPlaneConversationLegacy(conversationId: number) {
   if (USE_MOCK) {
     const list = mockPaperPlaneConversations as any[]
     for (let i = 0; i < list.length; i++) {
@@ -2339,6 +2339,10 @@ export async function unfollowUserFromCommunity(userId: number) {
     for (let i = 0; i < all.length; i++) {
       if (all[i].user != null && all[i].user.id == userId) {
         all[i].followed = false
+        if (all[i].tabs != null) {
+          const followTabIndex = (all[i].tabs as any[]).indexOf('follow')
+          if (followTabIndex >= 0) (all[i].tabs as any[]).splice(followTabIndex, 1)
+        }
       }
     }
     return request({
@@ -2491,7 +2495,7 @@ export async function likeComment(commentId: number, wasLiked: boolean = false) 
   })
 }
 
-export async function uploadCommunityMedia(filePath: string, purpose: string = 'post') {
+async function uploadCommunityMediaLegacy(filePath: string, purpose: string = 'post') {
   if (filePath == '') return failRes('媒体路径不能为空', 'EMPTY_MEDIA')
   const mediaPurpose = purpose == 'paper_plane' ? 'paper_plane' : 'post'
   return request({
@@ -2509,7 +2513,7 @@ export async function uploadCommunityMedia(filePath: string, purpose: string = '
   })
 }
 
-export async function uploadMedia(filePath: string, purpose: string = 'voice') {
+async function uploadMediaLegacy(filePath: string, purpose: string = 'voice') {
   if (filePath == '') return failRes('媒体路径不能为空', 'EMPTY_MEDIA')
   return request({
     url: '/media/uploads',
@@ -2521,7 +2525,7 @@ export async function uploadMedia(filePath: string, purpose: string = 'voice') {
   })
 }
 
-export async function deleteCommunityMedia(mediaId: number) {
+async function deleteCommunityMediaLegacy(mediaId: number) {
   if (mediaId <= 0) return failRes('媒体编号无效', 'INVALID_MEDIA_ID')
   return request({
     url: '/community/media/' + mediaId,
@@ -2880,7 +2884,7 @@ function getPaperPlanePeerName(plane: any): string {
 }
 
 /** 回复纸飞机后，同步到「我的纸飞机」消息列表（PR 前端会话卡）。 */
-function upsertPaperPlaneConversation(plane: any, content: string, conversationId: number = 0) {
+function upsertPaperPlaneConversationV2(plane: any, content: string, conversationId: number = 0) {
   const list = mockPaperPlaneConversations as any[]
   let conversation: any = null
   for (let i = 0; i < list.length; i++) {

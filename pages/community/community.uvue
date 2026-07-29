@@ -1,6 +1,6 @@
 <template>
 	<view class="community-page">
-		<!-- 主 Tab：关注 / 同城 / 发现；关注页「喜欢」= 喜欢用户的动态 -->
+		<!-- 主 Tab：关注 / 同城 / 发现；关注页「收藏」= 收藏用户的动态 -->
 		<view class="subtabs">
 			<view class="subtab" :class="{ active: currentTab === 'follow' }" @click="switchTab('follow')">
 				<text>关注</text>
@@ -138,6 +138,7 @@
 					@comment="handleComment"
 					@collect="handleCollect"
 					@follow="handleFollow"
+					@unfollow="handleUnfollow"
 					@apply="handleApply"
 					@more="handleMore"
 					@topic="handleTopic"
@@ -187,7 +188,8 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 		setCurrentCity,
 		likeDynamic,
 		collectDynamic,
-		followUserFromCommunity
+		followUserFromCommunity,
+		unfollowUserFromCommunity
 	} from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
@@ -229,7 +231,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 			return [
 				{ key: 'all', label: '全部' },
 				{ key: 'following', label: '关注' },
-				{ key: 'likedUsers', label: '喜欢' }
+				{ key: 'likedUsers', label: '收藏' }
 			]
 		}
 		if (currentTab.value === 'city') {
@@ -258,17 +260,16 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 
 	onShow(() => {
 		loadUnread()
-		// 从资料页喜欢用户返回后，关注流需要刷新
-		if (currentTab.value === 'follow') {
+		if (dynamicList.value.length > 0) {
 			reload()
 		}
 	})
 
 	const emptyTitle = computed(() => {
 		if (currentTab.value === 'follow') {
-			if (currentFilter.value === 'likedUsers') return '还没有喜欢用户的动态'
+			if (currentFilter.value === 'likedUsers') return '还没有收藏用户的动态'
 			if (currentFilter.value === 'following') return '还没有关注动态'
-			return '关注与喜欢的动态都在这里'
+			return '关注与收藏的动态都在这里'
 		}
 		if (currentTab.value === 'city') return '同城暂无动态'
 		if (currentFilter.value === 'mbti') return '暂无 MBTI 动态'
@@ -279,7 +280,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 
 	const emptyDesc = computed(() => {
 		if (currentTab.value === 'follow') {
-			if (currentFilter.value === 'likedUsers') return '在用户资料页点「喜欢」后，TA 的动态会出现在这里'
+			if (currentFilter.value === 'likedUsers') return '收藏用户后，TA 的动态会出现在这里'
 			return '关注认真嘉宾后，他们的动态会出现在这里'
 		}
 		if (currentTab.value === 'city') return '切换城市或发布一条同城动态'
@@ -399,9 +400,9 @@ const normalizeDynamic = (item: any) => {
 		}
 	}
 
-	const reload = () => {
+	const reload = async () => {
 		dynamicList.value = []
-		loadDynamics(true)
+		await loadDynamics(true)
 	}
 
 	const loadTopics = async () => {
@@ -580,21 +581,51 @@ const bannerCta = (type: string) => {
 		}
 	}
 
+	const syncFollowed = (userId: number, followed: boolean) => {
+		const list = dynamicList.value as any[]
+		for (let i = 0; i < list.length; i++) {
+			if (list[i].user != null && list[i].user.id == userId) list[i].followed = followed
+		}
+		dynamicList.value = list.slice()
+	}
+
 	const handleFollow = async (userId: number) => {
 		const ok = await guardRealName('follow')
 		if (!ok) return
 		try {
 			const res = await followUserFromCommunity(userId)
 			if (res.success) {
-				const list = dynamicList.value as any[]
-				list.forEach((d: any) => {
-					if (d.user != null && d.user.id == userId) d.followed = true
-				})
+				syncFollowed(userId, true)
 				uni.showToast({ title: '已关注', icon: 'none' })
 			}
 		} catch (e) {
 			uni.showToast({ title: '关注失败，请重试', icon: 'none' })
 		}
+	}
+
+	const handleUnfollow = (userId: number) => {
+		uni.showModal({
+			content: '确定取消关注吗？',
+			cancelText: '取消',
+			cancelColor: '#000000',
+			confirmText: '确定',
+			confirmColor: '#38988D',
+			success: async (modalRes: any) => {
+				if (!modalRes.confirm) return
+				try {
+					const res = await unfollowUserFromCommunity(userId)
+					if (res.success) {
+						syncFollowed(userId, false)
+						if (currentTab.value === 'follow') {
+							await reload()
+						}
+						uni.showToast({ title: '已取消关注', icon: 'none' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				}
+			}
+		})
 	}
 
 	const handleApply = (userId: number) => {
@@ -859,7 +890,7 @@ const bannerCta = (type: string) => {
 				display: flex;
 				flex-direction: column;
 				box-sizing: border-box;
-				padding: 10px 12px;
+				padding: 8px 12px;
 			}
 
 			.topic-panel-head {
@@ -867,7 +898,7 @@ const bannerCta = (type: string) => {
 				flex-direction: row;
 				align-items: center;
 				justify-content: space-between;
-				margin-bottom: 8px;
+				margin-bottom: 4px;
 				flex-shrink: 0;
 			}
 
@@ -899,8 +930,8 @@ const bannerCta = (type: string) => {
 			.topic-feature {
 				display: flex;
 				flex-direction: row;
-				gap: 10px;
-				padding: 10px;
+				gap: 8px;
+				padding: 8px;
 				background: var(--surface);
 				border-radius: 12px;
 				box-shadow: var(--shadow-sm);
@@ -908,8 +939,8 @@ const bannerCta = (type: string) => {
 			}
 
 			.topic-feature-cover {
-				width: 64px;
-				height: 64px;
+				width: 56px;
+				height: 56px;
 				border-radius: 10px;
 				flex-shrink: 0;
 				background: var(--warm);
@@ -955,8 +986,8 @@ const bannerCta = (type: string) => {
 				display: flex;
 				flex-direction: row;
 				flex-wrap: wrap;
-				gap: 6px 8px;
-				margin-top: 8px;
+				gap: 4px 6px;
+				margin-top: 6px;
 				flex: 1;
 				min-height: 0;
 				align-content: flex-start;
@@ -967,9 +998,10 @@ const bannerCta = (type: string) => {
 				box-sizing: border-box;
 				display: flex;
 				flex-direction: column;
-				gap: 2px;
+				height: 40px;
+				gap: 0;
 				min-width: 0;
-				padding: 6px 8px;
+				padding: 4px 6px;
 				border-radius: 8px;
 				background: var(--surface);
 			}
@@ -1013,8 +1045,8 @@ const bannerCta = (type: string) => {
 			position: relative;
 			overflow: hidden;
 			gap: 8px;
-			background: var(--plane-lilac);
-			border: 1px solid var(--plane-purple);
+			background: var(--accent-bg);
+			border: 1px solid var(--accent);
 			box-shadow: var(--shadow-md);
 		}
 
@@ -1038,12 +1070,12 @@ const bannerCta = (type: string) => {
 		}
 
 		.feature.type-plane .feature-kicker {
-			color: var(--plane-purple);
+			color: var(--accent2);
 			line-height: 1.4;
 		}
 
 		.feature.type-plane .feature-desc {
-			color: var(--plane-purple-deep);
+			color: var(--accent2);
 			max-width: 56%;
 			line-height: 1.65;
 		}
@@ -1051,15 +1083,15 @@ const bannerCta = (type: string) => {
 		.feature.type-plane .feature-title {
 			font-size: 22px;
 			line-height: 1.35;
-			color: var(--plane-purple-deep);
+			color: var(--accent2);
 		}
 
 		.feature.type-plane .feature-btn {
-			background: var(--plane-cloud);
+			background: var(--paper);
 		}
 
 		.feature.type-plane .feature-btn text {
-			color: var(--plane-purple-deep);
+			color: var(--accent2);
 		}
 
 		.plane-banner-art {
@@ -1076,7 +1108,7 @@ const bannerCta = (type: string) => {
 			width: 146px;
 			height: 156px;
 			border-radius: 32px 0 0 0;
-			background: var(--plane-blue);
+			background: var(--accent);
 			opacity: 0.22;
 			transform: rotate(-14deg);
 		}
@@ -1091,7 +1123,7 @@ const bannerCta = (type: string) => {
 			right: 27px;
 			top: 60px;
 			font-size: 58px;
-			color: var(--plane-purple);
+			color: var(--sage);
 			opacity: 0.78;
 			transform: rotate(-18deg);
 		}
@@ -1100,7 +1132,7 @@ const bannerCta = (type: string) => {
 			right: 94px;
 			top: 26px;
 			font-size: 22px;
-			color: var(--plane-blue);
+			color: var(--soft);
 			opacity: 0.76;
 			transform: rotate(12deg);
 		}
@@ -1109,7 +1141,7 @@ const bannerCta = (type: string) => {
 			right: 12px;
 			bottom: 18px;
 			font-size: 19px;
-			color: var(--plane-pink);
+			color: var(--soft);
 			opacity: 0.76;
 			transform: rotate(-8deg);
 		}
@@ -1259,7 +1291,7 @@ const bannerCta = (type: string) => {
 	.publish-fab {
 		position: fixed;
 		right: 16px;
-		bottom: calc(50px + 24px + env(safe-area-inset-bottom));
+		bottom: calc(50px + 48px + env(safe-area-inset-bottom));
 		width: 48px;
 		height: 48px;
 		background: var(--sage);
