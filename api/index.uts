@@ -7,6 +7,7 @@
 export {
   sendSms,
   loginByPhone,
+  loginByWechat,
   logout
 } from './auth.uts'
 
@@ -17,6 +18,12 @@ export {
   getSquareUsers,
   getUserDetail,
   getMeProfile,
+  getOwnProfile,
+  updateOwnProfile,
+  getOwnPreferences,
+  updateOwnPreferences,
+  uploadUserProfileMedia,
+  deleteUserProfilePhoto,
   applyToMeet,
   likeUser,
   getChatFeatureUnlocks,
@@ -55,6 +62,8 @@ export {
   signupActivity,
   getMyActivities,
   getCommunityBanners,
+  getFixedCommunityBanner,
+  ensureCommunityBanners,
   getCommunityNotifications,
   getUnreadNotificationCount,
   markNotificationRead,

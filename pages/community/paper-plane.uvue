@@ -498,9 +498,12 @@
 		loadPaperPlaneUnreadCount()
 	})
 
-	onUnmounted(() => {
+	onUnload(() => {
 		if (recording.value) stopRecording()
 		clearRecordTimer()
+		cleanupPaperPlaneMedia()
+		discardPendingSendKey()
+		discardPendingReplyKey()
 	})
 
 	const setupRecorder = () => {
@@ -675,6 +678,7 @@
 		normalSending.value = true
 		try {
 			const res = await replyPaperPlane(p.id, content, pendingReplyKey.value)
+			const data = res != null ? res.data : null
 			const replyOk = res != null && res.success && (res.data == null || res.data.success != false)
 			if (replyOk) {
 				if (p.replyCount == null) p.replyCount = 0
@@ -684,7 +688,14 @@
 				normalReplyDraft.value = ''
 				returnFromNormalCatch()
 			} else {
-				uni.showToast({ title: '发送失败，请稍后再试', icon: 'none' })
+				if (shouldDiscardPaperPlaneKey(res)) discardPendingReplyKey()
+				const message =
+					data != null && data.message != null
+						? '' + data.message
+						: res != null && res.message != null
+							? '' + res.message
+							: '发送失败，请稍后再试'
+				uni.showToast({ title: message, icon: 'none' })
 			}
 		} catch (e) {
 			uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' })
@@ -919,6 +930,12 @@
 		pendingReplyFingerprint.value = ''
 	}
 
+	const shouldDiscardPaperPlaneKey = (res: any): boolean => {
+		if (res == null) return false
+		if (res.success == false) return res.code != null && res.code != -1
+		return res.data != null && res.data.success == false
+	}
+
 	const invalidatePendingReplyKey = () => {
 		const fingerprint = normalPlane.value.id + '|' + normalReplyDraft.value.trim()
 		if (pendingReplyFingerprint.value != '' && pendingReplyFingerprint.value != fingerprint) discardPendingReplyKey()
@@ -963,7 +980,13 @@
 				closeComposer(true)
 				uni.showToast({ title: '已放飞', icon: 'success' })
 			} else {
-				const msg = data != null && data.message != null ? data.message : '放飞失败'
+				if (shouldDiscardPaperPlaneKey(res)) discardPendingSendKey()
+				const msg =
+					data != null && data.message != null
+						? '' + data.message
+						: res != null && res.message != null
+							? '' + res.message
+							: '放飞失败'
 				uni.showToast({ title: msg, icon: 'none' })
 				if (data != null && data.remain != null) remain.value = data.remain
 			}

@@ -15,7 +15,7 @@
 			></textarea>
 			<text class="count">{{ message.length }}/120</text>
 			<view class="tips">
-				<text class="tip">· 需要实名认证</text>
+				<text class="tip">· 仅需实名认证；学历不作为拦截条件</text>
 				<text class="tip">· 未双方同意前不可交换联系方式</text>
 				<text class="tip">· 次数用尽可用积分加次，会员权益仅作说明</text>
 			</view>

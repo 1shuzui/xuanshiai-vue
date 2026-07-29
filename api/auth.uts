@@ -41,6 +41,22 @@ export async function loginByPhone(phone: string, code: string) {
   return res
 }
 
+export async function loginByWechat(code: string) {
+  const res = await request({
+    url: '/auth/wechat/login',
+    skipAuth: true,
+    method: 'POST',
+    data: {
+      code,
+      platform: 'mp-weixin'
+    }
+  })
+  if (res.success && res.data != null && res.data.access_token != null) {
+    setAuthTokens(String(res.data.access_token), res.data.refresh_token != null ? String(res.data.refresh_token) : '')
+  }
+  return res
+}
+
 export async function logout() {
   try {
     await request({

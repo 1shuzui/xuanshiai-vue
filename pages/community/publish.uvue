@@ -608,13 +608,11 @@ if (path !== '') {
 
 const onContentInput = (e: any) => {
 	content.value = e.detail.value
-	invalidatePendingPublishKey()
 }
 
 const insertEmoji = (emoji: string) => {
 	const next = content.value + emoji
 	content.value = next.length > 500 ? next.substring(0, 500) : next
-	invalidatePendingPublishKey()
 }
 
 const toggleEmoji = () => {
@@ -631,7 +629,6 @@ const selectDeclaration = () => {
 			} else if (idx > 0 && idx < DECLARATION_OPTIONS.length) {
 				declaration.value = DECLARATION_OPTIONS[idx]
 			}
-			invalidatePendingPublishKey()
 		}
 	})
 }
@@ -640,7 +637,6 @@ const chooseLocation = () => {
 	uni.chooseLocation({
 		success: (res) => {
 			location.value = res.name || res.address
-			invalidatePendingPublishKey()
 		}
 	})
 }
@@ -650,7 +646,6 @@ const selectVisibility = () => {
 		itemList: ['公开', '仅好友可见', '仅自己可见'],
 		success: (res) => {
 			visibility.value = res.tapIndex
-			invalidatePendingPublishKey()
 		}
 	})
 }
@@ -696,13 +691,11 @@ const pickTopic = (t: any) => {
 	topicTitle.value = t.title != null ? ('' + t.title) : ''
 	showTopicSheet.value = false
 	topicKeyword.value = ''
-	invalidatePendingPublishKey()
 }
 
 const clearTopic = () => {
 	topicId.value = 0
 	topicTitle.value = ''
-	invalidatePendingPublishKey()
 }
 
 const closeTopicSheet = () => {

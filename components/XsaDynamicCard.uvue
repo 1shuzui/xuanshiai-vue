@@ -9,10 +9,9 @@
 							<text class="name">{{ dynamic.user.name }}</text>
 							<text class="gender-icon text-muted" v-if="genderIcon !== ''">{{ genderIcon }}</text>
 						</view>
-						<text class="time text-muted">{{ timeText }}</text>
 					</view>
 					<view class="meta-row" v-if="metaLine !== ''">
-						<text class="meta-text text-muted">{{ metaLine }}</text>
+						<text class="meta-text">{{ metaLine }}</text>
 					</view>
 					<view class="relation-row" v-if="relationList.length > 0">
 						<text class="relation-tag" v-for="(rt, ri) in relationList" :key="ri">{{ rt }}</text>
@@ -72,9 +71,27 @@
 					<text class="topic-label">{{ topicLabel }}</text>
 				</view>
 
-			<view class="location" v-if="dynamic.location">
-				<text class="icon">📍</text>
-				<text class="text text-muted">{{ dynamic.location }}</text>
+				<!-- 点赞摘要：后端返回头像时展示，缺少头像时仍保留数量信息。 -->
+				<view class="like-summary" v-if="likeCount > 0" @click.stop="handleLike">
+					<view class="like-avatars" v-if="likeAvatarList.length > 0">
+						<image
+							class="like-avatar"
+							v-for="(av, ai) in likeAvatarList"
+							:key="ai"
+							:src="av"
+							mode="aspectFill"
+							:style="{ marginLeft: ai == 0 ? '0' : '-8px', zIndex: 10 - ai }"
+						></image>
+					</view>
+					<text class="like-summary-text text-muted">等{{ likeCount }}人赞过</text>
+				</view>
+
+			<view class="location-time-row" v-if="dynamic.location || timeText !== ''">
+				<view class="location" v-if="dynamic.location">
+					<text class="icon">📍</text>
+					<text class="text text-muted">{{ dynamic.location }}</text>
+				</view>
+				<text class="time time-bottom text-muted" v-if="timeText !== ''">{{ timeText }}</text>
 			</view>
 		</view>
 
@@ -169,6 +186,7 @@ const emit = defineEmits<{
 	share: [dynamicId: number]
 	collect: [dynamicId: number]
 	follow: [userId: number]
+	unfollow: [userId: number]
 	apply: [userId: number]
 	more: [dynamicId: number, userId: number]
 	topic: [topicId: number]
@@ -269,32 +287,54 @@ const genderIcon = computed((): string => {
 		return first != null ? ('' + first) : ''
 	})
 
+	const likeAvatarList = computed((): string[] => {
+		const raw = props.dynamic.likeAvatars
+		if (raw == null || !Array.isArray(raw)) return []
+		const out: string[] = []
+		for (let i = 0; i < raw.length && out.length < 3; i++) {
+			const avatar = raw[i]
+			if (avatar != null && ('' + avatar) !== '') out.push('' + avatar)
+		}
+		return out
+	})
+
 	const tagList = computed((): string[] => {
 		const out: string[] = []
 		const relationSet = relationList.value
 		const u = props.dynamic.user
-		if (u != null) {
-			// age/city 已由 meta/relation 承担，避免重复
-			if (u.job != null && u.job !== '') out.push(u.job as string)
-			if (u.height != null && u.height !== '') out.push(u.height as string)
-			if (u.education != null && u.education !== '') out.push(u.education as string)
-			if (u.realNameStatus == 'passed' || u.verified == true) out.push('已实名')
+		if (u != null && (u.realNameStatus == 'passed' || u.verified == true)) {
+			out.push('已实名')
 		}
-		if (props.dynamic.declaration != null && props.dynamic.declaration !== '') {
-			out.push(props.dynamic.declaration as string)
-		}
+
+		// 页面传入的 tags 优先，便于不同场景选择各自最重要的资料标签。
 		if (props.dynamic.tags != null) {
 			const tags = props.dynamic.tags as string[]
 			for (let i = 0; i < tags.length; i++) {
 				const t = tags[i]
 				if (t == null || t === '') continue
-				// 关系标（同城/校友等）已在 relation 行展示，tags 中再出现则跳过
 				if (relationSet.indexOf(t) >= 0) continue
 				if (out.indexOf(t) < 0) out.push(t)
+				if (out.length >= 3) return out
 			}
 		}
-		// 控制展示密度，避免小屏溢出
-		if (out.length > 6) return out.slice(0, 6)
+
+		if (u != null) {
+			const profileTags: string[] = []
+			if (u.job != null && u.job !== '') profileTags.push(u.job as string)
+			if (u.education != null && u.education !== '') profileTags.push(u.education as string)
+			if (u.height != null && u.height !== '') profileTags.push(u.height as string)
+			for (let i = 0; i < profileTags.length; i++) {
+				const tag = profileTags[i]
+				if (out.indexOf(tag) < 0) out.push(tag)
+				if (out.length >= 3) return out
+			}
+		}
+
+		if (props.dynamic.declaration != null && props.dynamic.declaration !== '') {
+			const declaration = props.dynamic.declaration as string
+			if (out.indexOf(declaration) < 0) out.push(declaration)
+		}
+		if (out.length > 3) return out.slice(0, 3)
 		return out
 	})
 
@@ -343,7 +383,10 @@ const handleCollect = () => {
 }
 
 const handleFollow = () => {
-	if (followed.value) return
+	if (followed.value) {
+		emit('unfollow', props.dynamic.user.id)
+		return
+	}
 	emit('follow', props.dynamic.user.id)
 }
 
@@ -442,6 +485,7 @@ const handleOpen = () => {
 	.meta-text {
 		font-size: 11px;
 		line-height: 1.4;
+		color: var(--accent);
 	}
 
 	.relation-row {
@@ -454,8 +498,8 @@ const handleOpen = () => {
 
 	.relation-tag {
 		font-size: 10px;
-		color: var(--accent);
-		background: var(--soft);
+		color: var(--accent2);
+		background: var(--accent-bg);
 		padding: 2px 8px;
 		border-radius: 999px;
 	}
@@ -605,7 +649,7 @@ const handleOpen = () => {
 	margin-bottom: 8px;
 	padding: 4px 8px;
 	border-radius: 6px;
-	background: var(--soft);
+	background: var(--accent-bg);
 }
 
 .topic-hash {
@@ -620,11 +664,50 @@ const handleOpen = () => {
 	font-weight: 600;
 }
 
+.like-summary {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	padding-top: 4px;
+	margin-bottom: 4px;
+}
+
+.like-avatars {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding-left: 0;
+}
+
+.like-avatar {
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	border: 2px solid var(--surface);
+	background: var(--soft);
+}
+
+.like-summary-text {
+	font-size: 12px;
+}
+
 .location {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	gap: 4px;
+	min-width: 0;
+	flex: 1;
+}
+
+.location-time-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-height: 20px;
 }
 
 .location .icon {
@@ -633,6 +716,16 @@ const handleOpen = () => {
 
 .location .text {
 	font-size: 13px;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.time-bottom {
+	font-size: 12px;
+	flex-shrink: 0;
+	margin-left: auto;
 }
 
 .card-footer {

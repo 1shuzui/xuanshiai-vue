@@ -33,17 +33,13 @@ export const API_PREFIX = '/api/v1'
 export const ACCESS_TOKEN_KEY = 'xsa_access_token'
 export const REFRESH_TOKEN_KEY = 'xsa_refresh_token'
 
+// FastAPI 开发态直达社区。仅在本地调试时填写真实测试身份，禁止提交有效 token。
+export const FASTAPI_AUTO_ENTER_COMMUNITY = false
+export const FASTAPI_DEV_ACCESS_TOKEN = ''
+export const FASTAPI_DEV_USER_ID = 0
+
 // API 基础配置
 export const API_CONFIG = {
-  // uniCloud 云函数配置（旧链路，useHttp=false 时使用）
-  cloudFunction: {
-    timeout: 60000,
-    spaceId: 'your-space-id'
-  },
-
-  // 是否走 FastAPI HTTP（推荐联调路径）；false 时回退 uniCloud
-  useHttp: true,
-
   // 请求超时配置
   timeout: 15000,
 
@@ -74,6 +70,8 @@ export function setAuthTokens(accessToken: string, refreshToken: string = '') {
     }
     if (refreshToken != null && refreshToken !== '') {
       uni.setStorageSync(REFRESH_TOKEN_KEY, refreshToken)
+    } else {
+      uni.removeStorageSync(REFRESH_TOKEN_KEY)
     }
   } catch (e) {}
 }
@@ -82,6 +80,8 @@ export function setAuthTokens(accessToken: string, refreshToken: string = '') {
 export function clearAuthTokens() {
   try {
     uni.removeStorageSync(ACCESS_TOKEN_KEY)
+  } catch (e) {}
+  try {
     uni.removeStorageSync(REFRESH_TOKEN_KEY)
   } catch (e) {}
 }
@@ -93,4 +93,22 @@ export function buildApiUrl(path: string): string {
   if (p.indexOf('/api/') == 0) return API_BASE_URL + p
   if (p.charAt(0) != '/') p = '/' + p
   return API_BASE_URL + API_PREFIX + p
+}
+
+/** 将后端返回的公开媒体路径转换为跨端可加载的地址。 */
+export function resolveMediaUrl(value: any): string {
+  if (value == null) return ''
+  const p = '' + value
+  if (p == '') return ''
+  if (
+    p.indexOf('http://') == 0 ||
+    p.indexOf('https://') == 0 ||
+    p.indexOf('data:') == 0 ||
+    p.indexOf('blob:') == 0 ||
+    p.indexOf('wxfile://') == 0 ||
+    p.indexOf('/static/') == 0 ||
+    p.indexOf('mock://') == 0
+  ) return p
+  if (p.charAt(0) == '/') return API_BASE_URL + p
+  return p
 }

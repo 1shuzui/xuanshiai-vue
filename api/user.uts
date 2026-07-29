@@ -5,7 +5,7 @@
  */
 
 import { request } from './request.uts'
-import { USE_MOCK } from './config.uts'
+import { USE_MOCK, getAccessToken, clearAuthTokens, buildApiUrl } from './config.uts'
 import {
   mockRecommendUsers,
   mockSquareUsers,
@@ -55,6 +55,25 @@ function extractHttpMessage(res: any, fallback: string): string {
 }
 
 const CHAT_FEATURE_UNLOCK_STORAGE_KEY = 'xsa_chat_feature_unlocks_v1'
+
+const defaultMockPreferences: any = {
+  user_id: 1,
+  age_min: null,
+  age_max: null,
+  height_min: null,
+  height_max: null,
+  education_min: null,
+  income_min: null,
+  marriage_status: 0,
+  preferred_province_code: null,
+  preferred_city_codes: [],
+  accept_long_distance: true,
+  accept_cross_province: true,
+  housing_requirement: 0,
+  smoking_requirement: 0,
+  drinking_requirement: 0,
+  extra_requirement: null
+}
 export const CHAT_FEATURE_UNLOCK_COST = 80
 let chatFeatureUnlocksLoaded = false
 const chatFeatureUnlocks: any = {
@@ -213,23 +232,157 @@ export async function getUserDetail(userId: number) {
       break
     }
   }
+  if (found == null) {
+    const squareUsers = mockSquareUsers as any[]
+    for (let i = 0; i < squareUsers.length; i++) {
+      if (squareUsers[i].id == userId) {
+        found = squareUsers[i]
+        break
+      }
+    }
+  }
   const detail = found != null
     ? {
         ...mockUserDetail,
         ...found,
-        introduction: found.intro,
+        introduction: found.intro != null
+          ? found.intro
+          : (found.introduction != null ? found.introduction : mockUserDetail.introduction),
         genderText: found.gender == 1 ? '男' : '女',
         certList: ['实名', '学历', '头像', '单身']
       }
     : mockUserDetail
 
+  if (USE_MOCK) {
+    return request({
+      url: '/user/detail',
+      cloudFunctionName: 'user',
+      action: 'getDetail',
+      method: 'GET',
+      data: { userId },
+      mockData: detail
+    })
+  }
+
   return request({
-    url: '/user/detail',
-    cloudFunctionName: 'user',
-    action: 'getDetail',
+    url: '/users/' + userId + '/profile',
+    method: 'GET'
+  })
+}
+
+export async function getOwnProfile() {
+  if (USE_MOCK) {
+    return request({
+      url: '/user/me',
+      cloudFunctionName: 'user',
+      action: 'getMeProfile',
+      method: 'GET',
+      mockData: mockMeProfile
+    })
+  }
+  return request({ url: '/users/me/profile', method: 'GET' })
+}
+
+export async function updateOwnProfile(data: any) {
+  if (USE_MOCK) {
+    const keys = Object.keys(data != null ? data : {})
+    for (let i = 0; i < keys.length; i++) {
+      mockMeProfile[keys[i]] = data[keys[i]]
+    }
+    return request({
+      url: '/user/me/profile',
+      cloudFunctionName: 'user',
+      action: 'updateProfile',
+      method: 'PATCH',
+      data,
+      mockData: mockMeProfile
+    })
+  }
+  return request({ url: '/users/me/profile', method: 'PATCH', data })
+}
+
+export async function getOwnPreferences() {
+  return request({
+    url: '/users/me/preferences',
     method: 'GET',
-    data: { userId },
-    mockData: detail
+    mockData: defaultMockPreferences
+  })
+}
+
+export async function updateOwnPreferences(data: any) {
+  const keys = Object.keys(data != null ? data : {})
+  for (let i = 0; i < keys.length; i++) {
+    defaultMockPreferences[keys[i]] = data[keys[i]]
+  }
+  return request({
+    url: '/users/me/preferences',
+    method: 'PUT',
+    data,
+    mockData: defaultMockPreferences
+  })
+}
+
+function profileMediaPath(kind: string): string {
+  if (kind == 'avatar') return '/users/me/avatar'
+  if (kind == 'background') return '/users/me/background'
+  return '/users/me/photos'
+}
+
+export async function uploadUserProfileMedia(filePath: string, kind: string) {
+  const normalizedKind = kind == 'avatar' || kind == 'background' ? kind : 'photo'
+  if (USE_MOCK) {
+    return request({
+      url: '/user/me/' + normalizedKind,
+      cloudFunctionName: 'user',
+      action: 'uploadProfileMedia',
+      method: 'POST',
+      mockData: {
+        id: 0,
+        media_type: normalizedKind,
+        file_url: filePath,
+        thumbnail_url: filePath,
+        sort_order: 0,
+        is_primary: normalizedKind == 'avatar',
+        duration_seconds: null
+      }
+    })
+  }
+
+  return new Promise<any>((resolve) => {
+    uni.uploadFile({
+      url: buildApiUrl(profileMediaPath(normalizedKind)),
+      filePath,
+      name: 'file',
+      header: getAccessToken() != '' ? { Authorization: 'Bearer ' + getAccessToken() } : {},
+      success: (res: any) => {
+        if (res.statusCode == 401) clearAuthTokens()
+        let data: any = null
+        try {
+          data = JSON.parse('' + res.data)
+        } catch (e) {
+          resolve({ success: false, data: null, code: res.statusCode, message: '上传响应解析失败' })
+          return
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ success: true, data, code: res.statusCode, message: 'success' })
+        } else {
+          const detail = data != null && data.detail != null ? data.detail : '上传失败'
+          resolve({ success: false, data, code: res.statusCode, message: '' + detail })
+        }
+      },
+      fail: (err: any) => {
+        const message = err != null && err.errMsg != null ? '' + err.errMsg : '上传失败，请检查网络'
+        resolve({ success: false, data: null, code: -1, message })
+      }
+    })
+  })
+}
+
+export async function deleteUserProfilePhoto(mediaId: number) {
+  return request({
+    url: '/users/me/photos/' + mediaId,
+    method: 'DELETE',
+    mockData: { success: true }
   })
 }
 

@@ -1,0 +1,38 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const root = path.resolve(__dirname, '..')
+const login = fs.readFileSync(path.join(root, 'pages', 'auth', 'login.uvue'), 'utf8')
+const authApi = fs.readFileSync(path.join(root, 'api', 'auth.uts'), 'utf8')
+const apiIndex = fs.readFileSync(path.join(root, 'api', 'index.uts'), 'utf8')
+
+assert.match(login, /认真、真实、有边界的婚恋平台/)
+assert.match(login, /agreementChecked/)
+assert.match(login, /《用户协议》/)
+assert.match(login, /《隐私政策》/)
+assert.match(login, /\/pages\/about\/article\?type=terms/)
+assert.match(login, /\/pages\/about\/article\?type=privacy/)
+assert.match(login, /:disabled="authLoading \|\| !agreementChecked"/)
+
+assert.match(login, /微信一键登录/)
+assert.match(login, /uni\.login\(/)
+assert.match(login, /loginByWechat/)
+assert.doesNotMatch(login, /open-type="getPhoneNumber"/)
+assert.doesNotMatch(login, /uni\.request\(/)
+
+assert.match(login, /调试登录，直接进入首页/)
+assert.match(login, /首次登录/)
+assert.match(login, /loginWithMockSms/)
+
+assert.match(authApi, /export async function loginByWechat/)
+assert.match(authApi, /url:\s*'\/auth\/wechat\/login'/)
+assert.match(apiIndex, /loginByWechat/)
+
+assert.equal((login.match(/\.login-page\s*\{/g) || []).length, 1)
+assert.equal((login.match(/\.brand-block\s*\{/g) || []).length, 1)
+assert.equal((login.match(/\.brand-name\s*\{/g) || []).length, 1)
+assert.equal((login.match(/\.brand-subtitle\s*\{/g) || []).length, 1)
+assert.doesNotMatch(login, /letter-spacing:\s*0\.(08|1|12|16)em/)
+
+console.log('login reconstruction contract passed')

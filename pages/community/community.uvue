@@ -132,6 +132,7 @@
 					@comment="handleComment"
 					@collect="handleCollect"
 					@follow="handleFollow"
+					@unfollow="handleUnfollow"
 					@apply="handleApply"
 					@more="handleMore"
 					@topic="handleTopic"
@@ -182,7 +183,8 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 		COMMUNITY_CITY_OPTIONS,
 		likeDynamic,
 		collectDynamic,
-		followUserFromCommunity
+		followUserFromCommunity,
+		unfollowUserFromCommunity
 	} from '@/api'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 
@@ -211,8 +213,9 @@ const cityName = ref('')
 		const applyVisible = ref(false)
 		const applyUserId = ref(0)
 		const reportVisible = ref(false)
-		const reportTargetId = ref(0)
-		const reportUserId = ref(0)
+	const reportTargetId = ref(0)
+	const reportUserId = ref(0)
+	const unfollowPendingUserId = ref(0)
 		// 防止快速切换 Tab/筛选时旧请求覆盖新列表
 		const loadSeq = ref(0)
 
@@ -632,16 +635,23 @@ const handleCollect = async (dynamicId: number) => {
 			}
 		}
 
+	const syncFollowed = (userId: number, followed: boolean) => {
+		const list = dynamicList.value as any[]
+		for (let i = 0; i < list.length; i++) {
+			if (list[i].user != null && list[i].user.id == userId) {
+				list[i].followed = followed
+			}
+		}
+		dynamicList.value = list.slice()
+	}
+
 		const handleFollow = async (userId: number) => {
 			const ok = await guardRealName('follow')
 			if (!ok) return
 			try {
 				const res = await followUserFromCommunity(userId)
 				if (res.success) {
-					const list = dynamicList.value as any[]
-					list.forEach((d: any) => {
-						if (d.user != null && d.user.id == userId) d.followed = true
-					})
+					syncFollowed(userId, true)
 					uni.showToast({ title: '已关注', icon: 'none' })
 				} else {
 					const msg =
@@ -656,6 +666,42 @@ const handleCollect = async (dynamicId: number) => {
 				uni.showToast({ title: '关注失败，请重试', icon: 'none' })
 			}
 		}
+
+	const handleUnfollow = (userId: number) => {
+		if (unfollowPendingUserId.value == userId) return
+		uni.showModal({
+			title: '取消关注',
+			content: '确定不再关注这位用户吗？',
+			cancelText: '取消',
+			confirmText: '确定',
+			success: async (modalRes: any) => {
+				if (!modalRes.confirm) return
+				unfollowPendingUserId.value = userId
+				try {
+					const res = await unfollowUserFromCommunity(userId)
+					if (res.success) {
+						syncFollowed(userId, false)
+						if (currentTab.value === 'follow') reload()
+						uni.showToast({ title: '已取消关注', icon: 'none' })
+					} else {
+						const msg =
+							res.data != null && res.data.message != null
+								? res.data.message
+								: res.message != null
+									? res.message
+									: '取消关注失败，请重试'
+						uni.showToast({ title: msg, icon: 'none' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				} finally {
+					if (unfollowPendingUserId.value == userId) {
+						unfollowPendingUserId.value = 0
+					}
+				}
+			}
+		})
+	}
 
 	const handleApply = (userId: number) => {
 		applyUserId.value = userId
@@ -1256,7 +1302,7 @@ const switchCity = () => {
 	.publish-fab {
 		position: fixed;
 		right: 16px;
-		bottom: calc(50px + 24px + env(safe-area-inset-bottom));
+		bottom: calc(50px + 32px + env(safe-area-inset-bottom));
 		width: 48px;
 		height: 48px;
 		background: var(--sage);

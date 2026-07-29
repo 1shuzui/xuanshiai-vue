@@ -1,1170 +1,419 @@
 <template>
 	<view class="edit-page">
-		<!-- 导航栏 -->
 		<view class="nav-bar">
-			<text class="nav-title active">编辑资料</text>
-			<text class="nav-title muted" @tap="onPreview">主页预览</text>
+			<text class="nav-title">编辑资料</text>
+			<text class="nav-preview" @tap="onPreview">主页预览</text>
 		</view>
 
-		<!-- 滚动内容区 -->
-		<scroll-view class="scroll-content" scroll-y enhanced show-scrollbar="false">
-			<!-- 资料完整度进度条 -->
+		<view v-if="loading" class="state-block">
+			<text class="state-title">正在加载资料</text>
+			<text class="state-description">请稍候，正在读取最新信息</text>
+		</view>
+		<XsaEmpty
+			v-else-if="loadError != ''"
+			text="资料暂时无法打开"
+			:description="loadError"
+			:show-action="true"
+			action-text="重试"
+			@action="load"
+		/>
+
+		<scroll-view v-else class="scroll-content" scroll-y enhanced show-scrollbar="false">
 			<view class="progress-section">
-				<view class="progress-header">
-					<text class="progress-label">资料完整度</text>
-					<text class="progress-pct">{{ completeness }}%</text>
-				</view>
-				<view class="progress-bar-bg">
-					<view class="progress-bar-fill" :style="{ width: completeness + '%' }"></view>
-				</view>
-				<text class="progress-hint">资料越完整，推荐权重越高，更容易遇见对的人</text>
+				<view class="progress-header"><text class="progress-label">资料完整度</text><text class="progress-value">{{ completeness }}%</text></view>
+				<view class="progress-track"><view class="progress-fill" :style="{ width: completeness + '%' }"></view></view>
+				<text class="progress-hint">完整资料能帮助对方更准确地了解你。</text>
 			</view>
 
-			<!-- 头像区 -->
-			<view class="section-card">
-				<view class="section-card-header">
-					<text class="section-title">头像</text>
-					<view class="change-bg-btn" @tap="changeBackground">
-						<text class="change-bg-text">更换背景</text>
-						<text class="change-bg-arrow">›</text>
+			<view class="section-card media-card">
+				<view class="section-heading"><text class="section-title">照片与背景</text><text class="section-caption">{{ formData.photos.length }}/9</text></view>
+				<view class="media-row">
+					<view class="avatar-box" @tap="chooseAvatar">
+						<image class="avatar-image" :src="formData.avatar" mode="aspectFill"></image>
+						<text class="media-action">更换头像</text>
 					</view>
-				</view>
-				<view class="avatar-row">
-					<view class="avatar-circle" @tap="chooseAvatar">
-						<image class="avatar-img" :src="formData.avatar" mode="aspectFill"></image>
-						<view class="camera-badge">
-							<text class="camera-icon">📷</text>
-						</view>
+					<view class="background-box" @tap="changeBackground">
+						<image class="background-image" :src="formData.coverBg" mode="aspectFill"></image>
+						<text class="media-action">更换背景</text>
 					</view>
-					<view class="avatar-info">
-						<text class="avatar-title">上传真实头像</text>
-						<text class="avatar-desc">正面高清照，衣着得体，提高推荐排名</text>
-					</view>
-				</view>
-				<text class="avatar-warning">⚠ 他人照片、看不清脸、P图过度、非人物照将无法通过审核</text>
-			</view>
-
-			<!-- 我的相册 -->
-			<view class="section-card">
-				<view class="card-header">
-					<text class="section-title">我的相册</text>
-					<text class="card-count">{{ formData.photos.length }}/9</text>
 				</view>
 				<view class="album-grid">
-					<view class="album-cell" v-for="(photo, index) in formData.photos" :key="index">
-						<image class="album-photo" :src="photo" mode="aspectFill"></image>
-						<view class="album-delete" @tap="deletePhoto(index)">
-							<text class="delete-icon">✕</text>
-						</view>
+					<view class="album-cell" v-for="(photo, index) in formData.photos" :key="photo.id != null ? photo.id : index">
+						<image class="album-photo" :src="photo.url" mode="aspectFill"></image>
+						<view class="album-delete" @tap="deletePhoto(index)"><text>×</text></view>
 					</view>
-					<view class="album-cell add-cell" v-if="formData.photos.length < 9" @tap="addPhoto">
-						<text class="add-icon">+</text>
-					</view>
+					<view v-if="formData.photos.length < 9" class="album-cell add-cell" @tap="addPhoto"><text class="add-icon">+</text></view>
 				</view>
+				<text class="media-note" v-if="uploadingMedia">正在上传媒体，请稍候</text>
 			</view>
 
-			<!-- 基础信息 - 预览卡（.pen: PNARb Profile Preview Card） -->
-			<view class="section-card profile-preview-card">
-				<view class="preview-card-header">
-					<text class="section-title">基础信息</text>
-					<view class="edit-badge" @tap="openBasicInfoEditor">
-						<text class="edit-badge-text">编辑</text>
-						<text class="edit-badge-arrow">›</text>
-					</view>
-				</view>
-				<view class="preview-field-list">
-					<view class="preview-field">
-						<text class="preview-label">现居地</text>
-						<text class="preview-value">{{ formData.location || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">家乡</text>
-						<text class="preview-value">{{ formData.hometown || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">职业</text>
-						<text class="preview-value">{{ formData.company ? formData.occupation + ' · ' + formData.company : formData.occupation || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">收入</text>
-						<text class="preview-value">{{ formData.income || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">婚姻状况</text>
-						<text class="preview-value">{{ formData.maritalStatus || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">脱单目标</text>
-						<text class="preview-value">{{ formData.goal || '未填写' }}</text>
-					</view>
-					<view class="preview-field">
-						<text class="preview-label">微信号</text>
-						<text class="preview-value muted">仅作为紧急联系</text>
-					</view>
-				</view>
-			</view>
-
-			<!-- 四重认证 -->
 			<view class="section-card">
-				<view class="card-header">
-					<text class="section-title">四重认证</text>
-					<text class="card-count accent">已完成 {{ completedCerts }}/4</text>
-				</view>
-				<view class="cert-item" v-for="cert in certs" :key="cert.label">
-					<view class="cert-icon-wrap" :class="{ 'cert-done': cert.done }">
-						<text class="cert-icon-text">{{ cert.icon }}</text>
-					</view>
-					<view class="cert-text-wrap">
-						<text class="cert-label">{{ cert.label }}</text>
-						<text class="cert-desc">{{ cert.desc }}</text>
-					</view>
-					<view v-if="cert.done" class="cert-check">
-						<text class="check-icon">✓</text>
-					</view>
-					<view v-else class="cert-pending" @tap="goCertification(cert.key)">
-						<text class="pending-text">去认证</text>
-					</view>
+				<text class="section-title">基本资料</text>
+				<view class="field-list">
+					<view class="field-row"><text class="field-label">昵称</text><text class="field-readonly">{{ formData.nickname || '未设置' }}</text></view>
+					<view class="field-row"><text class="field-label">性别</text><picker class="field-picker" mode="selector" :range="genderOptions" @change="onGenderChange"><text>{{ genderText }}</text></picker></view>
+					<view class="field-row"><text class="field-label">出生日期</text><picker class="field-picker" mode="date" :value="formData.birthday" start="1900-01-01" end="2100-12-31" @change="onBirthdayChange"><text>{{ formData.birthday || '请选择' }}</text></picker></view>
+					<view class="field-row"><text class="field-label">身高（cm）</text><input class="field-input" type="number" :value="formData.height" placeholder="150-200" @input="onInput('height', $event)" /></view>
+					<view class="field-row"><text class="field-label">学历等级</text><picker class="field-picker" mode="selector" :range="educationOptions" @change="onEducationChange"><text>{{ educationText }}</text></picker></view>
+					<view class="field-row"><text class="field-label">居住城市编码</text><input class="field-input" :value="formData.residenceCityCode" placeholder="例如 310100" @input="onInput('residenceCityCode', $event)" /></view>
 				</view>
 			</view>
 
-			<!-- 自我介绍 -->
 			<view class="section-card">
-				<text class="section-title">自我介绍</text>
-				<view class="intro-input-wrap">
-					<textarea
-						class="intro-textarea"
-						:value="formData.introduction"
-						placeholder="分享一下你的性格、爱好、生活态度...让TA更快了解你"
-						maxlength="500"
-						@input="onIntroInput"
-					></textarea>
-				</view>
-				<text class="intro-hint">超有趣的自我介绍会被更多人看见哦！完成后建议搭配照片验证</text>
-			</view>
-
-			<!-- 我的标签 -->
-			<view class="section-card tag-section">
-				<text class="section-title">我的标签</text>
-				<text class="tag-desc">选择最能代表你的个性标签（最多20个）</text>
-				<view class="tag-row" v-for="(row, ri) in tagRows" :key="ri">
-					<view
-						class="tag-item"
-						v-for="tag in row"
-						:key="tag"
-						:class="{ 'tag-selected': selectedTags.includes(tag) }"
-						@tap="toggleTag(tag)"
-					>
-						<text class="tag-text">{{ tag }}</text>
-					</view>
-				</view>
-				<view class="tag-add-btn" @tap="addCustomTag">
-					<text class="tag-add-text">+添加</text>
+				<text class="section-title">工作情况</text>
+				<view class="field-list">
+					<view class="field-row"><text class="field-label">职业</text><input class="field-input" :value="formData.occupation" placeholder="填写职业" @input="onInput('occupation', $event)" /></view>
+					<view class="field-row"><text class="field-label">行业</text><input class="field-input" :value="formData.industry" placeholder="填写行业" @input="onInput('industry', $event)" /></view>
+					<view class="field-row"><text class="field-label">收入数值</text><input class="field-input" type="number" :value="formData.income" placeholder="填写收入数值" @input="onInput('income', $event)" /></view>
 				</view>
 			</view>
 
-			<!-- 关于我 - 问答 -->
 			<view class="section-card">
-				<text class="section-title">关于我</text>
-				<text class="qa-section-desc">你的回答将展示在个人主页，帮助对方更深入了解你</text>
-				<view class="qa-card" v-for="q in loveQuestions" :key="q.id" @tap="editQA(q)">
-					<text class="qa-question">{{ q.question }}</text>
-					<view class="qa-answer-row">
-						<text class="qa-answer-hint" v-if="!q.answer">点击填写你的回答...</text>
-						<text class="qa-answer-text" v-else>{{ q.answer }}</text>
-						<text class="qa-edit-icon">✎</text>
-					</view>
+				<text class="section-title">婚恋情况</text>
+				<view class="field-list">
+					<view class="field-row"><text class="field-label">婚姻状态</text><picker class="field-picker" mode="selector" :range="maritalOptions" @change="onMaritalChange"><text>{{ maritalText }}</text></picker></view>
+					<view class="field-row"><text class="field-label">MBTI</text><input class="field-input" :value="formData.mbti" placeholder="例如 ENFP" maxlength="4" @input="onInput('mbti', $event)" /></view>
+					<view class="field-column"><text class="field-label">自我介绍</text><textarea class="intro-input" :value="formData.introduction" maxlength="1000" placeholder="分享你的性格、兴趣和生活节奏" @input="onInput('introduction', $event)"></textarea></view>
 				</view>
 			</view>
 
-			<!-- 保存区域 -->
-			<view class="save-section">
-				<view class="save-buttons">
-					<view class="cancel-btn" @tap="onCancel">
-						<text class="cancel-text">取消</text>
-					</view>
-					<view class="save-btn" @tap="handleSave">
-						<text class="save-text">保存</text>
-					</view>
+			<view class="section-card">
+				<view class="section-heading"><text class="section-title">择偶要求</text><text class="section-caption">会影响后续推荐</text></view>
+				<view class="field-list">
+					<view class="range-row"><view class="range-field"><text class="field-label">年龄下限</text><input class="field-input" type="number" :value="formData.ageMin" placeholder="不限" @input="onInput('ageMin', $event)" /></view><text class="range-separator">至</text><view class="range-field"><text class="field-label">年龄上限</text><input class="field-input" type="number" :value="formData.ageMax" placeholder="不限" @input="onInput('ageMax', $event)" /></view></view>
+					<view class="range-row"><view class="range-field"><text class="field-label">身高下限</text><input class="field-input" type="number" :value="formData.heightMin" placeholder="不限" @input="onInput('heightMin', $event)" /></view><text class="range-separator">至</text><view class="range-field"><text class="field-label">身高上限</text><input class="field-input" type="number" :value="formData.heightMax" placeholder="不限" @input="onInput('heightMax', $event)" /></view></view>
+					<view class="field-row"><text class="field-label">最低学历等级</text><input class="field-input" type="number" :value="formData.educationMin" placeholder="不限" @input="onInput('educationMin', $event)" /></view>
+					<view class="field-row"><text class="field-label">接受异地</text><switch :checked="formData.acceptLongDistance" color="var(--accent)" @change="onSwitchChange('acceptLongDistance', $event)" /></view>
+					<view class="field-row"><text class="field-label">接受跨省</text><switch :checked="formData.acceptCrossProvince" color="var(--accent)" @change="onSwitchChange('acceptCrossProvince', $event)" /></view>
+					<view class="field-column"><text class="field-label">其他要求</text><textarea class="intro-input" :value="formData.extraRequirement" maxlength="255" placeholder="填写希望对方了解的边界" @input="onInput('extraRequirement', $event)"></textarea></view>
 				</view>
-				<text class="safe-note">你的信息将受到严格保护，仅用于平台匹配</text>
 			</view>
 
-			<!-- 底部留白 -->
+			<view class="section-card certification-card">
+				<view class="section-heading"><text class="section-title">认证状态</text><text class="section-caption">审核结果来自服务端</text></view>
+				<view class="cert-row" v-for="cert in certifications" :key="cert.key" @tap="goCertification(cert.key)">
+					<text class="cert-label">{{ cert.label }}</text><text class="cert-status" :class="{ passed: cert.passed }">{{ cert.status }}</text><text class="cert-arrow">›</text>
+				</view>
+			</view>
+
+			<view class="intro-section"><text class="safe-note">你的资料会按照公开范围展示，联系方式不会在未同意前公开。</text><view class="save-button" :class="{ disabled: saving || uploadingMedia }" @tap="handleSave"><text>{{ saving ? '保存中...' : '保存资料' }}</text></view></view>
 			<view class="scroll-bottom-spacer"></view>
 		</scroll-view>
-
-		<!-- ==================== 基础信息详情编辑页（.pen: OzNuL Basic Info Section） ==================== -->
-		<view class="basic-info-sheet" v-if="basicInfoEditVisible">
-			<view class="sheet-mask" @tap="closeBasicInfoEditor"></view>
-			<view class="sheet-panel">
-				<!-- sheet 标题栏 -->
-				<view class="sheet-header">
-					<text class="sheet-back" @tap="closeBasicInfoEditor">取消</text>
-					<text class="sheet-title">基础信息</text>
-					<text class="sheet-done" @tap="closeBasicInfoEditor">完成</text>
-				</view>
-
-				<scroll-view class="sheet-body" scroll-y enhanced show-scrollbar="false">
-					<view class="form-card">
-						<!-- 昵称 -->
-						<view class="form-row" @tap="showFieldEditor('nickname')">
-							<text class="form-label">昵称</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.nickname }">{{ formData.nickname || '请输入昵称' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 性别 -->
-						<view class="form-row" @tap="showFieldEditor('gender')">
-							<text class="form-label">性别</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.genderLabel }">{{ formData.genderLabel || '男' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 生日 -->
-						<view class="form-row" @tap="showFieldEditor('birthday')">
-							<text class="form-label">生日</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.birthday }">{{ formData.birthday || '请选择出生日期' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 身高 -->
-						<view class="form-row" @tap="showFieldEditor('height')">
-							<text class="form-label">身高</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.height }">{{ formData.height ? formData.height + ' cm' : '165 cm' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 体重 -->
-						<view class="form-row" @tap="showFieldEditor('weight')">
-							<text class="form-label">体重</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.weight }">{{ formData.weight ? formData.weight + ' kg' : '48 kg' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 现居地 -->
-						<view class="form-row" @tap="showFieldEditor('location')">
-							<text class="form-label">现居地</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.location }">{{ formData.location || '北京' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 家乡 -->
-						<view class="form-row" @tap="showFieldEditor('hometown')">
-							<text class="form-label">家乡</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.hometown }">{{ formData.hometown || '杭州' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 婚姻状况 -->
-						<view class="form-row" @tap="showFieldEditor('maritalStatus')">
-							<text class="form-label">婚姻状况</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.maritalStatus }">{{ formData.maritalStatus || '未婚' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 学历 -->
-						<view class="form-row" @tap="showFieldEditor('education')">
-							<text class="form-label">学历</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.education }">{{ formData.education || '本科 · 北京大学' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 职业 -->
-						<view class="form-row" @tap="showFieldEditor('occupation')">
-							<text class="form-label">职业</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.occupation }">{{ formData.occupation || '产品经理' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 公司 -->
-						<view class="form-row" @tap="showFieldEditor('company')">
-							<text class="form-label">公司</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.company }">{{ formData.company || '字节跳动' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 收入 -->
-						<view class="form-row" @tap="showFieldEditor('income')">
-							<text class="form-label">收入</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.income }">{{ formData.income || '30-50万' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- MBTI -->
-						<view class="form-row" @tap="showFieldEditor('mbti')">
-							<text class="form-label">MBTI</text>
-							<view class="form-right">
-								<text class="form-value" :class="{ 'placeholder': !formData.mbti }">{{ formData.mbti || 'ENFJ' }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-						<view class="form-divider"></view>
-
-						<!-- 微信号 -->
-						<view class="form-row" @tap="showFieldEditor('wechat')">
-							<text class="form-label">微信号</text>
-							<view class="form-right">
-								<text class="form-value placeholder" v-if="!formData.wechat">仅作为紧急联系</text>
-								<text class="form-value" v-else>{{ formData.wechat }}</text>
-								<text class="form-arrow">›</text>
-							</view>
-						</view>
-					</view>
-
-					<!-- 底部留白 -->
-					<view class="sheet-bottom-spacer"></view>
-				</scroll-view>
-			</view>
-		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import { ref, computed } from 'vue'
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import { getOwnProfile, updateOwnProfile, getOwnPreferences, updateOwnPreferences, uploadUserProfileMedia, deleteUserProfilePhoto, getMeProfile } from '@/api'
 
-	// 表单数据
+	const DEFAULT_AVATAR = '/static/portraits/profile-woman-main.jpg'
+	const DEFAULT_COVER = '/static/portraits/profile-woman-alt.jpg'
+	const loading = ref(true)
+	const loadError = ref('')
+	const saving = ref(false)
+	const uploadingMedia = ref(false)
+	const realNameStatus = ref('missing')
+	const genderOptions = ['未选择', '男', '女']
+	const educationOptions = ['未选择', '高中及以下', '大专', '本科', '硕士', '博士']
+	const maritalOptions = ['未选择', '未婚', '离异', '丧偶']
 	const formData = ref({
-		avatar: '/static/portraits/profile-woman-main.jpg',
-		coverBg: '/static/portraits/profile-woman-alt.jpg',
-		photos: [
-			'/static/portraits/profile-woman-main.jpg',
-			'/static/portraits/profile-woman-alt.jpg'
-		] as string[],
-		nickname: '苏晚晴',
-		gender: 2,
-		genderLabel: '女',
-		birthday: '1998-05-15',
-		height: 165,
-		weight: 48,
-		location: '北京',
-		hometown: '杭州',
-		education: '本科 · 北京大学',
-		occupation: '产品经理',
-		company: '字节跳动',
-		income: '30-50万',
-		maritalStatus: '未婚',
-		mbti: 'ENFJ',
-		goal: '希望在2年内遇到对的人',
-		wechat: '',
+		userId: 0,
+		nickname: '',
+		gender: null as any,
+		birthday: '',
+		height: '' as any,
+		educationLevel: null as any,
+		residenceCityCode: '',
+		occupation: '',
+		industry: '',
+		income: '' as any,
+		isMarried: null as any,
+		mbti: '',
 		introduction: '',
-		requirement: ''
+		interestTags: [] as string[],
+		personalityTags: [] as string[],
+		tagSelections: {} as any,
+		avatar: DEFAULT_AVATAR,
+		coverBg: DEFAULT_COVER,
+		photos: [] as any[],
+		ageMin: '' as any,
+		ageMax: '' as any,
+		heightMin: '' as any,
+		heightMax: '' as any,
+		educationMin: '' as any,
+		acceptLongDistance: true,
+		acceptCrossProvince: true,
+		extraRequirement: ''
 	})
+	const completionScore = ref(0)
 
-	// 基础信息编辑 sheet 可见性
-	const basicInfoEditVisible = ref(false)
-
-	// 资料完整度
-	const completeness = computed(() => {
-		let score = 0
-		let total = 7
-		if (formData.value.avatar) score++
-		if (formData.value.photos.length >= 1) score++
-		if (formData.value.location) score++
-		if (formData.value.occupation) score++
-		if (formData.value.introduction) score++
-		if (selectedTags.value.length >= 3) score++
-		if (loveQuestions.value.some(q => q.answer)) score++
-		return Math.round((score / total) * 100)
-	})
-
-	// 认证数据
-	const completedCerts = computed(() => certs.value.filter(c => c.done).length)
-	const certs = ref([
-		{ key: 'realname', label: '实名认证', desc: '已通过平台实名认证', icon: '🛡', done: true },
-		{ key: 'education', label: '学历认证', desc: '学历信息已核验', icon: '🎓', done: true },
-		{ key: 'avatar', label: '头像认证', desc: '上传真实本人照片', icon: '📷', done: false },
-		{ key: 'marriage', label: '婚况认证', desc: '提交婚况证明材料', icon: '💍', done: false }
-	])
-
-	// 标签数据
-	const allTags = [
-		'文艺青年', '旅行达人', '美食控', '健身',
-		'摄影', '音乐', '宠物', '户外',
-		'游戏', '宅', '读书', '咖啡控'
-	]
-	const tagRows = computed(() => {
-		const rows: string[][] = []
-		for (let i = 0; i < allTags.length; i += 4) {
-			rows.push(allTags.slice(i, i + 4))
-		}
-		return rows
-	})
-	const selectedTags = ref<string[]>([
-		'旅行达人', '文艺青年', '健身', '摄影', '宠物'
-	])
-
-	const toggleTag = (tag: string) => {
-		const idx = selectedTags.value.indexOf(tag)
-		if (idx >= 0) {
-			selectedTags.value.splice(idx, 1)
-		} else if (selectedTags.value.length < 20) {
-			selectedTags.value.push(tag)
-		}
+	const textValue = (value: any): string => value == null ? '' : '' + value
+	const optionalNumber = (value: any): any => {
+		if (value == null || ('' + value).trim() == '') return null
+		const parsed = Number(value)
+		return isNaN(parsed) ? null : parsed
+	}
+	const profileMedia = (raw: any): any[] => {
+		const list = raw != null && Array.isArray(raw) ? raw as any[] : []
+		return list.map((item: any) => ({ id: item.id, url: item.file_url != null ? '' + item.file_url : '', sortOrder: item.sort_order }))
 	}
 
-	const addCustomTag = () => {
-		uni.showToast({ title: '自定义标签功能开发中', icon: 'none' })
+	const applyProfile = (raw: any) => {
+		const data = raw != null ? raw : {}
+		formData.value.userId = data.user_id != null ? Number(data.user_id) : 0
+		formData.value.nickname = textValue(data.nickname)
+		formData.value.gender = data.gender
+		formData.value.birthday = textValue(data.birthday)
+		formData.value.height = data.height != null ? data.height : ''
+		formData.value.educationLevel = data.education_level
+		formData.value.residenceCityCode = textValue(data.residence_city_code)
+		formData.value.occupation = textValue(data.occupation)
+		formData.value.industry = textValue(data.industry)
+		formData.value.income = data.income != null ? data.income : ''
+		formData.value.isMarried = data.is_married
+		formData.value.mbti = textValue(data.mbti)
+		formData.value.introduction = textValue(data.self_intro)
+		formData.value.interestTags = data.interest_tags != null ? data.interest_tags : []
+		formData.value.personalityTags = data.personality_tags != null ? data.personality_tags : []
+		formData.value.tagSelections = data.tag_selections != null ? data.tag_selections : {}
+		formData.value.avatar = textValue(data.avatar) || DEFAULT_AVATAR
+		formData.value.coverBg = textValue(data.background_wall) || DEFAULT_COVER
+		formData.value.photos = profileMedia(data.photos)
+		completionScore.value = data.completion_score != null ? Math.round(Number(data.completion_score)) : 0
 	}
 
-	// 关于我 问答
-	const loveQuestions = ref([
-		{ id: 1, question: '你理想中的另一半是什么样的', answer: '' },
-		{ id: 2, question: '喜欢什么运动', answer: '' },
-		{ id: 3, question: '你期待的爱情是什么样子的', answer: '' }
-	])
-
-	const editQA = (q: any) => {
-		uni.showToast({ title: '问答编辑功能开发中', icon: 'none' })
+	const applyPreferences = (raw: any) => {
+		const data = raw != null ? raw : {}
+		formData.value.ageMin = data.age_min != null ? data.age_min : ''
+		formData.value.ageMax = data.age_max != null ? data.age_max : ''
+		formData.value.heightMin = data.height_min != null ? data.height_min : ''
+		formData.value.heightMax = data.height_max != null ? data.height_max : ''
+		formData.value.educationMin = data.education_min != null ? data.education_min : ''
+		formData.value.acceptLongDistance = data.accept_long_distance == true
+		formData.value.acceptCrossProvince = data.accept_cross_province == true
+		formData.value.extraRequirement = textValue(data.extra_requirement)
 	}
 
-	// 更换背景
-	const changeBackground = () => {
-		uni.chooseImage({
-			count: 1,
-			sizeType: ['compressed'],
-			sourceType: ['album', 'camera'],
-			success: (res) => {
-				formData.value.coverBg = res.tempFilePaths[0]
-				uni.showToast({ title: '背景已更换', icon: 'success' })
+	const load = async () => {
+		loading.value = true
+		loadError.value = ''
+		try {
+			const profileRes = await getOwnProfile()
+			if (!profileRes.success || profileRes.data == null) {
+				loadError.value = profileRes.message != null ? '' + profileRes.message : '请稍后重试'
+				return
 			}
-		})
+			applyProfile(profileRes.data)
+			const preferenceRes = await getOwnPreferences()
+			if (!preferenceRes.success || preferenceRes.data == null) {
+				loadError.value = preferenceRes.message != null ? '' + preferenceRes.message : '择偶要求暂时无法加载'
+				return
+			}
+			applyPreferences(preferenceRes.data)
+			const meRes = await getMeProfile()
+			if (meRes.success && meRes.data != null) {
+				realNameStatus.value = meRes.data.realNameStatus != null ? '' + meRes.data.realNameStatus : 'missing'
+			}
+		} catch (e) {
+			loadError.value = '网络异常，请稍后重试'
+		} finally {
+			loading.value = false
+		}
 	}
 
-	// 头像
+	const completeness = computed(() => completionScore.value > 0 ? completionScore.value : Math.min(100, [formData.value.avatar, formData.value.occupation, formData.value.introduction].filter((item: any) => item != null && ('' + item).trim() != '').length * 25))
+	const genderText = computed(() => formData.value.gender == 1 ? '男' : formData.value.gender == 2 ? '女' : '未选择')
+	const educationText = computed(() => formData.value.educationLevel != null ? educationOptions[Number(formData.value.educationLevel)] || '未选择' : '未选择')
+	const maritalText = computed(() => formData.value.isMarried != null ? maritalOptions[Number(formData.value.isMarried)] || '未选择' : '未选择')
+	const certifications = computed(() => [
+		{ key: 'realname', label: '实名认证', passed: realNameStatus.value == 'passed', status: realNameStatus.value == 'passed' ? '已通过' : realNameStatus.value == 'reviewing' ? '审核中' : '去认证' },
+		{ key: 'education', label: '学历认证', passed: false, status: '状态未返回' },
+		{ key: 'avatar', label: '头像认证', passed: false, status: '状态未返回' }
+	])
+
+	onMounted(() => load())
+
+	const onInput = (field: string, event: any) => {
+		(formData.value as any)[field] = event.detail.value
+	}
+	const onSwitchChange = (field: string, event: any) => {
+		(formData.value as any)[field] = event.detail.value == true
+	}
+	const onGenderChange = (event: any) => formData.value.gender = Number(event.detail.value) == 1 ? 1 : Number(event.detail.value) == 2 ? 2 : null
+	const onEducationChange = (event: any) => formData.value.educationLevel = Number(event.detail.value) > 0 ? Number(event.detail.value) : null
+	const onMaritalChange = (event: any) => formData.value.isMarried = Number(event.detail.value) > 0 ? Number(event.detail.value) : null
+	const onBirthdayChange = (event: any) => formData.value.birthday = event.detail.value
+
+	const uploadMedia = async (path: string, kind: string) => {
+		if (path == '') return null
+		uploadingMedia.value = true
+		try {
+			const res = await uploadUserProfileMedia(path, kind)
+			if (!res.success || res.data == null) {
+				uni.showToast({ title: res.message != null ? '' + res.message : '上传失败，请重试', icon: 'none' })
+				return null
+			}
+			return res.data
+		} catch (e) {
+			uni.showToast({ title: '上传失败，请检查网络', icon: 'none' })
+			return null
+		} finally {
+			uploadingMedia.value = false
+		}
+	}
+
 	const chooseAvatar = () => {
-		uni.chooseImage({
-			count: 1,
-			sizeType: ['compressed'],
-			sourceType: ['album', 'camera'],
-			success: (res) => {
-				formData.value.avatar = res.tempFilePaths[0]
-			}
-		})
+		uni.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'], success: async (res: any) => {
+			const path = res != null && res.tempFilePaths != null && res.tempFilePaths.length > 0 ? '' + res.tempFilePaths[0] : ''
+			const media = await uploadMedia(path, 'avatar')
+			if (media != null) formData.value.avatar = media.file_url != null ? '' + media.file_url : path
+		} })
 	}
 
-	// 相册
+	const changeBackground = () => {
+		uni.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'], success: async (res: any) => {
+			const path = res != null && res.tempFilePaths != null && res.tempFilePaths.length > 0 ? '' + res.tempFilePaths[0] : ''
+			const media = await uploadMedia(path, 'background')
+			if (media != null) formData.value.coverBg = media.file_url != null ? '' + media.file_url : path
+		} })
+	}
+
 	const addPhoto = () => {
-		const remaining = 9 - formData.value.photos.length
-		uni.chooseImage({
-			count: remaining,
-			sizeType: ['compressed'],
-			sourceType: ['album', 'camera'],
-			success: (res) => {
-				formData.value.photos.push(...res.tempFilePaths)
+		const count = 9 - formData.value.photos.length
+		if (count <= 0) return
+		uni.chooseImage({ count, sizeType: ['compressed'], sourceType: ['album', 'camera'], success: async (res: any) => {
+			const paths = res != null && res.tempFilePaths != null ? res.tempFilePaths as string[] : []
+			for (let i = 0; i < paths.length; i++) {
+				const media = await uploadMedia('' + paths[i], 'photo')
+				if (media != null) formData.value.photos.push({ id: media.id, url: media.file_url != null ? '' + media.file_url : '' + paths[i] })
 			}
-		})
+		} })
 	}
 
-	const deletePhoto = (index: number) => {
-		uni.showModal({
-			title: '提示',
-			content: '确定删除这张照片吗？',
-			success: (res) => {
-				if (res.confirm) {
-					formData.value.photos.splice(index, 1)
-				}
-			}
-		})
+	const deletePhoto = async (index: number) => {
+		const list = formData.value.photos as any[]
+		if (index < 0 || index >= list.length) return
+		const item = list[index]
+		if (item.id == null || Number(item.id) <= 0) return
+		const res = await deleteUserProfilePhoto(Number(item.id))
+		if (res.success) list.splice(index, 1)
+		else uni.showToast({ title: res.message != null ? '' + res.message : '删除失败，请重试', icon: 'none' })
 	}
 
-	// 基础信息编辑器
-	const openBasicInfoEditor = () => {
-		basicInfoEditVisible.value = true
-	}
+	const goCertification = (key: string) => uni.navigateTo({ url: '/pages/profile/certification?type=' + key })
+	const onPreview = () => uni.navigateTo({ url: '/pages/user/detail?own=true' })
 
-	const closeBasicInfoEditor = () => {
-		basicInfoEditVisible.value = false
-	}
+	const buildProfilePayload = () => ({
+		gender: formData.value.gender,
+		birthday: formData.value.birthday != '' ? formData.value.birthday : null,
+		is_married: formData.value.isMarried,
+		height: optionalNumber(formData.value.height),
+		occupation: textValue(formData.value.occupation) || null,
+		industry: textValue(formData.value.industry) || null,
+		education_level: formData.value.educationLevel,
+		income: optionalNumber(formData.value.income),
+		residence_city_code: textValue(formData.value.residenceCityCode) || null,
+		self_intro: textValue(formData.value.introduction) || null,
+		interest_tags: formData.value.interestTags.length >= 3 ? formData.value.interestTags.slice(0, 5) : null,
+		personality_tags: formData.value.personalityTags.length >= 3 ? formData.value.personalityTags.slice(0, 5) : null,
+		mbti: textValue(formData.value.mbti).toUpperCase() || null,
+		tag_selections: formData.value.tagSelections
+	})
 
-	// 字段编辑
-	const showFieldEditor = (field: string) => {
-		uni.showToast({ title: '选择器开发中', icon: 'none' })
-	}
+	const buildPreferencePayload = () => ({
+		age_min: optionalNumber(formData.value.ageMin),
+		age_max: optionalNumber(formData.value.ageMax),
+		height_min: optionalNumber(formData.value.heightMin),
+		height_max: optionalNumber(formData.value.heightMax),
+		education_min: optionalNumber(formData.value.educationMin),
+		accept_long_distance: formData.value.acceptLongDistance,
+		accept_cross_province: formData.value.acceptCrossProvince,
+		extra_requirement: textValue(formData.value.extraRequirement) || null
+	})
 
-	// 认证跳转
-	const goCertification = (key: string) => {
-		uni.navigateTo({ url: '/pages/profile/certification?type=' + key })
-	}
-
-	const onPreview = () => {
-		uni.navigateTo({ url: '/pages/user/detail?own=true' })
-	}
-
-	const onCancel = () => {
-		uni.navigateBack({ delta: 1 })
-	}
-
-	// 输入
-	const onIntroInput = (e: InputEvent) => {
-		formData.value.introduction = e.detail.value
-	}
-
-	// 保存
-	const handleSave = () => {
-		if (!formData.value.nickname) {
-			uni.showToast({ title: '请输入昵称', icon: 'none' })
+	const handleSave = async () => {
+		if (saving.value || uploadingMedia.value) return
+		const height = optionalNumber(formData.value.height)
+		if (height != null && (height < 150 || height > 200)) {
+			uni.showToast({ title: '身高需在150至200厘米之间', icon: 'none' })
 			return
 		}
-		if (formData.value.gender === 0) {
-			uni.showToast({ title: '请选择性别', icon: 'none' })
-			return
+		saving.value = true
+		try {
+			const profileRes = await updateOwnProfile(buildProfilePayload())
+			if (!profileRes.success) {
+				uni.showToast({ title: profileRes.message != null ? '' + profileRes.message : '基础资料保存失败', icon: 'none' })
+				return
+			}
+			const preferenceRes = await updateOwnPreferences(buildPreferencePayload())
+			if (!preferenceRes.success) {
+				uni.showToast({ title: preferenceRes.message != null ? '' + preferenceRes.message : '择偶要求保存失败', icon: 'none' })
+				return
+			}
+			uni.showToast({ title: '资料已保存', icon: 'success' })
+			setTimeout(() => uni.navigateBack({ delta: 1 }), 700)
+		} catch (e) {
+			uni.showToast({ title: '网络异常，资料未保存', icon: 'none' })
+		} finally {
+			saving.value = false
 		}
-		uni.showToast({ title: '保存成功', icon: 'success' })
-		setTimeout(() => {
-			uni.navigateBack()
-		}, 1500)
 	}
 </script>
 
 <style scoped>
-.edit-page {
-	min-height: 100vh;
-	background-color: var(--canvas);
-	display: flex;
-	flex-direction: column;
-}
-
-/* ==================== 导航栏 ==================== */
-.nav-bar {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	justify-content: center;
-	gap: 32rpx;
-	padding: 0 40rpx 24rpx 40rpx;
-}
-.nav-title {
-	font-size: 36rpx;
-	font-weight: 700;
-}
-.nav-title.active {
-	color: var(--ink);
-}
-.nav-title.muted {
-	color: var(--muted);
-}
-
-/* ==================== 滚动内容区 ==================== */
-.scroll-content {
-	flex: 1;
-	padding: 8rpx 32rpx 0 32rpx;
-}
-.scroll-bottom-spacer {
-	height: 60rpx;
-}
-
-/* ==================== 进度条 ==================== */
-.progress-section {
-	display: flex;
-	flex-direction: column;
-	gap: 20rpx;
-	padding: 24rpx 32rpx 8rpx 32rpx;
-	margin-bottom: 28rpx;
-}
-.progress-header {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-}
-.progress-label {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: var(--ink);
-}
-.progress-pct {
-	font-size: 28rpx;
-	font-weight: 700;
-	color: var(--accent);
-}
-.progress-bar-bg {
-	width: 100%;
-	height: 12rpx;
-	border-radius: 6rpx;
-	background-color: var(--warm);
-	overflow: hidden;
-}
-.progress-bar-fill {
-	height: 100%;
-	border-radius: 6rpx;
-	background: linear-gradient(90deg, var(--accent), var(--accent2));
-	transition: width 0.3s;
-}
-.progress-hint {
-	font-size: 22rpx;
-	color: var(--muted);
-}
-
-/* ==================== 通用卡片 ==================== */
-.section-card {
-	display: flex;
-	flex-direction: column;
-	gap: 28rpx;
-	padding: 32rpx;
-	background-color: var(--surface);
-	border-radius: 40rpx;
-	box-shadow: var(--shadow-sm);
-	margin-bottom: 28rpx;
-}
-.section-title {
-	font-size: 32rpx;
-	font-weight: 700;
-	color: var(--ink);
-}
-.section-card-header {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 4rpx;
-}
-.change-bg-btn {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 4rpx;
-	padding: 8rpx 16rpx;
-	border-radius: 9999rpx;
-	background-color: var(--warm);
-}
-.change-bg-text {
-	font-size: 24rpx;
-	color: var(--muted);
-}
-.change-bg-arrow {
-	font-size: 28rpx;
-	color: var(--muted);
-}
-.card-header {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-}
-.card-count {
-	font-size: 26rpx;
-	font-weight: 500;
-	color: var(--muted);
-}
-.card-count.accent {
-	color: var(--accent);
-}
-
-/* ==================== 头像区 ==================== */
-.avatar-row {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 32rpx;
-}
-.avatar-circle {
-	position: relative;
-	width: 144rpx;
-	height: 144rpx;
-	border-radius: 50%;
-	overflow: visible;
-	flex-shrink: 0;
-}
-.avatar-img {
-	width: 144rpx;
-	height: 144rpx;
-	border-radius: 50%;
-}
-.camera-badge {
-	position: absolute;
-	bottom: 0;
-	right: 0;
-	width: 48rpx;
-	height: 48rpx;
-	border-radius: 50%;
-	background-color: var(--accent);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.camera-icon {
-	font-size: 24rpx;
-	color: var(--text-invert);
-}
-.avatar-info {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 12rpx;
-}
-.avatar-title {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: var(--ink);
-}
-.avatar-desc {
-	font-size: 24rpx;
-	color: var(--muted);
-	line-height: 1.4;
-}
-.avatar-warning {
-	font-size: 22rpx;
-	color: #E88C5A;
-	line-height: 1.4;
-}
-
-/* ==================== 相册 ==================== */
-.album-grid {
-	display: flex;
-	flex-direction: row;
-	gap: 16rpx;
-}
-.album-cell {
-	position: relative;
-	flex: 1;
-	aspect-ratio: 1;
-	border-radius: 24rpx;
-	overflow: hidden;
-	background-color: var(--warm);
-}
-.album-photo {
-	width: 100%;
-	height: 100%;
-}
-.album-delete {
-	position: absolute;
-	top: 8rpx;
-	right: 8rpx;
-	width: 40rpx;
-	height: 40rpx;
-	border-radius: 50%;
-	background-color: rgba(0, 0, 0, 0.5);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.delete-icon {
-	font-size: 24rpx;
-	color: #FFFFFF;
-}
-.add-cell {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.add-icon {
-	font-size: 64rpx;
-	color: var(--muted);
-	font-weight: 300;
-}
-
-/* ==================== 基础信息预览卡（.pen: PNARb） ==================== */
-.profile-preview-card {
-	position: relative;
-}
-.preview-card-header {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-}
-.edit-badge {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 4rpx;
-	padding: 12rpx 28rpx;
-	border-radius: 999rpx;
-	background-color: var(--warm);
-}
-.edit-badge-text {
-	font-size: 28rpx;
-	color: var(--muted);
-}
-.edit-badge-arrow {
-	font-size: 32rpx;
-	color: var(--muted);
-}
-.preview-field-list {
-	display: flex;
-	flex-direction: column;
-}
-.preview-field {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	padding: 16rpx 0;
-	border-bottom: 1px solid var(--warm);
-}
-.preview-field:last-child {
-	border-bottom: none;
-}
-.preview-label {
-	font-size: 26rpx;
-	color: var(--muted);
-}
-.preview-value {
-	font-size: 26rpx;
-	font-weight: 500;
-	color: var(--ink);
-}
-.preview-value.muted {
-	color: var(--muted);
-}
-
-/* ==================== 认证 ==================== */
-.cert-item {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 24rpx;
-	padding: 8rpx 0;
-}
-.cert-icon-wrap {
-	width: 80rpx;
-	height: 80rpx;
-	border-radius: 40rpx;
-	background-color: var(--warm);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-}
-.cert-icon-wrap.cert-done {
-	background-color: var(--accent-bg);
-}
-.cert-icon-text {
-	font-size: 36rpx;
-}
-.cert-text-wrap {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 4rpx;
-}
-.cert-label {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: var(--ink);
-}
-.cert-desc {
-	font-size: 22rpx;
-	color: var(--muted);
-}
-.cert-check {
-	width: 40rpx;
-	height: 40rpx;
-	flex-shrink: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.check-icon {
-	font-size: 36rpx;
-	font-weight: 700;
-	color: var(--accent);
-}
-.cert-pending {
-	padding: 10rpx 24rpx;
-	border-radius: 24rpx;
-	background-color: var(--accent-bg);
-	flex-shrink: 0;
-}
-.pending-text {
-	font-size: 24rpx;
-	font-weight: 600;
-	color: var(--accent2);
-}
-
-/* ==================== 自我介绍 ==================== */
-.intro-input-wrap {
-	padding: 24rpx;
-	border-radius: 24rpx;
-	background-color: var(--warm);
-	min-height: 200rpx;
-}
-.intro-textarea {
-	width: 100%;
-	min-height: 160rpx;
-	font-size: 26rpx;
-	color: var(--ink);
-	line-height: 1.5;
-}
-.intro-hint {
-	font-size: 22rpx;
-	color: var(--muted);
-	line-height: 1.4;
-}
-
-/* ==================== 标签 ==================== */
-.tag-section {
-	position: relative;
-	overflow: visible;
-}
-.tag-desc {
-	font-size: 24rpx;
-	color: var(--muted);
-	margin-top: -16rpx;
-}
-.tag-row {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	gap: 16rpx;
-}
-.tag-item {
-	padding: 12rpx 28rpx;
-	border-radius: 999rpx;
-	background-color: var(--warm);
-}
-.tag-item.tag-selected {
-	background-color: var(--accent-bg);
-}
-.tag-text {
-	font-size: 26rpx;
-	font-weight: 500;
-	color: var(--ink2);
-}
-.tag-item.tag-selected .tag-text {
-	color: var(--accent2);
-}
-.tag-add-btn {
-	padding: 12rpx 28rpx;
-	border-radius: 999rpx;
-	background-color: var(--accent-bg);
-	align-self: flex-end;
-}
-.tag-add-text {
-	font-size: 26rpx;
-	font-weight: 500;
-	color: var(--accent2);
-}
-
-/* ==================== 关于我 问答 ==================== */
-.qa-section-desc {
-	font-size: 24rpx;
-	color: var(--muted);
-	margin-top: -16rpx;
-}
-.qa-card {
-	display: flex;
-	flex-direction: column;
-	gap: 16rpx;
-	padding: 24rpx;
-	border-radius: 24rpx;
-	background-color: var(--warm);
-}
-.qa-question {
-	font-size: 26rpx;
-	font-weight: 600;
-	color: var(--ink);
-}
-.qa-answer-row {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-}
-.qa-answer-hint {
-	font-size: 24rpx;
-	color: var(--muted);
-}
-.qa-answer-text {
-	font-size: 24rpx;
-	color: var(--ink2);
-	flex: 1;
-}
-.qa-edit-icon {
-	font-size: 28rpx;
-	color: var(--accent);
-	margin-left: 16rpx;
-}
-
-/* ==================== 保存区域 ==================== */
-.save-section {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 24rpx;
-	padding: 16rpx 0;
-	margin-bottom: 28rpx;
-}
-.save-buttons {
-	display: flex;
-	flex-direction: row;
-	gap: 24rpx;
-	width: 100%;
-}
-.cancel-btn {
-	flex: 1;
-	height: 96rpx;
-	border-radius: 48rpx;
-	background-color: var(--warm);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.cancel-text {
-	font-size: 30rpx;
-	font-weight: 600;
-	color: var(--ink2);
-}
-.save-btn {
-	flex: 1;
-	height: 96rpx;
-	border-radius: 48rpx;
-	background-color: var(--accent);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	box-shadow: 0 8rpx 24rpx rgba(56, 152, 141, 0.25);
-}
-.save-text {
-	font-size: 30rpx;
-	font-weight: 700;
-	color: var(--text-invert);
-}
-.safe-note {
-	font-size: 22rpx;
-	color: var(--muted);
-	text-align: center;
-}
-
-/* ==================== 基础信息编辑 Sheet（.pen: OzNuL） ==================== */
-.basic-info-sheet {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	z-index: 100;
-	display: flex;
-	flex-direction: column;
-}
-.sheet-mask {
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background-color: rgba(0, 0, 0, 0.4);
-}
-.sheet-panel {
-	position: relative;
-	flex: 1;
-	margin-top: 120rpx;
-	background-color: var(--canvas);
-	border-radius: 40rpx 40rpx 0 0;
-	display: flex;
-	flex-direction: column;
-	overflow: hidden;
-}
-
-.sheet-header {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	padding: 32rpx 32rpx 24rpx 32rpx;
-	background-color: var(--surface);
-	flex-shrink: 0;
-}
-.sheet-back {
-	font-size: 28rpx;
-	color: var(--muted);
-}
-.sheet-title {
-	font-size: 32rpx;
-	font-weight: 700;
-	color: var(--ink);
-}
-.sheet-done {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: var(--accent);
-}
-
-.sheet-body {
-	flex: 1;
-	padding: 0;
-}
-
-/* 表单卡片 */
-.form-card {
-	margin: 24rpx 32rpx;
-	padding: 0 32rpx;
-	background-color: var(--surface);
-	border-radius: 40rpx;
-	box-shadow: var(--shadow-sm);
-}
-.form-row {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	padding: 24rpx 0;
-}
-.form-label {
-	font-size: 28rpx;
-	color: var(--ink);
-	flex-shrink: 0;
-}
-.form-right {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 12rpx;
-}
-.form-value {
-	font-size: 28rpx;
-	color: var(--muted);
-	text-align: right;
-}
-.form-value.placeholder {
-	color: var(--muted);
-}
-.form-arrow {
-	font-size: 36rpx;
-	color: var(--muted);
-}
-.form-divider {
-	height: 1px;
-	background-color: var(--warm);
-}
-
-.sheet-bottom-spacer {
-	height: calc(60rpx + env(safe-area-inset-bottom));
-}
+.edit-page { min-height: 100vh; background: var(--canvas); display: flex; flex-direction: column; }
+.nav-bar { height: 52px; padding: 0 16px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; background: var(--paper); border-bottom: 1px solid var(--line); }
+.nav-title { font-size: 20px; font-weight: 700; color: var(--ink); }
+.nav-preview { font-size: 13px; color: var(--accent2); }
+.state-block { padding: 72px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.state-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+.state-description { font-size: 13px; color: var(--muted); }
+.scroll-content { flex: 1; height: 0; padding: 12px 16px 0; box-sizing: border-box; }
+.progress-section { padding: 4px 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.progress-header, .section-heading, .field-row, .range-row, .cert-row { display: flex; flex-direction: row; align-items: center; }
+.progress-header, .section-heading { justify-content: space-between; }
+.progress-label, .section-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+.progress-value { font-size: 14px; font-weight: 700; color: var(--accent2); }
+.progress-track { height: 6px; border-radius: 3px; background: var(--warm); overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+.progress-hint, .section-caption, .media-note, .safe-note { font-size: 12px; color: var(--muted); }
+.section-card { margin-bottom: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.section-heading { margin-bottom: 14px; }
+.media-row { display: flex; flex-direction: row; gap: 10px; margin-bottom: 12px; }
+.avatar-box, .background-box { position: relative; overflow: hidden; border-radius: 8px; background: var(--warm); }
+.avatar-box { width: 88px; height: 88px; }
+.background-box { flex: 1; height: 88px; }
+.avatar-image, .background-image { width: 100%; height: 100%; }
+.media-action { position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 4px; text-align: center; background: var(--surface-overlay); color: var(--ink); font-size: 11px; }
+.album-grid { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+.album-cell { position: relative; width: calc((100% - 24px) / 4); aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: var(--warm); }
+.album-photo { width: 100%; height: 100%; }
+.album-delete { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--ink); color: var(--text-invert); font-size: 16px; }
+.add-cell { display: flex; align-items: center; justify-content: center; border: 1px dashed var(--line); }
+.add-icon { font-size: 24px; color: var(--muted); }
+.media-note { display: block; margin-top: 10px; color: var(--accent2); }
+.field-list { display: flex; flex-direction: column; }
+.field-row { min-height: 46px; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+.field-row:last-child { border-bottom: 0; }
+.field-label { flex-shrink: 0; font-size: 13px; color: var(--ink2); }
+.field-input, .field-picker, .field-readonly { flex: 1; min-width: 0; text-align: right; font-size: 13px; color: var(--ink); }
+.field-input { height: 40px; }
+.field-picker { padding: 10px 0; }
+.field-readonly { color: var(--muted); }
+.field-column { padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.intro-input { width: 100%; min-height: 92px; padding: 10px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font-size: 13px; line-height: 1.5; }
+.range-row { gap: 10px; padding: 8px 0; align-items: flex-end; }
+.range-field { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.range-separator { padding-bottom: 12px; color: var(--muted); font-size: 12px; }
+.certification-card { padding-bottom: 4px; }
+.cert-row { min-height: 44px; gap: 8px; border-top: 1px solid var(--line); }
+.cert-label { flex: 1; font-size: 13px; color: var(--ink); }
+.cert-status { font-size: 12px; color: var(--muted); }
+.cert-status.passed { color: var(--sage); }
+.cert-arrow { color: var(--muted); font-size: 18px; }
+.intro-section { padding: 4px 0 16px; display: flex; flex-direction: column; gap: 12px; }
+.save-button { height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--brown); color: var(--text-invert); font-size: 14px; font-weight: 700; }
+.save-button.disabled { opacity: 0.55; }
+.scroll-bottom-spacer { height: calc(20px + env(safe-area-inset-bottom)); }
+@media (max-width: 350px) { .scroll-content { padding-left: 12px; padding-right: 12px; } .section-card { padding: 13px; } }
 </style>

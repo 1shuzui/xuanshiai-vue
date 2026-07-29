@@ -8,7 +8,7 @@
  */
 
 import { request } from './request.uts'
-import { USE_MOCK, PAPER_PLANE_CHANCE_USE_MOCK, API_BASE_URL, API_PREFIX, getAccessToken, buildApiUrl } from './config.uts'
+import { USE_MOCK, PAPER_PLANE_CHANCE_USE_MOCK, API_BASE_URL, API_PREFIX, getAccessToken, clearAuthTokens, buildApiUrl, resolveMediaUrl } from './config.uts'
 import {
   mockDynamicList,
   mockTopics,
@@ -302,8 +302,7 @@ function markTopicParticipation(topic: any): void {
 function unmarkTopicParticipation(topic: any): void {
   if (topic == null || topic.joined != true) return
   topic.joined = false
-  const n = (topic.participantCount as number) || 0
-  topic.participantCount = n > 0 ? n - 1 : 0
+  topic.participantCount = Math.max(0, ((topic.participantCount as number) || 0) - 1)
 }
 
 function findActivity(activityId: number): any {
@@ -566,13 +565,23 @@ function filterDynamics(tab: string, filter: string, city: string): any[] {
 
 // ─── Real API adapters (snake_case → 页面 camelCase) ────────
 
+function resolveMediaUrlList(raw: any): string[] {
+  const values = Array.isArray(raw) ? (raw as any[]) : []
+  const urls: string[] = []
+  for (let i = 0; i < values.length; i++) {
+    const url = resolveMediaUrl(values[i])
+    if (url != '') urls.push(url)
+  }
+  return urls
+}
+
 function mapPost(row: any): any {
   if (row == null) return null
-  const images = row.images != null ? row.images : []
-  const video = row.video != null ? ('' + row.video) : ''
+  const video = row.video != null ? resolveMediaUrl(row.video) : ''
   const hasVideo = video != ''
-  const photos: string[] = hasVideo ? [] : (images as string[])
+  const photos: string[] = hasVideo ? [] : resolveMediaUrlList(row.images)
   const videos: string[] = hasVideo ? [video] : []
+  const likeAvatars = resolveMediaUrlList(row.like_avatars != null ? row.like_avatars : row.likeAvatars)
   const created = row.created_at != null ? row.created_at : row.createdAt
   const city = row.residence != null ? ('' + row.residence) : (row.location != null ? ('' + row.location) : '')
   const realNameStatus = realNameStatusFrom(row.realname_status)
@@ -580,7 +589,7 @@ function mapPost(row: any): any {
     id: row.id,
     user: {
       id: row.user_id != null ? row.user_id : row.userId,
-      avatar: row.avatar != null ? row.avatar : '',
+      avatar: row.avatar != null ? resolveMediaUrl(row.avatar) : '',
       name: row.nickname != null ? row.nickname : '用户',
       age: row.age != null ? row.age : 0,
       city: city,
@@ -617,6 +626,7 @@ function mapPost(row: any): any {
     collected: row.is_collected == true,
     followed: row.is_followed == true,
     applyStatus: 'none',
+    likeAvatars: likeAvatars,
     tabs: ['discover'],
     tab: 'discover',
     comments: [],
@@ -633,7 +643,7 @@ function mapComment(row: any): any {
     user: {
       id: row.user_id != null ? row.user_id : rawUser.id,
       name: row.nickname != null ? row.nickname : (rawUser.name != null ? rawUser.name : '用户'),
-      avatar: row.avatar != null ? row.avatar : (rawUser.avatar != null ? rawUser.avatar : ''),
+      avatar: row.avatar != null ? resolveMediaUrl(row.avatar) : (rawUser.avatar != null ? resolveMediaUrl(rawUser.avatar) : ''),
       realNameStatus: 'missing'
     },
     content: row.content != null ? row.content : '',
@@ -662,8 +672,8 @@ function mapTopic(row: any): any {
     title: title,
     name: title,
     description: '',
-    cover: row.icon != null ? row.icon : '',
-    icon: row.icon != null ? row.icon : '',
+    cover: row.icon != null ? resolveMediaUrl(row.icon) : '',
+    icon: row.icon != null ? resolveMediaUrl(row.icon) : '',
     participantCount: row.participant_count != null ? row.participant_count : 0,
     postCount: row.post_count != null ? row.post_count : 0,
     viewCount: 0,
@@ -700,7 +710,7 @@ function mapActivity(row: any): any {
     id: row.id,
     title: row.title != null ? row.title : '',
     description: row.description != null ? row.description : '',
-    cover: row.cover != null ? row.cover : '',
+    cover: row.cover != null ? resolveMediaUrl(row.cover) : '',
     date: y + '-' + m + '-' + day,
     time: hh + ':' + mm,
     location: location,
@@ -738,9 +748,34 @@ function mapBanner(row: any): any {
     description: '',
     cta: type == 'activity' ? '查看活动' : type == 'plane' ? '去放飞' : '进入话题',
     kicker: type == 'activity' ? 'OFFLINE' : type == 'plane' ? 'PLANE' : 'TOPIC',
-    cover: row.image_url != null ? row.image_url : '',
+    cover: row.image_url != null ? resolveMediaUrl(row.image_url) : '',
     targetId: targetId
   }
+}
+
+/** 纸飞机是社区固定入口，不依赖后台话题或活动数据。 */
+export function getFixedCommunityBanner(): any {
+  return {
+    id: -1001,
+    type: 'plane',
+    title: '把想说的话扔出去',
+    subtitle: '每日 3 次认真表达',
+    description: '每日 3 次认真表达',
+    cta: '去放飞',
+    kicker: 'PAPER PLANE',
+    cover: '',
+    targetId: 0,
+    isFixed: true
+  }
+}
+
+export function ensureCommunityBanners(list: any[]): any[] {
+  const next: any[] = list != null ? list.slice() : []
+  for (let i = 0; i < next.length; i++) {
+    if (next[i] != null && next[i].type == 'plane') return next
+  }
+  next.push(getFixedCommunityBanner())
+  return next
 }
 
 function mapQuotaItem(row: any): any {
@@ -780,9 +815,9 @@ function mapPaperPlane(row: any): any {
     timeText: timeTextFrom(row.created_at),
     replyCount: row.reply_count != null ? row.reply_count : 0,
     replied: false,
-    images: row.images != null ? row.images : [],
+    images: resolveMediaUrlList(row.images),
     tags: row.tags != null ? row.tags : [],
-    voiceUrl: row.voice_url != null ? row.voice_url : '',
+    voiceUrl: row.voice_url != null ? resolveMediaUrl(row.voice_url) : '',
     voiceDurationSec: row.voice_duration_sec != null ? row.voice_duration_sec : 0,
     conversationId: row.conversation_id != null ? row.conversation_id : 0
   }
@@ -1735,7 +1770,7 @@ export async function getCommunityBanners() {
       cloudFunctionName: 'community',
       action: 'getBanners',
       method: 'GET',
-      mockData: cloneList(mockCommunityBanners as any[])
+      mockData: ensureCommunityBanners(cloneList(mockCommunityBanners as any[]))
     })
   }
 
@@ -1750,7 +1785,7 @@ export async function getCommunityBanners() {
   for (let i = 0; i < arr.length; i++) {
     list.push(mapBanner(arr[i]))
   }
-  return okRes(list)
+  return okRes(ensureCommunityBanners(list))
 }
 
 export async function getCommunityNotifications() {
@@ -2200,29 +2235,37 @@ export async function likeDynamic(dynamicId: number) {
 
 export async function likeComment(commentId: number, currentlyLiked: boolean = false) {
   if (USE_MOCK) {
-    const all = mockDynamics as any[]
-    let liked = !currentlyLiked
-    let likeCount = currentlyLiked ? 0 : 1
-    for (let i = 0; i < all.length; i++) {
-      const comments = all[i].comments as any[]
-      if (comments == null) continue
+    const all = mockDynamicList as any[]
+    let comment: any = null
+    for (let i = 0; i < all.length && comment == null; i++) {
+      const comments = all[i].comments != null ? (all[i].comments as any[]) : []
       for (let j = 0; j < comments.length; j++) {
         if (comments[j].id == commentId) {
-          comments[j].liked = !comments[j].liked
-          comments[j].likeCount = (comments[j].likeCount as number) + (comments[j].liked ? 1 : -1)
-          if ((comments[j].likeCount as number) < 0) comments[j].likeCount = 0
-          liked = comments[j].liked == true
-          likeCount = comments[j].likeCount as number
+          comment = comments[j]
+          break
         }
       }
     }
+    if (comment == null) return failRes('评论不存在', 404)
+
+    const liked = !currentlyLiked
+    const currentCount = comment.likeCount != null ? Number(comment.likeCount) : 0
+    comment.liked = liked
+    comment.likeCount = Math.max(0, currentCount + (liked ? 1 : -1))
     return request({
       url: '/community/comments/' + commentId + '/like',
       cloudFunctionName: 'community',
       action: 'likeComment',
       method: currentlyLiked ? 'DELETE' : 'PUT',
       data: { commentId },
-      mockData: { success: true, liked: liked, likeCount: likeCount, is_liked: liked, like_count: likeCount }
+      mockData: {
+        success: true,
+        liked: liked,
+        likeCount: comment.likeCount,
+        is_liked: liked,
+        like_count: comment.likeCount,
+        comment: comment
+      }
     })
   }
 
@@ -2323,6 +2366,10 @@ export async function unfollowUserFromCommunity(userId: number) {
     for (let i = 0; i < all.length; i++) {
       if (all[i].user != null && all[i].user.id == userId) {
         all[i].followed = false
+        if (all[i].tabs != null) {
+          const followTabIndex = (all[i].tabs as any[]).indexOf('follow')
+          if (followTabIndex >= 0) (all[i].tabs as any[]).splice(followTabIndex, 1)
+        }
       }
     }
     return request({
@@ -2865,7 +2912,7 @@ function mapPlaneMessage(row: any, myId: number = 0): any {
     fromUserId: fromId,
     content: row.content != null ? row.content : '',
     type: row.type != null ? row.type : 1,
-    mediaUrl: row.media_url != null ? row.media_url : (row.mediaUrl != null ? row.mediaUrl : ''),
+    mediaUrl: row.media_url != null ? resolveMediaUrl(row.media_url) : (row.mediaUrl != null ? resolveMediaUrl(row.mediaUrl) : ''),
     voiceDurationSec: row.voice_duration_sec != null ? row.voice_duration_sec : (row.voiceDurationSec != null ? row.voiceDurationSec : 0),
     mine: row.mine === true || (myId > 0 && fromId == myId),
     timeText: row.created_at != null ? timeTextFrom(row.created_at) : (row.timeText != null ? row.timeText : '')
@@ -2893,8 +2940,8 @@ function mapCommunityMedia(row: any): any {
     id: row.id != null ? row.id : 0,
     purpose: row.purpose != null ? row.purpose : '',
     mediaType: row.media_type != null ? row.media_type : (row.mediaType != null ? row.mediaType : ''),
-    url: row.url != null ? row.url : '',
-    thumbnailUrl: row.thumbnail_url != null ? row.thumbnail_url : (row.thumbnailUrl != null ? row.thumbnailUrl : ''),
+    url: row.url != null ? resolveMediaUrl(row.url) : '',
+    thumbnailUrl: row.thumbnail_url != null ? resolveMediaUrl(row.thumbnail_url) : (row.thumbnailUrl != null ? resolveMediaUrl(row.thumbnailUrl) : ''),
     fileSize: row.file_size != null ? row.file_size : (row.fileSize != null ? row.fileSize : 0),
     durationSeconds: row.duration_seconds != null ? row.duration_seconds : (row.durationSeconds != null ? row.durationSeconds : null),
     status: row.status != null ? row.status : ''
@@ -2910,6 +2957,9 @@ export async function uploadCommunityMedia(filePath: string, purpose: string) {
     return failRes('请选择要上传的文件', 'EMPTY_FILE')
   }
   const purposeVal = purpose != null ? ('' + purpose) : 'post'
+  if (purposeVal != 'post' && purposeVal != 'paper_plane') {
+    return failRes('不支持的媒体用途', 'INVALID_MEDIA_PURPOSE')
+  }
   if (USE_MOCK) {
     const id = Date.now() + Math.floor(Math.random() * 1000)
     const mediaType = guessMockMediaType(filePath)
@@ -2940,6 +2990,7 @@ export async function uploadCommunityMedia(filePath: string, purpose: string) {
       formData: { purpose: purposeVal },
       header: token != '' ? { Authorization: 'Bearer ' + token } : {},
       success: (res) => {
+        if (res.statusCode == 401) clearAuthTokens()
         let data: any = null
         try {
           data = JSON.parse('' + res.data)
@@ -2953,8 +3004,9 @@ export async function uploadCommunityMedia(filePath: string, purpose: string) {
           resolve(failRes(extractUploadDetail(data), res.statusCode))
         }
       },
-      fail: (_err) => {
-        resolve(failRes('上传失败，请重试', 'UPLOAD_FAILED'))
+      fail: (err) => {
+        const message = err != null && err.errMsg != null ? ('' + err.errMsg) : '上传失败，请重试'
+        resolve(failRes(message, 'UPLOAD_FAILED'))
       }
     })
   })
@@ -2981,18 +3033,20 @@ export async function uploadMedia(filePath: string, purpose: string = 'paper_pla
   if (filePath == null || ('' + filePath).length == 0) {
     return failRes('请选择要上传的文件', 'EMPTY_FILE')
   }
+  const purposeVal = purpose != null ? ('' + purpose).trim() : ''
+  if (purposeVal == '') return failRes('媒体用途不能为空', 'INVALID_MEDIA_PURPOSE')
   if (USE_MOCK) {
     return request({
       url: '/media/uploads',
       cloudFunctionName: 'community',
       action: 'uploadMedia',
       method: 'POST',
-      data: { purpose },
+      data: { purpose: purposeVal },
       mockData: {
         url: 'mock://voice/' + Date.now() + '.mp3',
         content_type: 'audio/mpeg',
         size: 1024,
-        purpose: purpose
+        purpose: purposeVal
       }
     })
   }
@@ -3003,9 +3057,10 @@ export async function uploadMedia(filePath: string, purpose: string = 'paper_pla
       url: url,
       filePath: filePath,
       name: 'file',
-      formData: { purpose: purpose },
+      formData: { purpose: purposeVal },
       header: token != '' ? { Authorization: 'Bearer ' + token } : {},
       success: (res) => {
+        if (res.statusCode == 401) clearAuthTokens()
         let data: any = null
         try {
           data = JSON.parse('' + res.data)
@@ -3016,12 +3071,12 @@ export async function uploadMedia(filePath: string, purpose: string = 'paper_pla
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(okRes(data))
         } else {
-          const msg = data != null && data.detail != null ? ('' + data.detail) : '上传失败'
-          resolve(failRes(msg, res.statusCode))
+          resolve(failRes(extractUploadDetail(data), res.statusCode))
         }
       },
-      fail: () => {
-        resolve(failRes('上传失败，请检查网络', -1))
+      fail: (err) => {
+        const message = err != null && err.errMsg != null ? ('' + err.errMsg) : '上传失败，请检查网络'
+        resolve(failRes(message, -1))
       }
     })
   })
@@ -3262,6 +3317,59 @@ export async function endPaperPlaneConversation(conversationId: number) {
   return okRes(mapPlaneConversation(res.data))
 }
 
+// Private aliases retained while older paper-plane and media call sites are audited.
+function getPaperPlanePeerNameV2(plane: any): string {
+  return getPaperPlanePeerName(plane)
+}
+
+function upsertPaperPlaneConversationV2(plane: any, content: string, conversationId: number = 0) {
+  upsertPaperPlaneConversation(plane, content, conversationId)
+}
+
+async function getPaperPlaneConversationsLegacy() {
+  return await getPaperPlaneConversations()
+}
+
+async function getSentPaperPlanesLegacy() {
+  return await getSentPaperPlanes()
+}
+
+async function getPaperPlaneUnreadCountLegacy() {
+  return await getPaperPlaneUnreadCount()
+}
+
+async function markPaperPlaneConversationReadLegacy(conversationId: number) {
+  return await markPaperPlaneConversationRead(conversationId)
+}
+
+async function getPaperPlaneMessagesLegacy(conversationId: number) {
+  return await getPaperPlaneMessages(conversationId)
+}
+
+async function sendPaperPlaneMessageLegacy(conversationId: number, content: string) {
+  return await sendPaperPlaneMessage(conversationId, content)
+}
+
+async function readPaperPlaneConversationLegacy(conversationId: number) {
+  return await readPaperPlaneConversation(conversationId)
+}
+
+async function endPaperPlaneConversationLegacy(conversationId: number) {
+  return await endPaperPlaneConversation(conversationId)
+}
+
+async function uploadCommunityMediaLegacy(filePath: string, purpose: string = 'post') {
+  return await uploadCommunityMedia(filePath, purpose)
+}
+
+async function uploadMediaLegacy(filePath: string, purpose: string = 'voice') {
+  return await uploadMedia(filePath, purpose)
+}
+
+async function deleteCommunityMediaLegacy(mediaId: number) {
+  return await deleteCommunityMedia(mediaId)
+}
+
 /** 供 apply 同步动态卡状态 */
 export function __syncApplyStatus(userId: number, status: string) {
   const map = mockApplyStates as any
@@ -3349,7 +3457,7 @@ function mapBlockedUser(row: any): any {
     id: row.id != null ? row.id : row.user_id,
     user_id: row.user_id != null ? row.user_id : row.id,
     nickname: row.nickname != null ? row.nickname : '已屏蔽用户',
-    avatar: row.avatar != null ? row.avatar : ''
+    avatar: row.avatar != null ? resolveMediaUrl(row.avatar) : ''
   }
 }
 

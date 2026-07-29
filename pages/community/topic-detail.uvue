@@ -36,6 +36,7 @@
 					@comment="goPost"
 					@collect="onCollect"
 					@follow="onFollow"
+					@unfollow="onUnfollow"
 					@apply="onApply"
 					@more="onMore"
 					@open="goPost"
@@ -78,7 +79,8 @@ import {
 			leaveTopic,
 			likeDynamic,
 			collectDynamic,
-			followUserFromCommunity
+			followUserFromCommunity,
+			unfollowUserFromCommunity
 		} from '@/api'
 		import { guardRealName } from '@/utils/realNameGate.uts'
 
@@ -101,6 +103,7 @@ import {
 		const reportVisible = ref(false)
 		const reportTargetId = ref(0)
 		const reportUserId = ref(0)
+		const unfollowPendingUserId = ref(0)
 
 		const topicJoined = computed(() => {
 			const t = topic.value as any
@@ -377,6 +380,47 @@ const applyParticipation = (joined: boolean, participantCount: any) => {
 		} else {
 			uni.showToast({ title: '关注失败，请重试', icon: 'none' })
 		}
+	}
+
+	const onUnfollow = (userId: number) => {
+		if (unfollowPendingUserId.value != 0) return
+		unfollowPendingUserId.value = userId
+		uni.showModal({
+			title: '取消关注',
+			content: '确定不再关注这位用户吗？',
+			cancelText: '取消',
+			confirmText: '确定',
+			success: async (modalRes: any) => {
+				if (modalRes == null || modalRes.confirm != true) {
+					unfollowPendingUserId.value = 0
+					return
+				}
+				try {
+					const res = await unfollowUserFromCommunity(userId)
+					if (res.success) {
+						posts.value.forEach((p: any) => {
+							if (p.user != null && p.user.id == userId) p.followed = false
+						})
+						uni.showToast({ title: '已取消关注', icon: 'none' })
+					} else {
+						const msg =
+							res != null && res.data != null && res.data.message != null
+								? '' + res.data.message
+								: res != null && res.message != null
+									? '' + res.message
+									: '取消关注失败，请重试'
+						uni.showToast({ title: msg, icon: 'none' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				} finally {
+					if (unfollowPendingUserId.value == userId) unfollowPendingUserId.value = 0
+				}
+			}
+			, fail: () => {
+				if (unfollowPendingUserId.value == userId) unfollowPendingUserId.value = 0
+			}
+		})
 	}
 
 	const onApply = (userId: number, _dynamicId: number) => {

@@ -12,6 +12,9 @@ function includes(source, value, label) {
 }
 
 includes(messagesPage, 'paperPlaneConversationId=', 'paper-plane conversation navigation')
+includes(messagesPage, '@click.stop="openPeerProfile(item)"', 'paper-plane peer profile avatar action')
+includes(messagesPage, 'const openPeerProfile = (item: any)', 'paper-plane peer profile handler')
+includes(messagesPage, "url: '/pages/user/detail?userId=' + item.userId", 'paper-plane peer profile navigation')
 assert.ok(
   !messagesPage.includes("url: '/pages/chat/detail?userId=' + item.userId"),
   'paper-plane conversation should not navigate through ordinary chat userId'
