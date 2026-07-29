@@ -8,8 +8,9 @@
 					<view class="hero-bg"></view>
 					<view class="hero-inner">
 						<view class="hero-copy">
-							<text class="hero-eyebrow">VIP 私人定制婚恋服务</text>
-						<text class="hero-title">专属红娘 · 精准匹配</text>
+							<text class="hero-eyebrow">私人定制 · 认真婚恋</text>
+							<text class="hero-title">把认真，交给更懂你的人</text>
+							<text class="hero-summary">一对一红娘服务，按你的节奏筛选与认识。</text>
 							<view class="hero-tags">
 								<view v-for="tag in heroTags" :key="tag" class="hero-tag">
 									<text class="hero-tag-dot"></text>
@@ -17,7 +18,7 @@
 								</view>
 							</view>
 						</view>
-						<image class="hero-illustration" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+						<image class="hero-illustration" src="/static/portraits/custom-matchmaker-hero.jpg" mode="aspectFill"></image>
 					</view>
 				</view>
 
@@ -88,7 +89,7 @@
 					</view>
 
 					<scroll-view :scroll-x="true" :enable-flex="true" enhanced class="case-scroll" :show-scrollbar="false" @scroll="handleCaseScroll" @scrollend="handleCaseScrollEnd">
-						<view class="case-list">
+						<view class="case-list" :style="'width: ' + caseListWidth + 'rpx;'">
 							<view
 								v-for="(item, caseIdx) in successCases"
 								:key="item.name"
@@ -285,7 +286,7 @@ const fallbackPlans: PlanItem[] = [
 	}
 ]
 
-const heroTags = ['平台认证', '专属顾问', '全程跟踪']
+const heroTags = ['私密筛选', '专属顾问', '持续跟进']
 
 const exclusiveServices = [
 	{ icon: '隐', title: '无需注册曝光', copy: '资料不公开展示，仅由红娘内部匹配使用。' },
@@ -364,6 +365,12 @@ const processSteps = [
 		}
 	]
 
+const caseListWidth = computed((): number => {
+	const count = successCases.length
+	if (count <= 1) return 480
+	return count * 480 + (count - 1) * 24
+})
+
 const plans = ref<PlanItem[]>(fallbackPlans)
 const selectedPlanId = ref<number>(2)
 const contactPanelVisible = ref(false)
@@ -382,7 +389,8 @@ const activePlan = computed<PlanItem>(() => {
 
 const planListWidth = computed((): number => {
 	const count = plans.value.length
-	return count * 316
+	if (count <= 1) return 335
+	return count * 335 + (count - 1) * 16
 })
 
 onMounted(async () => {
@@ -553,7 +561,8 @@ const applyPlan = () => {
 	position: relative;
 	border-radius: 20rpx;
 	overflow: hidden;
-	background: linear-gradient(135deg, #FBE9EE 0%, #F5D3DD 50%, #EFB9CB 100%);
+	background: linear-gradient(135deg, var(--navy) 0%, var(--accent2) 100%);
+	box-shadow: var(--shadow-md);
 }
 
 .hero-bg {
@@ -563,7 +572,8 @@ const applyPlan = () => {
 	width: 320rpx;
 	height: 320rpx;
 	border-radius: 50%;
-	background: rgba(255, 255, 255, 0.22);
+	background: var(--accent-glow);
+	border: 1rpx solid var(--soft);
 }
 
 .hero-inner {
@@ -584,18 +594,25 @@ const applyPlan = () => {
 }
 
 .hero-eyebrow {
-	font-size: 32rpx;
+	font-size: 20rpx;
 	font-weight: 800;
-	font-family: var(--serif);
-	color: #8C3A56;
-	letter-spacing: 0.02em;
+	color: var(--soft);
+	letter-spacing: 0.08em;
 }
 
 .hero-title {
-	font-size: 26rpx;
+	font-size: 40rpx;
+	line-height: 1.3;
 	font-weight: 700;
-	color: #8C3A56;
-	opacity: 0.85;
+	font-family: var(--serif);
+	color: var(--text-invert);
+}
+
+.hero-summary {
+	font-size: 20rpx;
+	line-height: 1.55;
+	color: var(--paper);
+	opacity: 0.8;
 }
 
 .hero-tags {
@@ -613,29 +630,30 @@ const applyPlan = () => {
 	gap: 8rpx;
 	padding: 8rpx 16rpx;
 	border-radius: 999rpx;
-	background: rgba(255, 255, 255, 0.72);
+	background: var(--paper);
 }
 
 .hero-tag-dot {
 	width: 12rpx;
 	height: 12rpx;
 	border-radius: 50%;
-	background: #C25E7E;
+	background: var(--accent);
 }
 
 .hero-tag-text {
 	font-size: 20rpx;
 	font-weight: 700;
-	color: #8C3A56;
+	color: var(--accent2);
 }
 
 .hero-illustration {
 	width: 204rpx;
 	height: 252rpx;
 	border-radius: 110rpx 110rpx 16rpx 16rpx;
-	border: 6rpx solid rgba(255, 255, 255, 0.8);
+	border: 6rpx solid var(--paper);
 	flex-shrink: 0;
 	margin-left: 12rpx;
+	box-shadow: var(--shadow-md);
 }
 
 /* ============ 通用 Section ============ */
@@ -745,7 +763,7 @@ const applyPlan = () => {
 
 /* ============ 服务流程 ============ */
 .process-scroll {
-	width: 100%;
+	width: calc(100% + 64rpx);
 	margin: 0 -32rpx;
 	padding: 0 32rpx;
 	box-sizing: border-box;
@@ -757,11 +775,10 @@ const applyPlan = () => {
 	flex-wrap: nowrap;
 	align-items: flex-start;
 	gap: 0;
-	padding-right: 32rpx;
 }
 
 .process-item {
-	width: 160rpx;
+	width: 172rpx;
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
@@ -812,10 +829,10 @@ const applyPlan = () => {
 
 /* ============ 成功案例 ============ */
 .case-scroll {
-	width: 100%;
+	width: calc(100% + 64rpx);
 	height: 580rpx;
 	margin: 0 -32rpx;
-	padding: 0 24rpx;
+	padding: 0 32rpx;
 	box-sizing: border-box;
 	white-space: nowrap;
 }
@@ -825,7 +842,7 @@ const applyPlan = () => {
 	flex-direction: row;
 	flex-wrap: nowrap;
 	align-items: flex-start;
-	width: 1512rpx;
+	gap: 24rpx;
 	height: 580rpx;
 	box-sizing: border-box;
 }
@@ -833,7 +850,6 @@ const applyPlan = () => {
 .case-card {
 	width: 480rpx;
 	height: 560rpx;
-	margin-right: 24rpx;
 	white-space: normal;
 	flex-shrink: 0;
 	background: var(--surface);
@@ -878,10 +894,10 @@ const applyPlan = () => {
 
 /* ============ 服务套餐 ============ */
 .plan-scroll {
-	width: 100%;
+	width: calc(100% + 64rpx);
 	height: 360rpx;
 	margin: 0 -32rpx;
-	padding: 0 24rpx;
+	padding: 0 32rpx;
 	box-sizing: border-box;
 	white-space: nowrap;
 }
@@ -891,15 +907,15 @@ const applyPlan = () => {
 	flex-direction: row;
 	flex-wrap: nowrap;
 	align-items: stretch;
+	gap: 16rpx;
 	height: 360rpx;
 	box-sizing: border-box;
 }
 
 .plan-card {
 	position: relative;
-	width: 300rpx;
+	width: 335rpx;
 	height: 340rpx;
-	margin-right: 16rpx;
 	flex-shrink: 0;
 	padding: 22rpx 20rpx;
 	border-radius: 16rpx;
