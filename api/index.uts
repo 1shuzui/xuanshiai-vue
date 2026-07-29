@@ -57,6 +57,8 @@ export {
   signupActivity,
   getMyActivities,
   getCommunityBanners,
+  getFixedCommunityBanner,
+  ensureCommunityBanners,
   getCommunityNotifications,
   getUnreadNotificationCount,
   markNotificationRead,

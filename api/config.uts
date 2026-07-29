@@ -19,9 +19,7 @@ export const API_BASE_URL = 'http://127.0.0.1:8000'
 // MySQL 和 FastAPI 恢复后改为 false，即会重新写入后端数据库。
 export const ROLE_APPLICATION_USE_MOCK = false
 
-// 纸飞机的”获取次数”接口尚未在 FastAPI 中提供，暂使用本地 Mock，避免在小程序中请求超时。
-// 后端补齐 POST /community/paper-planes/chances 后改为 false。
-export const PAPER_PLANE_CHANCE_USE_MOCK = true
+// 纸飞机次数购买已切换到积分兑换系统（POST /users/me/points/redeem）
 
 // 真机联调时将 API_BASE_URL 改为此局域网地址，并确认 8000 已向本地子网放行。
 export const LAN_API_BASE_URL = 'http://192.168.112.247:8000'
@@ -64,3 +62,59 @@ export const API_CONFIG = {
 
 // Mock 延迟配置（模拟网络延迟，单位：毫秒）
 export const MOCK_DELAY = 300
+
+/** 读取本地 access token */
+export function getAccessToken(): string {
+  try {
+    const token = uni.getStorageSync(ACCESS_TOKEN_KEY)
+    if (token != null && token !== '') return '' + token
+  } catch (e) {}
+  return ''
+}
+
+/** 写入 access / refresh token */
+export function setAuthTokens(accessToken: string, refreshToken: string = '') {
+  try {
+    if (accessToken != null && accessToken !== '') {
+      uni.setStorageSync(ACCESS_TOKEN_KEY, accessToken)
+    }
+    if (refreshToken != null && refreshToken !== '') {
+      uni.setStorageSync(REFRESH_TOKEN_KEY, refreshToken)
+    }
+  } catch (e) {}
+}
+
+/** 清理本地 token */
+export function clearAuthTokens() {
+  try {
+    uni.removeStorageSync(ACCESS_TOKEN_KEY)
+    uni.removeStorageSync(REFRESH_TOKEN_KEY)
+  } catch (e) {}
+}
+
+/** 拼接完整 HTTP URL */
+export function buildApiUrl(path: string): string {
+  let p = path != null ? ('' + path) : ''
+  if (p.indexOf('http://') == 0 || p.indexOf('https://') == 0) return p
+  if (p.indexOf('/api/') == 0) return API_BASE_URL + p
+  if (p.charAt(0) != '/') p = '/' + p
+  return API_BASE_URL + API_PREFIX + p
+}
+
+/** 将后端返回的公开媒体路径转换为小程序可加载的绝对地址。 */
+export function resolveMediaUrl(value: any): string {
+  if (value == null) return ''
+  const p = '' + value
+  if (p == '') return ''
+  if (
+    p.indexOf('http://') == 0 ||
+    p.indexOf('https://') == 0 ||
+    p.indexOf('data:') == 0 ||
+    p.indexOf('blob:') == 0 ||
+    p.indexOf('wxfile://') == 0 ||
+    p.indexOf('/static/') == 0 ||
+    p.indexOf('mock://') == 0
+  ) return p
+  if (p.charAt(0) == '/') return API_BASE_URL + p
+  return p
+}

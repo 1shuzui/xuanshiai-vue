@@ -417,15 +417,19 @@ if (communityMain.includes('getUnreadNotificationCount') || communityMain.includ
 // 6.1 二级标签与收藏用户语义
 console.log('\n6.1 二级标签 / 收藏用户 / 话题页...')
 const filterKeys = [
-  "key: 'all'",
-  "key: 'following'",
-  "key: 'likedUsers'",
-  "key: 'hot'",
-  "key: 'latest'",
-  "key: 'mbti'",
-  "key: 'alumni'",
-  "key: 'hometown'"
-]
+	  "key: 'all'",
+	  "key: 'following'",
+	  "key: 'likedUsers'",
+	  "key: 'hot'",
+	  "key: 'latest'",
+	  "key: 'mbti'",
+	  "key: 'alumni'"
+	]
+	if (communityMain.includes("key: 'hometown'") || communityMain.includes("label: '同乡'")) {
+	  fail('发现页仍保留同乡二级标签')
+	} else {
+	  ok('发现页已移除同乡二级标签')
+	}
 if (filterKeys.every((k) => communityMain.includes(k))) {
   ok('三组二级标签键齐全')
 } else {
@@ -437,11 +441,34 @@ if (communityMain.includes("label: '收藏'") && communityMain.includes('likedUs
 	fail('关注页收藏标签缺失')
 }
 if (communityMain.includes("currentTab === 'discover' && currentFilter === 'all'")) {
-  ok('TOPIC 轮播仅在发现·全部展示')
-} else {
-  fail('TOPIC 展示条件未限制为发现·全部')
-}
+	  ok('TOPIC 轮播仅在发现·全部展示')
+	} else {
+	  fail('TOPIC 展示条件未限制为发现·全部')
+	}
+	if (
+	  communityMain.includes("currentTab === 'discover' && currentFilter === 'mbti'") &&
+	  communityMain.includes('lab-entry-strip') &&
+	  communityMain.includes('openLabEntry')
+	) {
+	  ok('发现·MBTI 含情感实验室入口条')
+	} else {
+	  fail('发现·MBTI 入口条缺失或不限条件')
+	}
+	const labLabels = ['性格色彩', '每日星座', '更多测试']
+	if (
+	  labLabels.every((t) => communityMain.includes(t)) &&
+	  communityMain.includes('敬请期待')
+	) {
+	  ok('实验室入口四文案齐全且点击敬请期待')
+	} else {
+	  fail('实验室入口文案或敬请期待缺失')
+	}
 if (communityMain.includes('topic-panel') && communityMain.includes('hotTopics') && communityMain.includes('openTopics')) {
+  if (communityMain.includes('hotTopics.slice(0, 2)')) {
+    ok('热门话题网格最多展示 2 个')
+  } else {
+    fail('热门话题网格展示数量超过 2 个')
+  }
   ok('发现·全部含 TOPIC 完整话题面板')
 } else {
   fail('TOPIC 面板结构不完整')
@@ -455,6 +482,11 @@ if (communityMain.includes('bannerIndex') && communityMain.includes('onBannerCha
   ok('轮播支持受控 current + change + 指示项')
 } else {
   fail('轮播受控状态不完整')
+}
+if (communityMain.includes('bottom: calc(50px + 36px + env(safe-area-inset-bottom))')) {
+  ok('社区发布悬浮球上移 12px')
+} else {
+  fail('社区发布悬浮球位置未上移')
 }
 
 if (mockCommunity.includes('mockLikedUserIds') && mockCommunity.includes('mbti:') && mockCommunity.includes('school:') && mockCommunity.includes('hometown:')) {
@@ -720,6 +752,64 @@ if (
 	  fail('入口 topicId 标题失败仍可能静默')
 	}
 
+console.log('\n7.1 发布页视觉结构...')
+if (
+  publishSrc.includes('publish-compose') &&
+  publishSrc.includes('publish-tip') &&
+  publishSrc.includes('publish-media-tile') &&
+  publishSrc.includes('quick-topic-row') &&
+  publishSrc.includes('publish-toolbar')
+) {
+  ok('发布页采用沉浸式编辑器结构')
+} else {
+  fail('发布页缺少参考稿的编辑器结构')
+}
+if (
+  publishSrc.includes('const quickTopics = computed') &&
+  publishSrc.includes('v-for="topic in quickTopics"') &&
+  publishSrc.includes('@click="pickTopic(topic)"') &&
+  publishSrc.includes('topicLabel(topic)') &&
+  publishSrc.includes('loadTopicOptions()')
+) {
+  ok('发布页快捷话题来自热门话题并可直接选取')
+} else {
+  fail('发布页快捷话题仍是观看入口或硬编码，无法直接选取')
+}
+if (
+	  !publishSrc.includes('publish-header') &&
+	  !publishSrc.includes('header-title') &&
+	  publishSrc.includes('footer-publish') &&
+	  publishSrc.includes('visibility-row')
+	) {
+	  ok('发布页使用系统导航且保留底部发布与可见范围')
+	} else {
+	  fail('发布页仍自绘顶栏或缺少底部发布/可见范围')
+	}
+	const pagesJsonForPublish = read('pages.json')
+	const publishRouteBlock = pagesJsonForPublish.slice(
+	  pagesJsonForPublish.indexOf('"path": "pages/community/publish"'),
+	  pagesJsonForPublish.indexOf('"path": "pages/community/topic-list"')
+	)
+	if (
+	  publishRouteBlock.includes('"navigationBarTitleText": "发布动态"') &&
+	  !publishRouteBlock.includes('"navigationStyle": "custom"')
+	) {
+	  ok('发布页路由使用系统导航标题，未开 custom')
+	} else {
+	  fail('发布页路由导航配置不是系统导航')
+	}
+	if (publishSrc.includes('onBackPress') && publishSrc.includes('确定放弃编辑吗')) {
+	  ok('系统返回接入放弃编辑确认')
+	} else {
+	  fail('系统返回未接入放弃编辑确认')
+	}
+const duplicateTopicRows = (publishSrc.match(/class="setting-row" @click="openTopicSheet"/g) || []).length
+if (duplicateTopicRows === 0) {
+  ok('发布页只保留一处话题入口')
+} else {
+  fail('发布页仍存在重复的话题入口')
+}
+
 // 8. 通知分栏
 	console.log('\n8. 通知分栏...')
 	const notifySrc = read('pages/community/notifications.uvue')
@@ -876,6 +966,12 @@ contract('real post mapper preserves verification, visibility, and declaration',
   assert.match(liveCommunityApi, /visibility:\s*row\.visibility/)
   assert.match(liveCommunityApi, /declaration:\s*row\.declaration/)
 })
+contract('real community media URLs are normalized for image rendering', () => {
+  const config = read('api/config.uts')
+  assert.match(config, /export function resolveMediaUrl/)
+  assert.match(liveCommunityApi, /resolveMediaUrl/)
+  assert.match(liveCommunityApi, /const photos: string\[\]/)
+})
 contract('create requests transmit fields and idempotency keys', () => {
   assert.match(liveCommunityApi, /visibility:\s*visibility/)
   assert.match(liveCommunityApi, /declaration:\s*declaration/)
@@ -911,6 +1007,28 @@ contract('dynamic card emits interactions without optimistic local mutation', ()
   assert.match(dynamicCard, /emit\('like', props\.dynamic\.id\)/)
   assert.match(dynamicCard, /emit\('collect', props\.dynamic\.id\)/)
   assert.match(dynamicCard, /emit\('follow', props\.dynamic\.user\.id\)/)
+})
+contract('dynamic card uses red like and yellow star active states', () => {
+  const app = read('App.uvue')
+  assert.match(dynamicCard, /class="action-item is-comment"/)
+  assert.match(dynamicCard, /ic-home ic-baodeng action-icon/)
+  assert.doesNotMatch(dynamicCard, /ic-social ic-xihuan action-icon/)
+  assert.match(app, /--like:\s*#E85A6B/)
+  assert.match(app, /--superlike:\s*#F4B942/)
+  assert.match(dynamicCard, /is-like\.on[\s\S]*color:\s*var\(--like\)/)
+  assert.match(dynamicCard, /is-collect\.on[\s\S]*color:\s*var\(--superlike\)/)
+})
+contract('paper-plane banner uses the paper-plane palette', () => {
+  assert.match(read('pages/community/community.uvue'), /\.feature\.type-plane\s*\{[\s\S]*background:\s*var\(--plane-purple\)/)
+  assert.doesNotMatch(read('pages/community/community.uvue'), /\.feature\.type-plane\s*\{[^}]*background:\s*var\(--sage\)/)
+})
+contract('paper-plane banner remains available without remote content', () => {
+  const api = read('api/community.uts')
+  const page = read('pages/community/community.uvue')
+  assert.match(api, /export function getFixedCommunityBanner\(\)/)
+  assert.match(api, /ensureCommunityBanners\(/)
+  assert.match(api, /return okRes\(ensureCommunityBanners\(list\)\)/)
+  assert.match(page, /const banners = ref\(\[getFixedCommunityBanner\(\)\]\)/)
 })
 contract('publish page retains the request failure message', () => {
   assert.match(livePublishPage, /res\.message/)
@@ -1059,6 +1177,12 @@ contract('post detail supports threaded cursor comments and reply submission', (
   assert.match(livePostDetailPage, /loadMoreComments/)
   assert.match(livePostDetailPage, /removeComment/)
   assert.match(livePostDetailPage, /@longpress="replyTo\(/)
+})
+contract('nested replies expose their own actions', () => {
+  assert.match(livePostDetailPage, /class="reply-actions"/)
+  assert.match(livePostDetailPage, /onLikeComment\(r\)/)
+  assert.match(livePostDetailPage, /removeComment\(r\)/)
+  assert.match(livePostDetailPage, /ic-dianzan/)
 })
 contract('threaded comment adapters normalize backend metadata before rendering', () => {
   const mapperStart = liveCommunityApi.indexOf('function mapComment')

@@ -29,7 +29,7 @@
 - 社区主 Tab：**关注 / 同城 / 发现**；二级筛选随主 Tab 切换：
   - 关注：`全部 / 关注 / 喜欢`（喜欢 = 用户级喜欢关系，不是帖子点赞）
   - 同城：`全部 / 热门 / 最新`
-  - 发现：`全部 / MBTI / 校友 / 同乡`（TOPIC 面板仅在「发现·全部」）
+  - 发现：`全部 / MBTI / 校友`（TOPIC 面板仅在「发现·全部」；MBTI 上方有情感实验室四入口占位，点击敬请期待）
 - 已有 `Xsa*` 组件含 `XsaDynamicCard`、`XsaApplySheet`、`XsaReportSheet` 等；实名门槛见 `utils/realNameGate.uts`（`passed|missing|reviewing|rejected`，兼容 pending/failed）。
 - 认证门槛：常规社区互动、申请认识、参与话题 / 带话题发布均仅要求实名通过；双重认证仅作展示加分。
 - 已有 `api/` 与 `mock/` 分层；社区 API 支持分页 list+hasMore、结构化 publish/comment/paperPlane、通知已读、拉黑过滤、同城城市；当前 `USE_MOCK = true`。

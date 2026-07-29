@@ -60,7 +60,7 @@ Mock 与真实接口至少对齐字段名、类型、分页、状态码、错误
 - 二级筛选：
   - follow：`all | following | likedUsers`（likedUsers = 用户级喜欢，不是帖子点赞）
   - city：`all | hot | latest`
-  - discover：`all | mbti | alumni | hometown`
+  - discover：`all | mbti | alumni`
 - `getTopicList({ sort, page, pageSize, excludeIds })` → `{ list, page, pageSize, total, hasMore }`
 - `getTopicDetail(topicId, sort)` 支持 `hot | latest`
 - 会话态：`mockBlockedUserIds`、`mockApplyStates`、`mockLikedUserIds`、`mockCurrentCity`

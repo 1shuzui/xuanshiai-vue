@@ -12,7 +12,6 @@
 					</view>
 				</view>
 			</view>
-
 			<XsaEmpty v-if="!loading && topicError" text="话题暂时无法打开" description="请稍后重试" :show-action="true" action-text="重试" @action="load" />
 			<view v-if="!topicError" class="sort-row">
 				<view class="chip" :class="{ active: sort == 'hot' }" @click="changeSort('hot')"><text>热门</text></view>
@@ -166,12 +165,12 @@ onShow(() => {
 				cityTag: item.cityTag === true,
 				relationTags: item.relationTags != null ? item.relationTags : [],
 				topicTitle: item.topicTitle != null ? item.topicTitle : '',
-				videos: item.videos != null ? item.videos : [],
-				mediaType: item.mediaType != null ? item.mediaType : ''
+videos: item.videos != null ? item.videos : [],
+					mediaType: item.mediaType != null ? item.mediaType : '',
+					likeAvatars: item.likeAvatars != null ? item.likeAvatars : (item.like_avatars != null ? item.like_avatars : [])
+				}
 			}
-		}
-
-	const load = async () => {
+		const load = async () => {
 		if (topicId.value <= 0) {
 			topicError.value = true
 			return

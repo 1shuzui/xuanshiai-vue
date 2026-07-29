@@ -68,7 +68,22 @@
 					<text class="topic-label">{{ topicLabel }}</text>
 				</view>
 
-			<view class="location-time-row" v-if="dynamic.location || timeText !== ''">
+			<!-- 点赞摘要 -->
+				<view class="like-summary" v-if="likeCount > 0" @click.stop="handleLike">
+					<view class="like-avatars" v-if="likeAvatarList.length > 0">
+						<image
+							class="like-avatar"
+							v-for="(av, ai) in likeAvatarList"
+							:key="ai"
+							:src="av"
+							mode="aspectFill"
+							:style="{ marginLeft: ai == 0 ? '0' : '-8px', zIndex: 10 - ai }"
+						></image>
+					</view>
+					<text class="like-summary-text text-muted">等{{ likeCount }}人赞过</text>
+				</view>
+
+				<view class="location-time-row" v-if="dynamic.location || timeText !== ''">
 				<view class="location" v-if="dynamic.location">
 					<text class="icon">📍</text>
 					<text class="text text-muted">{{ dynamic.location }}</text>
@@ -147,9 +162,10 @@ interface DynamicUser {
 			cityTag?: boolean
 			relationTags?: string[]
 			topicTitle?: string
-			videos?: string[]
-			mediaType?: string
-		}
+videos?: string[]
+				mediaType?: string
+				likeAvatars?: string[]
+			}
 
 interface Props {
 	dynamic: Dynamic
@@ -279,7 +295,18 @@ const genderIcon = computed((): string => {
 		return first != null ? ('' + first) : ''
 	})
 
-const applyLabel = computed((): string => {
+const likeAvatarList = computed((): string[] => {
+			const raw = props.dynamic.likeAvatars
+			if (raw == null || !Array.isArray(raw)) return []
+			const out: string[] = []
+			for (let i = 0; i < raw.length && out.length < 3; i++) {
+				const a = raw[i]
+				if (a != null && ('' + a) !== '') out.push('' + a)
+			}
+			return out
+		})
+
+	const applyLabel = computed((): string => {
 		if (applyStatus.value === 'pending') return '已申请'
 		if (applyStatus.value === 'accepted') return '已通过'
 		if (applyStatus.value === 'rejected') return '再次申请'
@@ -614,12 +641,40 @@ const handleOpen = () => {
 	font-weight: 600;
 }
 
-.location {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 4px;
-}
+.like-summary {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		padding-top: 4px;
+		margin-bottom: 4px;
+	}
+
+	.like-avatars {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding-left: 0;
+	}
+
+	.like-avatar {
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		border: 2px solid var(--surface);
+		background: var(--soft);
+	}
+
+	.like-summary-text {
+		font-size: 12px;
+	}
+
+	.location {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 4px;
+	}
 
 .location-time-row {
 	display: flex;
