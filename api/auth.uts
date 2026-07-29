@@ -4,7 +4,11 @@
  */
 
 import { request } from './request.uts'
+<<<<<<< HEAD
 import { CURRENT_USER_ID_KEY, setAuthTokens, clearAuthTokens } from './config.uts'
+=======
+import { setAuthTokens, clearAuthTokens, REFRESH_TOKEN_KEY, API_BASE_URL, API_PREFIX } from './config.uts'
+>>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
 
 export async function sendSms(phone: string, purpose: string = 'login') {
   return request({
@@ -56,4 +60,55 @@ export async function logout() {
   } finally {
     clearAuthTokens()
   }
+}
+
+/**
+ * 使用 Refresh Token 刷新 Access Token
+ * 返回新的 token 信息，并自动写入本地存储
+ */
+export async function refreshToken(): Promise<boolean> {
+  let refreshTokenValue = ''
+  try {
+    refreshTokenValue = uni.getStorageSync(REFRESH_TOKEN_KEY)
+  } catch (e) {}
+  if (refreshTokenValue == null || refreshTokenValue === '') return false
+
+  try {
+    const url = buildRefreshUrl()
+    console.log('🔄 [Token Refresh] 尝试刷新令牌')
+    const res = await new Promise<any>((resolve) => {
+      uni.request({
+        url: url,
+        method: 'POST',
+        data: { refresh_token: refreshTokenValue },
+        header: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+        success: (resp: any) => {
+          const status = resp.statusCode != null ? resp.statusCode : 0
+          if (status >= 200 && status < 300) {
+            resolve({ success: true, data: resp.data })
+          } else {
+            resolve({ success: false, data: resp.data, code: status })
+          }
+        },
+        fail: (err: any) => {
+          resolve({ success: false, data: null, code: -1, message: err?.errMsg })
+        }
+      })
+    })
+
+    if (res.success && res.data != null && res.data.access_token != null) {
+      const newRefresh = res.data.refresh_token != null ? String(res.data.refresh_token) : refreshTokenValue
+      setAuthTokens(String(res.data.access_token), newRefresh)
+      console.log('✅ [Token Refresh] 刷新成功')
+      return true
+    }
+  } catch (e) {
+    console.error('❌ [Token Refresh] 刷新异常:', e)
+  }
+  return false
+}
+
+function buildRefreshUrl(): string {
+  return API_BASE_URL + API_PREFIX + '/auth/refresh'
 }

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * API 配置文件
  *
@@ -46,11 +47,24 @@ export const PAPER_PLANE_CHANCE_USE_MOCK = true
 export const LAN_API_BASE_URL = 'http://192.168.112.247:8001'
 
 // API 统一前缀
+=======
+/** API 配置文件 */
+
+// 默认使用真实 FastAPI；单独保留的 Mock 开关见下方角色申请配置。
+export const USE_MOCK = false
+
+// FastAPI 服务根地址（不含 /api/v1）。
+export const API_BASE_URL = 'http://127.0.0.1:8000'
+export const LAN_API_BASE_URL = 'http://192.168.112.247:8000'
+>>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
 export const API_PREFIX = '/api/v1'
 
-// 本地 Token 存储 key
+// 牵线角色申请维持本地模拟，避免调试申请依赖后端登录会话。
+export const ROLE_APPLICATION_USE_MOCK = true
+
 export const ACCESS_TOKEN_KEY = 'xsa_access_token'
 export const REFRESH_TOKEN_KEY = 'xsa_refresh_token'
+<<<<<<< HEAD
 export const CURRENT_USER_ID_KEY = 'xsa_user_id'
 export const ONBOARDING_MODE_KEY = 'xsa_onboarding_mode'
 export const ONBOARDING_COMPLETED_KEY = 'xsa_onboarding_completed'
@@ -58,10 +72,15 @@ export const ONBOARDING_COMPLETED_KEY = 'xsa_onboarding_completed'
 // API 基础配置
 export const API_CONFIG = {
   // 旧云函数链路配置；当前请求默认走 FastAPI HTTP。
+=======
+
+export const API_CONFIG = {
+>>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
   cloudFunction: {
     timeout: 60000,
     spaceId: 'your-space-id'
   },
+<<<<<<< HEAD
 
   useHttp: true,
 
@@ -69,16 +88,15 @@ export const API_CONFIG = {
   timeout: 15000,
 
   // 是否显示加载提示
+=======
+  timeout: 10000,
+>>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
   showLoading: true,
-
-  // 加载提示文案
   loadingText: '加载中...'
 }
 
-// Mock 延迟配置（模拟网络延迟，单位：毫秒）
 export const MOCK_DELAY = 300
 
-/** 读取本地 access token */
 export function getAccessToken(): string {
   try {
     const token = uni.getStorageSync(ACCESS_TOKEN_KEY)
@@ -87,19 +105,18 @@ export function getAccessToken(): string {
   return ''
 }
 
-/** 写入 access / refresh token */
 export function setAuthTokens(accessToken: string, refreshToken: string = '') {
   try {
-    if (accessToken != null && accessToken !== '') {
-      uni.setStorageSync(ACCESS_TOKEN_KEY, accessToken)
-    }
-    if (refreshToken != null && refreshToken !== '') {
-      uni.setStorageSync(REFRESH_TOKEN_KEY, refreshToken)
-    }
+    if (accessToken != null && accessToken !== '') uni.setStorageSync(ACCESS_TOKEN_KEY, accessToken)
+    if (refreshToken != null && refreshToken !== '') uni.setStorageSync(REFRESH_TOKEN_KEY, refreshToken)
+    else uni.removeStorageSync(REFRESH_TOKEN_KEY)
   } catch (e) {}
 }
 
+<<<<<<< HEAD
 /** 清理认证主体及其角色选择，避免下一账号继承上一账号状态。 */
+=======
+>>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
 export function clearAuthTokens() {
   try {
     uni.removeStorageSync(ACCESS_TOKEN_KEY)
@@ -110,29 +127,28 @@ export function clearAuthTokens() {
   } catch (e) {}
 }
 
-/** 拼接完整 HTTP URL */
 export function buildApiUrl(path: string): string {
-  let p = path != null ? ('' + path) : ''
-  if (p.indexOf('http://') == 0 || p.indexOf('https://') == 0) return p
-  if (p.indexOf('/api/') == 0) return API_BASE_URL + p
-  if (p.charAt(0) != '/') p = '/' + p
-  return API_BASE_URL + API_PREFIX + p
+  let normalized = path != null ? '' + path : ''
+  if (normalized.indexOf('http://') == 0 || normalized.indexOf('https://') == 0) return normalized
+  if (normalized.indexOf('/api/') == 0) return API_BASE_URL + normalized
+  if (normalized.charAt(0) != '/') normalized = '/' + normalized
+  return API_BASE_URL + API_PREFIX + normalized
 }
 
 /** 将后端返回的公开媒体路径转换为小程序可加载的绝对地址。 */
 export function resolveMediaUrl(value: any): string {
   if (value == null) return ''
-  const p = '' + value
-  if (p == '') return ''
+  const path = '' + value
+  if (path == '') return ''
   if (
-    p.indexOf('http://') == 0 ||
-    p.indexOf('https://') == 0 ||
-    p.indexOf('data:') == 0 ||
-    p.indexOf('blob:') == 0 ||
-    p.indexOf('wxfile://') == 0 ||
-    p.indexOf('/static/') == 0 ||
-    p.indexOf('mock://') == 0
-  ) return p
-  if (p.charAt(0) == '/') return API_BASE_URL + p
-  return p
+    path.indexOf('http://') == 0 ||
+    path.indexOf('https://') == 0 ||
+    path.indexOf('data:') == 0 ||
+    path.indexOf('blob:') == 0 ||
+    path.indexOf('wxfile://') == 0 ||
+    path.indexOf('/static/') == 0 ||
+    path.indexOf('mock://') == 0
+  ) return path
+  if (path.charAt(0) == '/') return API_BASE_URL + path
+  return path
 }

@@ -9,10 +9,12 @@
 
 		<view class="rank-list">
 				<view class="rank-item" v-for="(item, index) in list" :key="item.id" @click="handleClick(item)">
-					<view class="rank-mark" :class="rankClass(index)">
-						<text>{{ rankLabel(index) }}</text>
+					<view class="rank-avatar-wrap">
+						<MatchmakerAvatar :src="item.avatar" :name="item.name" variant="rank" />
+						<view class="rank-mark" :class="rankClass(index)">
+							<text>{{ rankLabel(index) }}</text>
+						</view>
 					</view>
-					<MatchmakerAvatar :src="item.avatar" :name="item.name" variant="rank" />
 					<text class="rank-name">{{ item.name }}</text>
 					<text class="rank-meta">服务 {{ item.serviceCount }} 人</text>
 					<text class="rank-meta">成功 {{ item.successCount }} 约</text>
@@ -36,9 +38,6 @@ const emit = defineEmits<{
 }>();
 
 const rankLabel = (index: number) => {
-	if (index == 0) return '冠';
-	if (index == 1) return '亚';
-	if (index == 2) return '季';
 	return String(index + 1);
 };
 
@@ -101,39 +100,46 @@ const handleClick = (item: any) => {
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
+	}
+
+	.rank-avatar-wrap {
 		position: relative;
-		padding-top: 28rpx;
+		width: 116rpx;
+		height: 116rpx;
 	}
 
 	.rank-mark {
 		position: absolute;
-		top: 0;
-		left: 50%;
-		transform: translateX(-50%);
-		width: 52rpx;
-		height: 52rpx;
-		border-radius: 50%;
+		right: -8rpx;
+		bottom: -8rpx;
+		min-width: 44rpx;
+		height: 44rpx;
+		padding: 0 10rpx;
+		border-radius: 999rpx;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-size: 18rpx;
 		font-weight: 800;
 		background: var(--warm);
-		color: var(--accent2);
-		border: 1px solid var(--line);
+		color: var(--ink2);
+		border: 3rpx solid var(--surface);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.rank-mark.first {
-		background: rgba(44, 128, 124, 0.18);
-		border-color: rgba(44, 128, 124, 0.22);
+		background: var(--accent2);
+		color: var(--text-invert);
 	}
 
 	.rank-mark.second {
-		background: rgba(56, 152, 141, 0.12);
+		background: var(--soft);
+		color: var(--ink);
 	}
 
 	.rank-mark.third {
-		background: rgba(194, 224, 207, 0.64);
+		background: var(--accent-bg);
+		color: var(--accent2);
 	}
 
 	.rank-name {
