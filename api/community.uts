@@ -2897,7 +2897,7 @@ function mapPlaneConversation(row: any): any {
     lastMessage: row.last_message != null ? row.last_message : (row.lastMessage != null ? row.lastMessage : ''),
     lastMessageAt: row.last_message_at != null ? row.last_message_at : null,
     unreadCount: row.unread_count != null ? row.unread_count : (row.unreadCount != null ? row.unreadCount : 0),
-    peerLabel: row.peer_label != null ? row.peer_label : (row.peerLabel != null ? row.peerLabel : '匿名用户'),
+    peerLabel: getPaperPlaneConversationPeerName(row),
     planeContent: row.plane_content != null ? row.plane_content : (row.planeContent != null ? row.planeContent : ''),
     createdAt: row.created_at != null ? row.created_at : null
   }
@@ -2917,6 +2917,36 @@ function mapPlaneMessage(row: any, myId: number = 0): any {
     mine: row.mine === true || (myId > 0 && fromId == myId),
     timeText: row.created_at != null ? timeTextFrom(row.created_at) : (row.timeText != null ? row.timeText : '')
   }
+}
+
+function getPaperPlaneConversationPeerName(row: any): string {
+  if (row == null) return '匿名用户'
+  const candidates = [
+    row.peer_label,
+    row.peerLabel,
+    row.peer_name,
+    row.peerName,
+    row.sender_name,
+    row.senderName
+  ]
+  for (let i = 0; i < candidates.length; i++) {
+    if (candidates[i] != null && ('' + candidates[i]).trim() != '') return '' + candidates[i]
+  }
+  return '匿名用户'
+}
+
+/** 对真实接口返回的同一会话按 id 覆盖，避免轮询或分页重复。 */
+function upsertRemotePaperPlaneConversation(list: any[], row: any) {
+  if (row == null) return
+  const id = row.id != null ? row.id : 0
+  for (let i = 0; i < list.length; i++) {
+    const currentId = list[i] != null && list[i].id != null ? list[i].id : 0
+    if (id != 0 && currentId == id) {
+      list[i] = row
+      return
+    }
+  }
+  list.push(row)
 }
 
 function extractUploadDetail(data: any): string {
@@ -3115,9 +3145,13 @@ export async function getPaperPlaneConversations() {
   })
   if (!res.success) return res
   const arr = res.data != null && Array.isArray(res.data) ? res.data : []
-  const list: any[] = []
+  const uniqueRows: any[] = []
   for (let i = 0; i < arr.length; i++) {
-    const mapped = mapPlaneConversation(arr[i])
+    upsertRemotePaperPlaneConversation(uniqueRows, arr[i])
+  }
+  const list: any[] = []
+  for (let i = 0; i < uniqueRows.length; i++) {
+    const mapped = mapPlaneConversation(uniqueRows[i])
     if (mapped == null) continue
     list.push({
       id: mapped.id,
