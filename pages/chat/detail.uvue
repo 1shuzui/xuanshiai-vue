@@ -30,7 +30,7 @@
 							variant="secondary"
 							:size="isParentMode ? 'large' : 'small'"
 							:large-text="isParentMode"
-							@click="loadChatMessages"
+							@click="retryHistory"
 						>重试</XsaButton>
 				</view>
 				<view
@@ -79,7 +79,7 @@
 									<video class="video-content" :src="message.content" controls v-else-if="message.type === 'video'"></video>
 								</view>
 								<text
-									v-if="!isParentMode && message.isMine && message.id > 0 && message.status == 'sent' && message.revoked != true"
+									v-if="!isPaperPlaneConversation && !isParentMode && message.isMine && message.id > 0 && message.status == 'sent' && message.revoked != true"
 									class="revoke-action"
 									@click="requestRevokeMessage(message)"
 								>撤回</text>
@@ -127,23 +127,23 @@
 
 				<view class="more-actions" v-if="showMore">
 						<view class="menu-grid">
-							<view class="menu-item" v-if="!isParentMode" @click="chooseChatImage">
+							<view class="menu-item" v-if="!isParentMode && !isPaperPlaneConversation" @click="chooseChatImage">
 								<view class="menu-icon">▧</view>
 								<text class="menu-text">图片</text>
 							</view>
-							<view class="menu-item" v-if="!isParentMode" @click="chooseChatVideo">
+							<view class="menu-item" v-if="!isParentMode && !isPaperPlaneConversation" @click="chooseChatVideo">
 								<view class="menu-icon">▷</view>
 								<text class="menu-text">视频</text>
 							</view>
-							<view class="menu-item" v-if="!isParentMode" @click="toggleVoiceRecording">
+							<view class="menu-item" v-if="!isParentMode && !isPaperPlaneConversation" @click="toggleVoiceRecording">
 								<view class="menu-icon">{{ voiceRecording ? '■' : '◉' }}</view>
 								<text class="menu-text">{{ voiceRecording ? '结束录音' : '语音' }}</text>
 							</view>
-							<view class="menu-item" v-if="!isParentMode" @click="openContactExchange">
+							<view class="menu-item" v-if="!isParentMode && !isPaperPlaneConversation" @click="openContactExchange">
 								<view class="menu-icon">⌁</view>
 								<text class="menu-text">联系方式</text>
 							</view>
-							<view class="menu-item" @click="openChatReport">
+							<view class="menu-item" v-if="!isPaperPlaneConversation" @click="openChatReport">
 							<view class="menu-icon">⚑</view>
 							<text class="menu-text">举报</text>
 						</view>
@@ -212,7 +212,10 @@
 		revokeMessage,
 		getContactExchanges,
 		createContactExchange,
-		respondContactExchange
+		respondContactExchange,
+		getPaperPlaneMessages,
+		sendPaperPlaneMessage,
+		readPaperPlaneConversation
 	} from '@/api'
 
 	const messages = ref([] as any[])
@@ -222,11 +225,13 @@
 	const loading = ref(false)
 	const chatError = ref('')
 	const userId = ref(0)
+	const paperPlaneConversationId = ref(0)
 	const reportVisible = ref(false)
 	const chatAllowed = ref(false)
 	const initialMode = uni.getStorageSync('xsa_onboarding_mode')
 	const roleMode = ref(initialMode != null && String(initialMode) == 'parent' ? 'parent' : 'self')
 	const isParentMode = computed(() => roleMode.value == 'parent')
+	const isPaperPlaneConversation = computed(() => paperPlaneConversationId.value > 0)
 	const activeMessageSubject = ref(null as MessageSubject | null)
 	const activeParentContext = ref(null as ParentContext | null)
 	const chatMutationVersion = ref(0)
@@ -258,6 +263,24 @@
 		const pages = getCurrentPages()
 		const currentPage = pages[pages.length - 1]
 		const options = currentPage.options
+		if (options != null && options.paperPlaneConversationId != null) {
+			const conversationId = Number(options.paperPlaneConversationId)
+			if (Number.isFinite(conversationId) && Math.floor(conversationId) == conversationId && conversationId > 0) {
+				if (isParentMode.value) {
+					permissionLoading.value = false
+					permissionError.value = '父母端不支持纸飞机匿名会话'
+					return
+				}
+				paperPlaneConversationId.value = conversationId
+				chatAllowed.value = true
+				permissionLoading.value = false
+				if (options.paperPlaneLabel != null) {
+					uni.setNavigationBarTitle({ title: decodeURIComponent('' + options.paperPlaneLabel) })
+				}
+				loadPaperPlaneMessages()
+				return
+			}
+		}
 		if (options != null && options.userId != null) {
 			const parsedUserId = Number(options.userId)
 			if (Number.isFinite(parsedUserId) && Math.floor(parsedUserId) == parsedUserId && parsedUserId > 0) {
@@ -268,7 +291,7 @@
 	})
 
 	onShow(() => {
-		if (userId.value > 0) verifyChatPermission()
+		if (!isPaperPlaneConversation.value && userId.value > 0) verifyChatPermission()
 	})
 
 	onUnmounted(() => {
@@ -278,6 +301,44 @@
 		}
 		voiceRecording.value = false
 	})
+
+	const loadPaperPlaneMessages = async () => {
+		if (!isPaperPlaneConversation.value) return
+		loading.value = true
+		chatError.value = ''
+		try {
+			await readPaperPlaneConversation(paperPlaneConversationId.value)
+			const res = await getPaperPlaneMessages(paperPlaneConversationId.value)
+			if (res == null || res.success != true || !Array.isArray(res.data)) {
+				chatError.value = responseMessage(res, '纸飞机会话加载失败')
+				return
+			}
+			messages.value = (res.data as any[]).map((item: any, index: number) => ({
+				id: item.id,
+				type: item.type == 3 ? 'voice' : 'text',
+				content: item.type == 3 && item.mediaUrl != null ? '' + item.mediaUrl : '' + item.content,
+				time: item.timeText != null ? '' + item.timeText : '',
+				showTime: index == 0,
+				isMine: item.mine == true,
+				avatar: item.mine == true ? '/static/portraits/profile-man-light.jpg' : '/static/portraits/profile-woman-main.jpg',
+				status: 'sent',
+				isPaperPlane: true
+			}))
+			scrollToBottom()
+		} catch (error) {
+			chatError.value = '纸飞机会话加载失败'
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const retryHistory = () => {
+		if (isPaperPlaneConversation.value) {
+			loadPaperPlaneMessages()
+			return
+		}
+		loadChatMessages()
+	}
 
 	const responseMessage = (res: any, fallback: string): string => {
 		if (res != null && res.message != null && res.message != 'success') return '' + res.message
@@ -734,6 +795,10 @@
 	const sendMessage = async () => {
 		const content = inputText.value.trim()
 		if (content == '' || sendingText.value || !chatAllowed.value) return
+		if (isPaperPlaneConversation.value) {
+			await sendPaperPlaneText(content)
+			return
+		}
 		const subject = activeMessageSubject.value
 		if (subject == null) return
 		const textAttemptId = textSendAttemptSequence + 1
@@ -766,13 +831,58 @@
 		}
 	}
 
+	const sendPaperPlaneText = async (content: string, existingMessage: any = null) => {
+		if (!isPaperPlaneConversation.value || content == '') return
+		sendingText.value = true
+		const message = existingMessage != null ? existingMessage : {
+			id: 0,
+			clientMessageId: createClientMessageId(),
+			type: 'text',
+			content: content,
+			time: getCurrentTime(),
+			showTime: false,
+			isMine: true,
+			avatar: '/static/portraits/profile-man-light.jpg',
+			status: 'sending',
+			errorMessage: '',
+			isPaperPlane: true
+		}
+		if (existingMessage == null) {
+			messages.value.push(message)
+			inputText.value = ''
+			scrollToBottom()
+		} else {
+			message.status = 'sending'
+			message.errorMessage = ''
+		}
+		try {
+			const res = await sendPaperPlaneMessage(paperPlaneConversationId.value, content, message.clientMessageId)
+			if (res == null || res.success != true || res.data == null) {
+				message.status = 'failed'
+				message.errorMessage = responseMessage(res, '发送失败')
+				return
+			}
+			if (res.data.id != null) message.id = res.data.id
+			message.status = 'sent'
+		} catch (error) {
+			message.status = 'failed'
+			message.errorMessage = '网络异常，发送失败'
+		} finally {
+			sendingText.value = false
+		}
+	}
+
 		const retryFailedMessage = async (message: any) => {
 			if (message.status !== 'failed' || !chatAllowed.value) return
+			if (message.isPaperPlane == true) {
+				await sendPaperPlaneText(message.content, message)
+				return
+			}
 			await deliverMessage(message)
 		}
 
 		const sendMediaFile = async (filePath: string, type: string) => {
-			if (isParentMode.value || !chatAllowed.value || filePath == '') return
+			if (isParentMode.value || isPaperPlaneConversation.value || !chatAllowed.value || filePath == '') return
 			const subject = activeMessageSubject.value
 			if (subject == null) return
 			closeMoreMenu()

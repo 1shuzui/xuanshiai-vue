@@ -152,7 +152,7 @@
 		{
 			"path": "pages/profile/certification",
 			"style": {
-				"navigationBarTitleText": "身份认证"
+				"navigationBarTitleText": "我的认证"
 			}
 		},
 		{
@@ -255,6 +255,18 @@
 			"style": {
 				"navigationBarTitleText": "编辑标签",
 				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/about/about",
+			"style": {
+				"navigationBarTitleText": "关于我们"
+			}
+		},
+		{
+			"path": "pages/about/article",
+			"style": {
+				"navigationBarTitleText": ""
 			}
 		}
 	],

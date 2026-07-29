@@ -172,7 +172,7 @@ const onHelp = () => {
 }
 
 const onAbout = () => {
-	uni.showToast({ title: '关于我们', icon: 'none' })
+	uni.navigateTo({ url: '/pages/about/about' })
 }
 
 const onSecurity = () => {
