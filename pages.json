@@ -236,6 +236,18 @@
 				"navigationBarTitleText": "编辑标签",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/about/about",
+			"style": {
+				"navigationBarTitleText": "关于我们"
+			}
+		},
+		{
+			"path": "pages/about/article",
+			"style": {
+				"navigationBarTitleText": ""
+			}
 		}
 	],
 	"globalStyle": {
