@@ -672,13 +672,13 @@
 =======
 	const openVipPage = () => {
 		uni.navigateTo({
-			url: '/pages/profile/vip',
+			url: '/pagesSub/profileExtra/vip',
 			fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
 	const openTopPlacement = () => {
 		uni.navigateTo({
-			url: '/pages/index/top-placement',
+			url: '/pagesSub/userExtra/index/top-placement',
 			fail: () => { uni.showToast({ title: '置顶页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
@@ -741,6 +741,74 @@
 
 	const switchVipCat = (index: number) => { vipCatIndex.value = index }
 
+<<<<<<< HEAD
+=======
+	// ========== 推荐页过滤 + 配额 ==========
+	const filteredRecommendUsers = computed(() => {
+		const isVip = getCurrentUserVipStatus()
+		if (isVip) return mockRecommendUsers
+		const filtered = (mockRecommendUsers as any[]).filter((u: any) => u.isVip !== true)
+		return filtered.length > 0 ? filtered : mockRecommendUsers
+	})
+	const currentRecommendIndex = ref(0)
+	const currentRecommendUser = computed(() => {
+		const list = filteredRecommendUsers.value as any[]
+		if (list.length === 0) return (mockRecommendUsers as any[])[0]
+		return list[currentRecommendIndex.value % list.length]
+	})
+	const quotaExhaustedVisible = ref(false)
+	const quotaExhaustedMessage = ref('')
+	const showQuotaExhausted = () => {
+		const quota = getDailyViewQuota()
+		if (quota.isVip) {
+			quotaExhaustedMessage.value = '今日免费查看次数已用完（' + quota.total + '/' + quota.total + '），可使用积分兑换'
+} else {
+			quotaExhaustedMessage.value = '今日免费查看次数已用完（' + quota.total + '/' + quota.total + '），升级VIP享每日20次查看，或积分兑换'
+}
+		quotaExhaustedVisible.value = true
+	}
+	const handleQuotaUpgrade = () => { quotaExhaustedVisible.value = false; uni.navigateTo({ url: '/pagesSub/profileExtra/vip' }) }
+	const switchToNextRecommend = () => {
+		if (!recordProfileView()) { showQuotaExhausted(); return }
+		const list = filteredRecommendUsers.value as any[]
+		if (list.length === 0) return
+		currentRecommendIndex.value = (currentRecommendIndex.value + 1) % list.length
+	}
+	const showBlockReport = () => { showToast('屏蔽/举报功能') }
+
+	// 左滑换一个
+	const touchStartX = ref(0)
+	const touchStartY = ref(0)
+	const onTouchStart = (e: any) => {
+		const touch = e.touches != null && e.touches.length > 0 ? e.touches[0] : null
+		if (touch != null) {
+			touchStartX.value = touch.clientX
+			touchStartY.value = touch.clientY
+		}
+	}
+	const onTouchEnd = (e: any) => {
+		const touch = e.changedTouches != null && e.changedTouches.length > 0 ? e.changedTouches[0] : null
+		if (touch != null) {
+			const deltaX = touchStartX.value - touch.clientX
+			const deltaY = touchStartY.value - touch.clientY
+			// 左滑（deltaX > 60）且水平位移大于垂直位移
+			if (deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY)) {
+				switchToNextRecommend()
+			}
+		}
+	}
+
+	// Ta的动态
+	const feedDynamics = [
+		{ id: 101, avatar: '/static/portraits/profile-woman-main.jpg', name: '苏晚晴', timeText: '2小时前', location: '大理', content: '周末和朋友去了趟大理，洱海边的风真的好舒服！租了一辆小电驴环了半个岛，停下来拍照的时候，感觉整个世界都慢下来了。', photos: ['/static/portraits/profile-woman-alt.jpg', '/static/portraits/profile-woman-community.jpg'], tags: ['#旅行'], likeCount: 89, commentCount: 12 },
+		{ id: 102, avatar: '/static/portraits/profile-woman-main.jpg', name: '苏晚晴', timeText: '1天前', location: '杭州', content: '在画室泡了一整天，终于把新系列的第一幅完成了！这次尝试了新的水彩技法，颜色层次比之前丰富了很多。', photos: ['/static/portraits/profile-man-light.jpg', '/static/portraits/profile-man-sea.jpg'], tags: ['#画画', '#日常'], likeCount: 56, commentCount: 8 }
+	]
+		const viewAllFeed = () => { showToast('查看全部动态') }
+		const goPostDetail = (postId: number) => {
+			uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + postId })
+		}
+
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 	// ========== AI 合拍度 ==========
 	const aiVisible = ref(false)
 	const aiBars = [{ label: '关系目标', value: 96 }, { label: '生活节奏', value: 89 }, { label: '兴趣交集', value: 86 }]
@@ -775,6 +843,7 @@
 
 	const goMessages = () => { successVisible.value = false; uni.switchTab({ url: '/pages/message/message' }) }
 	const simulateMatch = () => { successVisible.value = false; matchedVisible.value = true }
+<<<<<<< HEAD
 	const startChat = async () => {
 		matchedVisible.value = false
 		const targetUserId = recommendUserId.value
@@ -790,13 +859,16 @@
 			showToast('暂时无法确认聊天权限，请稍后重试')
 		}
 	}
+=======
+	const startChat = () => { matchedVisible.value = false; uni.navigateTo({ url: '/pagesSub/chat/detail?userId=user_001&userName=林悦' }) }
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
 	// ========== 通用操作 ==========
 	// 推荐卡默认嘉宾 id（与 mock 动态作者对齐，便于验证关注·喜欢）
 	const recommendUserId = ref(1)
 	const goUserDetail = (userId: number = 1) => {
 		const id = userId > 0 ? userId : 1
-		uni.navigateTo({ url: '/pages/user/detail?userId=' + id })
+		uni.navigateTo({ url: '/pagesSub/userExtra/user/detail?userId=' + id })
 	}
 	const shareProfile = () => { showToast('已生成分享入口') }
 	// 用户级喜欢：写入 mockLikedUserIds，供社区「关注·喜欢」使用

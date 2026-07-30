@@ -9,14 +9,19 @@
     "quickapp" : {},
     /* 小程序特有相关 */
 	"mp-weixin" : {
+<<<<<<< HEAD
 		"appid" : "wx744472d3e3e7f825",
+=======
+		"appid" : "wxb5f4e639f4eb2591",
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
         "setting" : {
             "urlCheck" : false,
             "es6" : true,
             "minified" : true
         },
-        "usingComponents" : true,
-        "permission" : {
+		"usingComponents" : true,
+		"lazyCodeLoading" : "requiredComponents",
+		"permission" : {
             "scope.userLocation" : {
                 "desc" : "用于推荐附近的用户"
             }

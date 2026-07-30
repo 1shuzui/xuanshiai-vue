@@ -102,7 +102,14 @@ export async function ensureRealName(action: GateAction | string = 'publish') {
     }
     const label = actionLabel(action)
     let message = `完成实名认证后即可${label}`
-    if (status == 'reviewing') {
+    if (action == 'apply') {
+      message = '需要实名认证'
+      if (status == 'reviewing') {
+        message = '实名认证审核中，通过后即可申请认识'
+      } else if (status == 'rejected') {
+        message = '实名认证未通过，请重新认证后再申请认识'
+      }
+    } else if (status == 'reviewing') {
       message = `实名认证审核中，通过后即可${label}`
     } else if (status == 'rejected') {
       message = `实名认证未通过，请重新认证后再${label}`
@@ -193,7 +200,7 @@ export async function guardDualVerification(action: GateAction | string = 'topic
     cancelText: '稍后再说',
     success: (res) => {
       if (res.confirm) {
-        uni.navigateTo({ url: '/pages/profile/certification' })
+        uni.navigateTo({ url: '/pagesSub/profileExtra/certification' })
       }
     }
   })
@@ -210,11 +217,11 @@ export async function guardRealName(action: GateAction | string = 'publish'): Pr
   uni.showModal({
     title: '需要实名认证',
     content: result.message,
-    confirmText: '去实名',
+    confirmText: action == 'apply' ? '去认证' : '去实名',
     cancelText: '稍后再说',
     success: (res) => {
       if (res.confirm) {
-        uni.navigateTo({ url: '/pages/profile/certification' })
+        uni.navigateTo({ url: '/pagesSub/profileExtra/certification' })
       }
     }
   })

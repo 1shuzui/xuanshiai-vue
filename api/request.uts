@@ -2,10 +2,14 @@
  * 统一请求封装
  * - USE_MOCK=true：返回 mockData
 <<<<<<< HEAD
+<<<<<<< HEAD
  * - USE_MOCK=false：HTTP 调 FastAPI（Bearer）
 =======
  * - 默认：通过 HTTP 调用 FastAPI，并自动附加 Bearer token
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
+=======
+ * - USE_MOCK=false：HTTP 调 FastAPI（Bearer）
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
  */
 
 import {
@@ -13,6 +17,7 @@ import {
   API_CONFIG,
   MOCK_DELAY,
   getAccessToken,
+<<<<<<< HEAD
 <<<<<<< HEAD
   clearAuthTokens,
   buildApiUrl
@@ -35,19 +40,32 @@ export async function request(options: any) {
   }
 =======
   setAuthTokens,
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   clearAuthTokens,
-  REFRESH_TOKEN_KEY,
-  API_BASE_URL,
-  API_PREFIX
+  buildApiUrl
 } from './config.uts'
 
 /**
- * 统一请求方法。
- * GET / DELETE 的 data 自动编码为查询参数；其余方法作为 JSON 请求体发送。
+ * 统一请求方法
+ * options:
+ *  - url: string 路径（/community/posts 或完整 http）
+ *  - method: GET|POST|PUT|DELETE
+ *  - data: query 或 body
+ *  - mockData: Mock 模式返回值
+ *  - headers: 额外请求头
+ *  - skipAuth: 跳过 Authorization
+ *  - raw: true 时不包 success 层（少用）
  */
 export async function request(options: any) {
+<<<<<<< HEAD
   if (USE_MOCK) return mockRequest(options)
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
+=======
+  if (USE_MOCK) {
+    return mockRequest(options)
+  }
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   return httpRequest(options)
 }
 
@@ -55,10 +73,14 @@ async function mockRequest(options: any) {
   console.log('📦 [Mock Request]', options.url, options.data)
   await sleep(MOCK_DELAY)
 <<<<<<< HEAD
+<<<<<<< HEAD
   // 允许 mock 侧直接给出失败包
 =======
 
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
+=======
+  // 允许 mock 侧直接给出失败包
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   if (
     options.mockData != null &&
     typeof options.mockData === 'object' &&
@@ -80,6 +102,7 @@ async function mockRequest(options: any) {
 =======
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
   }
+<<<<<<< HEAD
 
   return { success: true, data: options.mockData, code: 0, message: 'success' }
 }
@@ -92,6 +115,14 @@ function resolveApiUrl(path: string): string {
   if (normalized.indexOf('/api/') == 0) return API_BASE_URL + normalized
   if (normalized.charAt(0) != '/') normalized = '/' + normalized
   return API_BASE_URL + API_PREFIX + normalized
+=======
+  return {
+    success: true,
+    data: options.mockData,
+    code: 0,
+    message: 'success'
+  }
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 }
 
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
@@ -112,12 +143,16 @@ function extractDetail(data: any): string {
 
 async function httpRequest(options: any) {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   const methodRaw = options.method != null ? ('' + options.method).toUpperCase() : 'GET'
   const method = methodRaw
   const urlPath = options.url != null ? ('' + options.url) : ''
   let url = buildApiUrl(urlPath)
   const headers: any = {
     'Content-Type': 'application/json'
+<<<<<<< HEAD
   }
   if (options.headers != null) {
     const extra = options.headers
@@ -146,23 +181,21 @@ async function httpRequest(options: any) {
       return doHttpRequest(retryOptions, true)
     }
     clearAuthTokens()
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   }
-  return result
-}
-
-function doHttpRequest(options: any, isRetry: boolean): Promise<any> {
-  const method = options.method != null ? ('' + options.method).toUpperCase() : 'GET'
-  let url = resolveApiUrl(options.url != null ? '' + options.url : '')
-  const headers: any = { 'Content-Type': 'application/json' }
-
   if (options.headers != null) {
-    const keys = Object.keys(options.headers)
-    for (let i = 0; i < keys.length; i++) headers[keys[i]] = options.headers[keys[i]]
+    const extra = options.headers
+    const keys = Object.keys(extra)
+    for (let i = 0; i < keys.length; i++) {
+      headers[keys[i]] = extra[keys[i]]
+    }
   }
-
   if (options.skipAuth != true) {
     const token = getAccessToken()
-    if (token != '') headers['Authorization'] = 'Bearer ' + token
+    if (token != '') {
+      headers['Authorization'] = 'Bearer ' + token
+    }
   }
 
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
@@ -174,12 +207,16 @@ function doHttpRequest(options: any, isRetry: boolean): Promise<any> {
       const keys = Object.keys(data)
       for (let i = 0; i < keys.length; i++) {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
         const k = keys[i]
         const v = data[k]
         if (v == null) continue
         if (Array.isArray(v)) {
           for (let j = 0; j < v.length; j++) {
             parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v[j]))
+<<<<<<< HEAD
           }
         } else {
           parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v))
@@ -195,23 +232,35 @@ function doHttpRequest(options: any, isRetry: boolean): Promise<any> {
         if (Array.isArray(value)) {
           for (let j = 0; j < value.length; j++) {
             parts.push(encodeURIComponent(key) + '=' + encodeURIComponent('' + value[j]))
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
           }
         } else {
-          parts.push(encodeURIComponent(key) + '=' + encodeURIComponent('' + value))
+          parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v))
         }
       }
+<<<<<<< HEAD
       if (parts.length > 0) url = url + (url.indexOf('?') >= 0 ? '&' : '?') + parts.join('&')
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
+=======
+      if (parts.length > 0) {
+        url = url + (url.indexOf('?') >= 0 ? '&' : '?') + parts.join('&')
+      }
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
     }
   } else {
     body = data != null ? data : {}
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   console.log('🌐 [HTTP Request]', method, url)
 =======
   console.log(isRetry ? '🌐 [HTTP Retry]' : '🌐 [HTTP Request]', method, url)
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
+=======
+  console.log('🌐 [HTTP Request]', method, url)
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
   return new Promise((resolve) => {
     uni.request({
@@ -223,6 +272,7 @@ function doHttpRequest(options: any, isRetry: boolean): Promise<any> {
       success: (res: any) => {
         const status = res.statusCode != null ? (res.statusCode as number) : 0
         const raw = res.data
+<<<<<<< HEAD
 <<<<<<< HEAD
         if (status == 204) {
           resolve({ success: true, data: null, code: 0, message: 'success' })
@@ -254,6 +304,31 @@ function doHttpRequest(options: any, isRetry: boolean): Promise<any> {
         }
         resolve({ success: false, data: raw, code: status, message: extractDetail(raw) })
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
+=======
+        if (status == 204) {
+          resolve({ success: true, data: null, code: 0, message: 'success' })
+          return
+        }
+        if (status >= 200 && status < 300) {
+          resolve({
+            success: true,
+            data: raw,
+            code: 0,
+            message: 'success'
+          })
+          return
+        }
+        if (status == 401) {
+          clearAuthTokens()
+        }
+        const message = extractDetail(raw)
+        resolve({
+          success: false,
+          data: raw,
+          code: status,
+          message: message
+        })
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
       },
       fail: (err: any) => {
         console.error('❌ [HTTP Error]', err)
@@ -268,6 +343,7 @@ function doHttpRequest(options: any, isRetry: boolean): Promise<any> {
   })
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 function normalizeCloudFailure(err: any): any {
@@ -359,6 +435,8 @@ async function tryRefreshToken(): Promise<boolean> {
 >>>>>>> sync/upstream-main-751a9f4
 =======
 >>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }

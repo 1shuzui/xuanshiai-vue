@@ -59,6 +59,7 @@ export const mockMatchmakerBanners = [
     type: 'ai'
   }
 ]
+
 /** 服务红娘 */
 export const mockServiceMatchmakers = [
   {

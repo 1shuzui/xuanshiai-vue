@@ -1,10 +1,22 @@
 const assert = require('assert')
 const fs = require('fs')
 const path = require('path')
+const { hasRegisteredPage } = require('./page-route-helper.cjs')
 
 const root = path.resolve(__dirname, '..')
+<<<<<<< HEAD
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 const exists = (relativePath) => fs.existsSync(path.join(root, relativePath))
+=======
+const paperPlane = fs.readFileSync(path.join(root, 'pagesSub/community/paper-plane.uvue'), 'utf8')
+const datingPlanePath = path.join(root, 'pagesSub/community/dating-plane.uvue')
+const datingPlaneComposePath = path.join(root, 'pagesSub/community/dating-plane-compose.uvue')
+const paperPlaneMessagesPath = path.join(root, 'pagesSub/community/paper-plane-messages.uvue')
+const paperPlaneSentPath = path.join(root, 'pagesSub/community/paper-plane-sent.uvue')
+const reportSheetPath = path.join(root, 'components/XsaReportSheet.uvue')
+const pagesConfig = fs.readFileSync(path.join(root, 'pages.json'), 'utf8')
+const communityApi = fs.readFileSync(path.join(root, 'api/community.uts'), 'utf8')
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
 const paperPlane = read('pages/community/paper-plane.uvue')
 const messages = read('pages/community/paper-plane-messages.uvue')
@@ -34,6 +46,7 @@ for (const fragment of [
   assert.ok(paperPlane.includes(fragment), `paper-plane home must include ${fragment}`)
 }
 
+<<<<<<< HEAD
 assert.ok((paperPlane.match(/flight-plane/g) || []).length >= 8, 'paper-plane home must render the flight scene')
 assert.ok(!paperPlane.includes('<scroll-view'), 'paper-plane home must keep its fixed flight layout')
 
@@ -53,6 +66,91 @@ for (const fragment of [
   assert.ok(messages.includes(fragment), `paper-plane messages page must include ${fragment}`)
 }
 assert.ok(!messages.includes("url: '/pages/chat/detail?userId=' + item.userId"), 'paper-plane conversation must not use ordinary chat identity routing')
+=======
+includes(paperPlane, '扔纸飞机', 'paper-plane page')
+includes(paperPlane, '捡纸飞机', 'paper-plane page')
+includes(paperPlane, '我的纸飞机', 'paper-plane page')
+includes(paperPlane, 'openPaperPlaneMessages', 'paper-plane messages navigation')
+includes(paperPlane, 'mine-unread-badge', 'paper-plane unread badge')
+includes(paperPlane, 'getPaperPlaneUnreadCount', 'paper-plane unread count API')
+includes(paperPlane, '扔纸飞机次数：', 'paper-plane send quota label')
+includes(paperPlane, '捡纸飞机次数：', 'paper-plane catch quota label')
+includes(paperPlane, 'catchCount', 'paper-plane catch count state')
+includes(paperPlane, 'recordCatch', 'paper-plane catch count update')
+includes(paperPlane, "paperPlaneUnreadCount > 99 ? '99+'", 'paper-plane unread cap')
+assert.ok(
+  /\.mine-unread-badge\s*\{[^}]*background:\s*var\(--plane-purple\);[^}]*color:\s*#FFFFFF;/.test(paperPlane),
+  'paper-plane unread badge should be purple with white text'
+)
+includes(paperPlane, '脱单纸飞机', 'paper-plane page')
+includes(paperPlane, '文字纸飞机', 'paper-plane page')
+includes(paperPlane, "normalPlane.type == 'voice' ? '语音纸飞机'", 'normal voice plane label')
+includes(paperPlane, '纸飞机话题', 'paper-plane topic module')
+includes(paperPlane, '一句话总结一下你的2026上半年', 'paper-plane topic module')
+includes(paperPlane, '参与话题', 'paper-plane topic action')
+includes(paperPlane, 'openTextComposer', 'paper-plane topic action')
+includes(paperPlane, 'getRecorderManager', 'paper-plane recorder')
+includes(paperPlane, 'startRecording', 'paper-plane recorder state')
+includes(paperPlane, 'stopRecording', 'paper-plane recorder state')
+includes(paperPlane, 'flight-scene', 'paper-plane animated background')
+assert.ok((paperPlane.match(/flight-plane/g) || []).length >= 8, 'paper-plane page should render many flying planes')
+includes(paperPlane, 'animation:', 'paper-plane animated background')
+includes(paperPlane, 'var(--plane-sky)', 'paper-plane sky background')
+assert.ok(!paperPlane.includes('正在飞来的纸飞机'), 'paper-plane page should not render the incoming list')
+assert.ok(!paperPlane.includes('<scroll-view'), 'paper-plane page should be fixed without scroll-view')
+assert.ok(!paperPlane.includes('scroll-y'), 'paper-plane page should not enable vertical scrolling')
+includes(paperPlane, 'position: fixed', 'paper-plane fixed layout')
+includes(paperPlane, 'catchMenuVisible', 'catch plane sheet state')
+includes(paperPlane, 'openCatchMenu', 'catch plane action')
+includes(paperPlane, 'catch-menu', 'catch plane sheet')
+includes(paperPlane, 'catch-option-dating', 'dating catch option')
+includes(paperPlane, 'catch-option-normal', 'normal catch option')
+includes(paperPlane, '普通纸飞机', 'normal catch option label')
+includes(paperPlane, 'openNormalCatch', 'normal catch option action')
+includes(paperPlane, '@click.stop="openNormalCatch"', 'normal catch option stops event propagation')
+includes(paperPlane, 'normalCatchVisible', 'normal catch modal state')
+includes(paperPlane, 'normal-catch-overlay', 'normal catch modal')
+includes(paperPlane, 'normalPlane', 'normal catch random plane')
+includes(paperPlane, 'normalPlane.type', 'normal catch plane type')
+includes(paperPlane, '文字纸飞机', 'normal text plane content')
+includes(paperPlane, '>语音纸飞机</button>', 'composer voice tab label')
+includes(paperPlane, 'normalReplyDraft', 'normal catch reply input')
+includes(paperPlane, 'sendNormalReply', 'normal catch reply action')
+includes(paperPlane, 'normalReportVisible', 'normal catch report state')
+includes(paperPlane, 'openNormalReport', 'normal catch report action')
+includes(paperPlane, 'throw-back-button', 'normal catch return action')
+includes(paperPlane, 'returnFromNormalCatch', 'normal catch return action')
+includes(paperPlane, 'openDatingPlaneComposer', 'dating send page action')
+includes(paperPlane, '/pagesSub/community/dating-plane-compose', 'dating send page route')
+includes(paperPlane, 'XsaReportSheet', 'normal catch detailed report sheet')
+includes(paperPlane, 'returnFromNormalCatch()', 'normal catch send returns to home')
+assert.ok(!paperPlane.includes('SEND SOMETHING REAL'), 'composer should not render the removed English heading')
+assert.ok(!paperPlane.includes('把心意扔出去'), 'composer should not render the removed heading')
+assert.ok(!paperPlane.includes('throw-icon'), 'text composer action should not render a plane icon')
+
+assert.ok(fs.existsSync(datingPlanePath), 'dating-plane page should exist')
+const datingPlane = fs.readFileSync(datingPlanePath, 'utf8')
+includes(datingPlane, 'getPaperPlanes', 'dating-plane received list')
+includes(datingPlane, 'replyPaperPlane', 'dating-plane reply API')
+includes(datingPlane, 'receivedPlane', 'dating-plane received paper plane')
+includes(datingPlane, '想认识一个愿意认真聊天的人', 'dating-plane message fallback')
+includes(datingPlane, '举报', 'dating-plane report action')
+includes(datingPlane, 'openReport', 'dating-plane report action')
+includes(datingPlane, 'replyDraft', 'dating-plane reply input')
+includes(datingPlane, 'sendReply', 'dating-plane reply action')
+includes(datingPlane, '扔回去', 'dating-plane return action')
+includes(datingPlane, 'returnHome', 'dating-plane return action')
+includes(datingPlane, "uni.reLaunch({ url: '/pagesSub/community/paper-plane' })", 'dating reply returns to paper-plane home')
+assert.ok(!datingPlane.includes('没兴趣，扔回去'), 'dating return action should use the shorter label')
+assert.ok(!datingPlane.includes('<scroll-view'), 'dating-plane page should be fixed without scroll-view')
+
+assert.ok(fs.existsSync(datingPlaneComposePath), 'dating send page should exist')
+const datingPlaneCompose = fs.readFileSync(datingPlaneComposePath, 'utf8')
+includes(datingPlaneCompose, 'selfIntroduction', 'dating send page self introduction input')
+includes(datingPlaneCompose, 'idealPartner', 'dating send page ideal partner input')
+includes(datingPlaneCompose, 'sendPaperPlane', 'dating send page send API')
+includes(datingPlaneCompose, "uni.reLaunch({ url: '/pagesSub/community/paper-plane' })", 'dating send page returns home after sending')
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
 for (const fragment of [
   'getSentPaperPlanes',
@@ -62,6 +160,7 @@ for (const fragment of [
   assert.ok(sent.includes(fragment), `sent paper-plane page must include ${fragment}`)
 }
 
+<<<<<<< HEAD
 for (const fragment of [
   'paperPlaneConversationId',
   'getPaperPlaneMessages',
@@ -79,6 +178,23 @@ for (const route of [
 ]) {
   assert.ok(pagesJson.includes(route), `pages.json must register ${route}`)
 }
+=======
+assert.ok(hasRegisteredPage(root, 'pagesSub/community/dating-plane'), 'pages.json should register dating-plane')
+assert.ok(hasRegisteredPage(root, 'pagesSub/community/dating-plane-compose'), 'pages.json should register dating-plane-compose')
+assert.ok(hasRegisteredPage(root, 'pagesSub/community/paper-plane-messages'), 'pages.json should register paper-plane-messages')
+assert.ok(hasRegisteredPage(root, 'pagesSub/community/paper-plane-sent'), 'pages.json should register paper-plane-sent')
+
+assert.ok(fs.existsSync(paperPlaneMessagesPath), 'paper-plane messages page should exist')
+const paperPlaneMessages = fs.readFileSync(paperPlaneMessagesPath, 'utf8')
+includes(paperPlaneMessages, '聊天列表', 'paper-plane messages title')
+includes(paperPlaneMessages, '我发出的', 'paper-plane sent page action')
+includes(paperPlaneMessages, 'getPaperPlaneConversations', 'paper-plane conversations API')
+includes(paperPlaneMessages, '还没有聊天消息', 'paper-plane conversation empty state')
+includes(paperPlaneMessages, '我的纸飞机', 'paper-plane messages title')
+includes(paperPlaneMessages, 'returnHome', 'paper-plane messages home navigation')
+includes(paperPlaneMessages, 'uni.navigateBack()', 'paper-plane messages should preserve the navigation stack')
+assert.ok(!paperPlaneMessages.includes("uni.reLaunch({ url: '/pagesSub/community/paper-plane' })"), 'paper-plane messages should not reset the paper-plane navigation stack')
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
 for (const name of [
   'getPaperPlaneConversations',

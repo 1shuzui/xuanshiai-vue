@@ -261,7 +261,7 @@ const messageList = ref([
 
 const handleMessageClick = (message) => {
   uni.navigateTo({
-    url: `/pages/chat/detail?userId=${message.id}`
+    url: `/pagesSub/chat/detail?userId=${message.id}`
   });
 };
 </script>

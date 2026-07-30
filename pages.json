@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
 	"pages": [
 		{
 			"path": "pages/index/index",
@@ -313,4 +314,332 @@
 		]
 	},
 	"uniIdRouter": {}
+=======
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "首页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/community/community",
+      "style": {
+        "navigationBarTitleText": "社区"
+      }
+    },
+    {
+      "path": "pages/matchmaker/matchmaker",
+      "style": {
+        "navigationBarTitleText": "红娘服务"
+      }
+    },
+    {
+      "path": "pages/message/message",
+      "style": {
+        "navigationBarTitleText": "消息"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/register",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "宣誓爱",
+    "navigationBarBackgroundColor": "#FCFCFC",
+    "backgroundColor": "#F9F9F9"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#666666",
+    "selectedColor": "#5A9D8E",
+    "backgroundColor": "#FCFCFC",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/community/community",
+        "text": "社区"
+      },
+      {
+        "pagePath": "pages/matchmaker/matchmaker",
+        "text": "红娘服务"
+      },
+      {
+        "pagePath": "pages/message/message",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "uniIdRouter": {},
+  "subPackages": [
+    {
+      "root": "pagesSub/community",
+      "pages": [
+        {
+          "path": "publish",
+          "style": {
+            "navigationBarTitleText": "发布动态"
+          }
+        },
+        {
+          "path": "topic-list",
+          "style": {
+            "navigationBarTitleText": "话题"
+          }
+        },
+        {
+          "path": "topic-detail",
+          "style": {
+            "navigationBarTitleText": "话题详情"
+          }
+        },
+        {
+          "path": "post-detail",
+          "style": {
+            "navigationBarTitleText": "动态详情"
+          }
+        },
+        {
+          "path": "activity-list",
+          "style": {
+            "navigationBarTitleText": "线下活动"
+          }
+        },
+        {
+          "path": "activity-detail",
+          "style": {
+            "navigationBarTitleText": "活动详情"
+          }
+        },
+        {
+          "path": "my-activities",
+          "style": {
+            "navigationBarTitleText": "我的活动"
+          }
+        },
+        {
+          "path": "paper-plane",
+          "style": {
+            "navigationBarTitleText": "纸飞机"
+          }
+        },
+        {
+          "path": "dating-plane",
+          "style": {
+            "navigationBarTitleText": "脱单纸飞机",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "dating-plane-compose",
+          "style": {
+            "navigationBarTitleText": "脱单纸飞机",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "paper-plane-messages",
+          "style": {
+            "navigationBarTitleText": "纸飞机消息",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "paper-plane-sent",
+          "style": {
+            "navigationBarTitleText": "我发出的",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "notifications",
+          "style": {
+            "navigationBarTitleText": "社区通知"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pagesSub/matchmaker",
+      "pages": [
+        {
+          "path": "apply",
+          "style": {
+            "navigationBarTitleText": "我要做红娘"
+          }
+        },
+        {
+          "path": "detail",
+          "style": {
+            "navigationBarTitleText": "红娘详情"
+          }
+        },
+        {
+          "path": "payment",
+          "style": {
+            "navigationBarTitleText": "确认付款"
+          }
+        },
+        {
+          "path": "become-matchmaker",
+          "style": {
+            "navigationBarTitleText": "我要做红娘",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "become-partner",
+          "style": {
+            "navigationBarTitleText": "申请成为合伙人",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "become-promoter",
+          "style": {
+            "navigationBarTitleText": "申请推广红娘",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "application-success",
+          "style": {
+            "navigationBarTitleText": "申请成功",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "custom",
+          "style": {
+            "navigationBarTitleText": "私人定制"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pagesSub/profileExtra",
+      "pages": [
+        {
+          "path": "settings",
+          "style": {
+            "navigationBarTitleText": "设置"
+          }
+        },
+        {
+          "path": "certification",
+          "style": {
+            "navigationBarTitleText": "我的认证"
+          }
+        },
+        {
+          "path": "vip",
+          "style": {
+            "navigationBarTitleText": "会员中心"
+          }
+        },
+        {
+          "path": "my-moments",
+          "style": {
+            "navigationBarTitleText": "我的动态",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pagesSub/chat",
+      "pages": [
+        {
+          "path": "detail",
+          "style": {
+            "navigationBarTitleText": "聊天"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pagesSub/about",
+      "pages": [
+        {
+          "path": "about",
+          "style": {
+            "navigationBarTitleText": "关于我们"
+          }
+        },
+        {
+          "path": "article",
+          "style": {
+            "navigationBarTitleText": ""
+          }
+        }
+      ]
+    },
+    {
+      "root": "pagesSub/userExtra",
+      "pages": [
+        {
+          "path": "onboarding/profile",
+          "style": {
+            "navigationBarTitleText": "完善资料",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "user/detail",
+          "style": {
+            "navigationBarTitleText": "用户详情"
+          }
+        },
+        {
+          "path": "user/edit",
+          "style": {
+            "navigationBarTitleText": "编辑资料"
+          }
+        },
+        {
+          "path": "mytags/edit",
+          "style": {
+            "navigationBarTitleText": "编辑标签",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "index/top-placement",
+          "style": {
+            "navigationBarTitleText": "我要置顶",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    }
+  ]
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 }

@@ -23,7 +23,7 @@ const ranking = read('components/MatchmakerRank.uvue')
 expect(ranking, 'formatRating(item.rating)', 'ranking uses rating formatter')
 expect(ranking, "rating.toFixed(1)", 'ranking keeps one decimal place')
 
-const detail = read('pages/matchmaker/detail.uvue')
+const detail = read('pagesSub/matchmaker/detail.uvue')
 expect(detail, '{{ ratingText }}', 'detail uses formatted rating text')
 expect(detail, "rating.toFixed(1)", 'detail keeps one decimal place')
 

@@ -39,7 +39,11 @@ uniCloud-aliyun/      既有云函数目录，未经确认不得修改
 
 ## 当前开发状态
 
+<<<<<<< HEAD
 - `api/config.uts` 当前为 `USE_MOCK = false`，用于既有 FastAPI HTTP 联调；消息、父母端和情感实验室仍使用各自的显式模块 Mock 开关。
+=======
+- `api/config.uts` 当前社区 1.0 验收为 `USE_MOCK = false`；其它尚未接入真实后端的模块仍保留 Mock。
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 - 页面只能通过 `@/api` 获取业务数据，不直接依赖 `@/mock`。
 - `USE_MOCK = false` 不代表生产后端已经可用；关闭任一模块 Mock 前必须完成真实接口、错误码、鉴权和接口契约联调。
 - `manifest.json`、`pages.json`、`uniCloud-aliyun/` 是受保护区域，未经明确确认不得修改。

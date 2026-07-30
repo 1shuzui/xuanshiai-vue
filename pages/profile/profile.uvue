@@ -124,15 +124,19 @@ const onMessages = () => {
 }
 
 const onSettings = () => {
-	uni.navigateTo({ url: '/pages/profile/settings' })
+	uni.navigateTo({ url: '/pagesSub/profileExtra/settings' })
 }
 
 const onViewMyProfile = () => {
-	uni.navigateTo({ url: '/pages/user/edit' })
+	uni.navigateTo({ url: '/pagesSub/userExtra/user/edit' })
 }
 
 const onOpenVIP = () => {
+<<<<<<< HEAD
 	uni.navigateTo({ url: '/pages/profile/vip' })
+=======
+	uni.navigateTo({ url: '/pagesSub/profileExtra/vip', fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) } })
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 }
 
 const onMyTasks = () => {
@@ -140,7 +144,11 @@ const onMyTasks = () => {
 }
 
 const onMyMoments = () => {
+<<<<<<< HEAD
 	uni.showToast({ title: '我的动态', icon: 'none' })
+=======
+	uni.navigateTo({ url: '/pagesSub/profileExtra/my-moments' })
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 }
 
 const onMyPoster = () => {
@@ -152,7 +160,7 @@ const onMyRegistration = () => {
 }
 
 const onCertification = () => {
-	uni.navigateTo({ url: '/pages/profile/certification' })
+	uni.navigateTo({ url: '/pagesSub/profileExtra/certification' })
 }
 
 const onEmotionLab = () => {
@@ -164,7 +172,7 @@ const onInviteFriend = () => {
 }
 
 const onMenuSettings = () => {
-	uni.navigateTo({ url: '/pages/profile/settings' })
+	uni.navigateTo({ url: '/pagesSub/profileExtra/settings' })
 }
 
 const onHelp = () => {
@@ -172,7 +180,7 @@ const onHelp = () => {
 }
 
 const onAbout = () => {
-	uni.navigateTo({ url: '/pages/about/about' })
+	uni.navigateTo({ url: '/pagesSub/about/about' })
 }
 
 const onSecurity = () => {

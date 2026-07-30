@@ -7,6 +7,7 @@
 export {
   sendSms,
   loginByPhone,
+  loginByWechat,
   logout
 } from './auth.uts'
 
@@ -17,13 +18,17 @@ export {
   getSquareUsers,
   getUserDetail,
   getMeProfile,
+  getOwnProfile,
+  updateOwnProfile,
+  getOwnPreferences,
+  updateOwnPreferences,
+  uploadUserProfileMedia,
+  deleteUserProfilePhoto,
   applyToMeet,
   likeUser,
   getLikedUsers,
   getChatFeatureUnlocks,
-  unlockChatFeature,
-  getUserProfileUnlockStatus,
-  unlockUserProfile
+  unlockChatFeature
 } from './user.uts'
 
 // 消息相关
@@ -129,12 +134,12 @@ export {
   purchasePaperPlaneChance,
   publishDynamic,
   likeDynamic,
-  deleteDynamic,
   collectDynamic,
   followUserFromCommunity,
   unfollowUserFromCommunity,
-  commentDynamic,
+  deleteDynamic,
   deleteComment,
+  commentDynamic,
   reportContent,
   blockUser,
   getReportReasons,

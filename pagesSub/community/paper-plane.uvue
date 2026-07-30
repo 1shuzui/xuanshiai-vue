@@ -1,0 +1,1315 @@
+<template>
+	<view class="page">
+		<view class="flight-scene">
+			<view class="flight-plane flight-plane-a"><text>✈</text></view>
+			<view class="flight-plane flight-plane-b"><text>✈</text></view>
+			<view class="flight-plane flight-plane-c"><text>✈</text></view>
+			<view class="flight-plane flight-plane-d"><text>✈</text></view>
+			<view class="flight-plane flight-plane-e"><text>✈</text></view>
+			<view class="flight-plane flight-plane-f"><text>✈</text></view>
+			<view class="flight-plane flight-plane-g"><text>✈</text></view>
+			<view class="flight-plane flight-plane-h"><text>✈</text></view>
+			<view class="flight-plane flight-plane-i"><text>✈</text></view>
+			<view class="flight-plane flight-plane-j"><text>✈</text></view>
+			<view class="flight-plane flight-plane-k"><text>✈</text></view>
+			<view class="flight-plane flight-plane-l"><text>✈</text></view>
+		</view>
+		<view class="hero">
+			<view class="hero-copy">
+				<text class="eyebrow">PAPER PLANE · 认真表达</text>
+				<text class="hero-title">把想说的话轻轻放出去</text>
+				<text class="hero-desc">给这一刻留一句话，也给未来的自己留一个回声。</text>
+				<view class="hero-identity" @click="openPaperPlaneProfileEditor">
+					<view class="hero-identity-avatar">
+						<image v-if="paperPlaneProfile.avatarType == 'album' && paperPlaneProfile.avatar != ''" class="hero-identity-avatar-image" :src="paperPlaneProfile.avatar" mode="aspectFill"></image>
+						<view v-else class="hero-identity-default">
+							<view class="hero-identity-default-head"></view>
+							<view class="hero-identity-default-body"></view>
+						</view>
+					</view>
+					<view class="hero-identity-copy">
+						<text class="hero-identity-name">{{ paperPlaneProfile.nickname }}</text>
+						<text class="hero-identity-note">{{ paperPlaneProfile.initialized ? '纸飞机身份' : '请完成身份初始化' }}</text>
+					</view>
+					<text class="hero-identity-edit">✎</text>
+				</view>
+			</view>
+			<view class="hero-mark">
+				<text class="hero-plane">✈</text>
+				<text class="hero-spark">✦</text>
+			</view>
+		</view>
+
+		<view class="quota-bar">
+			<view class="quota-copy">
+				<text class="q-label">扔纸飞机次数：{{ total - remain + purchasedThrowCount }}</text>
+				<text class="q-label">捡纸飞机次数：{{ catchCount }}</text>
+			</view>
+			<button class="quota-badge" @click="openPlaneQuota"><text>获取纸飞机</text></button>
+		</view>
+
+		<view class="topic-card">
+			<view class="topic-row">
+				<view class="topic-copy">
+					<view class="topic-label-row">
+						<view class="topic-icon"><text>✦</text></view>
+						<text class="topic-kicker">纸飞机话题</text>
+					</view>
+					<text class="topic-title">一句话总结一下你的2026上半年</text>
+				</view>
+				<button class="topic-action" @click="openTextComposer">参与话题</button>
+			</view>
+			<text class="topic-desc">不用写得完整，先把此刻最想留下的一句话放进纸飞机。</text>
+		</view>
+
+		<view class="quiet-note">
+			<view class="quiet-icon"><text>♡</text></view>
+			<view class="quiet-copy">
+				<text class="quiet-title">认真表达，温柔回应</text>
+				<text class="quiet-desc">纸飞机会先以内容呈现，回复前请确认对方是否愿意继续认识。</text>
+			</view>
+		</view>
+
+		<view class="bottom-dock">
+			<button class="dock-action" @click="openComposerMenu">
+				<view class="dock-icon dock-send"><text>✈</text></view>
+				<text class="dock-label">扔纸飞机</text>
+			</button>
+			<button class="dock-action" :class="{ active: activeMode == 'catch' }" @click="openCatchMenu">
+				<view class="dock-icon dock-catch"><text>✦</text></view>
+				<text class="dock-label">捡纸飞机</text>
+			</button>
+			<button class="dock-action" :class="{ active: activeMode == 'mine' }" @click="openPaperPlaneMessages">
+				<view class="dock-icon dock-mine">
+					<text>▱</text>
+					<text v-if="paperPlaneUnreadCount > 0" class="mine-unread-badge">{{ paperPlaneUnreadCount > 99 ? '99+' : paperPlaneUnreadCount }}</text>
+				</view>
+				<text class="dock-label">我的纸飞机</text>
+			</button>
+		</view>
+
+		<XsaSheet :visible="catchMenuVisible" title="捡纸飞机" @close="closeCatchMenu">
+			<view class="catch-menu">
+				<button class="catch-option catch-option-dating" @click="openDatingPlane">
+					<view class="catch-option-icon"><text>♡</text></view>
+					<view class="catch-option-copy">
+						<text class="catch-option-title">脱单纸飞机</text>
+						<text class="catch-option-desc">看看别人认真写下的心意</text>
+					</view>
+					<text class="choice-arrow">›</text>
+				</button>
+				<button class="catch-option catch-option-normal" @click.stop="openNormalCatch">
+					<view class="catch-option-icon"><text>✦</text></view>
+					<view class="catch-option-copy">
+						<text class="catch-option-title">普通纸飞机</text>
+						<text class="catch-option-desc">接住一句轻轻落下的话</text>
+					</view>
+					<text class="choice-arrow">›</text>
+				</button>
+			</view>
+		</XsaSheet>
+
+		<view v-if="normalCatchVisible" class="normal-catch-overlay" @click="closeNormalCatch">
+			<view class="normal-catch-modal" @click.stop>
+				<view class="normal-catch-header">
+					<view class="normal-plane-profile">
+						<image class="normal-plane-avatar" :src="normalPlane.avatar" mode="aspectFill"></image>
+						<view class="normal-plane-copy">
+							<text class="normal-plane-name">{{ normalPlane.name }}</text>
+							<text class="normal-plane-meta">{{ normalPlane.birthYear }} · {{ normalPlane.ip }}</text>
+						</view>
+					</view>
+					<button class="normal-report-button" @click="openNormalReport">举报</button>
+				</view>
+
+				<view class="normal-catch-kicker-row">
+					<text class="normal-catch-kicker">{{ normalPlane.type == 'voice' ? '语音纸飞机' : '文字纸飞机' }}</text>
+					<text class="normal-catch-time">刚刚落下</text>
+				</view>
+
+				<view v-if="normalPlane.type == 'voice'" class="normal-voice-card">
+					<button class="normal-voice-play" :class="{ playing: normalVoicePlaying }" @click="toggleNormalVoice">
+						<text>{{ normalVoicePlaying ? '■' : '▶' }}</text>
+					</button>
+					<view class="normal-voice-copy">
+						<text class="normal-voice-title">一段语音纸飞机</text>
+						<view class="normal-waveform">
+							<text v-for="bar in voiceBars" :key="bar" class="normal-wave-bar" :style="{ height: bar + 'px' }"></text>
+						</view>
+					</view>
+					<text class="normal-voice-duration">{{ normalPlane.duration }}</text>
+				</view>
+				<view v-else class="normal-text-card">
+					<text class="normal-text-quote">“</text>
+					<text class="normal-text-content">{{ normalPlane.content }}</text>
+					<text class="normal-text-quote normal-text-quote-end">”</text>
+				</view>
+
+				<view class="normal-catch-reply">
+					<text class="normal-reply-label">想回复这架纸飞机</text>
+					<view class="normal-reply-bar">
+						<input class="normal-reply-input" :value="normalReplyDraft" @input="onNormalReplyInput" placeholder="写一句想说的话" maxlength="120" />
+					</view>
+					<button class="normal-send-button" :disabled="normalSending" @click="sendNormalReply">{{ normalSending ? '发送中...' : '发送' }}</button>
+					<button class="throw-back-button" @click="returnFromNormalCatch">↩ 扔回去</button>
+				</view>
+			</view>
+		</view>
+
+		<XsaReportSheet
+			:visible="normalReportVisible"
+			target-type="paperPlane"
+			:target-id="normalPlane.id"
+			:user-id="normalPlane.userId"
+			@close="normalReportVisible = false"
+			@reported="normalReportVisible = false"
+		/>
+
+		<XsaSheet :visible="menuVisible" title="选择纸飞机" @close="menuVisible = false">
+			<view class="choice-list">
+				<button class="choice-item choice-dating" @click="openDatingPlaneComposer">
+					<view class="choice-icon"><text>♡</text></view>
+					<view class="choice-copy">
+						<text class="choice-title">脱单纸飞机</text>
+						<text class="choice-desc">认真介绍自己，遇见同样认真的人</text>
+					</view>
+					<text class="choice-arrow">›</text>
+				</button>
+				<button class="choice-item choice-text" @click="openTextComposer">
+					<view class="choice-icon"><text>✎</text></view>
+					<view class="choice-copy">
+						<text class="choice-title">文字纸飞机</text>
+						<text class="choice-desc">写下此刻想说的一句话</text>
+					</view>
+					<text class="choice-arrow">›</text>
+				</button>
+				<button class="choice-item choice-voice" @click="openVoiceComposer">
+					<view class="choice-icon"><text>◉</text></view>
+					<view class="choice-copy">
+						<text class="choice-title">语音纸飞机</text>
+						<text class="choice-desc">用声音表达，比文字更靠近一点</text>
+					</view>
+					<text class="choice-arrow">›</text>
+				</button>
+			</view>
+		</XsaSheet>
+
+		<view v-if="planeQuotaVisible" class="plane-quota-overlay" @click="closePlaneQuota">
+			<view class="plane-quota-modal" @click.stop>
+				<view class="plane-quota-heading">
+					<text class="plane-quota-title">获取纸飞机</text>
+					<button class="plane-quota-close" @click="closePlaneQuota">×</button>
+				</view>
+				<view class="plane-quota-tabs">
+					<button class="plane-quota-tab" :class="{ active: planeQuotaTab == 'throw' }" @click="selectPlaneQuotaTab('throw')">扔纸飞机次数</button>
+					<button class="plane-quota-tab" :class="{ active: planeQuotaTab == 'catch' }" @click="selectPlaneQuotaTab('catch')">捡纸飞机次数</button>
+				</view>
+				<view class="plane-quota-panel">
+					<text class="plane-quota-copy">{{ planeQuotaTab == 'throw' ? '补充一次今日可扔纸飞机次数' : '补充一次捡纸飞机次数' }}</text>
+					<button class="plane-quota-buy" :disabled="planeQuotaPurchasing" @click="purchasePaperPlaneTimes">{{ planeQuotaPurchasing ? '获取中...' : '50积分/次' }}</button>
+					<text v-if="planeQuotaTab == 'catch'" class="plane-quota-hint">每日免费刷新3次捡飞机次数</text>
+				</view>
+			</view>
+		</view>
+
+		<view v-if="paperPlaneProfileEditorVisible" class="plane-profile-overlay" @click="closePaperPlaneProfileEditor">
+			<view class="plane-profile-modal" @click.stop>
+				<view class="plane-profile-modal-heading">
+					<view>
+						<text class="plane-profile-modal-title">{{ paperPlaneProfile.initialized ? '修改纸飞机身份' : '先完成纸飞机身份' }}</text>
+						<text class="plane-profile-modal-desc">仅用于纸飞机，不会同步到小程序其他页面</text>
+					</view>
+					<button class="plane-profile-modal-close" @click="closePaperPlaneProfileEditor">×</button>
+				</view>
+
+				<view class="plane-profile-form-field">
+					<view class="plane-profile-label-row">
+						<text class="plane-profile-form-label">昵称</text>
+						<button class="plane-profile-random" @click="randomizePaperPlaneNickname">随机昵称</button>
+					</view>
+					<input class="plane-profile-input" :value="paperPlaneProfileDraft.nickname" @input="onPaperPlaneNicknameInput" placeholder="请输入纸飞机昵称" maxlength="16" />
+				</view>
+
+				<view class="plane-profile-form-field">
+					<text class="plane-profile-form-label">头像</text>
+					<view class="plane-avatar-options">
+						<button class="plane-avatar-choice" :class="{ active: paperPlaneProfileDraft.avatarType == 'default' }" @click="useDefaultPaperPlaneAvatar">
+							<view class="plane-profile-default plane-profile-default-small">
+								<view class="plane-profile-default-head"></view>
+								<view class="plane-profile-default-body"></view>
+							</view>
+							<text>默认头像</text>
+						</button>
+						<button class="plane-avatar-choice" :class="{ active: paperPlaneProfileDraft.avatarType == 'album' }" @click="choosePaperPlaneAvatar">
+							<image v-if="paperPlaneProfileDraft.avatarType == 'album' && paperPlaneProfileDraft.avatar != ''" class="plane-profile-choice-image" :src="paperPlaneProfileDraft.avatar" mode="aspectFill"></image>
+							<view v-else class="plane-profile-album-placeholder"><text>+</text></view>
+							<text>从相册选择</text>
+						</button>
+					</view>
+				</view>
+
+				<button class="plane-profile-save" @click="savePaperPlaneProfile">{{ paperPlaneProfile.initialized ? '保存修改' : '完成并进入纸飞机' }}</button>
+			</view>
+		</view>
+
+		<view v-if="composerVisible" class="composer-overlay" @click="closeComposer">
+			<view class="composer-modal" @click.stop>
+				<view class="modal-topline">
+					<button class="modal-close" @click="closeComposer">×</button>
+				</view>
+				<view class="composer-tabs">
+					<button class="composer-tab" :class="{ active: composerTab == 'text' }" @click="switchComposerTab('text')">文字纸飞机</button>
+					<button class="composer-tab" :class="{ active: composerTab == 'voice' }" @click="switchComposerTab('voice')">语音纸飞机</button>
+				</view>
+
+				<view v-if="composerTab == 'text'" class="composer-panel">
+					<view class="paper-plane-media-grid">
+						<view class="paper-plane-media-item" v-for="(item, index) in paperPlaneImages" :key="index">
+							<image class="paper-plane-media-image" :src="item.localPath" mode="aspectFill"></image>
+							<view class="paper-plane-media-status" v-if="item.status == 'uploading' || item.status == 'pending'">上传中</view>
+							<view class="paper-plane-media-status paper-plane-media-failed" v-else-if="item.status == 'failed'" @click="retryPaperPlaneImage(index)">重试</view>
+							<button class="paper-plane-media-remove" @click="removePaperPlaneImage(index)">×</button>
+						</view>
+						<view v-if="paperPlaneImages.length < 6" class="paper-plane-media-add" @click="addPaperPlaneImage">
+							<text>+</text>
+							<text>添加图片</text>
+						</view>
+					</view>
+					<textarea
+						class="ta"
+						:value="draft"
+						@input="onDraft"
+						placeholder="写下一句想被认真听见的话"
+						maxlength="120"
+					></textarea>
+					<view class="compose-meta">
+						<text>保持真诚，也给彼此留一点余地</text>
+						<text>{{ draft.length }}/120</text>
+					</view>
+					<button class="throw-button" :disabled="sending || (draft.trim().length == 0 && paperPlaneImages.length == 0)" @click="send">{{ sending ? '正在放飞...' : '扔出去' }}</button>
+				</view>
+
+				<view v-else class="composer-panel voice-panel">
+					<button class="record-button" :class="{ recording: recording }" @click="toggleRecording">
+						<text class="record-icon">{{ recording ? '■' : '●' }}</text>
+					</button>
+					<text class="record-title">{{ recording ? '正在录音 ' + recordTime : (recorded ? '录音已准备好' : '点击开始录音') }}</text>
+					<text class="record-hint">{{ recording ? '再次点击结束录音' : '声音会比文字更靠近一点' }}</text>
+					<button class="throw-button voice-send" :disabled="!recorded" @click="sendVoice">扔出去</button>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaSheet from '@/components/XsaSheet.uvue'
+	import { sendPaperPlane, getCommunityQuotas, purchasePaperPlaneChance, replyPaperPlane, getPaperPlaneUnreadCount, createCommunityCreateKey, discardCommunityCreateKey, uploadCommunityMedia, deleteCommunityMedia } from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	const PAPER_PLANE_PROFILE_STORAGE_KEY = 'xsa_paper_plane_profile_v1'
+	const PAPER_PLANE_DEFAULT_NICKNAME = '宣誓爱用户'
+	const paperPlaneRandomNames = ['云端旅人', '微光信使', '晚风邮差', '星河来信', '晴天收件人', '月光投递员']
+
+	const paperPlaneProfile = ref({
+		nickname: PAPER_PLANE_DEFAULT_NICKNAME,
+		avatar: '',
+		avatarType: '',
+		initialized: false
+	})
+	const paperPlaneProfileDraft = ref({
+		nickname: PAPER_PLANE_DEFAULT_NICKNAME,
+		avatar: '',
+		avatarType: ''
+	})
+	const paperPlaneProfileEditorVisible = ref(false)
+
+	const activeMode = ref('catch')
+	const remain = ref(3)
+	const total = ref(3)
+	const catchCount = ref(0)
+	const purchasedThrowCount = ref(0)
+	const planeQuotaVisible = ref(false)
+	const planeQuotaTab = ref('throw')
+	const planeQuotaPurchasing = ref(false)
+	const paperPlaneUnreadCount = ref(0)
+	const menuVisible = ref(false)
+	const catchMenuVisible = ref(false)
+	const normalCatchVisible = ref(false)
+	const normalReportVisible = ref(false)
+	const normalReplyDraft = ref('')
+	const normalSending = ref(false)
+	const normalVoicePlaying = ref(false)
+	const normalPlanePool: any[] = [
+		{
+			id: 1,
+			userId: 1,
+			avatar: '/static/portraits/profile-woman-alt.jpg',
+			name: '林雨桐',
+			birthYear: '1998年',
+			ip: '杭州',
+			type: 'text',
+			content: '今天路过一间很小的书店，想把遇见的好天气分享给同样认真生活的人。',
+			duration: '00:16'
+		},
+		{
+			id: 2,
+			userId: 7,
+					avatar: '/static/portraits/profile-woman-alt.jpg',
+			name: '周予安',
+			birthYear: '1997年',
+			ip: '南京',
+			type: 'voice',
+			content: '',
+			duration: '00:18'
+		}
+	]
+	const normalPlane = ref(normalPlanePool[0])
+	const voiceBars = [8, 14, 22, 12, 18, 9, 25, 15, 20, 11, 17, 8]
+	const composerVisible = ref(false)
+	const composerTab = ref('text')
+	const draft = ref('')
+	const sending = ref(false)
+	const recording = ref(false)
+	const recorded = ref(false)
+	const recordSeconds = ref(0)
+	let recorderManager: any = null
+	let recordTimer: any = null
+
+	type PaperPlaneMedia = {
+		localPath: string
+		mediaId: number
+		remoteUrl: string
+		status: string
+		mediaType: string
+		cancelled: boolean
+	}
+
+	const paperPlaneImages = ref<PaperPlaneMedia[]>([])
+	const inFlightMedia = ref<PaperPlaneMedia[]>([])
+	const pendingSendKey = ref('')
+	const pendingSendFingerprint = ref('')
+	const pendingReplyKey = ref('')
+	const pendingReplyFingerprint = ref('')
+
+	const loadPaperPlaneProfile = () => {
+		try {
+			const saved = uni.getStorageSync(PAPER_PLANE_PROFILE_STORAGE_KEY) as any
+			if (saved == null || typeof saved !== 'object' || saved.initialized != true) return
+
+			const nickname = typeof saved.nickname === 'string' && saved.nickname.trim().length > 0
+				? saved.nickname.trim()
+				: PAPER_PLANE_DEFAULT_NICKNAME
+			const hasAlbumAvatar = saved.avatarType == 'album' && typeof saved.avatar === 'string' && saved.avatar != ''
+			const avatarType = hasAlbumAvatar ? 'album' : (saved.avatarType == 'default' ? 'default' : '')
+			if (avatarType == '') return
+
+			paperPlaneProfile.value.nickname = nickname
+			paperPlaneProfile.value.avatar = hasAlbumAvatar ? saved.avatar : ''
+			paperPlaneProfile.value.avatarType = avatarType
+			paperPlaneProfile.value.initialized = true
+		} catch (e) {
+			console.error('恢复纸飞机身份失败', e)
+		}
+	}
+
+	const openPaperPlaneProfileEditor = () => {
+		paperPlaneProfileDraft.value.nickname = paperPlaneProfile.value.nickname
+		paperPlaneProfileDraft.value.avatar = paperPlaneProfile.value.avatar
+		paperPlaneProfileDraft.value.avatarType = paperPlaneProfile.value.avatarType
+		paperPlaneProfileEditorVisible.value = true
+	}
+
+	const closePaperPlaneProfileEditor = () => {
+		paperPlaneProfileEditorVisible.value = false
+	}
+
+	const ensurePaperPlaneProfile = (): boolean => {
+		if (paperPlaneProfile.value.initialized) return true
+		openPaperPlaneProfileEditor()
+		return false
+	}
+
+	const onPaperPlaneNicknameInput = (e: any) => {
+		paperPlaneProfileDraft.value.nickname = e.detail.value
+	}
+
+	const randomizePaperPlaneNickname = () => {
+		const index = Math.floor(Math.random() * paperPlaneRandomNames.length)
+		paperPlaneProfileDraft.value.nickname = paperPlaneRandomNames[index]
+	}
+
+	const useDefaultPaperPlaneAvatar = () => {
+		paperPlaneProfileDraft.value.avatar = ''
+		paperPlaneProfileDraft.value.avatarType = 'default'
+	}
+
+	const choosePaperPlaneAvatar = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album'],
+			success: (res: any) => {
+				if (res != null && res.tempFilePaths != null && res.tempFilePaths.length > 0) {
+					paperPlaneProfileDraft.value.avatar = res.tempFilePaths[0]
+					paperPlaneProfileDraft.value.avatarType = 'album'
+				}
+			}
+		})
+	}
+
+	const savePaperPlaneProfile = () => {
+		const nickname = paperPlaneProfileDraft.value.nickname.trim()
+		if (nickname.length == 0) {
+			uni.showToast({ title: '请输入纸飞机昵称', icon: 'none' })
+			return
+		}
+		if (paperPlaneProfileDraft.value.avatarType == '') {
+			uni.showToast({ title: '请选择纸飞机头像', icon: 'none' })
+			return
+		}
+
+		paperPlaneProfile.value.nickname = nickname
+		paperPlaneProfile.value.avatar = paperPlaneProfileDraft.value.avatar
+		paperPlaneProfile.value.avatarType = paperPlaneProfileDraft.value.avatarType
+		paperPlaneProfile.value.initialized = true
+		try {
+			uni.setStorageSync(PAPER_PLANE_PROFILE_STORAGE_KEY, {
+				nickname: paperPlaneProfile.value.nickname,
+				avatar: paperPlaneProfile.value.avatar,
+				avatarType: paperPlaneProfile.value.avatarType,
+				initialized: true
+			})
+		} catch (e) {
+			console.error('保存纸飞机身份失败', e)
+		}
+		paperPlaneProfileEditorVisible.value = false
+		uni.showToast({ title: '纸飞机身份已保存', icon: 'success' })
+	}
+
+	const recordTime = computed(() => {
+		const seconds = recordSeconds.value
+		const minute = seconds >= 60 ? Math.floor(seconds / 60) : 0
+		const second = seconds % 60
+		return (minute < 10 ? '0' + minute : '' + minute) + ':' + (second < 10 ? '0' + second : '' + second)
+	})
+
+	onMounted(() => {
+		loadPaperPlaneProfile()
+		setupRecorder()
+		loadQuota()
+		loadPaperPlaneUnreadCount()
+	})
+
+	onShow(() => {
+		loadPaperPlaneUnreadCount()
+	})
+
+	onUnload(() => {
+		if (recording.value) stopRecording()
+		clearRecordTimer()
+		cleanupPaperPlaneMedia()
+		discardPendingSendKey()
+		discardPendingReplyKey()
+	})
+
+	const setupRecorder = () => {
+		// #ifdef MP-WEIXIN
+		recorderManager = uni.getRecorderManager()
+		recorderManager.onStart(() => {
+			recording.value = true
+		})
+		recorderManager.onStop((res: any) => {
+			recording.value = false
+			recorded.value = res != null && res.tempFilePath != null
+			clearRecordTimer()
+		})
+		recorderManager.onError(() => {
+			recording.value = false
+			recorded.value = false
+			clearRecordTimer()
+			uni.showToast({ title: '录音失败，请检查麦克风权限', icon: 'none' })
+		})
+		// #endif
+	}
+
+	const loadQuota = async () => {
+		try {
+			const res = await getCommunityQuotas()
+			if (res.success && res.data != null && res.data.paperPlaneDaily != null) {
+				remain.value = res.data.paperPlaneDaily.remain
+				total.value = res.data.paperPlaneDaily.total
+				purchasedThrowCount.value = res.data.paperPlaneDaily.purchasedThrow != null
+					? Math.max(0, Number(res.data.paperPlaneDaily.purchasedThrow))
+					: 0
+				const purchasedCatch = res.data.paperPlaneDaily.purchasedCatch != null
+					? Math.max(0, Number(res.data.paperPlaneDaily.purchasedCatch))
+					: 0
+				catchCount.value = Math.max(catchCount.value, purchasedCatch)
+			}
+		} catch (e) {
+			console.error(e)
+		}
+	}
+
+	const loadPaperPlaneUnreadCount = async () => {
+		try {
+			const res = await getPaperPlaneUnreadCount()
+			if (res != null && res.success && res.data != null && res.data.count != null) {
+				paperPlaneUnreadCount.value = Math.max(0, res.data.count as number)
+			}
+		} catch (e) {
+			console.error(e)
+		}
+	}
+
+	const setMode = (mode: string) => {
+		activeMode.value = mode
+	}
+
+	const openPaperPlaneMessages = () => {
+		if (!ensurePaperPlaneProfile()) return
+		activeMode.value = 'mine'
+		uni.navigateTo({ url: '/pagesSub/community/paper-plane-messages' })
+	}
+
+	const openCatchMenu = () => {
+		if (!ensurePaperPlaneProfile()) return
+		activeMode.value = 'catch'
+		catchMenuVisible.value = true
+	}
+
+	const closeCatchMenu = () => {
+		catchMenuVisible.value = false
+	}
+
+	const recordCatch = () => {
+		catchCount.value += 1
+	}
+
+	const openPlaneQuota = () => {
+		if (!ensurePaperPlaneProfile()) return
+		planeQuotaTab.value = 'throw'
+		planeQuotaVisible.value = true
+	}
+
+	const closePlaneQuota = () => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaVisible.value = false
+	}
+
+	const selectPlaneQuotaTab = (tab: string) => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaTab.value = tab
+	}
+
+	const purchasePaperPlaneTimes = async () => {
+		if (planeQuotaPurchasing.value) return
+		planeQuotaPurchasing.value = true
+		try {
+			const res = await purchasePaperPlaneChance(planeQuotaTab.value)
+			const data = res != null ? res.data as any : null
+			if (res != null && res.success && data != null && data.success) {
+				if (data.quotas != null) {
+					total.value = data.quotas.total
+					remain.value = data.quotas.remain
+					purchasedThrowCount.value = data.quotas.purchasedThrow != null
+						? Math.max(0, Number(data.quotas.purchasedThrow))
+						: purchasedThrowCount.value
+					if (planeQuotaTab.value == 'catch') {
+						const purchasedCatch = data.quotas.purchasedCatch != null
+							? Math.max(0, Number(data.quotas.purchasedCatch))
+							: catchCount.value + 1
+						catchCount.value = Math.max(catchCount.value, purchasedCatch)
+					}
+				}
+				const points = data.points != null ? Number(data.points) : 0
+				uni.showModal({
+					title: '已获取纸飞机次数',
+					content: '积分 -50，剩余 ' + points + ' 积分',
+					showCancel: false,
+					confirmText: '知道了'
+				})
+				return
+			}
+			uni.showToast({ title: data != null && data.message != null ? data.message : '获取失败，请稍后重试', icon: 'none' })
+		} catch (e) {
+			console.error(e)
+			uni.showToast({ title: '获取失败，请稍后重试', icon: 'none' })
+		} finally {
+			planeQuotaPurchasing.value = false
+		}
+	}
+
+	const openNormalCatch = () => {
+		if (!ensurePaperPlaneProfile()) return
+		catchMenuVisible.value = false
+		recordCatch()
+		normalReportVisible.value = false
+		normalReplyDraft.value = ''
+		normalVoicePlaying.value = false
+		const index = Math.floor(Math.random() * normalPlanePool.length)
+		normalPlane.value = normalPlanePool[index]
+		normalCatchVisible.value = true
+	}
+
+	const closeNormalCatch = () => {
+		normalVoicePlaying.value = false
+		normalCatchVisible.value = false
+	}
+
+	const openNormalReport = () => {
+		normalReportVisible.value = true
+	}
+
+	const toggleNormalVoice = () => {
+		normalVoicePlaying.value = !normalVoicePlaying.value
+	}
+
+	const onNormalReplyInput = (e: any) => {
+		normalReplyDraft.value = e.detail.value
+		invalidatePendingReplyKey()
+	}
+
+	const reply = async () => {
+		const text = normalReplyDraft.value.trim()
+		if (text.length == 0 || normalSending.value) return
+		const p = normalPlane.value
+		const content = text
+		const fingerprint = p.id + '|' + content
+		if (pendingReplyKey.value == '' || pendingReplyFingerprint.value != fingerprint) {
+			discardPendingReplyKey()
+			pendingReplyKey.value = createCommunityCreateKey('paper-plane-reply')
+			pendingReplyFingerprint.value = fingerprint
+		}
+		normalSending.value = true
+		try {
+			const res = await replyPaperPlane(p.id, content, pendingReplyKey.value)
+			const data = res != null ? res.data : null
+			const replyOk = res != null && res.success && (res.data == null || res.data.success != false)
+			if (replyOk) {
+				if (p.replyCount == null) p.replyCount = 0
+				p.replied = true
+				p.replyCount += 1
+				discardPendingReplyKey()
+				normalReplyDraft.value = ''
+				returnFromNormalCatch()
+			} else {
+				if (shouldDiscardPaperPlaneKey(res)) discardPendingReplyKey()
+				const message =
+					data != null && data.message != null
+						? '' + data.message
+						: res != null && res.message != null
+							? '' + res.message
+							: '发送失败，请稍后再试'
+				uni.showToast({ title: message, icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' })
+		} finally {
+			normalSending.value = false
+		}
+	}
+
+	const returnFromNormalCatch = () => {
+		normalCatchVisible.value = false
+		normalReportVisible.value = false
+		discardPendingReplyKey()
+		uni.reLaunch({ url: '/pagesSub/community/paper-plane' })
+	}
+
+	const openComposerMenu = () => {
+		if (!ensurePaperPlaneProfile()) return
+		menuVisible.value = true
+	}
+
+	const openDatingPlane = () => {
+		if (!ensurePaperPlaneProfile()) return
+		menuVisible.value = false
+		catchMenuVisible.value = false
+		recordCatch()
+		uni.navigateTo({ url: '/pagesSub/community/dating-plane' })
+	}
+
+	const openDatingPlaneComposer = () => {
+		if (!ensurePaperPlaneProfile()) return
+		menuVisible.value = false
+		uni.navigateTo({ url: '/pagesSub/community/dating-plane-compose' })
+	}
+
+	const prepareComposer = async (tab: string) => {
+		if (!ensurePaperPlaneProfile()) return
+		if (remain.value <= 0) {
+			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+			return
+		}
+		const ok = await guardRealName('paperPlane')
+		if (!ok) return
+		menuVisible.value = false
+		composerTab.value = tab
+		draft.value = ''
+		paperPlaneImages.value = []
+		discardPendingSendKey()
+		recorded.value = false
+		recordSeconds.value = 0
+		composerVisible.value = true
+	}
+
+	const openTextComposer = async () => {
+		if (!ensurePaperPlaneProfile()) return
+		await prepareComposer('text')
+	}
+
+	const openVoiceComposer = async () => {
+		if (!ensurePaperPlaneProfile()) return
+		await prepareComposer('voice')
+	}
+
+	const closeComposer = (preserveMedia: boolean = false) => {
+		if (recording.value) stopRecording()
+		if (!preserveMedia) cleanupPaperPlaneMedia()
+		discardPendingSendKey()
+		composerVisible.value = false
+	}
+
+	const switchComposerTab = (tab: string) => {
+		if (recording.value) stopRecording()
+		composerTab.value = tab
+	}
+
+	const onDraft = (e: any) => {
+		draft.value = e.detail.value
+		invalidatePendingSendKey()
+	}
+
+	const makePaperPlaneMedia = (localPath: string): PaperPlaneMedia => {
+		return {
+			localPath: localPath,
+			mediaId: 0,
+			remoteUrl: '',
+			status: 'pending',
+			mediaType: 'image',
+			cancelled: false
+		}
+	}
+
+	const sendNormalReply = reply
+
+	const trackInFlight = (item: PaperPlaneMedia) => {
+		const list = inFlightMedia.value as PaperPlaneMedia[]
+		for (let i = 0; i < list.length; i++) {
+			if (list[i] === item) return
+		}
+		list.push(item)
+		inFlightMedia.value = list
+	}
+
+	const untrackInFlight = (item: PaperPlaneMedia) => {
+		const list = inFlightMedia.value as PaperPlaneMedia[]
+		const next: PaperPlaneMedia[] = []
+		for (let i = 0; i < list.length; i++) {
+			if (list[i] !== item) next.push(list[i])
+		}
+		inFlightMedia.value = next
+	}
+
+	const uploadPaperPlaneImage = async (item: PaperPlaneMedia) => {
+		if (item.cancelled) return
+		item.status = 'uploading'
+		trackInFlight(item)
+		try {
+			const res = await uploadCommunityMedia(item.localPath, 'paper_plane')
+			const mediaId = res != null && res.success && res.data != null && res.data.id != null
+				? (res.data.id as number)
+				: 0
+			if (item.cancelled) {
+				if (mediaId > 0) {
+					try { await deleteCommunityMedia(mediaId) } catch (e) {}
+				}
+				return
+			}
+			if (mediaId > 0) {
+				item.mediaId = mediaId
+				item.remoteUrl = res.data.url != null ? ('' + res.data.url) : ''
+				item.status = 'ready'
+			} else {
+				item.mediaId = 0
+				item.remoteUrl = ''
+				item.status = 'failed'
+			}
+		} catch (e) {
+			item.mediaId = 0
+			item.remoteUrl = ''
+			item.status = 'failed'
+		} finally {
+			untrackInFlight(item)
+			invalidatePendingSendKey()
+		}
+	}
+
+	const addPaperPlaneImage = () => {
+		const remainingImages = 6 - paperPlaneImages.value.length
+		if (remainingImages <= 0) return
+		uni.chooseImage({
+			count: remainingImages,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: async (res: any) => {
+				const paths = res != null && res.tempFilePaths != null ? res.tempFilePaths as string[] : []
+				const added: PaperPlaneMedia[] = []
+				for (let i = 0; i < paths.length; i++) {
+					const path = paths[i] != null ? ('' + paths[i]) : ''
+					if (path == '') continue
+					const item = makePaperPlaneMedia(path)
+					paperPlaneImages.value.push(item)
+					added.push(item)
+				}
+				invalidatePendingSendKey()
+				for (let i = 0; i < added.length; i++) await uploadPaperPlaneImage(added[i])
+			}
+		})
+	}
+
+	const removePaperPlaneImage = async (index: number) => {
+		const list = paperPlaneImages.value as PaperPlaneMedia[]
+		if (index < 0 || index >= list.length) return
+		const item = list[index]
+		if (item.status == 'uploading' || item.status == 'pending') {
+			item.cancelled = true
+			trackInFlight(item)
+			paperPlaneImages.value = list.filter((entry: PaperPlaneMedia) => entry !== item)
+			invalidatePendingSendKey()
+			return
+		}
+		if (item.status == 'ready' && item.mediaId > 0) {
+			try { await deleteCommunityMedia(item.mediaId) } catch (e) {}
+		}
+		paperPlaneImages.value.splice(index, 1)
+		invalidatePendingSendKey()
+	}
+
+	const retryPaperPlaneImage = async (index: number) => {
+		const list = paperPlaneImages.value as PaperPlaneMedia[]
+		if (index < 0 || index >= list.length || list[index].status != 'failed') return
+		list[index].cancelled = false
+		await uploadPaperPlaneImage(list[index])
+	}
+
+	const cleanupPaperPlaneMedia = async () => {
+		const list = paperPlaneImages.value as PaperPlaneMedia[]
+		for (let i = 0; i < list.length; i++) {
+			const item = list[i]
+			if (item.status == 'uploading' || item.status == 'pending') {
+				item.cancelled = true
+				trackInFlight(item)
+			} else if (item.status == 'ready' && item.mediaId > 0) {
+				try { await deleteCommunityMedia(item.mediaId) } catch (e) {}
+			}
+		}
+		const flying = inFlightMedia.value as PaperPlaneMedia[]
+		for (let i = 0; i < flying.length; i++) flying[i].cancelled = true
+		paperPlaneImages.value = []
+		invalidatePendingSendKey()
+	}
+
+	const paperPlaneSendFingerprint = (): string => {
+		const ids: string[] = []
+		const list = paperPlaneImages.value as PaperPlaneMedia[]
+		for (let i = 0; i < list.length; i++) ids.push('i' + list[i].mediaId + ':' + list[i].status)
+		return draft.value.trim() + '|' + ids.join(',')
+	}
+
+	const discardPendingSendKey = () => {
+		if (pendingSendKey.value != '') discardCommunityCreateKey(pendingSendKey.value)
+		pendingSendKey.value = ''
+		pendingSendFingerprint.value = ''
+	}
+
+	const invalidatePendingSendKey = () => {
+		if (pendingSendFingerprint.value != '' && pendingSendFingerprint.value != paperPlaneSendFingerprint()) {
+			discardPendingSendKey()
+		}
+	}
+
+	const discardPendingReplyKey = () => {
+		if (pendingReplyKey.value != '') discardCommunityCreateKey(pendingReplyKey.value)
+		pendingReplyKey.value = ''
+		pendingReplyFingerprint.value = ''
+	}
+
+	const shouldDiscardPaperPlaneKey = (res: any): boolean => {
+		if (res == null) return false
+		if (res.success == false) return res.code != null && res.code != -1
+		return res.data != null && res.data.success == false
+	}
+
+	const invalidatePendingReplyKey = () => {
+		const fingerprint = normalPlane.value.id + '|' + normalReplyDraft.value.trim()
+		if (pendingReplyFingerprint.value != '' && pendingReplyFingerprint.value != fingerprint) discardPendingReplyKey()
+	}
+
+	const send = async () => {
+		const text = draft.value.trim()
+		const mediaList = paperPlaneImages.value as PaperPlaneMedia[]
+		const imageMediaIds: number[] = []
+		for (let i = 0; i < mediaList.length; i++) {
+			if (mediaList[i].status == 'uploading' || mediaList[i].status == 'pending') {
+				uni.showToast({ title: '图片上传中，请稍候', icon: 'none' })
+				return
+			}
+			if (mediaList[i].status == 'failed') {
+				uni.showToast({ title: '图片上传失败，请重试或删除', icon: 'none' })
+				return
+			}
+			if (mediaList[i].status == 'ready' && mediaList[i].mediaId > 0) imageMediaIds.push(mediaList[i].mediaId)
+		}
+		if ((text.length == 0 && imageMediaIds.length == 0) || sending.value) return
+		if (remain.value <= 0) {
+			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+			return
+		}
+		const fingerprint = paperPlaneSendFingerprint()
+		if (pendingSendKey.value == '' || pendingSendFingerprint.value != fingerprint) {
+			discardPendingSendKey()
+			pendingSendKey.value = createCommunityCreateKey('paper-plane')
+			pendingSendFingerprint.value = fingerprint
+		}
+		sending.value = true
+		try {
+			const res = await sendPaperPlane({ content: text, imageMediaIds, scope: 'city', anonymous: true, idempotencyKey: pendingSendKey.value })
+			const data = res != null ? res.data : null
+			const bizOk = res != null && res.success && data != null && data.success != false
+			if (bizOk) {
+				if (data.quotas != null) remain.value = data.quotas.remain
+				else remain.value = Math.max(0, remain.value - 1)
+				discardPendingSendKey()
+				paperPlaneImages.value = []
+				closeComposer(true)
+				uni.showToast({ title: '已放飞', icon: 'success' })
+			} else {
+				if (shouldDiscardPaperPlaneKey(res)) discardPendingSendKey()
+				const msg =
+					data != null && data.message != null
+						? '' + data.message
+						: res != null && res.message != null
+							? '' + res.message
+							: '放飞失败'
+				uni.showToast({ title: msg, icon: 'none' })
+				if (data != null && data.remain != null) remain.value = data.remain
+			}
+		} catch (e) {
+			uni.showToast({ title: '网络异常', icon: 'none' })
+		} finally {
+			sending.value = false
+		}
+	}
+
+	const beginRecordTimer = () => {
+		clearRecordTimer()
+		recordTimer = setInterval(() => {
+			recordSeconds.value += 1
+		}, 1000)
+	}
+
+	const clearRecordTimer = () => {
+		if (recordTimer != null) {
+			clearInterval(recordTimer)
+			recordTimer = null
+		}
+	}
+
+	const startRecording = () => {
+		// #ifdef MP-WEIXIN
+		if (recorderManager == null) {
+			uni.showToast({ title: '录音功能暂不可用', icon: 'none' })
+			return
+		}
+		recorded.value = false
+		recordSeconds.value = 0
+		recording.value = true
+		beginRecordTimer()
+		recorderManager.start({ duration: 60000, sampleRate: 44100, numberOfChannels: 1, encodeBitRate: 192000, format: 'mp3' })
+		// #endif
+		// #ifndef MP-WEIXIN
+		uni.showToast({ title: '请在微信小程序中使用录音', icon: 'none' })
+		// #endif
+	}
+
+	const stopRecording = () => {
+		// #ifdef MP-WEIXIN
+		if (recorderManager != null) recorderManager.stop()
+		// #endif
+	}
+
+	const toggleRecording = () => {
+		if (recording.value) stopRecording()
+		else startRecording()
+	}
+
+	const sendVoice = () => {
+		if (!recorded.value) return
+		closeComposer()
+		uni.showToast({ title: '录音已保存，音频发送接口待接入', icon: 'none' })
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100%;
+		min-height: 0;
+		width: 100vw;
+		max-width: 100vw;
+		position: relative;
+		overflow-x: hidden;
+		overflow-y: auto;
+		background: var(--plane-sky);
+		display: flex;
+		flex-direction: column;
+		padding-bottom: 94px;
+	}
+	.flight-scene { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--plane-sky); }
+	.flight-plane { position: absolute; left: 0; top: 0; z-index: 1; display: flex; align-items: center; justify-content: center; width: 34px; height: 26px; opacity: 0.55; font-size: 22px; color: var(--plane-purple); will-change: transform; }
+	.flight-plane text { transform: rotate(-12deg); }
+	.flight-plane-a { animation: flight-a 18s linear -3s infinite; color: var(--plane-pink); }
+	.flight-plane-b { animation: flight-b 22s linear -10s infinite; color: var(--plane-purple); opacity: 0.48; }
+	.flight-plane-c { animation: flight-c 20s linear -7s infinite; color: var(--plane-blue); opacity: 0.52; }
+	.flight-plane-d { animation: flight-d 25s linear -16s infinite; color: var(--plane-purple-deep); opacity: 0.42; }
+	.flight-plane-e { animation: flight-a 21s linear -12s infinite; color: var(--plane-pink); opacity: 0.42; }
+	.flight-plane-f { animation: flight-b 19s linear -5s infinite; color: var(--plane-blue); opacity: 0.48; }
+	.flight-plane-g { animation: flight-c 24s linear -19s infinite; color: var(--plane-purple); opacity: 0.4; }
+	.flight-plane-h { animation: flight-d 17s linear -8s infinite; color: var(--plane-pink); opacity: 0.5; }
+	.flight-plane-i { animation: flight-a 27s linear -21s infinite; color: var(--plane-blue); opacity: 0.38; }
+	.flight-plane-j { animation: flight-b 23s linear -15s infinite; color: var(--plane-purple-deep); opacity: 0.4; }
+	.flight-plane-k { animation: flight-c 18s linear -3s infinite; color: var(--plane-pink); opacity: 0.46; }
+	.flight-plane-l { animation: flight-d 21s linear -11s infinite; color: var(--plane-purple); opacity: 0.44; }
+	@keyframes flight-a {
+		0% { transform: translate3d(-12vw, 74vh, 0) rotate(-18deg); opacity: 0; }
+		12% { opacity: 0.7; }
+		50% { transform: translate3d(43vw, 35vh, 0) rotate(-15deg); opacity: 0.76; }
+		88% { opacity: 0.58; }
+		100% { transform: translate3d(118vw, -8vh, 0) rotate(-10deg); opacity: 0; }
+	}
+	@keyframes flight-b {
+		0% { transform: translate3d(-15vw, 18vh, 0) rotate(12deg); opacity: 0; }
+		15% { opacity: 0.62; }
+		52% { transform: translate3d(48vw, 49vh, 0) rotate(17deg); opacity: 0.7; }
+		100% { transform: translate3d(117vw, 82vh, 0) rotate(22deg); opacity: 0; }
+	}
+	@keyframes flight-c {
+		0% { transform: translate3d(108vw, 8vh, 0) rotate(158deg); opacity: 0; }
+		14% { opacity: 0.62; }
+		54% { transform: translate3d(49vw, 33vh, 0) rotate(170deg); opacity: 0.72; }
+		100% { transform: translate3d(-14vw, 76vh, 0) rotate(178deg); opacity: 0; }
+	}
+	@keyframes flight-d {
+		0% { transform: translate3d(15vw, 112vh, 0) rotate(-38deg); opacity: 0; }
+		16% { opacity: 0.56; }
+		52% { transform: translate3d(66vw, 64vh, 0) rotate(-28deg); opacity: 0.68; }
+		100% { transform: translate3d(112vw, 20vh, 0) rotate(-18deg); opacity: 0; }
+	}
+	/* #ifdef H5 */
+	.page { height: calc(100vh - 44px); }
+	/* #endif */
+	.hero {
+		position: relative;
+		z-index: 2;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 18px 16px 14px;
+		background: var(--plane-cloud);
+		border-bottom: 1px solid var(--line);
+	}
+	.hero-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+	.eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--plane-purple); }
+	.hero-title { font-size: 23px; line-height: 1.25; font-family: var(--serif); font-weight: 700; color: var(--ink); }
+	.hero-desc { font-size: 12px; line-height: 1.5; color: var(--muted); }
+	.hero-identity { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; margin-top: 3px; }
+	.hero-identity-avatar { width: 32px; height: 32px; overflow: hidden; border-radius: 50%; flex-shrink: 0; background: var(--plane-lilac); }
+	.hero-identity-avatar-image { width: 100%; height: 100%; }
+	.hero-identity-default { width: 100%; height: 100%; position: relative; overflow: hidden; background: var(--plane-lilac); }
+	.hero-identity-default-head { position: absolute; left: 50%; top: 6px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--plane-purple); }
+	.hero-identity-default-body { position: absolute; left: 50%; bottom: -2px; width: 20px; height: 14px; margin-left: -10px; border-radius: 11px 11px 0 0; background: var(--plane-purple); }
+	.hero-identity-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+	.hero-identity-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 800; color: var(--ink); }
+	.hero-identity-note { font-size: 10px; line-height: 1.3; color: var(--muted); }
+	.hero-identity-edit { flex-shrink: 0; font-size: 16px; line-height: 1; color: var(--plane-purple); }
+	.hero-mark { width: 72px; height: 72px; border-radius: 20px; background: var(--plane-lilac); position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+	.hero-plane { font-size: 39px; color: var(--plane-purple); transform: rotate(-14deg); }
+	.hero-spark { position: absolute; right: 10px; top: 8px; font-size: 17px; color: var(--plane-pink); }
+	.plane-profile-bar { position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; justify-content: space-between; min-height: 86px; padding: 14px 16px; background: var(--plane-cloud); border-bottom: 1px solid var(--line); }
+	.plane-profile-summary { flex: 1; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 11px; }
+	.plane-profile-avatar { width: 54px; height: 54px; overflow: hidden; border-radius: 50%; flex-shrink: 0; background: #EDF0F3; border: 1px solid #DDE1E7; }
+	.plane-profile-avatar-image { width: 100%; height: 100%; }
+	.plane-profile-default { width: 100%; height: 100%; position: relative; overflow: hidden; background: #E8EBEF; }
+	.plane-profile-default-head { position: absolute; left: 50%; top: 11px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #9FA7B2; }
+	.plane-profile-default-body { position: absolute; left: 50%; bottom: -3px; width: 33px; height: 24px; margin-left: -16.5px; border-radius: 18px 18px 0 0; background: #9FA7B2; }
+	.plane-profile-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+	.plane-profile-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; line-height: 1.25; font-weight: 800; color: var(--ink); }
+	.plane-profile-note { font-size: 11px; line-height: 1.4; color: var(--muted); }
+	.plane-profile-edit { width: 38px; height: 38px; margin-left: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--plane-lilac); color: var(--plane-purple); font-size: 22px; font-weight: 800; line-height: 38px; }
+	.plane-profile-edit::after { border: none; }
+	.quota-bar { position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--plane-lavender-surface); border-bottom: 1px solid var(--line); }
+	.quota-copy { display: flex; flex-direction: row; align-items: baseline; gap: 12px; }
+	.q-label { font-size: 11px; color: var(--plane-purple); }
+	.quota-badge { min-width: 84px; margin: 0; padding: 4px 8px; border-radius: 999px; background: var(--surface); }
+	.quota-badge::after { border: none; }
+	.quota-badge text { font-size: 10px; font-weight: 700; color: var(--plane-purple); }
+	.topic-card { position: relative; z-index: 2; margin: 16px 14px 0; padding: 16px; border-radius: 18px; background: var(--plane-surface); border: 1px solid #DDD2F8; box-shadow: var(--shadow-sm); }
+	.topic-row { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; }
+	.topic-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+	.topic-label-row { display: flex; flex-direction: row; align-items: center; gap: 7px; }
+	.topic-icon { width: 26px; height: 26px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: var(--plane-lilac); color: var(--plane-pink); }
+	.topic-icon text { font-size: 14px; }
+	.topic-kicker { font-size: 12px; font-weight: 800; color: var(--plane-purple); }
+	.topic-title { font-size: 18px; line-height: 1.35; font-family: var(--serif); font-weight: 700; color: var(--ink); }
+	.topic-action { width: 76px; height: 34px; flex-shrink: 0; margin-top: 6px; border-radius: 10px; background: var(--plane-purple); color: var(--text-invert); font-size: 11px; font-weight: 800; }
+	.topic-action::after { border: none; }
+	.topic-desc { display: block; margin-top: 11px; font-size: 11px; line-height: 1.55; color: var(--muted); }
+	.quiet-note { position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; gap: 10px; margin: 14px 16px 0; padding: 12px 13px; border-radius: 15px; background: var(--plane-surface); }
+	.quiet-icon { width: 32px; height: 32px; border-radius: 11px; display: flex; align-items: center; justify-content: center; background: #FFE1EC; color: var(--plane-pink); flex-shrink: 0; }
+	.quiet-icon text { font-size: 17px; }
+	.quiet-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+	.quiet-title { font-size: 12px; font-weight: 800; color: var(--ink); }
+	.quiet-desc { font-size: 10px; line-height: 1.45; color: var(--muted); }
+	.bottom-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; flex-direction: row; justify-content: space-around; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); background: var(--plane-cloud); border-top: 1px solid var(--line); box-shadow: var(--shadow-lg); }
+	.dock-action { width: 31%; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: transparent; }
+	.dock-action::after { border: none; }
+	.dock-icon { width: 34px; height: 34px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 19px; position: relative; }
+	.dock-send { background: #FFE1EC; color: var(--plane-pink); }
+	.dock-catch { background: #FFF0C8; color: #B87700; }
+	.dock-mine { background: #DDF1FB; color: var(--plane-blue); }
+	.mine-unread-badge { position: absolute; top: -8px; right: -10px; min-width: 18px; height: 18px; padding: 0 4px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--plane-purple); color: #FFFFFF; border: 2px solid var(--plane-cloud); font-size: 9px; font-weight: 800; line-height: 18px; }
+	.dock-label { font-size: 11px; color: var(--muted); font-weight: 700; }
+	.dock-action.active .dock-label { color: var(--plane-purple-deep); }
+	.choice-list { display: flex; flex-direction: column; gap: 10px; }
+	.choice-item { width: 100%; display: flex; flex-direction: row; align-items: center; gap: 11px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: left; }
+	.choice-item::after { border: none; }
+	.choice-icon { width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 21px; flex-shrink: 0; }
+	.choice-dating .choice-icon { background: #FFE1EC; color: var(--plane-pink); }
+	.choice-text .choice-icon { background: var(--plane-lilac); color: var(--plane-purple); }
+	.choice-voice .choice-icon { background: #DDF1FB; color: var(--plane-blue); }
+	.choice-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+	.choice-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+	.choice-desc { font-size: 11px; line-height: 1.45; color: var(--muted); }
+	.choice-arrow { font-size: 23px; color: var(--muted); }
+	.catch-menu { display: flex; flex-direction: column; gap: 10px; }
+	.catch-option { width: 100%; display: flex; flex-direction: row; align-items: center; gap: 11px; padding: 13px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: left; }
+	.catch-option::after { border: none; }
+	.catch-option-icon { width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+	.catch-option-dating .catch-option-icon { background: #FFE1EC; color: var(--plane-pink); }
+	.catch-option-normal .catch-option-icon { background: var(--plane-lilac); color: var(--plane-purple); }
+	.catch-option-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+	.catch-option-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+	.catch-option-desc { font-size: 11px; line-height: 1.45; color: var(--muted); }
+	.normal-catch-overlay { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 20px 14px; background: rgba(28, 18, 48, 0.5); }
+	.normal-catch-modal { width: 100%; max-width: 360px; max-height: calc(100vh - 48px); overflow: hidden; padding: 18px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 18px 50px rgba(47, 28, 84, 0.24); }
+	.normal-catch-header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+	.normal-plane-profile { flex: 1; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 11px; }
+	.normal-plane-avatar { width: 48px; height: 48px; border-radius: 16px; flex-shrink: 0; background: #EEE8FF; }
+	.normal-plane-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+	.normal-plane-name { font-size: 16px; font-weight: 800; color: #21153A; }
+	.normal-plane-meta { font-size: 11px; color: #8B8298; }
+	.normal-report-button { width: 52px; height: 32px; border-radius: 10px; background: #FFE8F1; color: #C94D7D; font-size: 11px; font-weight: 800; }
+	.normal-report-button::after { border: none; }
+	.normal-catch-kicker-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 19px; }
+	.normal-catch-kicker { font-size: 11px; font-weight: 800; color: var(--plane-purple); }
+	.normal-catch-time { font-size: 10px; color: #A49AAF; }
+	.normal-text-card { min-height: 126px; margin-top: 9px; padding: 17px 18px; border-radius: 18px; background: #F7F2FF; border: 1px solid #E6D8FF; }
+	.normal-text-content { display: block; font-size: 17px; line-height: 1.7; font-family: var(--serif); color: #322747; }
+	.normal-text-quote { font-size: 28px; line-height: 16px; color: var(--plane-pink); }
+	.normal-text-quote-end { display: block; text-align: right; margin-top: 5px; }
+	.normal-voice-card { display: flex; flex-direction: row; align-items: center; gap: 12px; margin-top: 9px; padding: 16px; border-radius: 18px; background: #F0F7FF; border: 1px solid #D9EAF7; }
+	.normal-voice-play { width: 48px; height: 48px; border-radius: 24px; background: var(--plane-purple); color: #FFFFFF; font-size: 17px; flex-shrink: 0; }
+	.normal-voice-play::after { border: none; }
+	.normal-voice-play.playing { background: var(--plane-pink); }
+	.normal-voice-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+	.normal-voice-title { font-size: 13px; font-weight: 800; color: #33244D; }
+	.normal-waveform { display: flex; flex-direction: row; align-items: center; gap: 3px; height: 25px; }
+	.normal-wave-bar { width: 3px; min-height: 6px; border-radius: 3px; background: #A38BE2; }
+	.normal-voice-duration { font-size: 11px; color: #8B8298; }
+	.normal-catch-reply { margin-top: 17px; }
+	.normal-reply-label { font-size: 11px; font-weight: 800; color: #5C40A7; }
+	.normal-reply-bar { margin-top: 8px; padding: 5px 12px; border: 1px solid #DCCCF8; border-radius: 14px; background: #FBFAFF; }
+	.normal-reply-input { width: 100%; height: 38px; font-size: 13px; color: #322747; }
+	.normal-send-button, .throw-back-button { width: 100%; height: 46px; margin-top: 10px; border-radius: 14px; font-size: 14px; font-weight: 800; }
+	.normal-send-button::after, .throw-back-button::after { border: none; }
+	.normal-send-button { background: var(--plane-purple); color: #FFFFFF; }
+	.normal-send-button:disabled { opacity: 0.55; }
+	.throw-back-button { background: #9C93AE; border: 1px solid #8E849F; color: #FFFFFF; }
+	.plane-quota-overlay { position: fixed; inset: 0; z-index: 10080; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(25, 15, 48, 0.55); }
+	.plane-quota-modal { width: 100%; max-width: 340px; padding: 18px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
+	.plane-quota-heading { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+	.plane-quota-title { font-size: 19px; line-height: 1.3; font-family: var(--serif); font-weight: 800; color: var(--ink); }
+	.plane-quota-close { width: 30px; height: 30px; flex-shrink: 0; margin: 0; border-radius: 15px; background: var(--bg-subtle); color: var(--muted); font-size: 21px; line-height: 28px; }
+	.plane-quota-close::after { border: none; }
+	.plane-quota-tabs { display: flex; flex-direction: row; gap: 4px; margin-top: 18px; padding: 4px; border-radius: 14px; background: var(--bg-subtle); }
+	.plane-quota-tab { flex: 1; height: 38px; margin: 0; border-radius: 10px; background: transparent; color: var(--muted); font-size: 12px; }
+	.plane-quota-tab::after { border: none; }
+	.plane-quota-tab.active { background: var(--plane-purple); color: var(--text-invert); font-weight: 800; }
+	.plane-quota-panel { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-top: 20px; }
+	.plane-quota-copy { text-align: center; font-size: 13px; line-height: 1.5; color: var(--muted); }
+	.plane-quota-buy { width: 100%; height: 46px; margin: 0; border-radius: 14px; background: var(--plane-purple); color: var(--text-invert); font-size: 15px; font-weight: 800; }
+	.plane-quota-buy::after { border: none; }
+	.plane-quota-buy:disabled { opacity: 0.55; }
+	.plane-quota-hint { text-align: center; font-size: 11px; line-height: 1.5; color: var(--plane-purple); }
+	.plane-profile-overlay { position: fixed; inset: 0; z-index: 10070; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(25, 15, 48, 0.55); }
+	.plane-profile-modal { width: 100%; max-width: 340px; padding: 18px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
+	.plane-profile-modal-heading { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 12px; }
+	.plane-profile-modal-title { display: block; font-size: 19px; line-height: 1.3; font-family: var(--serif); font-weight: 800; color: var(--ink); }
+	.plane-profile-modal-desc { display: block; margin-top: 5px; font-size: 11px; line-height: 1.5; color: var(--muted); }
+	.plane-profile-modal-close { width: 30px; height: 30px; flex-shrink: 0; border-radius: 15px; background: var(--bg-subtle); color: var(--muted); font-size: 21px; line-height: 28px; }
+	.plane-profile-modal-close::after { border: none; }
+	.plane-profile-form-field { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+	.plane-profile-label-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+	.plane-profile-form-label { font-size: 13px; font-weight: 800; color: var(--ink); }
+	.plane-profile-random { height: 28px; padding: 0 10px; border-radius: 10px; background: var(--plane-lilac); color: var(--plane-purple); font-size: 11px; font-weight: 800; line-height: 28px; }
+	.plane-profile-random::after { border: none; }
+	.plane-profile-input { width: 100%; height: 43px; padding: 0 12px; border: 1px solid #D9D4E7; border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 14px; }
+	.plane-avatar-options { display: flex; flex-direction: row; gap: 10px; }
+	.plane-avatar-choice { flex: 1; min-width: 0; height: 82px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px solid #DED9E9; border-radius: 14px; background: var(--surface); color: var(--muted); font-size: 11px; }
+	.plane-avatar-choice::after { border: none; }
+	.plane-avatar-choice.active { border-color: var(--plane-purple); background: #F7F2FF; color: var(--plane-purple); }
+	.plane-profile-default-small, .plane-profile-choice-image, .plane-profile-album-placeholder { width: 32px; height: 32px; border-radius: 50%; }
+	.plane-profile-default-small { border: 1px solid #DDE1E7; }
+	.plane-profile-default-small .plane-profile-default-head { top: 6px; width: 10px; height: 10px; margin-left: -5px; }
+	.plane-profile-default-small .plane-profile-default-body { bottom: -2px; width: 20px; height: 14px; margin-left: -10px; border-radius: 11px 11px 0 0; }
+	.plane-profile-choice-image { background: #E8EBEF; }
+	.plane-profile-album-placeholder { display: flex; align-items: center; justify-content: center; background: #EEF0F6; color: #81899A; font-size: 21px; line-height: 32px; }
+	.plane-profile-save { width: 100%; height: 46px; margin-top: 22px; border-radius: 14px; background: var(--plane-purple); color: var(--text-invert); font-size: 14px; font-weight: 800; }
+	.plane-profile-save::after { border: none; }
+	.composer-overlay { position: fixed; inset: 0; z-index: 10060; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(25, 15, 48, 0.55); }
+	.composer-modal { width: 100%; max-width: 340px; padding: 16px; border-radius: 20px; background: var(--paper); box-shadow: var(--shadow-lg); }
+	.modal-topline { display: flex; flex-direction: row; justify-content: flex-end; align-items: center; height: 32px; }
+	.modal-close { width: 32px; height: 32px; border-radius: 16px; background: var(--bg-subtle); color: var(--muted); font-size: 22px; line-height: 30px; }
+	.modal-close::after { border: none; }
+	.composer-tabs { display: flex; flex-direction: row; gap: 4px; margin: 4px 0 12px; padding: 4px; border-radius: 14px; background: var(--bg-subtle); }
+	.composer-tab { flex: 1; height: 36px; border-radius: 10px; font-size: 12px; color: var(--muted); }
+	.composer-tab::after { border: none; }
+	.composer-tab.active { background: var(--plane-purple); color: var(--text-invert); font-weight: 800; }
+	.composer-panel { display: flex; flex-direction: column; gap: 10px; }
+	.paper-plane-media-grid { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+	.paper-plane-media-item, .paper-plane-media-add { position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; background: var(--bg-subtle); }
+	.paper-plane-media-image { width: 100%; height: 100%; }
+	.paper-plane-media-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px dashed var(--line); color: var(--muted); font-size: 11px; }
+	.paper-plane-media-add text:first-child { font-size: 24px; line-height: 24px; }
+	.paper-plane-media-status { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 0; background: rgba(25, 15, 48, 0.72); color: var(--text-invert); font-size: 10px; text-align: center; }
+	.paper-plane-media-failed { background: rgba(160, 55, 69, 0.86); }
+	.paper-plane-media-remove { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; margin: 0; padding: 0; border-radius: 11px; background: rgba(25, 15, 48, 0.72); color: var(--text-invert); font-size: 16px; line-height: 20px; }
+	.paper-plane-media-remove::after { border: none; }
+	.ta { width: 100%; min-height: 120px; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-size: 14px; line-height: 1.55; }
+	.compose-meta { display: flex; flex-direction: row; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted); }
+	.throw-button { width: 100%; height: 46px; border-radius: 14px; background: var(--plane-purple); color: var(--text-invert); font-size: 15px; font-weight: 800; }
+	.throw-button::after { border: none; }
+	.throw-button:disabled { opacity: 0.45; }
+	.voice-panel { align-items: center; padding-top: 8px; }
+	.record-button { width: 96px; height: 96px; border-radius: 48px; background: var(--plane-lilac); color: var(--plane-purple); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 8px rgba(116, 80, 200, 0.08); }
+	.record-button::after { border: none; }
+	.record-button.recording { background: var(--plane-pink); color: var(--text-invert); box-shadow: 0 0 0 10px rgba(232, 108, 154, 0.12); }
+	.record-icon { font-size: 32px; }
+	.record-title { font-size: 16px; font-weight: 800; color: var(--ink); }
+	.record-hint { font-size: 12px; color: var(--muted); }
+	.voice-send { margin-top: 6px; }
+</style>

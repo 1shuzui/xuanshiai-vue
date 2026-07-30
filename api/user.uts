@@ -5,7 +5,11 @@
  */
 
 import { request } from './request.uts'
+<<<<<<< HEAD
 import { CURRENT_USER_ID_KEY, USE_MOCK } from './config.uts'
+=======
+import { USE_MOCK, getAccessToken, clearAuthTokens, buildApiUrl } from './config.uts'
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 import {
   mockRecommendUsers,
   mockSquareUsers,
@@ -15,7 +19,10 @@ import {
   mockApplyStates,
   mockLikedUserIds
 } from '@/mock'
+<<<<<<< HEAD
 import { getMockMeMbtiProfileData } from '@/mock/user.uts'
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 import { __syncApplyStatus, getCommunityQuotas } from './community.uts'
 
 function okRes(data: any): any {
@@ -43,6 +50,7 @@ function failRes(message: string, code: any = -1, extra: any = null): any {
   }
 }
 
+<<<<<<< HEAD
 type InternalUserMockState = {
   likedUserIds: number[]
   applyStates: any
@@ -79,6 +87,8 @@ function mockUserListWithLikes(source: any[], ids: number[]): any[] {
   return output
 }
 
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 function extractHttpMessage(res: any, fallback: string): string {
   if (res == null) return fallback
   if (res.message != null && res.message != '' && res.message != '请求失败') {
@@ -92,17 +102,32 @@ function extractHttpMessage(res: any, fallback: string): string {
 }
 
 const CHAT_FEATURE_UNLOCK_STORAGE_KEY = 'xsa_chat_feature_unlocks_v1'
-const PROFILE_UNLOCK_STORAGE_KEY = 'xsa_profile_unlocks_v1'
+
+const defaultMockPreferences: any = {
+  user_id: 1,
+  age_min: null,
+  age_max: null,
+  height_min: null,
+  height_max: null,
+  education_min: null,
+  income_min: null,
+  marriage_status: 0,
+  preferred_province_code: null,
+  preferred_city_codes: [],
+  accept_long_distance: true,
+  accept_cross_province: true,
+  housing_requirement: 0,
+  smoking_requirement: 0,
+  drinking_requirement: 0,
+  extra_requirement: null
+}
 export const CHAT_FEATURE_UNLOCK_COST = 80
-export const PROFILE_UNLOCK_COST = 50
 let chatFeatureUnlocksLoaded = false
-let profileUnlocksLoaded = false
 const chatFeatureUnlocks: any = {
   album: false,
   camera: false,
   profile: false
 }
-const profileUnlocks: any = {}
 
 function restoreChatFeatureUnlocks() {
   if (chatFeatureUnlocksLoaded) return
@@ -128,48 +153,6 @@ function saveChatFeatureUnlocks() {
     profile: chatFeatureUnlocks.profile == true,
     points: mockMeProfile.points
   })
-  try {
-    const profileSaved = uni.getStorageSync(PROFILE_UNLOCK_STORAGE_KEY) as any
-    if (profileSaved != null && typeof profileSaved === 'object') {
-      profileSaved.points = mockMeProfile.points
-      uni.setStorageSync(PROFILE_UNLOCK_STORAGE_KEY, profileSaved)
-    }
-  } catch (e) {}
-}
-
-function restoreProfileUnlocks() {
-  if (profileUnlocksLoaded) return
-  profileUnlocksLoaded = true
-  try {
-    const saved = uni.getStorageSync(PROFILE_UNLOCK_STORAGE_KEY) as any
-    if (saved == null || typeof saved !== 'object') return
-    const unlockedUserIds = saved.unlockedUserIds as any
-    if (unlockedUserIds != null && typeof unlockedUserIds === 'object') {
-      const keys = Object.keys(unlockedUserIds)
-      keys.forEach((key: string) => {
-        profileUnlocks[key] = unlockedUserIds[key] == true
-      })
-    }
-    if (saved.points != null && Number(saved.points) >= 0) {
-      mockMeProfile.points = Number(saved.points)
-    }
-  } catch (e) {
-    console.error('恢复资料解锁状态失败', e)
-  }
-}
-
-function saveProfileUnlocks() {
-  uni.setStorageSync(PROFILE_UNLOCK_STORAGE_KEY, {
-    unlockedUserIds: profileUnlocks,
-    points: mockMeProfile.points
-  })
-  try {
-    const chatSaved = uni.getStorageSync(CHAT_FEATURE_UNLOCK_STORAGE_KEY) as any
-    if (chatSaved != null && typeof chatSaved === 'object') {
-      chatSaved.points = mockMeProfile.points
-      uni.setStorageSync(CHAT_FEATURE_UNLOCK_STORAGE_KEY, chatSaved)
-    }
-  } catch (e) {}
 }
 
 /** 获取聊天页的付费功能解锁状态及当前积分余额。 */
@@ -242,6 +225,7 @@ export async function unlockChatFeature(feature: string) {
   })
 }
 
+<<<<<<< HEAD
 /** 获取某位用户资料的解锁状态。资料解锁按目标用户单独保存。 */
 export async function getUserProfileUnlockStatus(userId: number) {
   restoreProfileUnlocks()
@@ -317,6 +301,8 @@ export async function unlockUserProfile(userId: number) {
   })
 }
 
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 /**
  * 获取推荐用户（支持轮换 index）
  */
@@ -377,16 +363,35 @@ export async function getUserDetail(userId: number, internalMockScope: string = 
       break
     }
   }
+<<<<<<< HEAD
+=======
+  if (found == null) {
+    const squareUsers = mockSquareUsers as any[]
+    for (let i = 0; i < squareUsers.length; i++) {
+      if (squareUsers[i].id == userId) {
+        found = squareUsers[i]
+        break
+      }
+    }
+  }
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   const detail = found != null
     ? {
         ...mockUserDetail,
         ...found,
+<<<<<<< HEAD
         introduction: found.intro,
+=======
+        introduction: found.intro != null
+          ? found.intro
+          : (found.introduction != null ? found.introduction : mockUserDetail.introduction),
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
         genderText: found.gender == 1 ? '男' : '女',
         certList: ['实名', '学历', '头像', '单身']
       }
     : mockUserDetail
 
+<<<<<<< HEAD
 	if (internalMockScope != '') {
 		const state = getInternalUserMockState(internalMockScope)
 		return okRes({ ...detail, liked: userIsLiked(userId, state.likedUserIds) })
@@ -399,6 +404,138 @@ export async function getUserDetail(userId: number, internalMockScope: string = 
     method: 'GET',
 	    data: { userId: userId },
     mockData: detail
+=======
+  if (USE_MOCK) {
+    return request({
+      url: '/user/detail',
+      cloudFunctionName: 'user',
+      action: 'getDetail',
+      method: 'GET',
+      data: { userId },
+      mockData: detail
+    })
+  }
+
+  return request({
+    url: '/users/' + userId + '/profile',
+    method: 'GET'
+  })
+}
+
+export async function getOwnProfile() {
+  if (USE_MOCK) {
+    return request({
+      url: '/user/me',
+      cloudFunctionName: 'user',
+      action: 'getMeProfile',
+      method: 'GET',
+      mockData: mockMeProfile
+    })
+  }
+  return request({ url: '/users/me/profile', method: 'GET' })
+}
+
+export async function updateOwnProfile(data: any) {
+  if (USE_MOCK) {
+    const keys = Object.keys(data != null ? data : {})
+    for (let i = 0; i < keys.length; i++) {
+      mockMeProfile[keys[i]] = data[keys[i]]
+    }
+    return request({
+      url: '/user/me/profile',
+      cloudFunctionName: 'user',
+      action: 'updateProfile',
+      method: 'PATCH',
+      data,
+      mockData: mockMeProfile
+    })
+  }
+  return request({ url: '/users/me/profile', method: 'PATCH', data })
+}
+
+export async function getOwnPreferences() {
+  return request({
+    url: '/users/me/preferences',
+    method: 'GET',
+    mockData: defaultMockPreferences
+  })
+}
+
+export async function updateOwnPreferences(data: any) {
+  const keys = Object.keys(data != null ? data : {})
+  for (let i = 0; i < keys.length; i++) {
+    defaultMockPreferences[keys[i]] = data[keys[i]]
+  }
+  return request({
+    url: '/users/me/preferences',
+    method: 'PUT',
+    data,
+    mockData: defaultMockPreferences
+  })
+}
+
+function profileMediaPath(kind: string): string {
+  if (kind == 'avatar') return '/users/me/avatar'
+  if (kind == 'background') return '/users/me/background'
+  return '/users/me/photos'
+}
+
+export async function uploadUserProfileMedia(filePath: string, kind: string) {
+  const normalizedKind = kind == 'avatar' || kind == 'background' ? kind : 'photo'
+  if (USE_MOCK) {
+    return request({
+      url: '/user/me/' + normalizedKind,
+      cloudFunctionName: 'user',
+      action: 'uploadProfileMedia',
+      method: 'POST',
+      mockData: {
+        id: 0,
+        media_type: normalizedKind,
+        file_url: filePath,
+        thumbnail_url: filePath,
+        sort_order: 0,
+        is_primary: normalizedKind == 'avatar',
+        duration_seconds: null
+      }
+    })
+  }
+
+  return new Promise<any>((resolve) => {
+    uni.uploadFile({
+      url: buildApiUrl(profileMediaPath(normalizedKind)),
+      filePath,
+      name: 'file',
+      header: getAccessToken() != '' ? { Authorization: 'Bearer ' + getAccessToken() } : {},
+      success: (res: any) => {
+        if (res.statusCode == 401) clearAuthTokens()
+        let data: any = null
+        try {
+          data = JSON.parse('' + res.data)
+        } catch (e) {
+          resolve({ success: false, data: null, code: res.statusCode, message: '上传响应解析失败' })
+          return
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ success: true, data, code: res.statusCode, message: 'success' })
+        } else {
+          const detail = data != null && data.detail != null ? data.detail : '上传失败'
+          resolve({ success: false, data, code: res.statusCode, message: '' + detail })
+        }
+      },
+      fail: (err: any) => {
+        const message = err != null && err.errMsg != null ? '' + err.errMsg : '上传失败，请检查网络'
+        resolve({ success: false, data: null, code: -1, message })
+      }
+    })
+  })
+}
+
+export async function deleteUserProfilePhoto(mediaId: number) {
+  return request({
+    url: '/users/me/photos/' + mediaId,
+    method: 'DELETE',
+    mockData: { success: true }
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   })
 }
 
@@ -407,18 +544,25 @@ export async function getUserDetail(userId: number, internalMockScope: string = 
  */
 export async function getMeProfile() {
   if (USE_MOCK) {
+<<<<<<< HEAD
     let subjectId = ''
     try {
       const storedUserId = uni.getStorageSync(CURRENT_USER_ID_KEY)
       const userId = storedUserId != null ? String(storedUserId).trim() : ''
       if (userId != '') subjectId = 'user:' + userId
     } catch (error) {}
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
     return request({
       url: '/user/me',
       cloudFunctionName: 'user',
       action: 'getMe',
       method: 'GET',
+<<<<<<< HEAD
       mockData: getMockMeMbtiProfileData(subjectId)
+=======
+      mockData: mockMeProfile
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
     })
   }
 
@@ -452,6 +596,7 @@ export async function getMeProfile() {
  * 真路径：POST /discovery/applications/{userId}，不写 mock 状态
  * 注意：request 外层 success 恒为 true 时，业务成败看 data.success / data.code
  */
+<<<<<<< HEAD
 export async function applyToMeet(userId: number, message: string, internalMockScope: string = '') {
   if (internalMockScope != '') {
     const state = getInternalUserMockState(internalMockScope)
@@ -485,6 +630,9 @@ export async function applyToMeet(userId: number, message: string, internalMockS
       message: '内部演示申请已记录，对方同意后才能开始聊天'
     })
   }
+=======
+export async function applyToMeet(userId: number, message: string) {
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   if (USE_MOCK) {
     const key = '' + userId
     const states = mockApplyStates as any
@@ -496,7 +644,11 @@ export async function applyToMeet(userId: number, message: string, internalMockS
         cloudFunctionName: 'user',
         action: 'apply',
         method: 'POST',
+<<<<<<< HEAD
         data: { userId: userId, message: message },
+=======
+        data: { userId, message },
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
         mockData: {
           success: false,
           code: 'ALREADY_PENDING',
@@ -513,7 +665,11 @@ export async function applyToMeet(userId: number, message: string, internalMockS
         cloudFunctionName: 'user',
         action: 'apply',
         method: 'POST',
+<<<<<<< HEAD
         data: { userId: userId, message: message },
+=======
+        data: { userId, message },
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
         mockData: {
           success: false,
           code: 'ALREADY_ACCEPTED',
@@ -544,7 +700,11 @@ export async function applyToMeet(userId: number, message: string, internalMockS
         cloudFunctionName: 'user',
         action: 'apply',
         method: 'POST',
+<<<<<<< HEAD
         data: { userId: userId, message: message },
+=======
+        data: { userId, message },
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
         mockData: {
           success: false,
           code: 'QUOTA_EXCEEDED',
@@ -569,7 +729,11 @@ export async function applyToMeet(userId: number, message: string, internalMockS
       cloudFunctionName: 'user',
       action: 'apply',
       method: 'POST',
+<<<<<<< HEAD
       data: { userId: userId, message: message },
+=======
+      data: { userId, message },
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
       mockData: {
         success: true,
         remain: applyQ.remain,
@@ -594,6 +758,7 @@ export async function applyToMeet(userId: number, message: string, internalMockS
         remain: 0,
         applyStatus: 'none'
       })
+<<<<<<< HEAD
     }
     if (status == 409) {
       // 409 不得当成功：不扣次、不 toast「已发送」
@@ -626,6 +791,40 @@ export async function applyToMeet(userId: number, message: string, internalMockS
     } else {
       quotaRefreshFailed = true
     }
+=======
+    }
+    if (status == 409) {
+      // 409 不得当成功：不扣次、不 toast「已发送」
+      const lower = (msg != null ? ('' + msg) : '').toLowerCase()
+      const alreadyMatched =
+        lower.indexOf('match') >= 0 || lower.indexOf('匹配') >= 0 || lower.indexOf('已同意') >= 0
+      return failRes(
+        msg != '' ? msg : alreadyMatched ? '对方已同意或已匹配' : '申请已发送，请等待对方回应',
+        alreadyMatched ? 'ALREADY_MATCHED' : 'ALREADY_PENDING',
+        {
+          applyStatus: alreadyMatched ? 'accepted' : 'pending',
+          remain: null
+        }
+      )
+    }
+    if (status == 403) {
+      return failRes(msg != '' ? msg : '请先完成实名或完善资料', 'FORBIDDEN', {
+        applyStatus: 'none'
+      })
+    }
+    return failRes(msg, status, { applyStatus: 'none' })
+  }
+
+  let remain: any = null
+  let quotaRefreshFailed = false
+  try {
+    const qRes = await getCommunityQuotas()
+    if (qRes.success && qRes.data != null && qRes.data.applyDaily != null) {
+      remain = qRes.data.applyDaily.remain
+    } else {
+      quotaRefreshFailed = true
+    }
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   } catch (e) {
     quotaRefreshFailed = true
   }
@@ -647,10 +846,17 @@ export async function applyToMeet(userId: number, message: string, internalMockS
  * Mock：toggle mockLikedUserIds
  * 真路径：PUT 喜欢 / DELETE 取消；先查 relations/likes 判断当前状态
  */
+<<<<<<< HEAD
 export async function likeUser(userId: number, internalMockScope: string = '') {
   if (internalMockScope != '') {
     const state = getInternalUserMockState(internalMockScope)
     const ids = state.likedUserIds
+=======
+export async function likeUser(userId: number) {
+  if (USE_MOCK) {
+    const ids = mockLikedUserIds as number[]
+    let liked = false
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
     let found = -1
     for (let i = 0; i < ids.length; i++) {
       if (ids[i] == userId) {
@@ -658,6 +864,7 @@ export async function likeUser(userId: number, internalMockScope: string = '') {
         break
       }
     }
+<<<<<<< HEAD
     let liked = false
     if (found >= 0) ids.splice(found, 1)
     else {
@@ -740,6 +947,72 @@ export async function likeUser(userId: number, internalMockScope: string = '') {
     if (total >= 0 && scanned >= total) break
     page += 1
   }
+=======
+    if (found >= 0) {
+      ids.splice(found, 1)
+      liked = false
+    } else {
+      ids.push(userId)
+      liked = true
+    }
+    return request({
+      url: '/user/like',
+      cloudFunctionName: 'user',
+      action: 'like',
+      method: 'POST',
+      data: { userId },
+      mockData: { success: true, liked, userId }
+    })
+  }
+
+  // 查当前是否已喜欢：BE page_size le=50，分页扫描；预检失败不默认未喜欢
+  let currentlyLiked = false
+  let page = 1
+  const pageSize = 50
+  let scanned = 0
+  let total = -1
+  let listPreflightOk = false
+  while (true) {
+    const listRes = await request({
+      url: '/relations/likes',
+      method: 'GET',
+      data: { page: page, page_size: pageSize }
+    })
+    if (!listRes.success || listRes.data == null) {
+      return failRes(extractHttpMessage(listRes, '喜欢列表加载失败'), listRes.code)
+    }
+    listPreflightOk = true
+    const items =
+      listRes.data.items != null
+        ? (listRes.data.items as any[])
+        : listRes.data.list != null
+          ? (listRes.data.list as any[])
+          : []
+    if (listRes.data.total != null) {
+      total = listRes.data.total as number
+    }
+    for (let i = 0; i < items.length; i++) {
+      const row = items[i]
+      const tid =
+        row != null && row.user_id != null
+          ? (row.user_id as number)
+          : row != null && row.target_user_id != null
+            ? (row.target_user_id as number)
+            : row != null && row.id != null
+              ? (row.id as number)
+              : 0
+      if (tid == userId) {
+        currentlyLiked = true
+        break
+      }
+    }
+    if (currentlyLiked) break
+    scanned += items.length
+    if (items.length < pageSize) break
+    if (total >= 0 && scanned >= total) break
+    page += 1
+  }
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   if (!listPreflightOk) {
     return failRes('喜欢列表加载失败', -1)
   }

@@ -5,14 +5,21 @@
 				<image src="/static/logo.png" mode="aspectFit"></image>
 			</view>
 			<text class="brand-name text-serif">宣誓爱</text>
-			<text class="brand-subtitle">高学历实名制的恋爱平台</text>
+			<text class="brand-subtitle">认真、真实、有边界的婚恋平台</text>
 		</view>
 
 		<view class="login-content">
-			<button class="phone-auth-button" :disabled="authLoading" @click="handleLocalLogin">
-				{{ authLoading ? '正在进入社区' : '本地登录进入社区' }}
+			<!-- #ifdef MP-WEIXIN -->
+			<button
+				class="phone-auth-button"
+				:disabled="authLoading || !agreementChecked"
+				@click="handleWechatLogin"
+			>
+				{{ authLoading ? '正在登录' : '微信一键登录' }}
 			</button>
+			<!-- #endif -->
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 			<!-- #ifndef MP-WEIXIN -->
 			<button class="phone-auth-button" :disabled="authLoading" @click="handleNonWechatLogin">
@@ -25,9 +32,33 @@
 			<button class="debug-login-button" @click="handleLocalLogin">调试登录，直接进入社区</button>
 >>>>>>> sync/upstream-main-751a9f4
 			<button class="first-login-button" @click="handleFirstLogin">首次登录</button>
+=======
+			<!-- #ifndef MP-WEIXIN -->
+			<button class="phone-auth-button" :disabled="authLoading || !agreementChecked" @click="handleNonWechatLogin">
+				手机号验证码登录
+			</button>
+			<!-- #endif -->
+
+			<button class="debug-login-button" :disabled="authLoading || !agreementChecked" @click="handleDebugLogin">调试登录，直接进入首页</button>
+			<button class="first-login-button" :disabled="authLoading || !agreementChecked" @click="handleFirstLogin">首次登录</button>
+
+			<view class="agreement-row">
+				<checkbox-group @change="handleAgreementChange">
+					<label class="agreement-check">
+						<checkbox value="agreed" :checked="agreementChecked" />
+						<text>我已阅读并同意</text>
+					</label>
+				</checkbox-group>
+				<view class="agreement-links">
+					<text class="agreement-link" @click="openAgreement('terms')">《用户协议》</text>
+					<text class="agreement-copy">和</text>
+					<text class="agreement-link" @click="openAgreement('privacy')">《隐私政策》</text>
+				</view>
+			</view>
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
 			<view class="login-note">
-				<text>本地演示登录使用内置数据，无需微信授权或后端服务</text>
+				<text>微信授权仅用于完成身份登录和手机号验证</text>
 			</view>
 		</view>
 
@@ -40,6 +71,7 @@
 </template>
 
 <script setup lang="uts">
+<<<<<<< HEAD
 <<<<<<< HEAD
 	import { USE_MOCK, API_BASE_URL, API_PREFIX, setAuthTokens } from '@/api/config.uts'
 	import { loginByPhone } from '@/api/auth.uts'
@@ -140,22 +172,119 @@
 			return
 =======
 	import { CURRENT_USER_ID_KEY, setAuthTokens } from '@/api/config.uts'
+=======
+	import { loginByPhone, loginByWechat, sendSms } from '@/api'
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
 	const authLoading = ref(false)
+	const agreementChecked = ref(uni.getStorageSync('xsa_login_agreed') == true)
 
-	const startLocalDemoSession = (): boolean => {
+	const goHome = () => {
+		uni.switchTab({
+			url: '/pages/index/index'
+		})
+	}
+
+	const finishLogin = (data: any = null) => {
+		uni.setStorageSync('xsa_login_agreed', true)
+		if (data != null && data.user_id != null) {
+			uni.setStorageSync('xsa_user_id', data.user_id)
+		}
+		uni.showToast({ title: '登录成功', icon: 'success' })
+		setTimeout(() => {
+			if (data != null && data.need_bind_phone === true) {
+				uni.navigateTo({ url: '/pagesSub/userExtra/onboarding/profile' })
+				return
+			}
+			goHome()
+		}, 500)
+	}
+
+	const responseMessage = (res: any, fallback: string): string => {
+		if (res != null && res.data != null && res.data.message != null) return '' + res.data.message
+		if (res != null && res.message != null && res.message != '') return '' + res.message
+		return fallback
+	}
+
+	const handleAgreementChange = (e: any) => {
+		const values = e.detail != null && e.detail.value != null ? (e.detail.value as string[]) : []
+		agreementChecked.value = values.indexOf('agreed') >= 0
+	}
+
+	const openAgreement = (type: string) => {
+		let url = '/pagesSub/about/article?type=terms'
+		if (type == 'privacy') {
+			url = '/pagesSub/about/article?type=privacy'
+		}
+		uni.navigateTo({ url })
+	}
+
+	const getWechatLoginCode = (): Promise<string> => {
+		return new Promise((resolve) => {
+			uni.login({
+				provider: 'weixin',
+				success: (res: any) => {
+					resolve(res.code != null ? String(res.code) : '')
+				},
+				fail: (error: any) => {
+					console.error('wechat login failed', error)
+					resolve('')
+				}
+			})
+		})
+	}
+
+	const handleWechatLogin = async () => {
+		if (authLoading.value || !agreementChecked.value) return
+		authLoading.value = true
 		try {
-			setAuthTokens('local_demo_access_token', 'local_demo_refresh_token')
+			const code = await getWechatLoginCode()
+			if (code == '') {
+				uni.showToast({ title: '无法获取微信登录凭证', icon: 'none' })
+				return
+			}
+			const res = await loginByWechat(code)
+			if (!res.success || res.data == null || res.data.access_token == null) {
+				uni.showToast({ title: responseMessage(res, '微信登录失败，请重试'), icon: 'none' })
+				return
+			}
+			finishLogin(res.data)
+		} catch (error) {
+			console.error('wechat login request failed', error)
+			uni.showToast({ title: '网络异常，请稍后重试', icon: 'none' })
+		} finally {
+			authLoading.value = false
+		}
+	}
+
+	const handleNonWechatLogin = () => {
+		if (!agreementChecked.value) return
+		uni.navigateTo({ url: '/pages/auth/register' })
+	}
+
+	const loginWithMockSms = async (phone: string): Promise<boolean> => {
+		try {
+			const sendRes = await sendSms(phone, 'login')
+			if (!sendRes.success) return false
+			const loginRes = await loginByPhone(phone, '123456')
+			if (!loginRes.success || loginRes.data == null) return false
+			if (loginRes.data.user_id != null) {
+				uni.setStorageSync('xsa_user_id', loginRes.data.user_id)
+			}
 			uni.setStorageSync('xsa_login_agreed', true)
+<<<<<<< HEAD
 			uni.setStorageSync(CURRENT_USER_ID_KEY, 1)
+=======
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 			return true
 		} catch (error) {
-			console.error('local demo login failed', error)
+			console.error('debug login failed', error)
 			return false
 >>>>>>> sync/upstream-main-751a9f4
 		}
 	}
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 	const handleNonWechatLogin = () => {
 		authLoading.value = true
@@ -201,13 +330,21 @@
 =======
 	const handleLocalLogin = () => {
 		if (authLoading.value) return
+=======
+	const handleDebugLogin = async () => {
+		if (authLoading.value || !agreementChecked.value) return
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 		authLoading.value = true
-		const ok = startLocalDemoSession()
+		const ok = await loginWithMockSms('17870810285')
 		authLoading.value = false
-		if (!ok) {
-			uni.showToast({ title: '本地登录失败，请重试', icon: 'none' })
+		if (ok) {
+			uni.showToast({ title: '本地测试登录成功', icon: 'success' })
+			setTimeout(() => {
+				goHome()
+			}, 400)
 			return
 		}
+<<<<<<< HEAD
 		uni.showToast({ title: '本地登录成功', icon: 'success' })
 		uni.switchTab({ url: '/pages/community/community' })
 >>>>>>> sync/upstream-main-751a9f4
@@ -219,6 +356,14 @@
 			return
 		}
 		uni.navigateTo({ url: '/pages/onboarding/profile' })
+=======
+		uni.showToast({ title: '本地登录失败，请检查后端', icon: 'none' })
+	}
+
+	const handleFirstLogin = () => {
+		if (!agreementChecked.value) return
+		uni.navigateTo({ url: '/pagesSub/userExtra/onboarding/profile' })
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 	}
 
 </script>
@@ -226,8 +371,8 @@
 <style scoped>
 	.login-page {
 		min-height: 100vh;
-		padding: 76px 24px calc(32px + env(safe-area-inset-bottom));
-		background: var(--canvas);
+		padding: 64px 20px calc(28px + env(safe-area-inset-bottom));
+		background: var(--paper);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -238,17 +383,18 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		margin-bottom: 64px;
+		margin-bottom: 48px;
 	}
 
 	.brand-mark {
-		width: 58px;
-		height: 58px;
+		width: 64px;
+		height: 64px;
 		padding: 8px;
-		margin-bottom: 16px;
+		margin-bottom: 14px;
 		background: var(--surface);
 		border: 1px solid var(--line);
-		border-radius: 16px;
+		border-radius: 18px;
+		box-shadow: var(--shadow-sm);
 		box-sizing: border-box;
 	}
 
@@ -258,35 +404,36 @@
 	}
 
 	.brand-name {
-		font-size: 32px;
+		font-size: 30px;
 		font-weight: 700;
 		line-height: 1.2;
-		letter-spacing: 0.08em;
+		letter-spacing: 0;
 		color: var(--accent2);
 	}
 
 	.brand-subtitle {
-		margin-top: 10px;
+		margin-top: 8px;
 		font-size: 13px;
-		letter-spacing: 0.16em;
+		letter-spacing: 0;
 		color: var(--muted);
 	}
 
 	.login-content {
 		width: 100%;
-		max-width: 390px;
+		max-width: 360px;
 	}
 
 	.phone-auth-button {
 		width: 100%;
-		height: 54px;
-		margin-top: 16px;
-		border-radius: 12px;
+		height: 52px;
+		margin-top: 0;
+		border-radius: 10px;
 		background: var(--accent);
 		color: var(--text-invert);
 		font-size: 17px;
 		font-weight: 800;
-		line-height: 54px;
+		line-height: 52px;
+		box-shadow: var(--shadow-sm);
 	}
 
 	.phone-auth-button[disabled] {
@@ -300,10 +447,10 @@
 	.debug-login-button {
 		width: 100%;
 		height: 44px;
-		margin-top: 12px;
+		margin-top: 18px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
-		background: var(--surface);
+		border-radius: 9px;
+		background: transparent;
 		color: var(--muted);
 		font-size: 13px;
 		line-height: 44px;
@@ -317,9 +464,9 @@
 		width: 100%;
 		height: 44px;
 		margin-top: 8px;
-		border: 1px solid var(--accent);
-		border-radius: 8px;
-		background: var(--accent-bg);
+		border: 1px solid var(--line);
+		border-radius: 9px;
+		background: var(--surface);
 		color: var(--accent2);
 		font-size: 13px;
 		line-height: 44px;
@@ -329,8 +476,45 @@
 		transform: scale(0.98);
 	}
 
+	.debug-login-button[disabled],
+	.first-login-button[disabled] {
+		opacity: 0.5;
+	}
+
+	.agreement-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		flex-wrap: wrap;
+		gap: 2px;
+		margin-top: 16px;
+		font-size: 12px;
+		line-height: 1.6;
+		color: var(--muted);
+	}
+
+	.agreement-check,
+	.agreement-links {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.agreement-check checkbox {
+		transform: scale(0.76);
+	}
+
+	.agreement-link {
+		color: var(--accent2);
+	}
+
+	.agreement-copy {
+		color: var(--muted);
+	}
+
 	.login-note {
-		margin-top: 18px;
+		margin-top: 16px;
 		text-align: center;
 	}
 
@@ -342,8 +526,8 @@
 
 	.login-footer {
 		width: 100%;
-		max-width: 390px;
-		margin-top: auto;
+		max-width: 360px;
+		margin-top: 52px;
 		display: flex;
 		align-items: center;
 		gap: 12px;
@@ -361,69 +545,4 @@
 		white-space: nowrap;
 	}
 
-	/* 入口页保持安静，把正式授权和调试入口分开。 */
-	.login-page {
-		padding: 64px 20px calc(28px + env(safe-area-inset-bottom));
-		background: var(--paper);
-	}
-
-	.brand-block {
-		margin-bottom: 48px;
-	}
-
-	.brand-mark {
-		width: 64px;
-		height: 64px;
-		margin-bottom: 14px;
-		border-radius: 18px;
-		box-shadow: var(--shadow-sm);
-	}
-
-	.brand-name {
-		font-size: 30px;
-		letter-spacing: 0.12em;
-	}
-
-	.brand-subtitle {
-		margin-top: 8px;
-		letter-spacing: 0.1em;
-	}
-
-	.login-content {
-		max-width: 360px;
-	}
-
-	.phone-auth-button {
-		margin-top: 0;
-		height: 52px;
-		border-radius: 10px;
-		box-shadow: var(--shadow-sm);
-	}
-
-	.debug-login-button,
-	.first-login-button {
-		border-radius: 9px;
-	}
-
-	.debug-login-button {
-		margin-top: 18px;
-		border-color: var(--line);
-		background: transparent;
-	}
-
-	.first-login-button {
-		margin-top: 8px;
-		border-color: var(--line);
-		background: var(--surface);
-		color: var(--accent2);
-	}
-
-	.login-note {
-		margin-top: 16px;
-	}
-
-	.login-footer {
-		max-width: 360px;
-		margin-top: 52px;
-	}
 </style>

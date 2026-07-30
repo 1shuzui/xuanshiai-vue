@@ -1,6 +1,6 @@
 <template>
 	<view class="community-page">
-		<!-- 主 Tab：关注 / 同城 / 发现；关注页「收藏」= 收藏用户的动态 -->
+		<!-- 主 Tab：关注 / 同城 / 发现；关注页「喜欢」= 喜欢用户的动态 -->
 		<view class="subtabs">
 			<view class="subtab" :class="{ active: currentTab === 'follow' }" @click="switchTab('follow')">
 				<text>关注</text>
@@ -186,6 +186,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 		getUnreadNotificationCount,
 		getCurrentCity,
 		setCurrentCity,
+		COMMUNITY_CITY_OPTIONS,
 		likeDynamic,
 		collectDynamic,
 		followUserFromCommunity,
@@ -212,26 +213,33 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	const activity = ref(null)
 	const banners = ref([])
 	const bannerIndex = ref(0)
-	const cityName = ref('南京')
-	const unreadCount = ref(0)
-	const applyVisible = ref(false)
-	const applyUserId = ref(0)
-	const reportVisible = ref(false)
+const cityName = ref('')
+			const cityCode = ref('')
+			const unreadCount = ref(0)
+		const applyVisible = ref(false)
+		const applyUserId = ref(0)
+		const reportVisible = ref(false)
 	const reportTargetId = ref(0)
 	const reportUserId = ref(0)
-	// 防止快速切换 Tab/筛选时旧请求覆盖新列表
-	const loadSeq = ref(0)
+	const unfollowPendingUserId = ref(0)
+		// 防止快速切换 Tab/筛选时旧请求覆盖新列表
+		const loadSeq = ref(0)
 
-	const defaultFilterForTab = (tab: string) => {
-		return 'all'
-	}
+		const isValidCity = (name: string) => {
+			const n = name != null ? ('' + name).trim() : ''
+			return n != '' && n != '未设置'
+		}
+
+		const defaultFilterForTab = (tab: string) => {
+			return 'all'
+		}
 
 	const filterOptions = computed(() => {
 		if (currentTab.value === 'follow') {
 			return [
 				{ key: 'all', label: '全部' },
 				{ key: 'following', label: '关注' },
-				{ key: 'likedUsers', label: '收藏' }
+				{ key: 'likedUsers', label: '喜欢' }
 			]
 		}
 		if (currentTab.value === 'city') {
@@ -249,29 +257,33 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 		]
 	})
 
-	onMounted(() => {
-		loadCity()
-		loadDynamics(true)
-		loadTopics()
-		loadActivity()
-		loadBanners()
-		loadUnread()
-	})
+onMounted(async () => {
+			await loadCity()
+			loadDynamics(true)
+			loadTopics()
+			loadActivity()
+			loadBanners()
+			loadUnread()
+		})
 
 	onShow(() => {
 		loadUnread()
-		if (dynamicList.value.length > 0) {
+		// 从资料页喜欢用户返回后，关注流需要刷新
+		if (currentTab.value === 'follow') {
 			reload()
 		}
 	})
 
 	const emptyTitle = computed(() => {
 		if (currentTab.value === 'follow') {
-			if (currentFilter.value === 'likedUsers') return '还没有收藏用户的动态'
+			if (currentFilter.value === 'likedUsers') return '还没有喜欢用户的动态'
 			if (currentFilter.value === 'following') return '还没有关注动态'
-			return '关注与收藏的动态都在这里'
+			return '关注与喜欢的动态都在这里'
 		}
-		if (currentTab.value === 'city') return '同城暂无动态'
+		if (currentTab.value === 'city') {
+			if (!isValidCity(cityName.value)) return '请先选择同城城市'
+			return '同城暂无动态'
+		}
 		if (currentFilter.value === 'mbti') return '暂无 MBTI 动态'
 		if (currentFilter.value === 'alumni') return '暂无校友动态'
 		if (currentFilter.value === 'hometown') return '暂无同乡动态'
@@ -280,17 +292,21 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 
 	const emptyDesc = computed(() => {
 		if (currentTab.value === 'follow') {
-			if (currentFilter.value === 'likedUsers') return '收藏用户后，TA 的动态会出现在这里'
+			if (currentFilter.value === 'likedUsers') return '在用户资料页点「喜欢」后，TA 的动态会出现在这里'
 			return '关注认真嘉宾后，他们的动态会出现在这里'
 		}
-		if (currentTab.value === 'city') return '切换城市或发布一条同城动态'
+		if (currentTab.value === 'city') {
+			if (!isValidCity(cityName.value)) return '点上方「切换城市」设置所在城市，再看同城动态'
+			return '切换城市或发布一条同城动态'
+		}
 		return '快来发布第一条动态吧'
 	})
 
-	const emptyAction = computed(() => {
-		if (currentTab.value === 'follow') return '去发现'
-		return '发布动态'
-	})
+const emptyAction = computed(() => {
+			if (currentTab.value === 'follow') return '去发现'
+			if (currentTab.value === 'city' && !isValidCity(cityName.value)) return '选择城市'
+			return '发布动态'
+		})
 
 	const formatTime = (t: any) => {
 		if (t == null) return ''
@@ -348,61 +364,74 @@ const normalizeDynamic = (item: any) => {
 		return { list, hasMore: more, total }
 	}
 
-	const loadDynamics = async (reset: boolean = false) => {
-		// 非 reset 的加载更多仍需防重入；reset 必须可打断旧请求
-		if (!reset && loading.value) return
-		if (reset) {
-			page.value = 1
-			hasMore.value = true
-			loadError.value = ''
-			loadSeq.value = loadSeq.value + 1
-		}
-		if (!hasMore.value && !reset) return
-		const seq = loadSeq.value
-		loading.value = true
-		try {
-			const res = await getDynamicList({
-				tab: currentTab.value,
-				filter: currentFilter.value,
-				page: page.value,
-				pageSize,
-				city: cityName.value
-			})
-			// 过期请求：用户已切换 Tab/筛选，丢弃结果
-			if (seq != loadSeq.value) return
-			if (res.success) {
-				const payload = extractListPayload(res.data)
+const loadDynamics = async (reset: boolean = false) => {
+			// 非 reset 的加载更多仍需防重入；reset 必须可打断旧请求
+			if (!reset && loading.value) return
+			if (reset) {
+				page.value = 1
+				hasMore.value = true
+				loadError.value = ''
+				loadSeq.value = loadSeq.value + 1
+			}
+			if (!hasMore.value && !reset) return
+			// 同城：未选城市时不发列表请求，避免默认城市误筛 / 422
+			if (currentTab.value === 'city' && !isValidCity(cityName.value)) {
 				if (reset) {
-					dynamicList.value = payload.list
+					dynamicList.value = []
+					hasMore.value = false
+					loadError.value = ''
+				}
+				loading.value = false
+				return
+			}
+			const seq = loadSeq.value
+			loading.value = true
+			try {
+const cityArg = isValidCity(cityName.value) ? cityName.value : ''
+					const cityCodeArg = cityCode.value != null ? ('' + cityCode.value).trim() : ''
+					const res = await getDynamicList({
+						tab: currentTab.value,
+						filter: currentFilter.value,
+						page: page.value,
+						pageSize,
+						city: cityArg,
+						cityCode: cityCodeArg
+					})
+				// 过期请求：用户已切换 Tab/筛选，丢弃结果
+				if (seq != loadSeq.value) return
+				if (res.success) {
+					const payload = extractListPayload(res.data)
+					if (reset) {
+						dynamicList.value = payload.list
+					} else {
+						dynamicList.value = (dynamicList.value as any[]).concat(payload.list)
+					}
+					hasMore.value = payload.hasMore
+					if (payload.list.length > 0) {
+						page.value = page.value + 1
+					}
 				} else {
-					dynamicList.value = (dynamicList.value as any[]).concat(payload.list)
+					loadError.value = '加载失败，请稍后重试'
+					if (reset) {
+						uni.showToast({ title: loadError.value, icon: 'none' })
+					}
 				}
-				hasMore.value = payload.hasMore
-				if (payload.list.length > 0) {
-					page.value = page.value + 1
-				}
-			} else {
-				loadError.value = '加载失败，请稍后重试'
-				if (reset) {
+			} catch (e) {
+				if (seq != loadSeq.value) return
+				loadError.value = '网络异常，请检查后重试'
+				if (reset || dynamicList.value.length == 0) {
 					uni.showToast({ title: loadError.value, icon: 'none' })
 				}
-			}
-		} catch (e) {
-			if (seq != loadSeq.value) return
-			loadError.value = '网络异常，请检查后重试'
-			if (reset || dynamicList.value.length == 0) {
-				uni.showToast({ title: loadError.value, icon: 'none' })
-			}
-		} finally {
-			if (seq == loadSeq.value) {
-				loading.value = false
+			} finally {
+				if (seq == loadSeq.value) {
+					loading.value = false
+				}
 			}
 		}
-	}
 
-	const reload = async () => {
+	const reload = () => {
 		dynamicList.value = []
-		await loadDynamics(true)
+		loadDynamics(true)
 	}
 
 	const loadTopics = async () => {
@@ -447,14 +476,29 @@ const normalizeDynamic = (item: any) => {
 		} catch (e) {}
 	}
 
-	const loadCity = async () => {
-		try {
-			const res = await getCurrentCity()
-			if (res.success && res.data != null && res.data.name != null) {
-				cityName.value = res.data.name as string
+const loadCity = async () => {
+				try {
+					const res = await getCurrentCity()
+					if (res.success && res.data != null && res.data.name != null) {
+						const name = ('' + res.data.name).trim()
+						cityName.value = name != '' ? name : '未设置'
+						const code = res.data.code != null ? ('' + res.data.code).trim() : ''
+						cityCode.value = code != '' && code != 'null' ? code : ''
+					} else {
+						cityName.value = '未设置'
+						cityCode.value = ''
+						const msg =
+							res != null && res.message != null && ('' + res.message) != ''
+								? ('' + res.message)
+								: '城市加载失败'
+						uni.showToast({ title: msg, icon: 'none' })
+					}
+				} catch (e) {
+					cityName.value = '未设置'
+					cityCode.value = ''
+					uni.showToast({ title: '城市加载失败', icon: 'none' })
+				}
 			}
-		} catch (e) {}
-	}
 
 	const switchTab = (tab: string) => {
 		if (currentTab.value === tab) return
@@ -520,109 +564,146 @@ const bannerCta = (type: string) => {
 		if (b.type === 'topic') {
 			const tid = b.targetId != null ? b.targetId : (featuredTopic.value != null ? featuredTopic.value.id : 0)
 			if (tid > 0) {
-				uni.navigateTo({ url: '/pages/community/topic-detail?id=' + tid })
+				uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + tid })
 			} else {
-				uni.navigateTo({ url: '/pages/community/topic-list' })
+				uni.navigateTo({ url: '/pagesSub/community/topic-list' })
 			}
 			return
 		}
 		if (b.type === 'plane') {
-			uni.navigateTo({ url: '/pages/community/paper-plane' })
+			uni.navigateTo({ url: '/pagesSub/community/paper-plane' })
 			return
 		}
 		if (b.type === 'activity') {
 			const id = b.targetId != null ? b.targetId : (activity.value != null ? activity.value.id : 0)
-			uni.navigateTo({ url: '/pages/community/activity-detail?id=' + id })
+			uni.navigateTo({ url: '/pagesSub/community/activity-detail?id=' + id })
 			return
 		}
 	}
 
 	const handleUserClick = (userId: number) => {
-		uni.navigateTo({ url: '/pages/user/detail?userId=' + userId + '&source=community' })
+		uni.navigateTo({ url: '/pagesSub/userExtra/user/detail?userId=' + userId })
 	}
 
-	const handleLike = async (dynamicId: number) => {
-		const ok = await guardRealName('like')
-		if (!ok) return
-		try {
-			const res = await likeDynamic(dynamicId)
-			if (res.success && res.data != null) {
-				const list = dynamicList.value as any[]
-				const idx = list.findIndex((d: any) => d.id == dynamicId)
-				if (idx >= 0) {
-					list[idx].liked = res.data.liked
-					list[idx].likeCount = res.data.likeCount
+const handleLike = async (dynamicId: number) => {
+			const ok = await guardRealName('like')
+			if (!ok) return
+			try {
+				const res = await likeDynamic(dynamicId)
+				if (res.success && res.data != null) {
+					const list = dynamicList.value as any[]
+					const idx = list.findIndex((d: any) => d.id == dynamicId)
+					if (idx >= 0) {
+						list[idx].liked = res.data.liked
+						list[idx].likeCount = res.data.likeCount
+					}
+				} else {
+					const msg =
+						res.data != null && res.data.message != null
+							? res.data.message
+							: res.message != null
+								? res.message
+								: '点赞失败，请重试'
+					uni.showToast({ title: msg, icon: 'none' })
 				}
+			} catch (e) {
+				uni.showToast({ title: '点赞失败，请重试', icon: 'none' })
 			}
-		} catch (e) {
-			uni.showToast({ title: '点赞失败，请重试', icon: 'none' })
 		}
-	}
 
 	const handleComment = (dynamicId: number) => {
-		uni.navigateTo({ url: '/pages/community/post-detail?id=' + dynamicId })
+		uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + dynamicId })
 	}
 
-	const handleCollect = async (dynamicId: number) => {
-		const ok = await guardRealName('collect')
-		if (!ok) return
-		try {
-			const res = await collectDynamic(dynamicId)
-			if (res.success && res.data != null) {
-				const list = dynamicList.value as any[]
-				const idx = list.findIndex((d: any) => d.id == dynamicId)
-				if (idx >= 0) {
-					list[idx].collected = res.data.collected
-					list[idx].collectCount = res.data.collectCount
+const handleCollect = async (dynamicId: number) => {
+			const ok = await guardRealName('collect')
+			if (!ok) return
+			try {
+				const res = await collectDynamic(dynamicId)
+				if (res.success && res.data != null) {
+					const list = dynamicList.value as any[]
+					const idx = list.findIndex((d: any) => d.id == dynamicId)
+					if (idx >= 0) {
+						list[idx].collected = res.data.collected
+						list[idx].collectCount = res.data.collectCount
+					}
+				} else {
+					const msg =
+						res.data != null && res.data.message != null
+							? res.data.message
+							: res.message != null
+								? res.message
+								: '收藏失败，请重试'
+					uni.showToast({ title: msg, icon: 'none' })
 				}
+			} catch (e) {
+				uni.showToast({ title: '收藏失败，请重试', icon: 'none' })
 			}
-		} catch (e) {
-			uni.showToast({ title: '收藏失败，请重试', icon: 'none' })
 		}
-	}
 
 	const syncFollowed = (userId: number, followed: boolean) => {
 		const list = dynamicList.value as any[]
 		for (let i = 0; i < list.length; i++) {
-			if (list[i].user != null && list[i].user.id == userId) list[i].followed = followed
+			if (list[i].user != null && list[i].user.id == userId) {
+				list[i].followed = followed
+			}
 		}
 		dynamicList.value = list.slice()
 	}
 
-	const handleFollow = async (userId: number) => {
-		const ok = await guardRealName('follow')
-		if (!ok) return
-		try {
-			const res = await followUserFromCommunity(userId)
-			if (res.success) {
-				syncFollowed(userId, true)
-				uni.showToast({ title: '已关注', icon: 'none' })
+		const handleFollow = async (userId: number) => {
+			const ok = await guardRealName('follow')
+			if (!ok) return
+			try {
+				const res = await followUserFromCommunity(userId)
+				if (res.success) {
+					syncFollowed(userId, true)
+					uni.showToast({ title: '已关注', icon: 'none' })
+				} else {
+					const msg =
+						res.data != null && res.data.message != null
+							? res.data.message
+							: res.message != null
+								? res.message
+								: '关注失败，请重试'
+					uni.showToast({ title: msg, icon: 'none' })
+				}
+			} catch (e) {
+				uni.showToast({ title: '关注失败，请重试', icon: 'none' })
 			}
-		} catch (e) {
-			uni.showToast({ title: '关注失败，请重试', icon: 'none' })
 		}
-	}
 
 	const handleUnfollow = (userId: number) => {
+		if (unfollowPendingUserId.value == userId) return
 		uni.showModal({
-			content: '确定取消关注吗？',
+			title: '取消关注',
+			content: '确定不再关注这位用户吗？',
 			cancelText: '取消',
-			cancelColor: '#000000',
 			confirmText: '确定',
-			confirmColor: '#38988D',
 			success: async (modalRes: any) => {
 				if (!modalRes.confirm) return
+				unfollowPendingUserId.value = userId
 				try {
 					const res = await unfollowUserFromCommunity(userId)
 					if (res.success) {
 						syncFollowed(userId, false)
-						if (currentTab.value === 'follow') {
-							await reload()
-						}
+						if (currentTab.value === 'follow') reload()
 						uni.showToast({ title: '已取消关注', icon: 'none' })
+					} else {
+						const msg =
+							res.data != null && res.data.message != null
+								? res.data.message
+								: res.message != null
+									? res.message
+									: '取消关注失败，请重试'
+						uni.showToast({ title: msg, icon: 'none' })
 					}
 				} catch (e) {
 					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				} finally {
+					if (unfollowPendingUserId.value == userId) {
+						unfollowPendingUserId.value = 0
+					}
 				}
 			}
 		})
@@ -656,67 +737,94 @@ const bannerCta = (type: string) => {
 	}
 
 	const handleTopic = (topicId: number) => {
-		uni.navigateTo({ url: '/pages/community/topic-detail?id=' + topicId })
+		uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + topicId })
 	}
 
 	const handleOpen = (dynamicId: number) => {
-		uni.navigateTo({ url: '/pages/community/post-detail?id=' + dynamicId })
+		uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + dynamicId })
 	}
 
 	const handlePublish = async () => {
 		const ok = await guardRealName('publish')
 		if (!ok) return
-		uni.navigateTo({ url: '/pages/community/publish' })
+		uni.navigateTo({ url: '/pagesSub/community/publish' })
 	}
 
-	const handleEmptyAction = () => {
-		if (currentTab.value === 'follow') {
-			switchTab('discover')
-			return
+const handleEmptyAction = () => {
+			if (currentTab.value === 'follow') {
+				switchTab('discover')
+				return
+			}
+			if (currentTab.value === 'city' && !isValidCity(cityName.value)) {
+				switchCity()
+				return
+			}
+			handlePublish()
 		}
-		handlePublish()
-	}
 
 	const openActivity = () => {
 		if (activity.value == null) return
-		uni.navigateTo({ url: '/pages/community/activity-detail?id=' + activity.value.id })
+		uni.navigateTo({ url: '/pagesSub/community/activity-detail?id=' + activity.value.id })
 	}
 
 	const openTopics = () => {
-		uni.navigateTo({ url: '/pages/community/topic-list' })
+		uni.navigateTo({ url: '/pagesSub/community/topic-list' })
 	}
 
 	const openTopic = (t: any) => {
-		uni.navigateTo({ url: '/pages/community/topic-detail?id=' + t.id })
+		uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + t.id })
 	}
 
 	const openNotifications = () => {
-		uni.navigateTo({ url: '/pages/community/notifications' })
+		uni.navigateTo({ url: '/pagesSub/community/notifications' })
 	}
 
-	const switchCity = () => {
-		const cities = ['南京', '杭州', '上海', '苏州', '宁波']
-		uni.showActionSheet({
-			itemList: cities,
-			success: async (res) => {
-				const name = cities[res.tapIndex]
-				if (name == null || name == cityName.value) return
-				try {
-					const r = await setCurrentCity(name)
-					if (r.success) {
-						cityName.value = name
-						if (currentTab.value === 'city') {
-							dynamicList.value = []
-							loadDynamics(true)
-						}
-						uni.showToast({ title: '已切换到' + name, icon: 'none' })
-					}
-				} catch (e) {
-					uni.showToast({ title: '切换失败', icon: 'none' })
+const switchCity = () => {
+				const options = COMMUNITY_CITY_OPTIONS as any[]
+				const labels: string[] = []
+				for (let i = 0; i < options.length; i++) {
+					const o = options[i]
+					labels.push(o != null && o.name != null ? ('' + o.name) : '')
 				}
+				uni.showActionSheet({
+					itemList: labels,
+					success: async (res) => {
+						const opt = options[res.tapIndex]
+						if (opt == null || opt.name == null) return
+						const name = '' + opt.name
+						const code = opt.code != null ? ('' + opt.code) : ''
+						if (name == cityName.value && code == cityCode.value) return
+						try {
+							const r = await setCurrentCity(name, code)
+							if (r.success) {
+								const saved =
+									r.data != null && r.data.city != null && r.data.city.name != null
+										? ('' + r.data.city.name)
+										: name
+								const savedCode =
+									r.data != null && r.data.city != null && r.data.city.code != null
+										? ('' + r.data.city.code)
+										: code
+								cityName.value = saved
+								cityCode.value = savedCode
+								if (currentTab.value === 'city') {
+									dynamicList.value = []
+									loadDynamics(true)
+								}
+								uni.showToast({ title: '已切换到' + cityName.value, icon: 'none' })
+							} else {
+								const msg =
+									r.message != null && r.message != ''
+										? ('' + r.message)
+										: '切换城市失败'
+								uni.showToast({ title: msg, icon: 'none' })
+							}
+						} catch (e) {
+							uni.showToast({ title: '切换失败', icon: 'none' })
+						}
+					}
+				})
 			}
-		})
-	}
 
 	const handleLoadMore = () => {
 		if (loading.value || !hasMore.value) return
@@ -1047,18 +1155,7 @@ const bannerCta = (type: string) => {
 			gap: 8px;
 			background: var(--accent-bg);
 			border: 1px solid var(--accent);
-			box-shadow: var(--shadow-md);
-		}
-
-		.feature.type-activity {
-			background: var(--navy);
-		}
-
-		.feature-kicker {
-			color: var(--soft);
-			font-size: 10px;
-			font-weight: 800;
-			letter-spacing: 0.08em;
+			box-shadow: var(--shadow-sm);
 		}
 
 		.feature.type-plane .feature-kicker,
@@ -1075,12 +1172,13 @@ const bannerCta = (type: string) => {
 		}
 
 		.feature.type-plane .feature-desc {
-			color: var(--accent2);
 			max-width: 56%;
+			color: var(--accent2);
 			line-height: 1.65;
 		}
 
 		.feature.type-plane .feature-title {
+			max-width: 62%;
 			font-size: 22px;
 			line-height: 1.35;
 			color: var(--accent2);
@@ -1107,7 +1205,7 @@ const bannerCta = (type: string) => {
 			bottom: -38px;
 			width: 146px;
 			height: 156px;
-			border-radius: 32px 0 0 0;
+			border-radius: 20px 0 0 0;
 			background: var(--accent);
 			opacity: 0.22;
 			transform: rotate(-14deg);
@@ -1144,6 +1242,17 @@ const bannerCta = (type: string) => {
 			color: var(--soft);
 			opacity: 0.76;
 			transform: rotate(-8deg);
+		}
+
+		.feature.type-activity {
+			background: var(--navy);
+		}
+
+		.feature-kicker {
+			color: var(--soft);
+			font-size: 10px;
+			font-weight: 800;
+			letter-spacing: 0.08em;
 		}
 
 		.feature-title {

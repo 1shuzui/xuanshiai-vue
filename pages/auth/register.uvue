@@ -216,7 +216,11 @@
 			})
 			setTimeout(() => {
 				uni.navigateTo({
+<<<<<<< HEAD
 					url: '/pages/onboarding/profile'
+=======
+					url: '/pagesSub/userExtra/user/edit?isNew=true'
+>>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 				})
 			}, 1000)
 		} catch (e: any) {

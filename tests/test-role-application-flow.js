@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { hasRegisteredPage } = require('./page-route-helper.cjs')
 
 const root = path.join(__dirname, '..')
 
@@ -37,17 +38,17 @@ expect(api, 'expected_price:', 'expected price mapping')
 expect(api, 'success_cases:', 'case mapping')
 
 for (const page of [
-  'pages/matchmaker/become-matchmaker.uvue',
-  'pages/matchmaker/become-partner.uvue',
-  'pages/matchmaker/become-promoter.uvue'
+  'pagesSub/matchmaker/become-matchmaker.uvue',
+  'pagesSub/matchmaker/become-partner.uvue',
+  'pagesSub/matchmaker/become-promoter.uvue'
 ]) {
   const content = read(page)
   expect(content, 'uni.redirectTo({', `${page} success navigation`)
-  expect(content, '/pages/matchmaker/application-success?type=', `${page} success route`)
+  expect(content, '/pagesSub/matchmaker/application-success?type=', `${page} success route`)
   expect(content, 'result.message != null', `${page} backend error handling`)
 }
 
-const promoterPage = read('pages/matchmaker/become-promoter.uvue')
+const promoterPage = read('pagesSub/matchmaker/become-promoter.uvue')
 expect(promoterPage, '个人介绍', 'promoter personal introduction section')
 expect(promoterPage, 'submitPromoterApplication(formData)', 'promoter submission routing')
 expectAbsent(promoterPage, 'uni.chooseImage', 'promoter image picker removed')
@@ -56,13 +57,16 @@ expectAbsent(promoterPage, '擅长渠道', 'promoter specialties field removed')
 expectAbsent(promoterPage, '推广佣金预期', 'promoter expected price field removed')
 expectAbsent(promoterPage, '推广经验', 'promoter case field removed')
 
-const successPage = read('pages/matchmaker/application-success.uvue')
+const successPage = read('pagesSub/matchmaker/application-success.uvue')
 expect(successPage, '申请成功', 'success heading')
 expect(successPage, '模拟资料已保存到本设备', 'Mock submission notice')
 expect(successPage, "uni.switchTab({ url: '/pages/matchmaker/matchmaker' })", 'stable return target')
 
 const pages = read('pages.json')
-expect(pages, 'pages/matchmaker/application-success', 'success route registration')
+if (!hasRegisteredPage(root, 'pagesSub/matchmaker/application-success')) {
+  throw new Error('success route registration: missing pagesSub/matchmaker/application-success')
+}
+console.log('PASS success route registration')
 
 const customerServiceQrCode = path.join(root, 'static', 'qrcodes', 'kefu-wechat.png')
 if (!fs.existsSync(customerServiceQrCode)) {
