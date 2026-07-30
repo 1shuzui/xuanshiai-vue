@@ -204,7 +204,7 @@
 		<view v-if="!isLockedView && isOwnProfile && !isPreview" class="bottom-bar bottom-bar-own">
 			<view class="primary-action edit-only-btn" @tap="goEdit"><text class="primary-action-text">编辑资料</text></view>
 		</view>
-		<view v-if="!isLockedView && !isOwnProfile && !isPreview" class="bottom-bar">
+		<view v-if="!isOwnProfile && !isPreview" class="bottom-bar">
 			<view class="bottom-back" @tap="onBack"><text class="bottom-back-icon">←</text><text class="bottom-back-text">返回</text></view>
 			<view class="primary-action" @tap="onMatch"><text class="primary-action-text">♥　申请认识</text></view>
 			<view class="like-action" @tap="onLike"><text class="like-action-text">♥</text></view>
@@ -407,7 +407,7 @@ onShow(() => {
 
 const onBack = () => { uni.navigateBack({ delta: 1 }) }
 const onShare = () => { uni.showToast({ title: '分享给朋友', icon: 'none' }) }
-const goEdit = () => { uni.navigateTo({ url: '/pagesSub/userExtra/user/edit' }) }
+const goEdit = () => { uni.navigateTo({ url: '/pages/user/edit' }) }
 const onSpotlight = () => {
 	if (isOwnProfile.value) {
 		uni.showToast({ title: '不能向自己爆灯', icon: 'none' })
@@ -433,13 +433,15 @@ const openVipUnlock = () => {
 		url: '/pagesSub/profileExtra/vip?source=user-detail&userId=' + user.value.id + '&redirect=' + encodeURIComponent(redirect)
 	})
 }
-const onMatch = () => {
-	if (isOwnProfile.value) {
-		uni.showToast({ title: '不能向自己申请认识', icon: 'none' })
+const onMatch = async () => {
+	if (user.value == null || user.value.isOwn) return
+	if (user.value.canApply == false) {
+		uni.showToast({ title: '请先完成实名认证或完善资料', icon: 'none' })
 		return
 	}
-	const id = user.value.id != null ? Number(user.value.id) : 1
-	applyUserId.value = id
+	const ok = await guardRealName('apply')
+	if (!ok) return
+	applyUserId.value = user.value.id
 	applyVisible.value = true
 }
 const onApplySuccess = (_payload: any) => {
