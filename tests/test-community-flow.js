@@ -1,13 +1,9 @@
-<<<<<<< HEAD
-const assert = require('assert')
-=======
 /**
  * 社区闭环 Mock / 路由 / 实名门槛 静态校验
  * 不启动小程序，仅校验源码与 Mock 约定
  * 主 Tab：关注 / 同城 / 发现；关注页喜欢=用户级喜欢动态
  */
 
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 const fs = require('fs')
 const path = require('path')
 const assert = require('assert')
@@ -32,29 +28,6 @@ assert.doesNotMatch(login, /loginWithMockSms|auth\/sms\/send|auth\/phone\/login/
 
 for (const relativePath of [
   'pages/community/community.uvue',
-<<<<<<< HEAD
-  'pages/community/publish.uvue',
-  'pages/community/topic-list.uvue',
-  'pages/community/topic-detail.uvue',
-  'pages/community/post-detail.uvue',
-  'pages/community/paper-plane.uvue',
-  'pages/community/notifications.uvue',
-  'pages/index/top-placement.uvue'
-]) {
-  assert.ok(exists(relativePath), `${relativePath} must exist`)
-}
-
-for (const route of [
-  'pages/community/community',
-  'pages/community/topic-list',
-  'pages/community/topic-detail',
-  'pages/community/post-detail',
-  'pages/community/paper-plane',
-  'pages/community/notifications',
-  'pages/index/top-placement'
-]) {
-  assert.ok(pagesJson.includes(route), `pages.json must register ${route}`)
-=======
   'pagesSub/community/publish.uvue',
   'pagesSub/community/topic-list.uvue',
   'pagesSub/community/topic-detail.uvue',
@@ -90,7 +63,6 @@ if (pagesJson.includes('pages/community/community') && pagesJson.includes('"text
   ok('社区 Tab 仍存在')
 } else {
   fail('社区 Tab 配置异常')
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 }
 
 for (const name of [
@@ -110,13 +82,6 @@ for (const name of [
   'sendPaperPlaneMessage',
   'getCommunityNotifications',
   'markNotificationRead',
-<<<<<<< HEAD
-  'getCommunityPrivacy',
-  'uploadCommunityMedia',
-  'deleteCommunityMedia'
-]) {
-  assert.match(communityApi, new RegExp(`export async function ${name}\\b`), `community API must export ${name}`)
-=======
   'markAllNotificationsRead',
   'getCommunityQuotas',
   'publishDynamic',
@@ -234,7 +199,6 @@ if (apiCommunity.includes('hasMore') && apiCommunity.includes('pageSize') && api
   ok('getDynamicList 分页结构 list/hasMore/pageSize')
 } else {
   fail('getDynamicList 缺少分页 payload')
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 }
 
 assert.match(communityApi, /url: '\/community\/posts'/, 'post publishing must use the live endpoint')
@@ -244,37 +208,6 @@ assert.match(communityApi, /video_media_id/, 'publishing must support an uploade
 assert.match(communityApi, /MEDIA_UPLOAD_REQUIRED/, 'temporary media must fail closed before publishing')
 assert.match(communityApi, /resolveMediaUrl/, 'backend media must be normalized for rendering')
 
-<<<<<<< HEAD
-const communityPage = read('pages/community/community.uvue')
-const publishPage = read('pages/community/publish.uvue')
-const topicPage = read('pages/community/topic-detail.uvue')
-const paperPlanePage = read('pages/community/paper-plane.uvue')
-const realNameGate = read('utils/realNameGate.uts')
-
-assert.match(communityPage, /guardRealName/, 'community interactions must be real-name gated')
-assert.match(publishPage, /publishDynamic/, 'publish page must use the community API')
-assert.match(publishPage, /uploadCommunityMedia/, 'publish page must upload selected media')
-assert.match(topicPage, /joinTopic/, 'topic page must support joining')
-assert.match(topicPage, /leaveTopic/, 'topic page must support leaving')
-assert.match(topicPage, /guardRealName/, 'topic interactions must be real-name gated')
-assert.match(paperPlanePage, /sendPaperPlane/, 'paper-plane page must use the API')
-assert.match(paperPlanePage, /paperPlaneUnreadCount/, 'paper-plane page must retain unread state')
-assert.match(realNameGate, /guardRealName/, 'real-name gate helper must be available')
-assert.match(realNameGate, /常规社区互动、申请认识、参与话题及带话题发布均仅要求实名通过/, 'community uses the confirmed identity boundary')
-
-for (const name of [
-  'getDynamicList',
-  'publishDynamic',
-  'sendPaperPlane',
-  'getPaperPlaneConversations',
-  'uploadCommunityMedia',
-  'getCommunityPrivacy'
-]) {
-  assert.ok(apiIndex.includes(name), `api/index must re-export ${name}`)
-}
-
-console.log('PASS live community flow contract')
-=======
 console.log('\n3.1 publishDynamic 契约...')
 if (
   apiCommunity.includes('videos') &&
@@ -1216,4 +1149,3 @@ if (failed === 0) {
   console.log(`社区闭环静态校验失败：${failed} 项`)
   process.exit(1)
 }
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
