@@ -33,7 +33,7 @@
 | 取消上传 | 发布页 photo↔video / 替换时取消 in-flight `uploadFile` 任务 |
 | Mock | `mockCommunityMediaById` 解析 id→url，publish/send 后列表可见 |
 
-页面：`pages/community/publish.uvue`、`pages/community/paper-plane.uvue`；API：`api/community.uts`。
+页面：`pagesSub/community/publish.uvue`、`pagesSub/community/paper-plane.uvue`；API：`api/community.uts`。
 
 ### 后端 `xuanshiai-backend`（commits `baa939e` … `5f899bc`，分支 `codex/community-live-api-hardening`）
 
@@ -99,7 +99,7 @@
 | P1 删帖删评取关 / 我的纸飞机 / 关注 all | 代码完成 | all → BE `following_and_liked` 真并集（原假分页已撤） |
 | 对抗审查 P0/P1 缺陷修复 | 已完成 | 见 2026-07-25 · 审查修复；详见 `COMMUNITY_ADVERSARIAL_REVIEW.md` |
 | 本地 HTTP 冒烟（A1–A4 / B1 核心） | 已完成 | 见 2026-07-25 · 实际测试；双用户 token + Redis + MySQL |
-| 关 Mock 端侧联调（编译 + DevTools） | 进行中 | 见 2026-07-25 · 关 Mock 端侧联调；`USE_MOCK=false` 当前开启 |
+| 关 Mock 端侧联调（编译 + DevTools） | 已完成（本地模拟器） | 2026-07-30 HBuilderX 编译、AppID `wxb5f4e639f4eb2591` 导入和社区真实 HTTP 回归通过；物理真机/正式发布仍不在本轮范围 |
 | 同城城市 GET/PUT + mode=city 传参 | 已完成 | 见 2026-07-25 · 同城城市端到端；过滤在 BE |
 | 同城 city_code + 关注全部 BE 并集 | 已完成 | 见 2026-07-25 · 同城 city_code 与关注并集 |
 | 媒体上传 FE/BE 代码 + 单测/静态验收 | 代码完成 | 见 2026-07-26 · 社区媒体上传契约；真实 HTTP/微信手测仍 skipped |
@@ -224,7 +224,7 @@
 | `api/community.uts` | `unfollowUserFromCommunity` / `deleteDynamic` / `deleteComment` / `getMyPaperPlanes`；`feedModeFromTab.mergeLiked` + `mergeFollowAndLikedLists` 关注 all 并集 |
 | `api/index.uts` | 导出上述四个新函数 |
 | `components/XsaReportSheet.uvue` | `userId<=0` 直接失败，禁止帖 id 顶替 |
-| `pages/community/post-detail.uvue` | `@blocked` → toast + navigateBack |
+| `pagesSub/community/post-detail.uvue` | `@blocked` → toast + navigateBack |
 | `tests/test-community-flow.js` | 断言 mergeLiked、index 新导出、user 双路径字符串 |
 
 ### 文档
@@ -239,7 +239,7 @@ cd xuanshiai-vue && node tests/test-community-flow.js
 → 社区闭环静态校验全部通过
 ```
 
-- 仍默认 `USE_MOCK=true`；真机需 access token + 绑手机 + verified。
+- 当时静态验收仍以 `USE_MOCK=true` 为主；当前社区 1.0 本地验收已切换为 `USE_MOCK=false`，使用 FastAPI、access token 和已种子化数据库。
 - 不把关 Mock 单独写成联调完成。
 
 ### 仍未做（P0/P1 收口当时）
@@ -358,7 +358,7 @@ cd xuanshiai-vue && node tests/test-community-flow.js
 |------|------|
 | HBuilderX 5.15 `cli launch mp-weixin --compile true` | **编译成功**（约 86s；uniCloud 未关联警告可忽略） |
 | 产物 | `unpackage/dist/dev/mp-weixin`；`request.js` **无 Mock 分支**（常量折叠为 HTTP） |
-| 微信开发者工具 `cli open --project …/mp-weixin` | **已打开**（touristappid） |
+| 微信开发者工具 `cli open --project …/mp-weixin` | **已打开**（历史记录使用 `touristappid`；当前验收使用 `wxb5f4e639f4eb2591`） |
 | 物理真机 `auto-preview` | **失败**：微信 IDE `INVALID_LOGIN, access_token expired`（需在开发者工具内重新扫码登录后再预览） |
 
 ### 关 Mock 后接口对照（LAN）

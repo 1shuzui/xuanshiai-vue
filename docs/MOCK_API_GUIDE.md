@@ -20,10 +20,10 @@ const response = await getRecommendUser()
 
 ## 3. 当前开关
 
-`api/config.uts` 当前设置 `USE_MOCK = true`：
+`api/config.uts` 当前社区验收设置 `USE_MOCK = false`：
 
-- `true`：`request()` 返回 API 调用参数中的 `mockData`。
-- `false` 且 `API_CONFIG.useHttp = true`：HTTP 请求 FastAPI（`API_BASE_URL` + `API_PREFIX`，Bearer token）。
+- `true`：`request()` 返回 API 调用参数中的 `mockData`，仅用于结构预览或尚未接入后端的模块。
+- `false` 且 `API_CONFIG.useHttp = true`：HTTP 请求 FastAPI（`API_BASE_URL` + `API_PREFIX`，Bearer token）；当前社区 1.0 使用此路径。
 - `false` 且 `useHttp = false`：回退 `uniCloud.callFunction`（`spaceId` 仍为占位）。
 
 社区联调路径对照与变更时间线见 [`COMMUNITY_HTTP_CHANGELOG.md`](./COMMUNITY_HTTP_CHANGELOG.md)。不要把“关闭 Mock”描述成“一键完成上线”。

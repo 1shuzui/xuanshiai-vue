@@ -102,7 +102,7 @@ try {
     { path: 'pages/message/message.uvue', name: '消息页' },
     { path: 'pages/community/community.uvue', name: '社区页' },
     { path: 'pages/matchmaker/matchmaker.uvue', name: '牵线页' },
-    { path: 'pages/chat/detail.uvue', name: '聊天详情页' }
+    { path: 'pagesSub/chat/detail.uvue', name: '聊天详情页' }
   ]
 
   pages.forEach(page => {

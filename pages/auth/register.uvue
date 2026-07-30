@@ -216,7 +216,7 @@
 			})
 			setTimeout(() => {
 				uni.navigateTo({
-					url: '/pages/user/edit?isNew=true'
+					url: '/pagesSub/userExtra/user/edit?isNew=true'
 				})
 			}, 1000)
 		} catch (e: any) {

@@ -78,6 +78,12 @@
 								</view>
 						<!-- 活动 / 纸飞机 -->
 						<view v-else class="feature" :class="'type-' + b.type" @click="openBanner(b)">
+							<view v-if="b.type === 'plane'" class="plane-banner-art">
+								<view class="plane-banner-blue-panel"></view>
+								<text class="plane-banner-plane plane-banner-plane-main">✈</text>
+								<text class="plane-banner-plane plane-banner-plane-blue">✈</text>
+								<text class="plane-banner-plane plane-banner-plane-pink">✈</text>
+							</view>
 							<text class="feature-kicker">{{ b.kicker != null ? b.kicker : bannerKicker(b.type) }}</text>
 							<text class="feature-title">{{ b.title }}</text>
 							<text class="feature-desc">{{ b.description }}</text>
@@ -558,25 +564,25 @@ const bannerCta = (type: string) => {
 		if (b.type === 'topic') {
 			const tid = b.targetId != null ? b.targetId : (featuredTopic.value != null ? featuredTopic.value.id : 0)
 			if (tid > 0) {
-				uni.navigateTo({ url: '/pages/community/topic-detail?id=' + tid })
+				uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + tid })
 			} else {
-				uni.navigateTo({ url: '/pages/community/topic-list' })
+				uni.navigateTo({ url: '/pagesSub/community/topic-list' })
 			}
 			return
 		}
 		if (b.type === 'plane') {
-			uni.navigateTo({ url: '/pages/community/paper-plane' })
+			uni.navigateTo({ url: '/pagesSub/community/paper-plane' })
 			return
 		}
 		if (b.type === 'activity') {
 			const id = b.targetId != null ? b.targetId : (activity.value != null ? activity.value.id : 0)
-			uni.navigateTo({ url: '/pages/community/activity-detail?id=' + id })
+			uni.navigateTo({ url: '/pagesSub/community/activity-detail?id=' + id })
 			return
 		}
 	}
 
 	const handleUserClick = (userId: number) => {
-		uni.navigateTo({ url: '/pages/user/detail?userId=' + userId })
+		uni.navigateTo({ url: '/pagesSub/userExtra/user/detail?userId=' + userId })
 	}
 
 const handleLike = async (dynamicId: number) => {
@@ -606,7 +612,7 @@ const handleLike = async (dynamicId: number) => {
 		}
 
 	const handleComment = (dynamicId: number) => {
-		uni.navigateTo({ url: '/pages/community/post-detail?id=' + dynamicId })
+		uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + dynamicId })
 	}
 
 const handleCollect = async (dynamicId: number) => {
@@ -731,17 +737,17 @@ const handleCollect = async (dynamicId: number) => {
 	}
 
 	const handleTopic = (topicId: number) => {
-		uni.navigateTo({ url: '/pages/community/topic-detail?id=' + topicId })
+		uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + topicId })
 	}
 
 	const handleOpen = (dynamicId: number) => {
-		uni.navigateTo({ url: '/pages/community/post-detail?id=' + dynamicId })
+		uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + dynamicId })
 	}
 
 	const handlePublish = async () => {
 		const ok = await guardRealName('publish')
 		if (!ok) return
-		uni.navigateTo({ url: '/pages/community/publish' })
+		uni.navigateTo({ url: '/pagesSub/community/publish' })
 	}
 
 const handleEmptyAction = () => {
@@ -758,19 +764,19 @@ const handleEmptyAction = () => {
 
 	const openActivity = () => {
 		if (activity.value == null) return
-		uni.navigateTo({ url: '/pages/community/activity-detail?id=' + activity.value.id })
+		uni.navigateTo({ url: '/pagesSub/community/activity-detail?id=' + activity.value.id })
 	}
 
 	const openTopics = () => {
-		uni.navigateTo({ url: '/pages/community/topic-list' })
+		uni.navigateTo({ url: '/pagesSub/community/topic-list' })
 	}
 
 	const openTopic = (t: any) => {
-		uni.navigateTo({ url: '/pages/community/topic-detail?id=' + t.id })
+		uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + t.id })
 	}
 
 	const openNotifications = () => {
-		uni.navigateTo({ url: '/pages/community/notifications' })
+		uni.navigateTo({ url: '/pagesSub/community/notifications' })
 	}
 
 const switchCity = () => {
@@ -992,7 +998,7 @@ const switchCity = () => {
 				display: flex;
 				flex-direction: column;
 				box-sizing: border-box;
-				padding: 10px 12px;
+				padding: 8px 12px;
 			}
 
 			.topic-panel-head {
@@ -1000,7 +1006,7 @@ const switchCity = () => {
 				flex-direction: row;
 				align-items: center;
 				justify-content: space-between;
-				margin-bottom: 8px;
+				margin-bottom: 4px;
 				flex-shrink: 0;
 			}
 
@@ -1032,8 +1038,8 @@ const switchCity = () => {
 			.topic-feature {
 				display: flex;
 				flex-direction: row;
-				gap: 10px;
-				padding: 10px;
+				gap: 8px;
+				padding: 8px;
 				background: var(--surface);
 				border-radius: 12px;
 				box-shadow: var(--shadow-sm);
@@ -1041,8 +1047,8 @@ const switchCity = () => {
 			}
 
 			.topic-feature-cover {
-				width: 64px;
-				height: 64px;
+				width: 56px;
+				height: 56px;
 				border-radius: 10px;
 				flex-shrink: 0;
 				background: var(--warm);
@@ -1088,8 +1094,8 @@ const switchCity = () => {
 				display: flex;
 				flex-direction: row;
 				flex-wrap: wrap;
-				gap: 6px 8px;
-				margin-top: 8px;
+				gap: 4px 6px;
+				margin-top: 6px;
 				flex: 1;
 				min-height: 0;
 				align-content: flex-start;
@@ -1100,9 +1106,10 @@ const switchCity = () => {
 				box-sizing: border-box;
 				display: flex;
 				flex-direction: column;
-				gap: 2px;
+				height: 40px;
+				gap: 0;
 				min-width: 0;
-				padding: 6px 8px;
+				padding: 4px 6px;
 				border-radius: 8px;
 				background: var(--surface);
 			}
@@ -1143,7 +1150,98 @@ const switchCity = () => {
 		}
 
 		.feature.type-plane {
-			background: var(--sage);
+			position: relative;
+			overflow: hidden;
+			gap: 8px;
+			background: var(--accent-bg);
+			border: 1px solid var(--accent);
+			box-shadow: var(--shadow-sm);
+		}
+
+		.feature.type-plane .feature-kicker,
+		.feature.type-plane .feature-title,
+		.feature.type-plane .feature-desc,
+		.feature.type-plane .feature-btn {
+			position: relative;
+			z-index: 1;
+		}
+
+		.feature.type-plane .feature-kicker {
+			color: var(--accent2);
+			line-height: 1.4;
+		}
+
+		.feature.type-plane .feature-desc {
+			max-width: 56%;
+			color: var(--accent2);
+			line-height: 1.65;
+		}
+
+		.feature.type-plane .feature-title {
+			max-width: 62%;
+			font-size: 22px;
+			line-height: 1.35;
+			color: var(--accent2);
+		}
+
+		.feature.type-plane .feature-btn {
+			background: var(--paper);
+		}
+
+		.feature.type-plane .feature-btn text {
+			color: var(--accent2);
+		}
+
+		.plane-banner-art {
+			position: absolute;
+			inset: 0;
+			overflow: hidden;
+			pointer-events: none;
+		}
+
+		.plane-banner-blue-panel {
+			position: absolute;
+			right: -30px;
+			bottom: -38px;
+			width: 146px;
+			height: 156px;
+			border-radius: 20px 0 0 0;
+			background: var(--accent);
+			opacity: 0.22;
+			transform: rotate(-14deg);
+		}
+
+		.plane-banner-plane {
+			position: absolute;
+			display: block;
+			line-height: 1;
+		}
+
+		.plane-banner-plane-main {
+			right: 27px;
+			top: 60px;
+			font-size: 58px;
+			color: var(--sage);
+			opacity: 0.78;
+			transform: rotate(-18deg);
+		}
+
+		.plane-banner-plane-blue {
+			right: 94px;
+			top: 26px;
+			font-size: 22px;
+			color: var(--soft);
+			opacity: 0.76;
+			transform: rotate(12deg);
+		}
+
+		.plane-banner-plane-pink {
+			right: 12px;
+			bottom: 18px;
+			font-size: 19px;
+			color: var(--soft);
+			opacity: 0.76;
+			transform: rotate(-8deg);
 		}
 
 		.feature.type-activity {
@@ -1302,7 +1400,7 @@ const switchCity = () => {
 	.publish-fab {
 		position: fixed;
 		right: 16px;
-		bottom: calc(50px + 32px + env(safe-area-inset-bottom));
+		bottom: calc(50px + 48px + env(safe-area-inset-bottom));
 		width: 48px;
 		height: 48px;
 		background: var(--sage);

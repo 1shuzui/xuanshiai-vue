@@ -7,6 +7,7 @@
 const fs = require('fs')
 const path = require('path')
 const assert = require('assert')
+const { hasRegisteredPage } = require('./page-route-helper.cjs')
 
 const root = path.join(__dirname, '..')
 let failed = 0
@@ -45,15 +46,15 @@ if (loginPage.includes('loginWithMockSms') && loginPage.includes('loginWithMockS
 console.log('1. 社区页面与 pages.json 路由...')
 const communityPages = [
   'pages/community/community.uvue',
-  'pages/community/publish.uvue',
-  'pages/community/topic-list.uvue',
-  'pages/community/topic-detail.uvue',
-  'pages/community/post-detail.uvue',
-  'pages/community/activity-list.uvue',
-  'pages/community/activity-detail.uvue',
-  'pages/community/my-activities.uvue',
-  'pages/community/paper-plane.uvue',
-  'pages/community/notifications.uvue'
+  'pagesSub/community/publish.uvue',
+  'pagesSub/community/topic-list.uvue',
+  'pagesSub/community/topic-detail.uvue',
+  'pagesSub/community/post-detail.uvue',
+  'pagesSub/community/activity-list.uvue',
+  'pagesSub/community/activity-detail.uvue',
+  'pagesSub/community/my-activities.uvue',
+  'pagesSub/community/paper-plane.uvue',
+  'pagesSub/community/notifications.uvue'
 ]
 communityPages.forEach((p) => {
   if (exists(p)) ok(p)
@@ -62,17 +63,17 @@ communityPages.forEach((p) => {
 
 const pagesJson = read('pages.json')
 const routePaths = [
-  'pages/community/topic-list',
-  'pages/community/topic-detail',
-  'pages/community/post-detail',
-  'pages/community/activity-list',
-  'pages/community/activity-detail',
-  'pages/community/my-activities',
-  'pages/community/paper-plane',
-  'pages/community/notifications'
+  'pagesSub/community/topic-list',
+  'pagesSub/community/topic-detail',
+  'pagesSub/community/post-detail',
+  'pagesSub/community/activity-list',
+  'pagesSub/community/activity-detail',
+  'pagesSub/community/my-activities',
+  'pagesSub/community/paper-plane',
+  'pagesSub/community/notifications'
 ]
 routePaths.forEach((r) => {
-  if (pagesJson.includes(r)) ok(`pages.json 已注册 ${r}`)
+  if (hasRegisteredPage(root, r)) ok(`pages.json 已注册 ${r}`)
   else fail(`pages.json 缺少 ${r}`)
 })
 
@@ -389,11 +390,11 @@ else fail('mockMeProfile 缺少 realNameStatus')
 
 const pagesNeedGate = [
   'pages/community/community.uvue',
-  'pages/community/publish.uvue',
-  'pages/community/post-detail.uvue',
-  'pages/community/topic-detail.uvue',
-  'pages/community/activity-detail.uvue',
-  'pages/community/paper-plane.uvue'
+  'pagesSub/community/publish.uvue',
+  'pagesSub/community/post-detail.uvue',
+  'pagesSub/community/topic-detail.uvue',
+  'pagesSub/community/activity-detail.uvue',
+  'pagesSub/community/paper-plane.uvue'
 ]
 pagesNeedGate.forEach((p) => {
   const c = read(p)
@@ -596,7 +597,7 @@ if (applyApiLike.includes('mockLikedUserIds') && applyApiLike.includes('likeUser
   fail('likeUser 未写入用户级喜欢状态')
 }
 
-const topicDetail = read('pages/community/topic-detail.uvue')
+const topicDetail = read('pagesSub/community/topic-detail.uvue')
 if (topicDetail.includes('hero-cover') && topicDetail.includes('参与话题') && topicDetail.includes("sort == 'hot'") && topicDetail.includes("sort == 'latest'")) {
   ok('话题详情含封面 Hero / 热门最新 / 固定参与按钮')
 } else {
@@ -655,7 +656,7 @@ if (topicDetail.includes("guardRealName('like')") && topicDetail.includes("guard
   fail('话题内常规互动实名门槛缺失')
 }
 
-const communityPublishPage = read('pages/community/publish.uvue')
+const communityPublishPage = read('pagesSub/community/publish.uvue')
 if (communityPublishPage.includes('onLoad') && communityPublishPage.includes('query.topicId') && communityPublishPage.includes('topicId.value = parsed > 0 ? parsed : 0')) {
   ok('发布页解析 topicId')
 } else {
@@ -680,7 +681,7 @@ if (apiCommunity.includes('function markTopicParticipation') && apiCommunity.inc
   fail('话题参与人数可能因重复发帖重复累计')
 }
 
-const topicList = read('pages/community/topic-list.uvue')
+const topicList = read('pagesSub/community/topic-list.uvue')
 if (topicList.includes('近期热门') && topicList.includes('更多话题') && topicList.includes('getTopicList') && topicList.includes('没有更多话题了')) {
   ok('全部话题页：热门前10 + 分页更多')
 } else {
@@ -747,7 +748,7 @@ if (
 } else {
   fail('首页 likeUser/userId/实名门槛不完整')
 }
-const detailPageLike = read('pages/user/detail.uvue')
+const detailPageLike = read('pagesSub/userExtra/user/detail.uvue')
 if (
   detailPageLike.includes('likeUser') &&
   detailPageLike.includes("guardRealName('like')") &&
@@ -763,7 +764,7 @@ if (topicDetail.includes('res.data.collectCount') && !topicDetail.includes('(p.c
 } else {
   fail('话题详情收藏计数仍可能双计')
 }
-const postDetailPage = read('pages/community/post-detail.uvue')
+const postDetailPage = read('pagesSub/community/post-detail.uvue')
 if (postDetailPage.includes('res.data.collectCount')) {
   ok('帖子详情收藏计数回写 collectCount')
 } else {
@@ -772,7 +773,7 @@ if (postDetailPage.includes('res.data.collectCount')) {
 
 // 7. 发布页完整能力
 console.log('\n7. 发布页完整能力...')
-const publishSrc = read('pages/community/publish.uvue')
+const publishSrc = read('pagesSub/community/publish.uvue')
 if (
   publishSrc.includes('添加话题') ||
   publishSrc.includes('topic-sheet') ||
@@ -827,7 +828,7 @@ if (
 
 // 8. 通知分栏
 	console.log('\n8. 通知分栏...')
-	const notifySrc = read('pages/community/notifications.uvue')
+	const notifySrc = read('pagesSub/community/notifications.uvue')
 	if (
 	  notifySrc.includes('评论') &&
 	  notifySrc.includes('点赞') &&
@@ -882,7 +883,7 @@ if (indexPage.includes('confirmApply') || indexPage.includes('applyMessage')) {
   ok('首页已移除自定义申请 Modal 逻辑')
 }
 
-const detailPage = read('pages/user/detail.uvue')
+const detailPage = read('pagesSub/userExtra/user/detail.uvue')
 if (detailPage.includes('XsaApplySheet') && (detailPage.includes('openApply') || detailPage.includes('applyVisible') || detailPage.includes('handleApply'))) {
   ok('资料页复用 XsaApplySheet')
 } else {
@@ -924,7 +925,7 @@ if (planeApi.includes('scope') && planeApi.includes('sendPaperPlane')) {
 
 // 10. 发布 / 评论 / 通知闭环
 console.log('\n10. 发布评论通知闭环...')
-const publishPage = read('pages/community/publish.uvue')
+const publishPage = read('pagesSub/community/publish.uvue')
 if (publishPage.includes('publishDynamic') && !publishPage.includes('setTimeout(() => {\n\t\t\t\tuni.hideLoading()')) {
   ok('发布页调用 publishDynamic')
 } else if (publishPage.includes('publishDynamic')) {
@@ -933,7 +934,7 @@ if (publishPage.includes('publishDynamic') && !publishPage.includes('setTimeout(
   fail('发布页仍为假发布')
 }
 
-const postDetail = read('pages/community/post-detail.uvue')
+const postDetail = read('pagesSub/community/post-detail.uvue')
 if (postDetail.includes('commentDynamic') && postDetail.includes('dynamicId')) {
   ok('详情评论使用结构化 commentDynamic')
 } else if (postDetail.includes('commentDynamic')) {
@@ -942,14 +943,14 @@ if (postDetail.includes('commentDynamic') && postDetail.includes('dynamicId')) {
   fail('详情评论未闭环')
 }
 
-const notifications = read('pages/community/notifications.uvue')
+const notifications = read('pagesSub/community/notifications.uvue')
 if (notifications.includes('markNotificationRead') && notifications.includes('markAllNotificationsRead')) {
   ok('通知页支持已读 / 全部已读')
 } else {
   fail('通知已读 API 未接入')
 }
 
-const paperPage = read('pages/community/paper-plane.uvue')
+const paperPage = read('pagesSub/community/paper-plane.uvue')
 if (paperPage.includes('sendPaperPlane') && paperPage.includes('scope')) {
   ok('纸飞机页对象式发送')
 } else if (paperPage.includes('sendPaperPlane')) {
@@ -972,11 +973,11 @@ function contract(name, check) {
 
 const liveUserApi = read('api/user.uts')
 const liveCommunityApi = read('api/community.uts')
-const liveTopicPage = read('pages/community/topic-detail.uvue')
+const liveTopicPage = read('pagesSub/community/topic-detail.uvue')
 const dynamicCard = read('components/XsaDynamicCard.uvue')
-const livePublishPage = read('pages/community/publish.uvue')
-const livePostDetailPage = read('pages/community/post-detail.uvue')
-const livePaperPlanePage = read('pages/community/paper-plane.uvue')
+const livePublishPage = read('pagesSub/community/publish.uvue')
+const livePostDetailPage = read('pagesSub/community/post-detail.uvue')
+const livePaperPlanePage = read('pagesSub/community/paper-plane.uvue')
 
 contract('getMeProfile uses /auth/me and maps real-name status', () => {
   assert.match(liveUserApi, /url:\s*'\/auth\/me'/)
@@ -1030,7 +1031,7 @@ contract('publish page retains the request failure message', () => {
   assert.match(livePublishPage, /res\.message/)
 })
 contract('publish page uploads media before publish', () => {
-	  const page = read('pages/community/publish.uvue')
+	  const page = read('pagesSub/community/publish.uvue')
 	  assert.match(page, /uploadCommunityMedia/)
 	  assert.match(page, /mediaId|imageMediaIds/)
 	  assert.match(page, /deleteCommunityMedia/)
@@ -1039,7 +1040,7 @@ contract('publish page uploads media before publish', () => {
 	  assert.match(page, /hasReadyMedia/)
 	})
 	contract('publish photo→video / video replace cancels in-flight uploads', () => {
-	  const page = read('pages/community/publish.uvue')
+	  const page = read('pagesSub/community/publish.uvue')
 	  // addVideo clear photos + pickVideo replace must cancel uploading, not only delete ready
 	  const addVideoStart = page.indexOf('const addVideo = ')
 	  assert.ok(addVideoStart >= 0, 'addVideo should exist')
@@ -1056,7 +1057,7 @@ contract('publish page uploads media before publish', () => {
 	  assert.match(pickVideoBody, /trackInFlight/)
 	})
 contract('paper plane supports image pick and upload', () => {
-  const page = read('pages/community/paper-plane.uvue')
+  const page = read('pagesSub/community/paper-plane.uvue')
   assert.match(page, /chooseImage|addPhoto/)
   assert.match(page, /uploadCommunityMedia/)
   assert.match(page, /imageMediaIds|image_media_ids/)
@@ -1132,7 +1133,7 @@ const scanTargets = [
   'components/XsaReportSheet.uvue',
   'pages/community/community.uvue',
   'pages/index/index.uvue',
-  'pages/user/detail.uvue'
+  'pagesSub/userExtra/user/detail.uvue'
 ]
 let browserHits = 0
 scanTargets.forEach((p) => {
@@ -1153,14 +1154,14 @@ contract('privacy, blocklist and appeal adapters are exported', () => {
   assert.match(liveCommunityApi, /createReportAppeal/)
 })
 contract('settings persists privacy and exposes safety management', () => {
-  const settings = read('pages/profile/settings.uvue')
+  const settings = read('pagesSub/profileExtra/settings.uvue')
   assert.match(settings, /loadPrivacy/)
   assert.match(settings, /savePrivacy/)
   assert.match(settings, /getBlockedUsers/)
   assert.match(settings, /createReportAppeal/)
 })
 contract('notifications route by backend target type without post hardcode', () => {
-  const page = read('pages/community/notifications.uvue')
+  const page = read('pagesSub/community/notifications.uvue')
   assert.match(liveCommunityApi, /target_type/)
   assert.match(page, /targetType == 'comment'/)
   assert.match(page, /targetType == 'user'/)
@@ -1185,7 +1186,7 @@ contract('threaded comment adapters normalize backend metadata before rendering'
   assert.match(liveCommunityApi, /items\.push\(mapComment\(rawItems\[i\]\)\)/)
 })
 contract('settings sends UTS-compatible privacy payloads and shows appeal history', () => {
-  const settings = read('pages/profile/settings.uvue')
+  const settings = read('pagesSub/profileExtra/settings.uvue')
   assert.match(settings, /const payload: any = \{\}/)
   assert.match(settings, /payload\[key\] = value/)
   assert.match(settings, /getMyReportAppeals/)
@@ -1194,7 +1195,7 @@ contract('settings sends UTS-compatible privacy payloads and shows appeal histor
   assert.match(settings, /submitAppeal/)
 })
 contract('settings keeps notification preferences consistent and recovers failed safety actions', () => {
-  const settings = read('pages/profile/settings.uvue')
+  const settings = read('pagesSub/profileExtra/settings.uvue')
   assert.match(settings, /p\.notify_message/)
   assert.match(settings, /savePrivacy\('notify_message'/)
   assert.match(settings, /try \{[\s\S]*await updateCommunityPrivacy\(payload\)[\s\S]*\} catch \(e\) \{[\s\S]*rollback\(\)/)
@@ -1206,7 +1207,7 @@ contract('settings keeps notification preferences consistent and recovers failed
   assert.match(settings, /appealSubmitting/)
 })
 contract('settings separates v-else from v-for and normalizes blocked user ids', () => {
-  const settings = read('pages/profile/settings.uvue')
+  const settings = read('pagesSub/profileExtra/settings.uvue')
   assert.doesNotMatch(settings, /v-else\s+v-for=/)
   assert.match(settings, /<view v-else>/)
   assert.match(liveCommunityApi, /function mapBlockedUser/)
@@ -1221,8 +1222,8 @@ contract('threaded comments map each backend root exactly once', () => {
   assert.match(threaded, /items\.push\(comment\)/)
 })
 contract('notification and activity pages show retryable unavailable states', () => {
-  const notifications = read('pages/community/notifications.uvue')
-  const activity = read('pages/community/activity-detail.uvue')
+  const notifications = read('pagesSub/community/notifications.uvue')
+  const activity = read('pagesSub/community/activity-detail.uvue')
   assert.match(notifications, /notificationError/)
   assert.match(notifications, /show-action/)
   assert.match(notifications, /@action="load"/)
@@ -1231,8 +1232,8 @@ contract('notification and activity pages show retryable unavailable states', ()
   assert.match(activity, /show-action/)
 })
 contract('governance notification opens the registered settings destination', () => {
-  const page = read('pages/community/notifications.uvue')
-  assert.match(page, /navigateTo\(\{ url: '\/pages\/profile\/settings' \}\)/)
+  const page = read('pagesSub/community/notifications.uvue')
+  assert.match(page, /navigateTo\(\{ url: '\/pagesSub\/profileExtra\/settings' \}\)/)
 })
 
 console.log('\n====================================')

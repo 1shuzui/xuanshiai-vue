@@ -1,0 +1,147 @@
+<template>
+	<view class="page">
+		<view class="filter-row">
+			<view class="chip" :class="{ active: filter == 'all' }" @click="setFilter('all')"><text>全部</text></view>
+			<view class="chip" :class="{ active: filter == 'pending' }" @click="setFilter('pending')"><text>审核中</text></view>
+			<view class="chip" :class="{ active: filter == 'joined' }" @click="setFilter('joined')"><text>已通过</text></view>
+			<view class="chip" :class="{ active: filter == 'ended' }" @click="setFilter('ended')"><text>已结束</text></view>
+		</view>
+		<scroll-view class="list" scroll-y>
+			<XsaEmpty v-if="!loading && list.length == 0" text="还没有报名记录" description="去看看线下活动" :show-action="true" action-text="浏览活动" @action="goList" />
+			<view class="card" v-for="a in list" :key="a.id" @click="open(a.id)">
+				<view class="row">
+					<text class="title">{{ a.title }}</text>
+					<text class="status" :class="a.myStatus">{{ statusText(a) }}</text>
+				</view>
+				<text class="meta text-muted">{{ a.date }} {{ a.time }} · {{ a.location }}</text>
+			</view>
+			<view class="pad"></view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import { getMyActivities } from '@/api'
+
+	const filter = ref('all')
+	const loading = ref(false)
+	const list = ref([])
+
+	onMounted(() => {
+		load()
+	})
+
+	const load = async () => {
+		loading.value = true
+		try {
+			const res = await getMyActivities(filter.value)
+			if (res.success) list.value = res.data as any[]
+		} catch (e) {
+			console.error(e)
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const setFilter = async (f: string) => {
+		filter.value = f
+		await load()
+	}
+
+	const statusText = (a: any) => {
+		if (a.status == 'ended') return '已结束'
+		if (a.myStatus == 'pending') return '审核中'
+		if (a.myStatus == 'joined') return '已通过'
+		return a.myStatus
+	}
+
+	const open = (id: number) => {
+		uni.navigateTo({ url: `/pagesSub/community/activity-detail?id=${id}` })
+	}
+
+	const goList = () => {
+		uni.navigateTo({ url: '/pagesSub/community/activity-list' })
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100vh;
+		background: var(--canvas);
+		display: flex;
+		flex-direction: column;
+	}
+	.filter-row {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+		padding: 12px 14px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+		flex-wrap: wrap;
+	}
+	.chip {
+		height: 30px;
+		padding: 0 12px;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+	.chip text {
+		font-size: 12px;
+		color: var(--muted);
+	}
+	.chip.active {
+		border-color: var(--accent);
+		background: var(--soft);
+	}
+	.chip.active text {
+		color: var(--accent);
+		font-weight: 700;
+	}
+	.list {
+		flex: 1;
+		height: 0;
+		padding: 12px 14px;
+	}
+	.card {
+		padding: 14px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		margin-bottom: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+	}
+	.title {
+		flex: 1;
+		font-size: 15px;
+		font-weight: 700;
+		color: var(--ink);
+	}
+	.status {
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--accent);
+	}
+	.status.pending {
+		color: var(--brown);
+	}
+	.meta {
+		font-size: 12px;
+		line-height: 1.45;
+	}
+	.pad {
+		height: 24px;
+	}
+</style>

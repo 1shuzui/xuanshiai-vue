@@ -3,8 +3,8 @@ const fs = require('fs')
 const path = require('path')
 
 const root = path.resolve(__dirname, '..')
-const messagesPage = fs.readFileSync(path.join(root, 'pages/community/paper-plane-messages.uvue'), 'utf8')
-const chatPage = fs.readFileSync(path.join(root, 'pages/chat/detail.uvue'), 'utf8')
+const messagesPage = fs.readFileSync(path.join(root, 'pagesSub/community/paper-plane-messages.uvue'), 'utf8')
+const chatPage = fs.readFileSync(path.join(root, 'pagesSub/chat/detail.uvue'), 'utf8')
 const communityApi = fs.readFileSync(path.join(root, 'api/community.uts'), 'utf8')
 
 function includes(source, value, label) {
@@ -14,9 +14,9 @@ function includes(source, value, label) {
 includes(messagesPage, 'paperPlaneConversationId=', 'paper-plane conversation navigation')
 includes(messagesPage, '@click.stop="openPeerProfile(item)"', 'paper-plane peer profile avatar action')
 includes(messagesPage, 'const openPeerProfile = (item: any)', 'paper-plane peer profile handler')
-includes(messagesPage, "url: '/pages/user/detail?userId=' + item.userId", 'paper-plane peer profile navigation')
+includes(messagesPage, "url: '/pagesSub/userExtra/user/detail?userId=' + item.userId", 'paper-plane peer profile navigation')
 assert.ok(
-  !messagesPage.includes("url: '/pages/chat/detail?userId=' + item.userId"),
+  !messagesPage.includes("url: '/pagesSub/chat/detail?userId=' + item.userId"),
   'paper-plane conversation should not navigate through ordinary chat userId'
 )
 includes(chatPage, 'paperPlaneConversationId', 'chat page paper-plane mode')

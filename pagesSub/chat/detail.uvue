@@ -1,0 +1,2129 @@
+<template>
+	<view class="chat-page">
+		<!-- 消息列表 -->
+		<scroll-view
+			class="message-list"
+			scroll-y
+			:scroll-into-view="scrollToView"
+			scroll-with-animation
+		>
+			<view
+				class="message-item"
+				:class="{ 'multi-selecting': multiSelectMode }"
+				v-for="(msg, index) in messages"
+				:key="index"
+				:id="'msg-' + index"
+			>
+				<!-- 时间线 -->
+				<view class="time-divider" v-if="msg.showTime">
+					<text class="time-text">{{ msg.time }}</text>
+				</view>
+
+				<view class="revoke-system-row" v-if="msg.type === 'revoke-notice'">
+					<view class="revoke-system-notice">
+						<text class="revoke-system-text">{{ msg.isMine === true ? '你撤回了一条消息' : '对方撤回了一条消息' }}</text>
+						<text class="revoke-reedit" v-if="msg.isMine === true" @click.stop="reeditRevokedMessage(msg)">重新编辑</text>
+					</view>
+				</view>
+				<!-- 消息内容 -->
+				<view class="message-content-row" v-else>
+					<view class="multi-select-toggle" v-if="multiSelectMode" @click.stop="toggleMessageSelection(msg)">
+						<view class="multi-select-check" :class="{ selected: isMessageSelected(msg) }">
+							<text v-if="isMessageSelected(msg)">✓</text>
+						</view>
+					</view>
+					<view
+						class="message-wrapper"
+						:class="msg.isMine ? 'mine' : 'other'"
+					>
+					<!-- 对方头像 -->
+<image
+							class="avatar"
+							:src="msg.avatar"
+							mode="aspectFill"
+							v-if="!msg.isMine"
+							@click="openPeerProfile"
+						></image>
+
+					<!-- 消息气泡 -->
+					<view
+						class="message-bubble"
+						:class="[msg.type, { selected: multiSelectMode && isMessageSelected(msg) }]"
+						:id="'bubble-' + index"
+						@click.stop="handleMessageBubbleClick(msg)"
+						@longpress.stop="handleChatMessageLongPress(msg, index)"
+					>
+						<view class="quoted-message" v-if="msg.quoteText != null && msg.quoteText.length > 0">
+							<text class="quoted-message-inline">{{ msg.quoteName }}：{{ msg.quoteText }}</text>
+						</view>
+						<!-- 文本消息 -->
+						<text class="text-content" v-if="msg.type === 'text'">{{ msg.content }}</text>
+
+						<!-- 图片消息 -->
+						<image
+							class="image-content"
+							:src="msg.content"
+							mode="aspectFill"
+							@click.stop="handleImageClick(msg)"
+							v-if="msg.type === 'image'"
+						></image>
+
+						<!-- 语音消息 -->
+						<view class="voice-content" v-if="msg.type === 'voice'">
+							<text class="icon">🔊</text>
+							<text class="duration">{{ msg.duration }}''</text>
+						</view>
+
+						<!-- 联系方式交换申请 -->
+						<view
+							class="wechat-request-card"
+							:class="msg.requestStatus"
+							v-if="isContactRequestType(msg.type)"
+						>
+							<view class="wechat-request-head">
+								<view class="wechat-request-mark">
+									<view class="request-bubble request-bubble-main"></view>
+									<view class="request-bubble request-bubble-small"></view>
+								</view>
+								<text class="wechat-request-title">{{ getContactRequestTitle(msg) }}</text>
+							</view>
+							<text class="wechat-request-copy">{{ getContactRequestCopy(msg) }}</text>
+							<view class="wechat-contact" v-if="msg.requestStatus === 'accepted'">
+								<text class="wechat-contact-label">{{ getContactLabel(msg) }}</text>
+								<text class="wechat-contact-value">{{ formatContactValue(msg) }}</text>
+							</view>
+							<view class="wechat-request-footer">
+								<view
+									class="wechat-request-actions"
+									v-if="!msg.isMine && msg.requestStatus === 'pending'"
+								>
+									<button class="request-action request-reject" @click.stop="respondContactRequest(msg, 'reject')">拒绝</button>
+									<button class="request-action request-accept" @click.stop="respondContactRequest(msg, 'accept')">同意</button>
+								</view>
+								<button
+									class="request-action request-copy"
+									v-else-if="msg.requestStatus === 'accepted'"
+									@click.stop="copyContactValue(msg)"
+								>{{ getCopyButtonText(msg) }}</button>
+								<view class="wechat-request-status" v-else>
+									<view class="request-status-dot" :class="msg.requestStatus"></view>
+									<text>{{ getContactRequestStatusText(msg) }}</text>
+								</view>
+							</view>
+						</view>
+					</view>
+
+					<!-- 我的头像 -->
+					<image
+						class="avatar"
+						:src="msg.avatar"
+						mode="aspectFill"
+						v-if="msg.isMine"
+					></image>
+					</view>
+				</view>
+			</view>
+		</scroll-view>
+
+		<view class="message-action-overlay" v-if="messageActionMenuVisible" @click="closeMessageActionMenu"></view>
+		<view
+			class="message-action-menu"
+			:class="canRevokeMessage(selectedChatMessage) ? 'five-action-menu' : 'four-action-menu'"
+			:style="{ left: actionMenuLeft + 'px', top: actionMenuTop + 'px' }"
+			v-if="messageActionMenuVisible"
+			@click.stop
+		>
+			<view class="message-action-item" @click="copySelectedMessage"><text>复制</text></view>
+			<view class="message-action-item" @click="quoteSelectedMessage"><text>引用</text></view>
+			<view class="message-action-item" @click="startMultiSelect"><text>多选</text></view>
+			<view class="message-action-item" @click="deleteSelectedChatMessage"><text>删除</text></view>
+			<view
+				class="message-action-item"
+				v-if="canRevokeMessage(selectedChatMessage)"
+				@click="revokeSelectedMessage"
+			><text>撤回</text></view>
+		</view>
+
+		<!-- 输入栏 -->
+		<view class="input-bar" v-if="!multiSelectMode">
+			<view class="quote-preview" v-if="quotedMessage != null">
+				<view class="quote-preview-copy">
+					<text class="quote-preview-name">{{ quotedMessage.name }}</text>
+					<text class="quote-preview-text">{{ quotedMessage.text }}</text>
+				</view>
+				<button class="quote-close-button" aria-label="取消引用" @click="clearQuote">×</button>
+			</view>
+			<button
+				class="paste-action"
+				v-if="pasteVisible"
+				@click.stop="pasteClipboard"
+			>粘贴</button>
+			<view class="input-wrapper">
+				<button class="tool-btn voice-tool-btn" @click="sendVoice">
+					<view class="voice-mic">
+						<view class="voice-mic-head"></view>
+						<view class="voice-mic-bracket"></view>
+						<view class="voice-mic-stem"></view>
+						<view class="voice-mic-base"></view>
+					</view>
+				</button>
+				<input
+					class="input"
+					type="text"
+					:value="inputText"
+					@input="onInput"
+					@longpress.stop="showPasteAction"
+					placeholder="说点什么..."
+					confirm-type="send"
+					@confirm="sendMessage"
+				/>
+				<button class="tool-btn" @click="showMoreMenu">
+					<text class="icon">+</text>
+				</button>
+				<button class="send-btn" @click="sendMessage">发送</button>
+			</view>
+		</view>
+		<view class="multi-action-bar" v-else>
+			<text class="multi-selected-count">已选择 {{ selectedMessageIds.length }} 条</text>
+			<view class="multi-action-buttons">
+				<button class="multi-action-button danger" :disabled="selectedMessageIds.length === 0" @click="deleteMultiSelectedMessages">删除</button>
+				<button class="multi-action-button" @click="exitMultiSelect">取消</button>
+			</view>
+		</view>
+
+		<!-- 更多功能菜单 -->
+		<view class="more-menu" v-if="showMore" @click="closeMoreMenu">
+			<view class="menu-content" @click.stop>
+				<view class="menu-grid">
+					<view class="menu-item" @click="chooseImage">
+						<view class="menu-icon menu-icon-album">
+							<view class="album-card album-card-back"></view>
+							<view class="album-card album-card-front">
+								<view class="album-sun"></view>
+								<view class="album-hill"></view>
+							</view>
+						</view>
+						<text class="menu-text">相册</text>
+					</view>
+					<view class="menu-item" @click="takePhoto">
+						<view class="menu-icon menu-icon-camera">
+							<view class="camera-top"></view>
+							<view class="camera-body">
+								<view class="camera-lens"></view>
+							</view>
+						</view>
+						<text class="menu-text">拍照</text>
+					</view>
+					<view
+						class="menu-item"
+						:class="{ disabled: wechatExchangeDisabled }"
+						@click="requestWechatExchange"
+					>
+						<view class="menu-icon menu-icon-wechat">
+							<view class="chat-bubble chat-bubble-main">
+								<view class="chat-dot"></view>
+								<view class="chat-dot"></view>
+								<view class="chat-dot"></view>
+							</view>
+							<view class="chat-bubble chat-bubble-small"></view>
+						</view>
+						<text class="menu-text">交换微信</text>
+					</view>
+<view
+							class="menu-item"
+							:class="{ disabled: phoneExchangeDisabled }"
+							@click="requestPhoneExchange"
+						>
+							<view class="menu-icon menu-icon-phone">
+								<view class="mobile-phone">
+									<view class="mobile-speaker"></view>
+									<view class="mobile-screen"></view>
+									<view class="mobile-home"></view>
+								</view>
+							</view>
+							<text class="menu-text">交换电话</text>
+						</view>
+						<view class="menu-item" @click="openChatReport">
+							<view class="menu-icon">
+								<text class="icon">⚑</text>
+							</view>
+							<text class="menu-text">举报</text>
+						</view>
+					</view>
+				</view>
+			</view>
+</view>
+
+		<XsaReportSheet
+			:visible="reportVisible"
+			target-type="chatUser"
+			:target-id="userId"
+			:user-id="userId"
+			@close="reportVisible = false"
+			@reported="reportVisible = false"
+		/>
+	</template>
+
+<script setup lang="uts">
+// 导入 API
+		import {
+			getChatMessages,
+			sendMessage as sendMessageApi,
+			getPaperPlaneMessages,
+			sendPaperPlaneMessage,
+			readPaperPlaneConversation,
+			handleContactExchangeRequest,
+			getChatFeatureUnlocks,
+			unlockChatFeature
+		} from '@/api';
+		import XsaReportSheet from '@/components/XsaReportSheet.uvue'
+		import {
+		createMatchedConversation,
+		getMatchedConversation,
+		updateConversationPreview,
+		MATCH_GREETING
+	} from '@/utils/conversation.uts';
+
+	const CONTACT_EXCHANGE_RECORDS_KEY = 'xsa-contact-exchange-records'
+	const CONTACT_EXCHANGE_DAILY_KEY = 'xsa-contact-exchange-daily'
+
+	// 消息列表（改为空数组）
+		let messages = ref([])
+
+	let inputText = ref('')
+	let pasteVisible = ref(false)
+		let showMore = ref(false)
+		let messageActionMenuVisible = ref(false)
+		let selectedChatMessage = ref<any>(null)
+		let actionMenuLeft = ref(8)
+		let actionMenuTop = ref(8)
+		let multiSelectMode = ref(false)
+		let selectedMessageIds = ref([] as any[])
+		let quotedMessage = ref<any>(null)
+		let scrollToView = ref('')
+		let loading = ref(false)
+		let userId = ref(0)
+		let paperPlaneConversationId = ref(0)
+		let peerName = ref('对方')
+		let peerAvatar = ref('/static/portraits/profile-woman-main.jpg')
+let contactExchangeRecords = ref([] as any[])
+			let contactExchangeDailyKeys = ref([] as any[])
+			let reportVisible = ref(false)
+			let chatFeatureUnlocks = ref({ album: false, camera: false, profile: false } as any)
+
+		const wechatExchangeDisabled = computed(() => {
+			return isContactExchangeDisabled('wechat')
+		})
+
+		const phoneExchangeDisabled = computed(() => {
+			return isContactExchangeDisabled('phone')
+		})
+
+		const isContactExchangeDisabled = (contactType: string): boolean => {
+			const dailyKey = `${contactType}:${userId.value}:${getDateKey()}`
+			if (contactExchangeDailyKeys.value.indexOf(dailyKey) >= 0) return true
+			const list = messages.value as any[]
+			for (let index = 0; index < list.length; index++) {
+				const message = list[index]
+				if (
+					isContactRequestType(message.type) &&
+					message.contactType === contactType &&
+					message.isMine === true &&
+					message.requestDate === getDateKey()
+				) return true
+			}
+			return false
+		};
+
+	// 页面加载时获取数据
+	onMounted(() => {
+		// 获取 URL 参数中的 userId
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = currentPage.options
+		if (options && options.userName) {
+			peerName.value = decodeURIComponent(options.userName)
+			uni.setNavigationBarTitle({
+				title: peerName.value
+			})
+		}
+		if (options && options.paperPlaneLabel) {
+			peerName.value = decodeURIComponent(options.paperPlaneLabel)
+			uni.setNavigationBarTitle({ title: peerName.value })
+		}
+		if (options && options.paperPlaneConversationId) {
+			const parsedConversationId = parseInt(options.paperPlaneConversationId)
+			if (parsedConversationId > 0) {
+				paperPlaneConversationId.value = parsedConversationId
+				loadPaperPlaneMessages()
+				return
+			}
+		}
+if (options && options.userId) {
+				userId.value = parseInt(options.userId)
+				loadChatFeatureUnlocks()
+				loadContactExchangeState()
+				loadChatMessages()
+			}
+	})
+
+		const loadPaperPlaneMessages = async () => {
+			try {
+				loading.value = true
+				await readPaperPlaneConversation(paperPlaneConversationId.value)
+				const res = await getPaperPlaneMessages(paperPlaneConversationId.value)
+				if (res.success) {
+					const list = res.data as any[]
+					messages.value = list.map((msg: any, idx: number) => ({
+						id: msg.id,
+						type: msg.type == 3 ? 'voice' : 'text',
+						content: msg.type == 3 ? (msg.mediaUrl != null ? msg.mediaUrl : '') : msg.content,
+						time: msg.timeText != null ? msg.timeText : '',
+						showTime: idx == 0,
+						isMine: msg.mine === true,
+						avatar: msg.mine === true ? '/static/portraits/profile-man-light.jpg' : peerAvatar.value,
+						duration: msg.voiceDurationSec != null ? msg.voiceDurationSec : 0
+					}))
+					scrollToBottom()
+				}
+			} catch (error) {
+				console.error('纸飞机消息加载失败', error)
+			} finally {
+				loading.value = false
+			}
+		}
+
+		// 加载聊天记录
+		const loadChatMessages = async () => {
+			try {
+				loading.value = true
+				const matchedConversation = getMatchedConversation(userId.value)
+				if (
+					matchedConversation != null &&
+					matchedConversation.source === 'application' &&
+					matchedConversation.greetingMessage != null
+				) {
+					peerAvatar.value = matchedConversation.avatar
+					const greeting = matchedConversation.greetingMessage
+					messages.value = [{
+						id: greeting.id,
+						type: 'text',
+						content: MATCH_GREETING,
+						time: formatTime(greeting.time),
+						showTime: false,
+						isMine: greeting.isMine === true,
+						avatar: greeting.avatar != null && greeting.avatar.length > 0
+							? greeting.avatar
+							: (greeting.isMine === true ? '/static/portraits/profile-man-light.jpg' : matchedConversation.avatar)
+					}]
+					scrollToBottom()
+					return
+				}
+				const res = await getChatMessages(userId.value)
+				if (res.success) {
+					const list = res.data as any[]
+					if (list.length > 0) {
+						const firstOther = list.find((m: any) => m.isMine != true)
+						if (firstOther != null && firstOther.senderAvatar != null) {
+							peerAvatar.value = firstOther.senderAvatar
+						}
+					}
+					const mapped = list.map((msg: any, idx: number) => ({
+						id: msg.id,
+						type: msg.type,
+						content: msg.content,
+						time: msg.timeLabel != null ? msg.timeLabel : formatTime(msg.time),
+						showTime: msg.showTime == true || idx == 0,
+						isMine: msg.isMine,
+						avatar: msg.senderAvatar,
+						requestStatus: msg.requestStatus != null ? msg.requestStatus : 'pending',
+						contactType: msg.contactType != null ? msg.contactType : (msg.type === 'phone-request' ? 'phone' : 'wechat'),
+						contactValue: msg.contactValue != null ? msg.contactValue : '',
+						requestDate: msg.requestDate != null ? msg.requestDate : getDateKey(msg.time),
+						quoteName: msg.quoteName != null ? msg.quoteName : '',
+						quoteText: msg.quoteText != null ? msg.quoteText : '',
+						editableContent: msg.editableContent != null ? msg.editableContent : '',
+						originalQuoteName: msg.originalQuoteName != null ? msg.originalQuoteName : '',
+						originalQuoteText: msg.originalQuoteText != null ? msg.originalQuoteText : ''
+					}))
+					const records = contactExchangeRecords.value as any[]
+					records.forEach((record: any) => {
+						if (record.userId != userId.value) return
+						const existing = mapped.find((item: any) => item.id == record.id && isContactRequestType(item.type))
+						if (existing != null) {
+							if (existing.requestStatus === 'pending' && record.requestStatus !== 'pending') {
+								existing.requestStatus = record.requestStatus
+							}
+							if ((existing.contactValue == null || existing.contactValue.length == 0) && record.contactValue != null) {
+								existing.contactValue = record.contactValue
+							}
+						} else {
+							mapped.push({
+								id: record.id,
+								type: record.type,
+								content: record.content,
+								time: record.time,
+								showTime: false,
+								isMine: record.isMine,
+								avatar: record.avatar,
+								requestStatus: record.requestStatus,
+								contactType: record.contactType,
+								contactValue: record.contactValue,
+								requestDate: record.requestDate
+							})
+						}
+					})
+					if (
+						matchedConversation != null &&
+						matchedConversation.source === 'contact-exchange' &&
+						mapped.findIndex((message: any) => message.content === MATCH_GREETING) < 0
+					) {
+						mapped.unshift({
+							id: matchedConversation.greetingMessage.id,
+							type: 'text',
+							content: MATCH_GREETING,
+							time: formatTime(matchedConversation.greetingMessage.time),
+							showTime: false,
+							isMine: matchedConversation.greetingMessage.isMine === true,
+							avatar: matchedConversation.greetingMessage.avatar != null
+								&& matchedConversation.greetingMessage.avatar.length > 0
+								? matchedConversation.greetingMessage.avatar
+								: (matchedConversation.greetingMessage.isMine === true
+									? '/static/portraits/profile-man-light.jpg'
+									: matchedConversation.avatar)
+						})
+					}
+					messages.value = mapped
+					scrollToBottom()
+				}
+			} catch (error) {
+				console.error('获取聊天记录失败', error)
+			} finally {
+				loading.value = false
+			}
+		}
+
+	// 格式化时间
+	const formatTime = (timestamp: number): string => {
+		const date = new Date(timestamp)
+		const hours = date.getHours().toString().padStart(2, '0')
+		const minutes = date.getMinutes().toString().padStart(2, '0')
+		return `${hours}:${minutes}`
+	}
+
+	const getDateKey = (timestamp: number = Date.now()): string => {
+		const date = new Date(timestamp)
+		const year = date.getFullYear()
+		const month = (date.getMonth() + 1).toString().padStart(2, '0')
+		const day = date.getDate().toString().padStart(2, '0')
+		return `${year}-${month}-${day}`
+	}
+
+	const isContactRequestType = (type: string): boolean => {
+		return type === 'wechat-request' || type === 'phone-request'
+	}
+
+	const loadContactExchangeState = () => {
+		try {
+			const records = uni.getStorageSync(CONTACT_EXCHANGE_RECORDS_KEY)
+			if (Array.isArray(records)) contactExchangeRecords.value = records as any[]
+			const dailyKeys = uni.getStorageSync(CONTACT_EXCHANGE_DAILY_KEY)
+			if (Array.isArray(dailyKeys)) contactExchangeDailyKeys.value = dailyKeys as any[]
+		} catch (error) {
+			contactExchangeRecords.value = []
+			contactExchangeDailyKeys.value = []
+		}
+	}
+
+	const persistContactRequest = (message: any) => {
+		const records = contactExchangeRecords.value as any[]
+		const index = records.findIndex((item: any) => item.userId == userId.value && item.id == message.id)
+		const record = {
+			userId: userId.value,
+			id: message.id,
+			type: message.type,
+			content: message.content,
+			time: message.time,
+			isMine: message.isMine,
+			avatar: message.avatar,
+			requestStatus: message.requestStatus,
+			contactType: message.contactType,
+			contactValue: message.contactValue,
+			requestDate: message.requestDate
+		}
+		if (index >= 0) {
+			records[index] = record
+		} else {
+			records.push(record)
+		}
+		contactExchangeRecords.value = records.slice()
+		try {
+			uni.setStorageSync(CONTACT_EXCHANGE_RECORDS_KEY, contactExchangeRecords.value)
+		} catch (error) {
+			console.error(error)
+		}
+	}
+
+	const markContactRequestSentToday = (contactType: string) => {
+		const key = `${contactType}:${userId.value}:${getDateKey()}`
+		if (contactExchangeDailyKeys.value.indexOf(key) < 0) {
+			contactExchangeDailyKeys.value.push(key)
+			contactExchangeDailyKeys.value = contactExchangeDailyKeys.value.slice()
+			try {
+				uni.setStorageSync(CONTACT_EXCHANGE_DAILY_KEY, contactExchangeDailyKeys.value)
+			} catch (error) {
+				console.error(error)
+			}
+		}
+	}
+
+	const releaseContactRequestAfterRevoke = (message: any) => {
+		if (!isContactRequestType(message.type) || message.isMine !== true) return
+		contactExchangeRecords.value = (contactExchangeRecords.value as any[]).filter((record: any) => {
+			return record.userId != userId.value || record.id != message.id
+		})
+		const contactType = message.contactType != null
+			? message.contactType.toString()
+			: (message.type === 'phone-request' ? 'phone' : 'wechat')
+		const requestDate = message.requestDate != null ? message.requestDate.toString() : getDateKey()
+		const dailyKey = `${contactType}:${userId.value}:${requestDate}`
+		contactExchangeDailyKeys.value = (contactExchangeDailyKeys.value as any[]).filter((key: any) => key != dailyKey)
+		try {
+			uni.setStorageSync(CONTACT_EXCHANGE_RECORDS_KEY, contactExchangeRecords.value)
+			uni.setStorageSync(CONTACT_EXCHANGE_DAILY_KEY, contactExchangeDailyKeys.value)
+		} catch (error) {
+			console.error(error)
+		}
+	}
+
+	// 输入事件
+	const onInput = (e: InputEvent) => {
+		inputText.value = e.detail.value
+		pasteVisible.value = false
+	}
+
+	const showPasteAction = () => {
+		uni.getClipboardData({
+			success: (res) => {
+				const clipboardText = res.data != null ? res.data.toString() : ''
+				pasteVisible.value = clipboardText.length > 0
+			}
+		})
+	}
+
+	const pasteClipboard = () => {
+		uni.getClipboardData({
+			success: (res) => {
+				const clipboardText = res.data != null ? res.data.toString() : ''
+				if (clipboardText.length > 0) {
+					inputText.value = `${inputText.value}${clipboardText}`
+				}
+				pasteVisible.value = false
+			}
+		})
+	}
+
+	// 发送消息
+	const sendMessage = async () => {
+		if (!inputText.value.trim()) {
+			return
+		}
+
+		const content = inputText.value
+		pasteVisible.value = false
+			const currentQuote = quotedMessage.value
+			const newMsg = {
+				id: Date.now(),
+				type: 'text',
+				content: content,
+				time: getCurrentTime(),
+				showTime: false,
+				isMine: true,
+				avatar: '/static/portraits/profile-man-light.jpg',
+				quoteName: currentQuote != null ? currentQuote.name : '',
+				quoteText: currentQuote != null ? currentQuote.text : ''
+			}
+
+			// 立即添加到界面
+			messages.value.push(newMsg)
+			updateConversationPreview(userId.value, content, Date.now(), 'text')
+			inputText.value = ''
+			quotedMessage.value = null
+			scrollToBottom()
+
+			if (paperPlaneConversationId.value > 0) {
+				try {
+					const res = await sendPaperPlaneMessage(paperPlaneConversationId.value, content)
+					if (res.success && res.data != null) {
+						newMsg.id = res.data.id != null ? res.data.id : newMsg.id
+					} else {
+						messages.value = (messages.value as any[]).filter((item: any) => item.id != newMsg.id)
+						uni.showToast({ title: res.message != null ? res.message : '发送失败', icon: 'none' })
+					}
+				} catch (error) {
+					messages.value = (messages.value as any[]).filter((item: any) => item.id != newMsg.id)
+					console.error('纸飞机发送失败', error)
+					uni.showToast({ title: '发送失败', icon: 'none' })
+				}
+				return
+			}
+
+			// 调用发送消息接口
+			try {
+				const res = await sendMessageApi(userId.value, content, 'text')
+				if (res.success) {
+					if (res.data != null && res.data.messageId != null) {
+						newMsg.id = res.data.messageId
+					}
+					// 高保真演示：自动回复
+					setTimeout(() => {
+						const replies = ['听起来不错！', '我也这么觉得。', '有道理，我们可以约个时间详细聊聊。', '好的，期待和你见面。', '这个想法很棒！']
+						const i = Math.floor(Math.random() * replies.length)
+						const replyContent = replies[i]
+						messages.value.push({
+							id: Date.now() + 1,
+							type: 'text',
+							content: replyContent,
+							time: getCurrentTime(),
+							showTime: false,
+							isMine: false,
+							avatar: peerAvatar.value
+						})
+						updateConversationPreview(userId.value, replyContent, Date.now(), 'text')
+						scrollToBottom()
+					}, 1600)
+				}
+			} catch (error) {
+				console.error('发送消息失败', error)
+				uni.showToast({
+					title: '发送失败',
+					icon: 'none'
+				})
+			}
+		}
+
+	// 预览图片
+	const previewImage = (url: string) => {
+		const images = messages.value
+			.filter(msg => msg.type === 'image')
+			.map(msg => msg.content)
+
+		uni.previewImage({
+			current: url,
+			urls: images
+		})
+	}
+
+	// 显示更多菜单
+	const showMoreMenu = () => {
+		showMore.value = true
+	}
+
+// 关闭更多菜单
+		const closeMoreMenu = () => {
+			showMore.value = false
+		}
+
+		const loadChatFeatureUnlocks = async () => {
+			try {
+				const res = await getChatFeatureUnlocks()
+				if (res != null && res.success && res.data != null) {
+					chatFeatureUnlocks.value = res.data as any
+				}
+			} catch (error) {
+				console.error('获取聊天功能解锁状态失败', error)
+			}
+		}
+
+		const ensureChatFeatureUnlocked = (feature: string, label: string, action: () => void) => {
+			if (chatFeatureUnlocks.value[feature] == true) {
+				action()
+				return
+			}
+			uni.showModal({
+				title: '解锁' + label,
+				content: '使用' + label + '需要消耗80积分，确认解锁吗？',
+				confirmText: '80积分解锁',
+				success: async (modalRes: any) => {
+					if (modalRes == null || modalRes.confirm != true) return
+					try {
+						const res = await unlockChatFeature(feature)
+						const data = res != null ? res.data : null
+						if (res != null && res.success && data != null && data.success == true) {
+							chatFeatureUnlocks.value[feature] = true
+							uni.showToast({ title: '已消耗80积分解锁', icon: 'success' })
+							action()
+							return
+						}
+						const message = data != null && data.message != null ? data.message : '解锁失败，请稍后再试'
+						uni.showToast({ title: message, icon: 'none' })
+					} catch (error) {
+						uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' })
+					}
+				}
+			})
+		}
+
+		// 选择图片：首次使用需消耗 80 积分解锁。
+		const chooseImage = () => {
+			ensureChatFeatureUnlocked('album', '相册', () => openImagePicker('album'))
+		}
+
+		const openImagePicker = (sourceType: string) => {
+			uni.chooseImage({
+				count: 1,
+				sizeType: ['compressed'],
+				sourceType: [sourceType],
+				success: (res) => {
+					const newMsg = {
+						id: messages.value.length + 1,
+						type: 'image',
+						content: res.tempFilePaths[0],
+						time: getCurrentTime(),
+						showTime: false,
+						isMine: true,
+						avatar: '/static/portraits/profile-man-light.jpg'
+					}
+					messages.value.push(newMsg)
+					updateConversationPreview(userId.value, newMsg.content, Date.now(), 'image')
+					scrollToBottom()
+					closeMoreMenu()
+				}
+			})
+		}
+
+		// 拍摄：首次使用需消耗 80 积分解锁。
+		const takePhoto = () => {
+			ensureChatFeatureUnlocked('camera', '拍摄', () => openImagePicker('camera'))
+		}
+
+		// 点击对方头像：首次查看主页需消耗 80 积分解锁。
+		const openPeerProfile = () => {
+			if (userId.value <= 0) {
+				uni.showToast({ title: '暂时无法获取对方资料', icon: 'none' })
+				return
+			}
+			ensureChatFeatureUnlocked('profile', '查看对方主页', () => {
+				uni.navigateTo({
+					url: '/pagesSub/userExtra/user/detail?userId=' + userId.value
+				})
+			})
+		}
+
+		const openChatReport = () => {
+			closeMoreMenu()
+			reportVisible.value = true
+		}
+
+	const getMessageSummary = (message: any): string => {
+		if (message.type === 'text') return message.content != null ? message.content.toString() : ''
+		if (message.type === 'image') return '[图片]'
+		if (message.type === 'voice') return '[语音]'
+		if (message.type === 'phone-request') return `[电话申请] ${getContactRequestCopy(message)}`
+		if (message.type === 'wechat-request') return `[微信申请] ${getContactRequestCopy(message)}`
+		return '[消息]'
+	}
+
+	const canRevokeMessage = (message: any): boolean => {
+		return message != null && message.isMine === true && !isContactRequestType(message.type)
+	}
+
+	const handleChatMessageLongPress = (message: any, index: number) => {
+		if (message == null) return
+		if (multiSelectMode.value) {
+			toggleMessageSelection(message)
+			return
+		}
+		selectedChatMessage.value = message
+		messageActionMenuVisible.value = true
+		nextTick(() => {
+			const query = uni.createSelectorQuery()
+			query.select(`#bubble-${index}`).boundingClientRect((rect: any) => {
+				if (rect == null) return
+				const windowInfo = uni.getSystemInfoSync()
+				const menuWidth = canRevokeMessage(message) ? 250 : 204
+				const menuHeight = 44
+				const preferredLeft = rect.left + (rect.width - menuWidth) / 2
+				const maxLeft = Math.max(8, windowInfo.windowWidth - menuWidth - 8)
+				actionMenuLeft.value = Math.min(maxLeft, Math.max(8, preferredLeft))
+				const preferredTop = rect.top - menuHeight - 8
+				actionMenuTop.value = Math.max(8, preferredTop)
+			}).exec()
+		})
+	}
+
+	const closeMessageActionMenu = () => {
+		messageActionMenuVisible.value = false
+		selectedChatMessage.value = null
+	}
+
+	const copySelectedMessage = () => {
+		if (selectedChatMessage.value == null) return
+		const message = selectedChatMessage.value
+		let copyText = ''
+		if (message.type === 'text') {
+			copyText = message.content != null ? message.content.toString() : ''
+		} else if (isContactRequestType(message.type)) {
+			copyText = getContactRequestCopy(message)
+			if (message.requestStatus === 'accepted' && message.contactValue != null && message.contactValue.length > 0) {
+				copyText = `${copyText}\n${getContactLabel(message)}：${formatContactValue(message)}`
+			}
+		}
+		closeMessageActionMenu()
+		if (copyText.length == 0) {
+			uni.showToast({ title: '该消息暂不支持复制', icon: 'none' })
+			return
+		}
+		uni.setClipboardData({
+			data: copyText,
+			success: () => uni.showToast({ title: '消息已复制', icon: 'none' })
+		})
+	}
+
+	const quoteSelectedMessage = () => {
+		if (selectedChatMessage.value == null) return
+		const message = selectedChatMessage.value
+		quotedMessage.value = {
+			id: message.id,
+			name: message.isMine === true ? '我' : peerName.value,
+			text: getMessageSummary(message)
+		}
+		closeMessageActionMenu()
+	}
+
+	const clearQuote = () => {
+		quotedMessage.value = null
+	}
+
+	const startMultiSelect = () => {
+		if (selectedChatMessage.value == null) return
+		const messageId = selectedChatMessage.value.id
+		multiSelectMode.value = true
+		selectedMessageIds.value = [messageId]
+		closeMessageActionMenu()
+	}
+
+	const exitMultiSelect = () => {
+		multiSelectMode.value = false
+		selectedMessageIds.value = []
+	}
+
+	const isMessageSelected = (message: any): boolean => {
+		return selectedMessageIds.value.indexOf(message.id) >= 0
+	}
+
+	const toggleMessageSelection = (message: any) => {
+		const index = selectedMessageIds.value.indexOf(message.id)
+		if (index >= 0) {
+			selectedMessageIds.value.splice(index, 1)
+		} else {
+			selectedMessageIds.value.push(message.id)
+		}
+		selectedMessageIds.value = selectedMessageIds.value.slice()
+	}
+
+	const handleMessageBubbleClick = (message: any) => {
+		if (multiSelectMode.value) toggleMessageSelection(message)
+	}
+
+	const handleImageClick = (message: any) => {
+		if (multiSelectMode.value) {
+			toggleMessageSelection(message)
+			return
+		}
+		previewImage(message.content)
+	}
+
+	const preserveContactRequestLimitAfterDelete = (message: any) => {
+		if (!isContactRequestType(message.type) || message.isMine !== true) return
+		const contactType = message.contactType != null
+			? message.contactType.toString()
+			: (message.type === 'phone-request' ? 'phone' : 'wechat')
+		const requestDate = message.requestDate != null ? message.requestDate.toString() : getDateKey()
+		const dailyKey = `${contactType}:${userId.value}:${requestDate}`
+		if (contactExchangeDailyKeys.value.indexOf(dailyKey) < 0) {
+			contactExchangeDailyKeys.value.push(dailyKey)
+		}
+	}
+
+	const deleteMessagesByIds = (messageIds: any[]) => {
+		const currentMessages = messages.value as any[]
+		const removedMessages = currentMessages.filter((message: any) => messageIds.indexOf(message.id) >= 0)
+		removedMessages.forEach((message: any) => preserveContactRequestLimitAfterDelete(message))
+		contactExchangeRecords.value = (contactExchangeRecords.value as any[]).filter((record: any) => {
+			return record.userId != userId.value || messageIds.indexOf(record.id) < 0
+		})
+		try {
+			uni.setStorageSync(CONTACT_EXCHANGE_RECORDS_KEY, contactExchangeRecords.value)
+			uni.setStorageSync(CONTACT_EXCHANGE_DAILY_KEY, contactExchangeDailyKeys.value)
+		} catch (error) {
+			console.error(error)
+		}
+		messages.value = currentMessages.filter((message: any) => messageIds.indexOf(message.id) < 0)
+		if (quotedMessage.value != null && messageIds.indexOf(quotedMessage.value.id) >= 0) {
+			quotedMessage.value = null
+		}
+	}
+
+	const deleteSelectedChatMessage = () => {
+		if (selectedChatMessage.value == null) return
+		const messageId = selectedChatMessage.value.id
+		closeMessageActionMenu()
+		deleteMessagesByIds([messageId])
+		uni.showToast({ title: '消息已删除', icon: 'none' })
+	}
+
+	const deleteMultiSelectedMessages = () => {
+		if (selectedMessageIds.value.length == 0) return
+		const messageIds = selectedMessageIds.value.slice()
+		deleteMessagesByIds(messageIds)
+		exitMultiSelect()
+		uni.showToast({ title: '已删除选中消息', icon: 'none' })
+	}
+
+	const revokeSelectedMessage = () => {
+		if (selectedChatMessage.value == null) return
+		const selectedMessage = selectedChatMessage.value
+		if (!canRevokeMessage(selectedMessage)) return
+		const messageId = selectedMessage.id
+		releaseContactRequestAfterRevoke(selectedMessage)
+		const currentMessages = messages.value as any[]
+		const messageIndex = currentMessages.findIndex((message: any) => message.id == messageId)
+		if (messageIndex >= 0) {
+			currentMessages.splice(messageIndex, 1, {
+				id: Date.now(),
+				type: 'revoke-notice',
+				content: '',
+				time: selectedMessage.time,
+				showTime: false,
+				isMine: true,
+				avatar: '',
+				editableContent: selectedMessage.content != null ? selectedMessage.content.toString() : '',
+				originalQuoteName: selectedMessage.quoteName != null ? selectedMessage.quoteName : '',
+				originalQuoteText: selectedMessage.quoteText != null ? selectedMessage.quoteText : ''
+			})
+			messages.value = currentMessages.slice()
+		}
+		closeMessageActionMenu()
+	}
+
+	const reeditRevokedMessage = (message: any) => {
+		if (message == null || message.isMine !== true) return
+		inputText.value = message.editableContent != null ? message.editableContent.toString() : ''
+		if (message.originalQuoteText != null && message.originalQuoteText.length > 0) {
+			quotedMessage.value = {
+				id: message.id,
+				name: message.originalQuoteName != null ? message.originalQuoteName : '',
+				text: message.originalQuoteText
+			}
+		} else {
+			quotedMessage.value = null
+		}
+		if (multiSelectMode.value) exitMultiSelect()
+	}
+
+// 发送语音
+	const sendVoice = () => {
+		uni.showToast({
+			title: '长按录音',
+			icon: 'none'
+		})
+	}
+
+	const requestContactExchange = async (contactType: string) => {
+		if (isContactExchangeDisabled(contactType)) return
+		const contactName = contactType === 'phone' ? '电话' : '微信'
+		const requestMessage: any = {
+			id: Date.now(),
+			type: `${contactType}-request`,
+			content: `您已向对方发起交换${contactName}申请，等待对方确认…`,
+			requestStatus: 'pending',
+			contactType: contactType,
+			contactValue: '',
+			requestDate: getDateKey(),
+			time: getCurrentTime(),
+			showTime: false,
+			isMine: true,
+			avatar: '/static/portraits/profile-man-light.jpg'
+		}
+		messages.value.push(requestMessage)
+		updateConversationPreview(userId.value, requestMessage.content, Date.now(), requestMessage.type)
+		closeMoreMenu()
+		scrollToBottom()
+		try {
+			const res = await sendMessageApi(userId.value, requestMessage.content, `${contactType}-request`)
+			if (!res.success) {
+				messages.value = (messages.value as any[]).filter((item: any) => item.id != requestMessage.id)
+				uni.showToast({ title: '申请发送失败，请重试', icon: 'none' })
+				return
+			}
+			if (res.data != null && res.data.messageId != null) {
+				requestMessage.id = res.data.messageId
+			}
+			markContactRequestSentToday(contactType)
+			persistContactRequest(requestMessage)
+		} catch (error) {
+			messages.value = (messages.value as any[]).filter((item: any) => item.id != requestMessage.id)
+			uni.showToast({ title: '申请发送失败，请重试', icon: 'none' })
+		}
+	}
+
+	const requestWechatExchange = () => {
+		requestContactExchange('wechat')
+	}
+
+	const requestPhoneExchange = () => {
+		requestContactExchange('phone')
+	}
+
+	const getContactRequestTitle = (message: any): string => {
+		return message.contactType === 'phone' ? '交换电话申请' : '交换微信申请'
+	}
+
+	const getContactRequestCopy = (message: any): string => {
+		const contactName = message.contactType === 'phone' ? '电话' : '微信'
+		if (message.requestStatus === 'accepted') return `已成功交换${contactName}`
+		if (message.requestStatus === 'rejected') {
+			return message.isMine ? `对方已拒绝交换${contactName}申请` : `已拒绝交换${contactName}申请`
+		}
+		return message.isMine
+			? `您已向对方发起交换${contactName}申请，等待对方确认…`
+			: `对方申请与您交换${contactName}`
+	}
+
+	const getContactRequestStatusText = (message: any): string => {
+		if (message.requestStatus === 'rejected') return message.isMine ? '对方已拒绝' : '已拒绝'
+		return '等待确认'
+	}
+
+	const formatContactValue = (message: any): string => {
+		const value = message.contactValue != null ? message.contactValue.toString() : ''
+		if (message.contactType === 'phone' && value.length >= 7) {
+			return `${value.slice(0, 3)}****${value.slice(value.length - 4)}`
+		}
+		return value
+	}
+
+	const getContactLabel = (message: any): string => {
+		return message.contactType === 'phone' ? '对方电话' : '对方微信号'
+	}
+
+	const getCopyButtonText = (message: any): string => {
+		return message.contactType === 'phone' ? '复制电话' : '复制微信号'
+	}
+
+	const copyContactValue = (message: any) => {
+		if (multiSelectMode.value) {
+			toggleMessageSelection(message)
+			return
+		}
+		if (message.requestStatus !== 'accepted' || message.contactValue == null || message.contactValue.length == 0) return
+		uni.setClipboardData({
+			data: message.contactValue,
+			success: () => {
+				uni.showToast({ title: `${message.contactType === 'phone' ? '电话' : '微信号'}已复制`, icon: 'none' })
+			}
+		})
+	}
+
+	const ensureMatchedConversationAfterExchange = (message: any) => {
+		if (message.contactType !== 'wechat') return
+		const currentMessages = messages.value as any[]
+		const hasConversationContent = currentMessages.some((item: any) => {
+					return item.type === 'text' || item.type === 'image' || item.type === 'voice'
+		})
+		if (hasConversationContent) return
+		const result = createMatchedConversation(
+			userId.value,
+			peerName.value,
+			peerAvatar.value,
+			'contact-exchange',
+			false,
+			peerAvatar.value
+		)
+		if (result.created !== true || result.conversation == null) return
+		const greeting = result.conversation.greetingMessage
+		messages.value = [{
+			id: greeting.id,
+			type: 'text',
+			content: MATCH_GREETING,
+			time: formatTime(greeting.time),
+			showTime: false,
+			isMine: greeting.isMine === true,
+			avatar: greeting.avatar != null && greeting.avatar.length > 0 ? greeting.avatar : peerAvatar.value
+		}].concat(currentMessages)
+		scrollToBottom()
+	}
+
+	const respondContactRequest = async (message: any, action: string) => {
+		if (multiSelectMode.value) {
+			toggleMessageSelection(message)
+			return
+		}
+		if (message.requestStatus !== 'pending') return
+		const previousStatus = message.requestStatus
+		const previousContactValue = message.contactValue
+		message.requestStatus = action === 'accept' ? 'accepted' : 'rejected'
+		messages.value = (messages.value as any[]).slice()
+		try {
+			const res = await handleContactExchangeRequest(message.id, action, message.contactType)
+			if (!res.success) {
+				message.requestStatus = previousStatus
+				messages.value = (messages.value as any[]).slice()
+				uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+				return
+			}
+			if (action === 'accept') {
+				if (res.data != null && res.data.contactValue != null) {
+					message.contactValue = res.data.contactValue
+				} else if (message.contactValue == null || message.contactValue.length == 0) {
+					message.contactValue = message.contactType === 'phone' ? '13812341234' : 'wanqing_art'
+				}
+			}
+			persistContactRequest(message)
+			if (action === 'accept') ensureMatchedConversationAfterExchange(message)
+			uni.showToast({
+				title: action === 'accept' ? '已同意交换申请' : '已拒绝交换申请',
+				icon: 'none'
+			})
+		} catch (error) {
+			message.requestStatus = previousStatus
+			message.contactValue = previousContactValue
+			messages.value = (messages.value as any[]).slice()
+			uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+		}
+	}
+
+	// 滚动到底部
+	const scrollToBottom = () => {
+		setTimeout(() => {
+			scrollToView.value = 'msg-' + (messages.value.length - 1)
+		}, 100)
+	}
+
+	// 获取当前时间
+	const getCurrentTime = (): string => {
+		const now = new Date()
+		const hours = now.getHours().toString().padStart(2, '0')
+		const minutes = now.getMinutes().toString().padStart(2, '0')
+		return `${hours}:${minutes}`
+	}
+</script>
+
+<style scoped>
+.chat-page {
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	background: var(--canvas);
+}
+
+.message-list {
+	flex: 1;
+	padding: 16px;
+	overflow-y: auto;
+}
+
+.message-item {
+	margin-bottom: 16px;
+}
+
+.message-content-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+}
+
+.message-content-row .message-wrapper {
+	flex: 1;
+	min-width: 0;
+	width: auto;
+}
+
+.multi-select-toggle {
+	width: 32px;
+	height: 44px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.multi-select-check {
+	width: 22px;
+	height: 22px;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: var(--paper);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+}
+
+.multi-select-check.selected {
+	border-color: var(--accent2);
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.multi-select-check text {
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 20px;
+}
+
+.time-divider {
+	text-align: center;
+	margin-bottom: 16px;
+}
+
+.time-text {
+	display: inline-block;
+	padding: 4px 12px;
+	background: var(--line);
+	color: var(--muted);
+	border-radius: 999px;
+	font-size: 12px;
+}
+
+.revoke-system-row {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.revoke-system-notice {
+	width: auto;
+	min-height: 0;
+	padding: 4px 8px;
+	border-radius: 6px;
+	background: var(--line);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	box-sizing: border-box;
+}
+
+.revoke-system-text {
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--muted);
+}
+
+.revoke-reedit {
+	padding: 2px 0;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 18px;
+	color: var(--accent2);
+}
+
+.message-wrapper {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 8px;
+	width: 100%;
+}
+
+.message-wrapper.mine {
+	justify-content: flex-end;
+	flex-direction: row;
+}
+
+.message-wrapper.other {
+	justify-content: flex-start;
+}
+
+.avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.message-bubble {
+	max-width: 240px;
+	padding: 12px 16px;
+	border-radius: 12px;
+	word-break: break-all;
+	box-sizing: border-box;
+}
+
+.message-bubble.selected {
+	outline: 2px solid var(--accent2);
+	outline-offset: 2px;
+}
+
+.message-wrapper.other .message-bubble {
+	background: var(--surface);
+	color: var(--ink);
+}
+
+.message-wrapper.mine .message-bubble {
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.message-bubble.wechat-request,
+.message-bubble.phone-request {
+	width: auto;
+	flex: 1;
+	min-width: 0;
+	max-width: 300px;
+	padding: 0;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--sage-soft);
+	color: var(--ink);
+	box-shadow: var(--shadow-sm);
+	overflow: hidden;
+	box-sizing: border-box;
+	word-break: normal;
+}
+
+.message-wrapper.mine .message-bubble.wechat-request,
+.message-wrapper.mine .message-bubble.phone-request {
+	background: var(--sage-soft);
+	color: var(--ink);
+}
+
+.wechat-request-card {
+	display: flex;
+	flex-direction: column;
+}
+
+.wechat-request-card.rejected {
+	background: var(--warm);
+	color: var(--muted);
+}
+
+.wechat-request-card.rejected .wechat-request-mark {
+	background: var(--bg-subtle);
+}
+
+.wechat-request-card.rejected .wechat-request-title,
+.wechat-request-card.rejected .wechat-request-copy {
+	color: var(--muted);
+}
+
+.wechat-request-head {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 14px 8px;
+}
+
+.wechat-request-mark {
+	position: relative;
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	background: var(--sage-soft);
+	flex-shrink: 0;
+}
+
+.request-bubble {
+	position: absolute;
+	border: 2px solid var(--accent2);
+	border-radius: 999px;
+	background: var(--paper);
+	box-sizing: border-box;
+}
+
+.request-bubble-main {
+	left: 6px;
+	top: 7px;
+	width: 17px;
+	height: 13px;
+}
+
+.request-bubble-small {
+	right: 5px;
+	bottom: 6px;
+	width: 13px;
+	height: 10px;
+}
+
+.wechat-request-title {
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 20px;
+	color: var(--ink);
+}
+
+.wechat-request-copy {
+	padding: 0 14px 14px;
+	font-size: 13px;
+	line-height: 20px;
+	color: var(--ink2);
+}
+
+.wechat-contact {
+	margin: 0 14px 14px;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--surface);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.wechat-contact-label {
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--muted);
+}
+
+.wechat-contact-value {
+	min-width: 0;
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 18px;
+	color: var(--accent2);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wechat-request-footer {
+	min-height: 44px;
+	padding: 7px 12px;
+	border-top: 1px solid var(--line);
+	background: var(--paper);
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	box-sizing: border-box;
+}
+
+.wechat-request-actions {
+	width: 100%;
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.request-action {
+	min-width: 68px;
+	height: 32px;
+	margin: 0;
+	padding: 0 14px;
+	border-radius: 6px;
+	font-size: 12px;
+	line-height: 32px;
+	box-sizing: border-box;
+}
+
+.request-action::after {
+	border: 0;
+}
+
+.request-reject {
+	border: 1px solid var(--line);
+	background: var(--surface);
+	color: var(--ink2);
+}
+
+.request-accept {
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.request-copy {
+	min-width: 92px;
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.wechat-request-status {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--ink2);
+}
+
+.request-status-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--accent);
+}
+
+.request-status-dot.accepted {
+	background: var(--sage);
+}
+
+.request-status-dot.rejected {
+	background: var(--muted);
+}
+
+.quoted-message {
+	min-width: 0;
+	margin-bottom: 6px;
+}
+
+.quoted-message-inline {
+	display: block;
+	max-width: 208px;
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.message-wrapper.mine .quoted-message-inline {
+	color: var(--text-invert);
+	opacity: 0.72;
+}
+
+.text-content {
+	font-size: 15px;
+	line-height: 1.4;
+}
+
+.image-content {
+	display: block;
+	max-width: 200px;
+	max-height: 200px;
+	border-radius: 8px;
+}
+
+.voice-content {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 80px;
+}
+
+.voice-content .icon {
+	font-size: 18px;
+}
+
+.voice-content .duration {
+	font-size: 14px;
+}
+
+.input-bar {
+	position: relative;
+	background: var(--surface);
+	border-top: 1px solid var(--line);
+	padding: 8px 16px;
+	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+.paste-action {
+	position: absolute;
+	left: 58px;
+	bottom: 58px;
+	min-width: 64px;
+	height: 36px;
+	margin: 0;
+	padding: 0 14px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface);
+	box-shadow: var(--shadow-sm);
+	color: var(--accent2);
+	font-size: 13px;
+	line-height: 36px;
+	text-align: center;
+	z-index: 3;
+}
+
+.paste-action::after {
+	border: 0;
+}
+
+.quote-preview {
+	min-height: 38px;
+	margin-bottom: 8px;
+	padding: 5px 5px 5px 10px;
+	border-left: 2px solid var(--accent2);
+	border-radius: 4px;
+	background: var(--paper);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	box-sizing: border-box;
+}
+
+.quote-preview-copy {
+	min-width: 0;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.quote-preview-name {
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 15px;
+	color: var(--accent2);
+}
+
+.quote-preview-text {
+	font-size: 11px;
+	line-height: 15px;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.quote-close-button {
+	width: 34px;
+	height: 34px;
+	margin: 0;
+	padding: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--muted);
+	font-size: 22px;
+	line-height: 34px;
+	flex-shrink: 0;
+}
+
+.quote-close-button::after {
+	border: 0;
+}
+
+.input-wrapper {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.tool-btn {
+	width: 36px;
+	height: 36px;
+	background: var(--paper);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.tool-btn .icon {
+	font-size: 20px;
+	color: var(--ink2);
+}
+
+.voice-tool-btn {
+	background: var(--paper);
+	border: 1px solid var(--line);
+}
+
+.voice-mic {
+	position: relative;
+	width: 22px;
+	height: 22px;
+}
+
+.voice-mic-head {
+	position: absolute;
+	left: 7px;
+	top: 1px;
+	width: 8px;
+	height: 13px;
+	border: 2px solid var(--accent2);
+	border-radius: 999px;
+	box-sizing: border-box;
+}
+
+.voice-mic-bracket {
+	position: absolute;
+	left: 4px;
+	top: 7px;
+	width: 14px;
+	height: 10px;
+	border: 2px solid var(--accent2);
+	border-top: 0;
+	border-radius: 0 0 8px 8px;
+	box-sizing: border-box;
+}
+
+.voice-mic-stem {
+	position: absolute;
+	left: 10px;
+	top: 16px;
+	width: 2px;
+	height: 4px;
+	background: var(--accent2);
+	border-radius: 999px;
+}
+
+.voice-mic-base {
+	position: absolute;
+	left: 6px;
+	top: 19px;
+	width: 10px;
+	height: 2px;
+	background: var(--accent2);
+	border-radius: 999px;
+}
+
+.input {
+	flex: 1;
+	height: 36px;
+	background: var(--paper);
+	border-radius: 18px;
+	padding: 0 16px;
+	font-size: 14px;
+	color: var(--ink);
+}
+
+.send-btn {
+	min-width: 52px;
+	padding: 0 12px;
+	height: 36px;
+	background: var(--accent);
+	color: var(--text-invert);
+	border-radius: 18px;
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+.message-action-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 45;
+	background: transparent;
+}
+
+.message-action-menu {
+	position: fixed;
+	z-index: 46;
+	height: 44px;
+	border-radius: 6px;
+	background: var(--ink);
+	color: var(--paper);
+	box-shadow: var(--shadow-lg);
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+.message-action-menu.five-action-menu {
+	width: 250px;
+}
+
+.message-action-menu.four-action-menu {
+	width: 204px;
+}
+
+.message-action-item {
+	min-width: 0;
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-right: 1px solid var(--ink2);
+}
+
+.message-action-item:last-child {
+	border-right: 0;
+}
+
+.message-action-item:active {
+	background: var(--ink2);
+}
+
+.message-action-item text {
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--paper);
+	white-space: nowrap;
+}
+
+.multi-action-bar {
+	min-height: 58px;
+	padding: 8px 16px;
+	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+	border-top: 1px solid var(--line);
+	background: var(--surface);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	box-sizing: border-box;
+}
+
+.multi-selected-count {
+	font-size: 13px;
+	line-height: 20px;
+	color: var(--ink2);
+}
+
+.multi-action-buttons {
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+}
+
+.multi-action-button {
+	min-width: 64px;
+	height: 36px;
+	margin: 0;
+	padding: 0 12px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--paper);
+	color: var(--ink2);
+	font-size: 12px;
+	line-height: 36px;
+	box-sizing: border-box;
+}
+
+.multi-action-button::after {
+	border: 0;
+}
+
+.multi-action-button.danger {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: var(--text-invert);
+}
+
+.multi-action-button[disabled] {
+	opacity: 0.45;
+}
+
+.more-menu {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	z-index: 999;
+}
+
+.menu-content {
+	background: var(--surface);
+	border-radius: 16px 16px 0 0;
+	padding: 24px;
+	padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.menu-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20px;
+}
+
+.menu-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+.menu-item.disabled {
+	opacity: 0.42;
+	pointer-events: none;
+}
+
+.menu-icon {
+	position: relative;
+	width: 56px;
+	height: 56px;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	flex-shrink: 0;
+	}
+
+.menu-icon-album {
+	background: var(--shortcut-plane);
+	}
+
+.menu-icon-camera {
+	background: var(--shortcut-lab);
+	}
+
+.menu-icon-wechat {
+	background: var(--shortcut-dynamic);
+	}
+
+.menu-icon-phone {
+	background: var(--shortcut-application);
+	}
+
+.album-card {
+	position: absolute;
+	width: 29px;
+	height: 22px;
+	border: 2px solid var(--accent);
+	border-radius: 5px;
+	background: var(--surface);
+	}
+
+.album-card-back {
+	left: 10px;
+	top: 12px;
+	transform: rotate(-8deg);
+	opacity: 0.64;
+	}
+
+.album-card-front {
+	right: 9px;
+	bottom: 11px;
+	}
+
+.album-sun {
+	position: absolute;
+	left: 5px;
+	top: 4px;
+	width: 5px;
+	height: 5px;
+	border-radius: 999px;
+	background: var(--accent);
+	}
+
+.album-hill {
+	position: absolute;
+	left: 8px;
+	bottom: 4px;
+	width: 15px;
+	height: 8px;
+	border-radius: 8px 8px 3px 3px;
+	background: var(--accent);
+	transform: rotate(-8deg);
+	}
+
+.camera-top {
+	position: absolute;
+	left: 20px;
+	top: 12px;
+	width: 17px;
+	height: 7px;
+	border-radius: 4px 4px 0 0;
+	background: var(--brown);
+	}
+
+.camera-body {
+	position: absolute;
+	left: 10px;
+	top: 17px;
+	width: 36px;
+	height: 27px;
+	border: 2px solid var(--brown);
+	border-radius: 7px;
+	background: var(--surface);
+	}
+
+.camera-lens {
+	width: 13px;
+	height: 13px;
+	margin: 5px auto 0;
+	border: 2px solid var(--brown);
+	border-radius: 999px;
+	}
+
+.chat-bubble {
+	position: absolute;
+	border: 2px solid var(--sage);
+	background: var(--surface);
+	}
+
+.chat-bubble-main {
+	left: 9px;
+	top: 13px;
+	width: 32px;
+	height: 24px;
+	border-radius: 13px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	}
+
+.chat-bubble-small {
+	right: 8px;
+	bottom: 11px;
+	width: 23px;
+	height: 18px;
+	border-radius: 10px;
+	opacity: 0.7;
+	}
+
+.chat-dot {
+	width: 3px;
+	height: 3px;
+	border-radius: 999px;
+	background: var(--sage);
+	}
+
+.mobile-phone {
+	position: absolute;
+	left: 17px;
+	top: 8px;
+	width: 22px;
+	height: 38px;
+	border: 2px solid var(--navy);
+	border-radius: 7px;
+	background: var(--surface);
+	}
+
+.mobile-speaker {
+	position: absolute;
+	left: 7px;
+	top: 4px;
+	width: 8px;
+	height: 2px;
+	border-radius: 999px;
+	background: var(--navy);
+	}
+
+.mobile-screen {
+	position: absolute;
+	left: 4px;
+	top: 9px;
+	width: 14px;
+	height: 20px;
+	border-radius: 3px;
+	background: var(--shortcut-plane);
+	}
+
+.mobile-home {
+	position: absolute;
+	left: 9px;
+	bottom: 3px;
+	width: 4px;
+	height: 4px;
+	border-radius: 999px;
+	background: var(--navy);
+}
+
+.menu-text {
+	font-size: 12px;
+	color: var(--ink2);
+}
+</style>

@@ -484,7 +484,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 		}
 		// 默认允许进入详情（mock 会话视为已通过双方同意）
 		uni.navigateTo({
-			url: `/pages/chat/detail?userId=${message.userId}&userName=${encodeURIComponent(message.name)}`
+			url: `/pagesSub/chat/detail?userId=${message.userId}&userName=${encodeURIComponent(message.name)}`
 		})
 	}
 
@@ -506,7 +506,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 		showToast(created ? '匹配成功，已创建聊天' : '已同意，聊天已开放')
 		appVisible.value = false
 		uni.navigateTo({
-			url: `/pages/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}&newConversation=${created ? '1' : '0'}`
+			url: `/pagesSub/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}&newConversation=${created ? '1' : '0'}`
 		})
 	}
 

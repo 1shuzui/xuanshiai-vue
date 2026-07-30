@@ -1,0 +1,357 @@
+<template>
+	<view class="page">
+		<scroll-view class="list" scroll-y @scrolltolower="loadMore">
+			<XsaEmpty v-if="!loading && loadError" text="话题加载失败" description="请检查网络后重试" :show-action="true" action-text="重试" @action="init" />
+
+			<!-- 热门主区：主推横卡 + 2×2 轻网格 -->
+			<view v-if="!loadError && featured != null" class="hot-panel">
+				<view class="hot-head">
+					<text class="hot-title">近期热门</text>
+					<text class="hot-sub text-muted">认真聊聊 · 不围观起哄</text>
+				</view>
+
+				<view class="feature-card" @click="openTopic(featured.id)">
+					<image v-if="featured.cover != null" class="feature-cover" :src="featured.cover" mode="aspectFill"></image>
+					<view class="feature-body">
+						<text class="feature-tag" v-if="featured.tag != null">{{ featured.tag }}</text>
+						<text class="feature-title">{{ featured.title }}</text>
+						<text class="feature-desc">{{ featured.description }}</text>
+						<text class="feature-meta text-muted">{{ formatViews(featured.viewCount) }} 浏览 · {{ featured.participantCount }} 人参与</text>
+					</view>
+				</view>
+
+				<view class="grid" v-if="hotGrid.length > 0">
+					<view class="grid-item" v-for="t in hotGrid" :key="'g-' + t.id" @click="openTopic(t.id)">
+						<text class="grid-tag">{{ t.tag != null ? t.tag : '话题' }}</text>
+						<text class="grid-title">{{ t.title }}</text>
+					</view>
+				</view>
+			</view>
+
+			<!-- 更多话题 -->
+			<view v-if="!loadError" class="section">
+				<text class="section-title">更多话题</text>
+				<XsaEmpty v-if="!loading && moreList.length == 0" text="暂无更多话题" description="热门话题已经看完了" />
+				<view class="topic-card" v-for="t in moreList" :key="'m-' + t.id" @click="openTopic(t.id)">
+					<image class="cover" :src="t.cover" mode="aspectFill"></image>
+					<view class="body">
+						<text class="tag" v-if="t.tag != null">{{ t.tag }}</text>
+						<text class="title">{{ t.title }}</text>
+						<text class="desc text-muted">{{ t.description }}</text>
+						<text class="meta text-muted">{{ formatViews(t.viewCount) }} 浏览 · {{ t.participantCount }} 人</text>
+					</view>
+				</view>
+				<view class="load-more" v-if="moreList.length > 0 || loading">
+					<text class="load-text text-muted" v-if="loading">加载中...</text>
+					<text class="load-text text-muted" v-else-if="!hasMore">没有更多话题了</text>
+				</view>
+			</view>
+			<view class="pad"></view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import { getTopicList } from '@/api'
+
+	const loading = ref(false)
+	const featured = ref(null)
+	const hotGrid = ref([])
+	const moreList = ref([])
+	const page = ref(1)
+	const pageSize = 10
+	const hasMore = ref(true)
+	const excludeIds = ref([])
+	const loadError = ref(false)
+
+	onMounted(() => {
+		init()
+	})
+
+	const formatViews = (n: any) => {
+		const v = n != null ? Number(n) : 0
+		if (v >= 100000000) {
+			const y = Math.round((v / 100000000) * 10) / 10
+			return '' + y + '亿'
+		}
+		if (v >= 10000) {
+			const w = Math.round((v / 10000) * 10) / 10
+			return '' + w + '万'
+		}
+		return '' + v
+	}
+
+	const init = async () => {
+		loading.value = true
+		loadError.value = false
+		try {
+			const hotRes = await getTopicList({ sort: 'hot', page: 1, pageSize: 10 })
+			if (hotRes.success && hotRes.data != null) {
+				const list = hotRes.data.list != null ? (hotRes.data.list as any[]) : []
+				featured.value = list.length > 0 ? list[0] : null
+				hotGrid.value = list.length > 1 ? list.slice(1, 5) : []
+				const ids: number[] = []
+				for (let i = 0; i < list.length; i++) {
+					ids.push(list[i].id as number)
+				}
+				excludeIds.value = ids
+			}
+			else {
+				throw new Error('topic hot list failed')
+			}
+			page.value = 1
+			hasMore.value = true
+			moreList.value = []
+			await loadMoreInternal(true)
+		} catch (e) {
+			console.error(e)
+			loadError.value = true
+			featured.value = null
+			hotGrid.value = []
+			moreList.value = []
+			hasMore.value = false
+		} finally {
+			loading.value = false
+		}
+	}
+
+const loadMoreInternal = async (reset: boolean = false) => {
+			if (!hasMore.value && !reset) return
+			const res = await getTopicList({
+				sort: 'latest',
+				page: page.value,
+				pageSize,
+				excludeIds: excludeIds.value
+			})
+			if (res.success && res.data != null) {
+				// 仅首屏 init 使用 loadError；分页成功不改动首屏错误语义
+				if (reset) {
+					loadError.value = false
+				}
+				const list = res.data.list != null ? (res.data.list as any[]) : []
+				if (reset) {
+					moreList.value = list
+				} else {
+					moreList.value = (moreList.value as any[]).concat(list)
+				}
+				hasMore.value = res.data.hasMore == true
+				if (list.length > 0) {
+					page.value = page.value + 1
+				}
+			} else {
+				throw new Error('topic list failed')
+			}
+		}
+
+		const loadMore = async () => {
+			if (loading.value || !hasMore.value || loadError.value) return
+			loading.value = true
+			try {
+				await loadMoreInternal(false)
+			} catch (e) {
+				// 分页失败只 toast，不置 loadError，避免已成功首屏被整页错误态盖住
+				console.error(e)
+				uni.showToast({ title: '加载失败，请重试', icon: 'none' })
+			} finally {
+				loading.value = false
+			}
+		}
+
+	const openTopic = (id: number) => {
+		uni.navigateTo({ url: `/pagesSub/community/topic-detail?id=${id}` })
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100vh;
+		background: var(--canvas);
+	}
+	.list {
+		height: 100%;
+		padding: 12px 14px;
+		box-sizing: border-box;
+	}
+
+	.hot-panel {
+		background: var(--accent-bg);
+		border-radius: 14px;
+		padding: 12px;
+		margin-bottom: 16px;
+	}
+	.hot-head {
+		display: flex;
+		flex-direction: row;
+		align-items: baseline;
+		justify-content: space-between;
+		margin-bottom: 10px;
+		gap: 8px;
+	}
+	.hot-title {
+		font-size: 16px;
+		font-weight: 800;
+		color: var(--ink);
+	}
+	.hot-sub {
+		font-size: 11px;
+		flex-shrink: 0;
+	}
+
+	.feature-card {
+		display: flex;
+		flex-direction: row;
+		gap: 12px;
+		padding: 12px;
+		background: var(--surface);
+		border-radius: 12px;
+		box-shadow: var(--shadow-sm);
+	}
+	.feature-cover {
+		width: 76px;
+		height: 76px;
+		border-radius: 10px;
+		flex-shrink: 0;
+		background: var(--warm);
+	}
+	.feature-body {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		justify-content: center;
+	}
+	.feature-tag {
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--sage);
+	}
+	.feature-title {
+		font-size: 15px;
+		font-weight: 800;
+		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.feature-desc {
+		font-size: 12px;
+		line-height: 1.4;
+		color: var(--muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		lines: 2;
+	}
+	.feature-meta {
+		font-size: 11px;
+		margin-top: 1px;
+	}
+
+	.grid {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-top: 10px;
+	}
+	.grid-item {
+		width: calc(50% - 4px);
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+		padding: 8px 10px;
+		border-radius: 10px;
+		background: var(--surface);
+	}
+	.grid-tag {
+		font-size: 10px;
+		font-weight: 700;
+		color: var(--sage);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.grid-title {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.section {
+		margin-bottom: 12px;
+	}
+	.section-title {
+		display: block;
+		font-size: 16px;
+		font-weight: 800;
+		color: var(--ink);
+		margin-bottom: 10px;
+	}
+	.topic-card {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 12px;
+		padding: 12px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 14px;
+		margin-bottom: 10px;
+	}
+	.cover {
+		width: 64px;
+		height: 64px;
+		border-radius: 12px;
+		flex-shrink: 0;
+		background: var(--warm);
+	}
+	.body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 0;
+	}
+	.tag {
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--sage);
+	}
+	.title {
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.desc {
+		font-size: 12px;
+		line-height: 1.4;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.meta {
+		font-size: 11px;
+	}
+	.load-more {
+		text-align: center;
+		padding: 12px 0 8px;
+	}
+	.load-text {
+		font-size: 12px;
+	}
+	.pad {
+		height: 24px;
+	}
+</style>

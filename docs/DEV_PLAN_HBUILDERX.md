@@ -123,7 +123,7 @@
 - `api/` 与 `mock/` 已分层，`api/config.uts` 当前启用 Mock。
 - 微信小程序应通过 HBuilderX 重新编译到 `unpackage/dist/dev/mp-weixin`，再由微信开发者工具验证。
 - npm CLI 脚本当前不是可靠端侧门禁：根目录式工程与 `.uvue` 解析仍有已知限制。
-- `pages/profile/vip.uvue` 等历史或预留页面存在，不等于本期获准继续扩展。
+- `pagesSub/profileExtra/vip.uvue` 等历史或预留页面存在，不等于本期获准继续扩展。
 
 ### 2.2 已确认风险
 
@@ -221,10 +221,10 @@ flowchart TD
 **重点文件**
 
 - `pages/index/index.uvue`
-- `pages/user/detail.uvue`
+- `pagesSub/userExtra/user/detail.uvue`
 - `components/XsaUserCard.uvue`
 - `pages/message/message.uvue`
-- `pages/chat/detail.uvue`
+- `pagesSub/chat/detail.uvue`
 - `api/user.uts`
 - `api/message.uts`
 - `mock/user.uts`
@@ -268,7 +268,7 @@ permission_denied
 
 #### 1.3 聊天门禁
 
-- [ ] `pages/chat/detail.uvue` 进入时重新校验会话是否为双方已同意状态，不能只依赖按钮是否隐藏。
+- [ ] `pagesSub/chat/detail.uvue` 进入时重新校验会话是否为双方已同意状态，不能只依赖按钮是否隐藏。
 - [ ] 首页、用户详情、用户卡和消息列表的所有聊天入口使用同一门禁。
 - [ ] 未同意时不渲染手机号、微信号或引导绕过平台沟通。
 - [ ] 被拒绝、过期、拉黑、无权限和网络失败都有明确退出或重试路径。
@@ -338,7 +338,7 @@ permission_denied
 **重点文件**
 
 - `pages/index/index.uvue`
-- `pages/user/detail.uvue`
+- `pagesSub/userExtra/user/detail.uvue`
 - `components/XsaUserCard.uvue`
 - `components/XsaTag.uvue`
 - `components/XsaSheet.uvue`
@@ -373,9 +373,9 @@ permission_denied
 
 - `pages/auth/login.uvue`
 - `pages/auth/register.uvue`
-- `pages/profile/certification.uvue`
+- `pagesSub/profileExtra/certification.uvue`
 - `pages/profile/profile.uvue`
-- `pages/profile/settings.uvue`
+- `pagesSub/profileExtra/settings.uvue`
 - `pages/message/message.uvue`
 - `api/message.uts`
 - 相关 `mock/*.uts`
@@ -406,7 +406,7 @@ permission_denied
 **重点文件**
 
 - `pages/community/community.uvue`
-- `pages/community/publish.uvue`
+- `pagesSub/community/publish.uvue`
 - `pages/matchmaker/matchmaker.uvue`
 - `components/XsaDynamicCard.uvue`
 - `components/XsaPhotoGrid.uvue`
@@ -483,7 +483,7 @@ permission_denied
 | 管理后台 | 独立 Web / 管理端计划，不塞入小程序五 Tab，不阻塞 C 端安全主路径 |
 | npm CLI 架构迁移 | 独立技术方案；不得复制双份 `manifest.json` / `pages.json` 掩盖根目录式工程问题 |
 
-现有 `pages/profile/vip.uvue` 或 Mock 支付代码只能视为历史/预留实现。未经 Phase 0 收口，不扩展入口、不写成本期完成项。
+现有 `pagesSub/profileExtra/vip.uvue` 或 Mock 支付代码只能视为历史/预留实现。未经 Phase 0 收口，不扩展入口、不写成本期完成项。
 
 ---
 

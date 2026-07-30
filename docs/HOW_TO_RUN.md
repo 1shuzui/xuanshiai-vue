@@ -1,6 +1,6 @@
 ﻿# 运行与构建
 
-> 请在 `xuanshiai-vue` 项目目录操作，不依赖某台电脑的绝对路径。更新日期：2026-07-23。
+> 请在 `xuanshiai-vue` 项目目录操作，不依赖某台电脑的绝对路径。更新日期：2026-07-30。
 
 ## 1. 环境准备
 
@@ -31,7 +31,7 @@ node tests/test-mock-system.js
 #### Windows 一键入口
 
 - 双击项目根目录的 `open-in-hbuilderx.bat`，HBuilderX 会打开本项目根目录。
-- HBuilderX 编译完成后，双击 `open-wechat-devtools.bat` 可把最新的 `unpackage/dist/dev/mp-weixin` 产物导入微信开发者工具。
+- HBuilderX 编译完成后，双击 `open-wechat-devtools.bat` 可把最新的 `unpackage/dist/dev/mp-weixin` 产物导入微信开发者工具；该目录本身就是小程序项目根目录。
 - 不要把 `unpackage/dist/dev/mp-weixin` 当作 HBuilderX 源工程打开；它只用于微信开发者工具运行。
 
 **打开项目时只打开本目录本身：**
@@ -59,11 +59,11 @@ static/
 #### 运行步骤
 
 1. 菜单：**文件 → 打开目录**，选择 `xuanshiai-vue`。
-2. 若提示“是否转换为 uni-app 项目 / 关联云服务空间”，开发期可跳过或取消关联；当前 `USE_MOCK = true`，不依赖 uniCloud。
+2. 若提示“是否转换为 uni-app 项目 / 关联云服务空间”，开发期可跳过或取消关联；当前社区联调使用 `USE_MOCK = false` 和本机 FastAPI，不依赖 uniCloud。
 3. **H5 冒烟**：运行 → 运行到浏览器 → Chrome（或默认浏览器）。
 4. **微信小程序冒烟**：运行 → 运行到小程序模拟器 → 微信开发者工具。
 5. 微信开发者工具需先安装，并在 **设置 → 安全设置 → 服务端口** 中开启。
-6. 首次可用测试号 / 游客模式；正式 AppID 由负责人配置，不要擅自改 `manifest.json`。
+6. 当前本地验收 AppID 为 `wxb5f4e639f4eb2591`；本地 HTTP 联调保持 `urlCheck: false`，生产环境必须改用正式合法域名配置。
 7. 记录 HBuilderX 版本、目标端和**第一条完整错误**，不要只截最后一条连锁报错。
 
 #### 微信开发者工具手动导入（HBuilderX 未自动拉起时）
@@ -76,9 +76,11 @@ unpackage/dist/dev/mp-weixin
 
 在微信开发者工具中：
 
-1. 导入项目 → 目录选上面的 `mp-weixin`。
-2. AppID 可选测试号 / 游客模式；开发期关闭域名校验（与当前 `urlCheck: false` 一致）。
-3. 编译并确认首页、五个 Tab 能切换；社区 Tab 应能加载 Mock 动态，而不是固定“网络异常”。
+1. 导入项目 → 目录选上面的 `mp-weixin`，不要选 `xuanshiai-vue` 或 `unpackage`。
+2. AppID 使用 `wxb5f4e639f4eb2591`；开发期关闭域名校验（与当前 `urlCheck: false` 一致）。
+3. 编译并确认首页、五个 Tab 能切换；社区 Tab 应加载 FastAPI 种子动态，而不是固定“网络异常”。
+
+产物目录中的 `project.config.json` 使用 `miniprogramRoot: "./"`，因此微信开发者工具会从当前 `mp-weixin` 目录读取 `app.json`。如果看到 `mp-weixin/unpackage/dist/dev/mp-weixin/app.json` 不存在，说明打开了旧项目配置或旧产物：先关闭该项目，重新运行 HBuilderX 到微信，再重新导入最新的 `mp-weixin` 目录。
 
 仓库中可能已有历史 `unpackage/` 产物，只能用于临时打开验证，**不能替代本次 HBuilderX 重新编译**。改过页面或 `api/*.uts` 后请重新运行生成新产物。
 
@@ -133,13 +135,13 @@ open editor with no exists file: D:/Users/ASUS/Desktop/前端/xuanshiai-vue/fron
 4. 点“申请认识”能弹出说明与附言（Mock 成功提示即可）。
 5. 社区列表能出 Mock 动态（关注/同城/发现可切换）；不应长期停在“网络异常”。
 6. 牵线、消息列表至少有加载态或列表内容。
-7. 控制台无阻断级红错；`USE_MOCK = true` 时不应因未关联 uniCloud 而无法浏览。
+7. 控制台无阻断级红错；`USE_MOCK = false` 时应能通过本机 FastAPI 读取社区真实接口。
 
 #### 本机网络地址
 
-微信开发者工具和 FastAPI 都运行在同一台 Windows 电脑时，`api/config.uts` 使用 `http://127.0.0.1:8001`，不依赖 Windows 的局域网入站规则。需要用真机访问时，把 `API_BASE_URL` 改为 `LAN_API_BASE_URL` 的值，并仅向本地子网放行 TCP 8001。
+微信开发者工具和 FastAPI 都运行在同一台 Windows 电脑时，`api/config.uts` 使用 `http://127.0.0.1:8000`，不依赖 Windows 的局域网入站规则。需要用真机访问时，把 `API_BASE_URL` 改为 `LAN_API_BASE_URL` 的值，并仅向本地子网放行 TCP 8000。
 
-不在本轮强求：真实登录、真实支付、真实云函数、正式 AppID 发布。
+本地本轮已验证调试登录和真实 HTTP 社区接口；不在本轮强求：物理真机、真实支付、真实云函数、正式版本发布。
 
 2026-07-23 本会话已用 HBuilderX 重编 mp-weixin 并导入开发者工具；H5 社区列表在 `:8080` 冒烟可见动态。完整手测回归仍以你本机模拟器为准。
 
@@ -165,7 +167,7 @@ npm run build:mp-weixin
 
 ## 5. 基础业务验证
 
-当前 Mock 开关位于 `api/config.uts`：`export const USE_MOCK = true`。
+当前联调开关位于 `api/config.uts`：社区验收使用 `export const USE_MOCK = false`；需要纯结构 Mock 预览时才临时切回 `true`。
 
 检查首页推荐与申请认识、社区动态、牵线服务、消息申请和我的页面入口。Mock 数据数量和示例姓名会随开发调整，不把具体条数作为稳定验收标准。
 

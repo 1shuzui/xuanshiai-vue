@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { hasRegisteredPage } = require('./page-route-helper.cjs')
 
 const root = path.join(__dirname, '..')
 
@@ -27,24 +28,27 @@ const mock = read('mock/matchmaker.uts')
 expect(mock, 'mockCustomServicePaymentOrders', 'payment mock order')
 expect(mock, "paymentStatus: 'paid'", 'paid mock data')
 
-const applyPage = read('pages/matchmaker/apply.uvue')
+const applyPage = read('pagesSub/matchmaker/apply.uvue')
 expect(applyPage, "readRouteOption(options, 'type') == 'custom'", 'custom application mode')
 expect(applyPage, '进入确认服务', 'application CTA')
 expect(applyPage, 'handleCustomSubmit', 'custom application submit handler')
 expect(applyPage, '@update:modelValue', 'custom form input binding')
 expect(applyPage, 'customHeroTitle', 'price-aware service slogan')
 expect(applyPage, 'customPlan.price >= 9000', 'premium service slogan threshold')
-expect(applyPage, '/pages/matchmaker/payment?draftId=', 'payment navigation')
+expect(applyPage, '/pagesSub/matchmaker/payment?draftId=', 'payment navigation')
 expect(applyPage, 'customPlan.id <= 0', 'plan validation')
 expect(applyPage, '请填写正确的手机号', 'phone validation')
 
-const paymentPage = read('pages/matchmaker/payment.uvue')
+const paymentPage = read('pagesSub/matchmaker/payment.uvue')
 expect(paymentPage, '确认支付 ¥', 'payment CTA')
 expect(paymentPage, '提交成功', 'success state')
 expect(paymentPage, 'payCustomServiceApplication', 'payment completion')
 expect(paymentPage, 'uni.navigateBack({ delta: 2 })', 'returns from payment to the original custom page')
 
 const pages = read('pages.json')
-expect(pages, 'pages/matchmaker/payment', 'payment route')
+if (!hasRegisteredPage(root, 'pagesSub/matchmaker/payment')) {
+  throw new Error('payment route: missing pagesSub/matchmaker/payment')
+}
+console.log('PASS payment route')
 
 console.log('Custom service payment flow checks passed')
