@@ -33,13 +33,13 @@ console.log('====================================')
 console.log('社区闭环流程测试')
 console.log('====================================\n')
 
-// 0. 本地开发登录必须真正建立后端会话，不能只跳过登录页。
+// 0. 调试登录必须完全本地化，不能因登录按钮请求后端。
 console.log('0. 本地开发登录...')
 const loginPage = read('pages/auth/login.uvue')
-if (loginPage.includes('loginWithMockSms') && loginPage.includes('loginWithMockSms(')) {
-  ok('调试登录会调用本地短信登录并写入 Token')
+if (loginPage.includes('setAuthTokens') && loginPage.includes('debug_access_token_xsa') && !loginPage.includes('loginWithMockSms')) {
+  ok('调试登录只写入本地 Token，不请求后端')
 } else {
-  fail('调试登录没有调用本地短信登录，社区请求会因 401 失败')
+  fail('调试登录仍依赖后端请求')
 }
 
 // 1. 页面与路由

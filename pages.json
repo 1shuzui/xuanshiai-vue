@@ -255,6 +255,27 @@
             "navigationBarTitleText": "我的动态",
             "navigationStyle": "custom"
           }
+        },
+        {
+          "path": "history",
+          "style": {
+            "navigationBarTitleText": "浏览记录",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "visitors",
+          "style": {
+            "navigationBarTitleText": "谁看过我",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "applications",
+          "style": {
+            "navigationBarTitleText": "我的申请",
+            "navigationStyle": "custom"
+          }
         }
       ]
     },
@@ -305,7 +326,8 @@
         {
           "path": "user/edit",
           "style": {
-            "navigationBarTitleText": "编辑资料"
+            "navigationBarTitleText": "编辑资料",
+            "navigationStyle": "custom"
           }
         },
         {

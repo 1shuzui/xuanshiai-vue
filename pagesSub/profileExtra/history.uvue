@@ -1,0 +1,66 @@
+<template>
+	<view class="record-page">
+		<view class="status-bar"><text>9:41</text><text>●●●</text></view>
+		<view class="record-nav">
+			<view class="back-button" @tap="goBack"><text class="ic ic-sys ic-fanhui"></text></view>
+			<text class="nav-title">浏览记录</text>
+			<view class="nav-placeholder"></view>
+		</view>
+		<view class="main-tabs">
+			<view class="main-tab active"><text>我看过谁</text><view class="tab-line"></view></view>
+			<view class="main-tab" @tap="goVisitors"><text>谁看过我</text><view class="tab-line"></view></view>
+		</view>
+		<scroll-view class="record-scroll" scroll-y>
+			<view class="vip-hint" @tap="goVip"><text class="ic ic-vip ic-huiyuan hint-icon"></text><text class="hint-copy">开通会员可查看 3 天内的浏览记录</text><text class="hint-link">去开通 ›</text></view>
+			<view class="sub-tabs"><view class="sub-tab active"><text>每日推荐</text></view><view class="sub-tab"><text>广场</text></view></view>
+			<view class="filter-row"><text class="result-count">共 {{ historyUsers.length }} 条浏览记录</text><view class="filter-button" @tap="toggleFilter"><text class="ic ic-sys ic-xiala filter-icon"></text><text>筛选</text></view></view>
+			<view class="record-card" v-for="user in historyUsers" :key="user.name" @tap="openUser(user.name)">
+				<image class="record-avatar" :src="user.avatar" mode="aspectFill"></image>
+				<view class="record-info"><text class="record-name">{{ user.name }} · {{ user.age }}岁</text><text class="record-job">{{ user.job }}</text><text class="record-city">{{ user.city }}</text></view>
+				<text class="record-time">{{ user.time }}</text>
+			</view>
+			<view class="section-divider"></view>
+			<view class="upsell-card"><view class="lock-circle"><text class="ic ic-vip ic-huiyuan lock-icon"></text></view><text class="upsell-title">开通会员查看全部访客</text><text class="upsell-desc">解锁后可查看谁看过你，发现更多缘分</text><view class="upsell-button" @tap="goVip"><text>立即开通会员</text></view></view>
+			<view class="visitor-section"><text class="visitor-title">最近访客</text><view class="visitor-row" v-for="visitor in visitors" :key="visitor.distance"><view class="visitor-avatar"><text class="ic ic-social ic-touxiang visitor-icon"></text></view><view class="visitor-info"><text class="visitor-name">{{ visitor.name }}</text><text class="visitor-meta">距你 {{ visitor.distance }} · 人气 {{ visitor.hot }}</text></view><view class="lock-badge"><text class="ic ic-vip ic-huiyuan"></text><text>VIP查看</text></view></view></view>
+		</scroll-view>
+		<view v-if="filterVisible" class="filter-mask" @tap="closeFilter">
+			<view class="filter-sheet" @tap.stop="noop">
+				<view class="sheet-title-row"><text class="sheet-title">回看记录的筛选</text><view class="sheet-close" @tap="closeFilter"><text class="ic ic-sys ic-guanbi"></text></view></view>
+				<view class="sheet-option" @tap="selectFilter('全部')"><view class="radio" :class="{ checked: draftFilter == '全部' }"><view v-if="draftFilter == '全部'" class="radio-dot"></view></view><view class="option-copy"><text class="option-title">全部</text><text class="option-desc">显示所有浏览过的用户记录</text></view></view>
+				<view class="sheet-option" @tap="selectFilter('只看我心动的')"><view class="radio" :class="{ checked: draftFilter == '只看我心动的' }"><view v-if="draftFilter == '只看我心动的'" class="radio-dot"></view></view><view class="option-copy"><text class="option-title">只看我心动的</text><text class="option-desc">仅显示我标记为心动的浏览记录</text></view></view>
+				<view class="sheet-option" @tap="selectFilter('只看我未心动的')"><view class="radio" :class="{ checked: draftFilter == '只看我未心动的' }"><view v-if="draftFilter == '只看我未心动的'" class="radio-dot"></view></view><view class="option-copy"><text class="option-title">只看我未心动的</text><text class="option-desc">仅显示我没有标记心动的浏览记录</text></view></view>
+				<view class="apply-filter-button" @tap="applyFilter"><text>确认筛选</text></view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+const filterVisible = ref(false)
+const filterName = ref('全部')
+const draftFilter = ref('全部')
+const historyUsers = [
+	{ name: '赵琳', age: 27, job: '产品经理', city: '北京 · 朝阳区', time: '2小时前', avatar: '/static/portraits/profile-woman-main.jpg' },
+	{ name: '陈浩', age: 29, job: '算法工程师', city: '杭州 · 西湖区', time: '5小时前', avatar: '/static/portraits/profile-man-alt.jpg' },
+	{ name: '刘悦', age: 25, job: '设计师', city: '上海 · 静安区', time: '8小时前', avatar: '/static/portraits/profile-woman-alt.jpg' },
+	{ name: '周明', age: 31, job: '医生', city: '广州 · 天河区', time: '12小时前', avatar: '/static/portraits/profile-man-light.jpg' },
+	{ name: '吴雪', age: 26, job: '律师', city: '深圳 · 南山区', time: '1天前', avatar: '/static/portraits/profile-woman-community.jpg' }
+]
+const visitors = [
+	{ name: '匿****名', distance: '2.5km', hot: 128 }, { name: '匿****名', distance: '5.1km', hot: 96 }, { name: '匿****名', distance: '8.3km', hot: 203 }, { name: '匿****名', distance: '3.7km', hot: 75 }
+]
+const goBack = () => { uni.navigateBack({}) }
+const goVisitors = () => { uni.redirectTo({ url: '/pagesSub/profileExtra/visitors' }) }
+const goVip = () => { uni.navigateTo({ url: '/pagesSub/profileExtra/vip' }) }
+const toggleFilter = () => { filterVisible.value = true }
+const selectFilter = (name: string) => { draftFilter.value = name }
+const applyFilter = () => { filterName.value = draftFilter.value; filterVisible.value = false }
+const closeFilter = () => { filterVisible.value = false; draftFilter.value = filterName.value }
+const openUser = (name: string) => { uni.showToast({ title: '正在打开' + name + '的资料', icon: 'none' }) }
+const noop = () => {}
+</script>
+
+<style>
+.record-page { min-height: 100vh; background: #F7F4F0; color: #2C2C2C; }.status-bar { height: 62px; padding: 20px 16px 0; box-sizing: border-box; display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; color: #2C2C2C; font-size: 14px; font-weight: 600; }.record-nav { height: 52px; padding: 0 16px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }.back-button,.nav-placeholder { width: 40px; height: 40px; }.back-button { display: flex; align-items: center; justify-content: center; border-radius: 20px; background: #FFFFFF; color: #2C2C2C; }.nav-title { font-size: 17px; font-weight: 600; }.main-tabs { display: flex; flex-direction: row; padding: 0 16px; border-bottom: 1px solid #E5E1DA; }.main-tab { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px 20px 0; color: #A9A6A0; font-size: 15px; }.main-tab.active { color: #2C2C2C; font-weight: 600; }.tab-line { width: 100%; height: 3px; margin-top: 10px; border-radius: 2px; }.main-tab.active .tab-line { background: #D4A89E; }.record-scroll { height: calc(100vh - 158px); padding: 12px 16px 32px; box-sizing: border-box; }.vip-hint { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; background: #FFF4DA; }.hint-icon { color: #C9A96E; font-size: 16px; }.hint-copy { flex: 1; color: #8A6A2F; font-size: 12px; }.hint-link { color: #D4A89E; font-size: 12px; font-weight: 600; }.sub-tabs { display: flex; flex-direction: row; gap: 4px; margin-top: 14px; padding: 4px; border-radius: 10px; background: #FFFFFF; }.sub-tab { flex: 1; padding: 8px 18px; border-radius: 8px; text-align: center; color: #A9A6A0; font-size: 13px; }.sub-tab.active { background: #D4A89E; color: #FFFFFF; }.filter-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 16px 0 10px; }.result-count { color: #8E8E8A; font-size: 12px; }.filter-button { display: flex; flex-direction: row; align-items: center; gap: 4px; color: #6C756C; font-size: 12px; }.filter-icon { font-size: 12px; }.record-card { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #E7E3DD; }.record-avatar { width: 52px; height: 52px; border-radius: 26px; }.record-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }.record-name { font-size: 15px; font-weight: 600; }.record-job,.record-city { color: #8E8E8A; font-size: 12px; }.record-time { align-self: flex-start; color: #A9A6A0; font-size: 11px; }.section-divider { height: 8px; margin: 12px -16px; background: #ECE8E2; }.upsell-card { display: flex; flex-direction: column; align-items: center; padding: 20px 16px; border-radius: 16px; background: #FFFFFF; }.lock-circle { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 28px; background: #F7E5E2; color: #C77F76; }.lock-icon { font-size: 28px; }.upsell-title { margin-top: 10px; font-size: 16px; font-weight: 600; }.upsell-desc { margin-top: 6px; color: #8E8E8A; font-size: 12px; }.upsell-button { margin-top: 14px; padding: 10px 28px; border-radius: 20px; background: #D4A89E; color: #FFFFFF; font-size: 13px; font-weight: 600; }.visitor-section { padding-top: 18px; }.visitor-title { font-size: 15px; font-weight: 600; }.visitor-row { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 12px 0; }.visitor-avatar { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 26px; background: #E9E6E0; color: #A9A6A0; }.visitor-icon { font-size: 26px; }.visitor-info { flex: 1; display: flex; flex-direction: column; gap: 6px; }.visitor-name { font-size: 14px; font-weight: 600; filter: blur(2px); }.visitor-meta { color: #8E8E8A; font-size: 12px; }.lock-badge { display: flex; flex-direction: row; align-items: center; gap: 3px; color: #C9A96E; font-size: 10px; }.filter-mask { position: fixed; z-index: 50; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(0,0,0,.35); }.filter-sheet { padding: 24px 20px 32px; border-radius: 20px 20px 0 0; background: #F7F4F0; }.sheet-title-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 14px; }.sheet-title { font-size: 17px; font-weight: 600; }.sheet-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: #8E8E8A; }.sheet-option { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #E5E1DA; }.radio { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid #C5C3BE; border-radius: 11px; }.radio.checked { border-color: #D4A89E; }.radio-dot { width: 12px; height: 12px; border-radius: 6px; background: #D4A89E; }.option-copy { flex: 1; display: flex; flex-direction: column; gap: 4px; }.option-title { font-size: 14px; color: #2C2C2C; }.option-desc { color: #8E8E8A; font-size: 11px; }.apply-filter-button { display: flex; align-items: center; justify-content: center; height: 48px; margin-top: 20px; border-radius: 24px; background: #D4A89E; color: #FFFFFF; font-size: 15px; font-weight: 600; }
+@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'); } @font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'); } @font-face { font-family: "iconfont-social"; src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'); } @font-face { font-family: "iconfont-vip"; src: url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff2') format('woff2'); }.ic { font-style: normal; }.ic-home{font-family:"iconfont-home"}.ic-sys{font-family:"iconfont-sys"}.ic-social{font-family:"iconfont-social"}.ic-vip{font-family:"iconfont-vip"}.ic-fanhui:before{content:"\e606"}.ic-guanbi:before{content:"\e604"}.ic-xiala:before{content:"\e609"}.ic-tijiaoqueren:before{content:"\e627"}.ic-huiyuan:before{content:"\e65d"}.ic-touxiang:before{content:"\e632"}
+</style>

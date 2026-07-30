@@ -36,7 +36,7 @@
 						<view v-if="currentTab === i" class="active-indicator"></view>
 					</view>
 				</view>
-				<view class="history-btn" @click="onHistory">
+				<view class="history-btn" @tap="onHistory">
 					<text class="ic ic-home ic-history history-icon"></text>
 				</view>
 			</view>
@@ -764,7 +764,7 @@
 			fail: () => { uni.showToast({ title: '置顶页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
-	const onHistory = () => {}
+	const onHistory = () => { uni.navigateTo({ url: '/pagesSub/profileExtra/history' }) }
 	const onSearch = () => {}
 
 	// ========== 推荐页数据 ==========

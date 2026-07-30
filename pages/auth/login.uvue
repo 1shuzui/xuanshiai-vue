@@ -57,6 +57,7 @@
 
 <script setup lang="uts">
 	import { loginByPhone, loginByWechat, sendSms } from '@/api'
+	import { setAuthTokens } from '@/api/config.uts'
 
 	const authLoading = ref(false)
 	const agreementChecked = ref(uni.getStorageSync('xsa_login_agreed') == true)
@@ -144,36 +145,15 @@
 		uni.navigateTo({ url: '/pages/auth/register' })
 	}
 
-	const loginWithMockSms = async (phone: string): Promise<boolean> => {
-		try {
-			const sendRes = await sendSms(phone, 'login')
-			if (!sendRes.success) return false
-			const loginRes = await loginByPhone(phone, '123456')
-			if (!loginRes.success || loginRes.data == null) return false
-			if (loginRes.data.user_id != null) {
-				uni.setStorageSync('xsa_user_id', loginRes.data.user_id)
-			}
-			uni.setStorageSync('xsa_login_agreed', true)
-			return true
-		} catch (error) {
-			console.error('debug login failed', error)
-			return false
-		}
-	}
-
-	const handleDebugLogin = async () => {
+	const handleDebugLogin = () => {
 		if (authLoading.value || !agreementChecked.value) return
 		authLoading.value = true
-		const ok = await loginWithMockSms('17870810285')
+		setAuthTokens('debug_access_token_xsa')
+		uni.setStorageSync('xsa_user_id', 1)
+		uni.setStorageSync('xsa_login_agreed', true)
 		authLoading.value = false
-		if (ok) {
-			uni.showToast({ title: '本地测试登录成功', icon: 'success' })
-			setTimeout(() => {
-				goHome()
-			}, 400)
-			return
-		}
-		uni.showToast({ title: '本地登录失败，请检查后端', icon: 'none' })
+		uni.showToast({ title: '本地调试登录成功', icon: 'success' })
+		setTimeout(() => { goHome() }, 400)
 	}
 
 	const handleFirstLogin = () => {
