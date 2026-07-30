@@ -15,11 +15,7 @@
 					:key="role.key"
 					class="role-card"
 					:class="role.tone"
-<<<<<<< HEAD
 					@tap="chooseRole(role.key)"
-=======
-			@tap="chooseRole(role.key)"
->>>>>>> sync/upstream-main-751a9f4
 				>
 					<view class="role-icon" :class="role.iconTone"><text>{{ role.icon }}</text></view>
 					<view class="role-copy">

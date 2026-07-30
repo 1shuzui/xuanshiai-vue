@@ -31,7 +31,10 @@ assert.deepEqual(mainPages, [
   'pages/message/message',
   'pages/profile/profile',
   'pages/auth/login',
-  'pages/auth/register'
+  'pages/auth/register',
+  'pages/parent/parent',
+  'pages/parent/user-detail',
+  'pages/emotion-lab/emotion-lab'
 ])
 
 const expectedSubpackages = {

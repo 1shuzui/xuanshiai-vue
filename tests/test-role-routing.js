@@ -36,7 +36,7 @@ assert.deepStrictEqual(
   'the existing native five-tab order must remain unchanged',
 )
 
-const onboarding = read('pages/onboarding/profile.uvue')
+const onboarding = read('pagesSub/userExtra/onboarding/profile.uvue')
 assert.ok(onboarding.includes("key === 'parent'"), 'onboarding should handle the parent role')
 assert.ok(
   onboarding.includes("uni.setStorageSync('xsa_onboarding_mode', 'parent')"),
@@ -104,7 +104,7 @@ for (const key of [
 
 const registerPage = read('pages/auth/register.uvue')
 assert.ok(
-  registerPage.includes("url: '/pages/onboarding/profile'"),
+  registerPage.includes("url: '/pagesSub/userExtra/onboarding/profile'"),
   'new registration should reach role selection before a role-specific profile',
 )
 assert.ok(
@@ -170,7 +170,7 @@ for (const file of [
   'pages/parent/user-detail.uvue',
   'pages/emotion-lab/emotion-lab.uvue',
   'components/XsaMessageCenter.uvue',
-  'pages/chat/detail.uvue',
+  'pagesSub/chat/detail.uvue',
 ]) {
   const source = read(file)
   assert.ok(source.includes("from '@/api'"), `${file} should use the unified API entry`)
