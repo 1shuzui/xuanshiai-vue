@@ -1,0 +1,64 @@
+<template>
+	<view v-if="visible" class="spotlight-success-mask" @tap="handleMaskTap">
+		<view class="spotlight-success-sheet" @tap.stop>
+			<view class="success-handle"></view>
+			<view class="success-icon"><text>✓</text></view>
+			<text class="success-title">爆灯已送达</text>
+			<text class="success-copy">支付已确认，我们已向对方发送强提醒，并在其爆灯栏展示你的头像。</text>
+			<view class="target-card">
+				<image class="target-avatar" :src="target.avatar" mode="aspectFill"></image>
+				<view class="target-copy"><text class="target-name">{{ target.name }}</text><text class="target-meta">{{ target.meta }}</text></view>
+				<text class="delivered-label">已送达</text>
+			</view>
+			<view class="boundary-note"><text class="boundary-title">温馨提示</text><text class="boundary-copy">爆灯帮助表达关注，不替你发起申请认识，也不保证对方回应。</text></view>
+			<view class="success-action" @tap="continueBrowse"><text>继续浏览</text></view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+interface SpotlightTarget {
+	id: number
+	name: string
+	avatar: string
+	meta: string
+}
+
+interface Props {
+	visible: boolean
+	target: SpotlightTarget
+	closeOnOverlay?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	visible: false,
+	target: () => ({ id: 0, name: '', avatar: '', meta: '' }),
+	closeOnOverlay: false
+})
+
+const emit = defineEmits<{
+	close: []
+}>()
+
+const handleMaskTap = () => { if (props.closeOnOverlay) emit('close') }
+const continueBrowse = () => { emit('close') }
+</script>
+
+<style scoped>
+.spotlight-success-mask { position: fixed; z-index: 120; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; justify-content: flex-end; background-color: rgba(12, 19, 19, 0.42); }
+.spotlight-success-sheet { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 16px 20px calc(24px + env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0; background-color: var(--paper); box-shadow: var(--shadow-lg); }
+.success-handle { width: 42px; height: 4px; border-radius: 999px; background-color: var(--line); }
+.success-icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background-color: var(--sage-soft); color: var(--sage); font-size: 34px; font-weight: 800; }
+.success-title { color: var(--ink); font-family: var(--serif); font-size: 26px; font-weight: 700; }
+.success-copy { width: 100%; color: var(--ink2); font-size: 13px; line-height: 1.6; text-align: center; }
+.target-card { display: flex; flex-direction: row; align-items: center; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background-color: var(--surface); }
+.target-avatar { width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; background-color: var(--warm); }
+.target-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; margin-left: 12px; }
+.target-name { overflow: hidden; color: var(--ink); font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.target-meta { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.delivered-label { padding: 5px 8px; border-radius: 999px; background-color: var(--sage-soft); color: var(--sage); font-size: 11px; font-weight: 700; }
+.boundary-note { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 12px; border-radius: 12px; background-color: var(--canvas); }
+.boundary-title { color: var(--ink); font-size: 12px; font-weight: 700; }
+.boundary-copy { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.success-action { display: flex; align-items: center; justify-content: center; width: 100%; height: 48px; border-radius: 999px; background-color: var(--accent2); color: var(--text-invert); font-size: 16px; font-weight: 700; }
+</style>

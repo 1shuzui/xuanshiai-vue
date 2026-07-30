@@ -562,10 +562,6 @@
 									</view>
 								</view>
 </view>
-							<view class="vip-card-spotlight" @tap.stop="onSpotlight(card.id)">
-								<text class="vip-card-spotlight-icon">💡</text>
-								<text class="vip-card-spotlight-text">我要爆灯</text>
-							</view>
 						</view>
 					</view>
 				</view>
@@ -928,10 +924,6 @@
 	const simulateMatch = () => { successVisible.value = false; matchedVisible.value = true }
 	const startChat = () => { matchedVisible.value = false; uni.navigateTo({ url: '/pages/chat/detail?userId=user_001&userName=林悦' }) }
 
-	const onSpotlight = (userId: number) => {
-		showToast(userId > 0 ? '已打开爆灯入口' : '爆灯入口打开失败')
-	}
-
 	// ========== 通用操作 ==========
 	// 推荐卡默认嘉宾 id（与 mock 动态作者对齐，便于验证关注·喜欢）
 	const recommendUserId = ref(1)
@@ -1227,9 +1219,6 @@
 .vip-card-row { display: flex; flex-direction: row; gap: 20rpx; }
 .vip-card-item { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
 .vip-card-content { position: relative; display: flex; flex-direction: column; }
-.vip-card-spotlight { position: relative; z-index: 6; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8rpx; min-height: 64rpx; border-top: 1rpx solid var(--line); background-color: #FEF9F0; }
-.vip-card-spotlight-icon { font-size: 24rpx; }
-.vip-card-spotlight-text { color: var(--gold); font-size: 22rpx; font-weight: 700; }
 .vip-card-photo { width: 100%; height: 280rpx; position: relative; overflow: hidden; }
 .vip-card-photo-img { width: 100%; height: 100%; }
 .vip-card-crown { position: absolute; top: 12rpx; left: 12rpx; display: flex; align-items: center; padding: 4rpx 10rpx; border-radius: var(--radius-sm); background-color: #C9A96E; }

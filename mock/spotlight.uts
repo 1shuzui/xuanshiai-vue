@@ -1,0 +1,2 @@
+/** 爆灯支付 Mock 订单，仅用于开发、联调和演示。 */
+export const mockSpotlightPaymentOrders: any[] = []

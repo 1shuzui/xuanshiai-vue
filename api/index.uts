@@ -106,6 +106,12 @@ export {
   getCommentReplies
 } from './community.uts'
 
+// 爆灯相关
+export {
+  SPOTLIGHT_AMOUNT,
+  paySpotlight
+} from './spotlight.uts'
+
 // 牵线/红娘相关
 export {
   getMockMatchmakerContact,

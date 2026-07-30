@@ -1,6 +1,7 @@
 <template>
 	<view class="edit-page">
 		<view class="nav-bar">
+			<view class="nav-back" @tap="onCancel"><text class="nav-back-icon">‹</text></view>
 			<text class="nav-title">编辑资料</text>
 			<text class="nav-preview" @tap="onPreview">主页预览</text>
 		</view>
@@ -22,83 +23,127 @@
 			<view class="progress-section">
 				<view class="progress-header"><text class="progress-label">资料完整度</text><text class="progress-value">{{ completeness }}%</text></view>
 				<view class="progress-track"><view class="progress-fill" :style="{ width: completeness + '%' }"></view></view>
-				<text class="progress-hint">完整资料能帮助对方更准确地了解你。</text>
+				<text class="progress-hint">资料越完整，推荐权重越高，更容易遇见对的人</text>
 			</view>
 
-			<view class="section-card media-card">
-				<view class="section-heading"><text class="section-title">照片与背景</text><text class="section-caption">{{ formData.photos.length }}/9</text></view>
-				<view class="media-row">
+			<view class="section-card avatar-section">
+				<view class="section-heading"><text class="section-title">头像</text><text class="section-action" @tap="changeBackground">更换背景　›</text></view>
+				<view class="background-preview" @tap="changeBackground"><image class="background-image" :src="formData.coverBg" mode="aspectFill"></image><text class="background-label">背景墙</text></view>
+				<view class="avatar-row">
 					<view class="avatar-box" @tap="chooseAvatar">
 						<image class="avatar-image" :src="formData.avatar" mode="aspectFill"></image>
-						<text class="media-action">更换头像</text>
+						<view class="camera-badge"><text class="camera-icon">⌾</text></view>
 					</view>
-					<view class="background-box" @tap="changeBackground">
-						<image class="background-image" :src="formData.coverBg" mode="aspectFill"></image>
-						<text class="media-action">更换背景</text>
-					</view>
+					<view class="avatar-copy"><text class="avatar-title">上传真实头像</text><text class="avatar-description">正面高清照，衣着得体，提高推荐排名</text></view>
 				</view>
+				<text class="avatar-rule">⚠ 他人照片、看不清脸、P图过度、非人物照将无法通过审核</text>
+			</view>
+
+			<view class="section-card album-card">
+				<view class="section-heading"><text class="section-title">我的相册</text><text class="section-caption">{{ formData.photos.length }}/9</text></view>
 				<view class="album-grid">
 					<view class="album-cell" v-for="(photo, index) in formData.photos" :key="photo.id != null ? photo.id : index">
 						<image class="album-photo" :src="photo.url" mode="aspectFill"></image>
 						<view class="album-delete" @tap="deletePhoto(index)"><text>×</text></view>
 					</view>
-					<view v-if="formData.photos.length < 9" class="album-cell add-cell" @tap="addPhoto"><text class="add-icon">+</text></view>
+					<view v-if="formData.photos.length < 9" class="album-cell add-cell" @tap="addPhoto"><text class="add-icon">+</text><text class="add-label">添加照片</text></view>
 				</view>
 				<text class="media-note" v-if="uploadingMedia">正在上传媒体，请稍候</text>
 			</view>
 
-			<view class="section-card">
-				<text class="section-title">基本资料</text>
-				<view class="field-list">
-					<view class="field-row"><text class="field-label">昵称</text><text class="field-readonly">{{ formData.nickname || '未设置' }}</text></view>
-					<view class="field-row"><text class="field-label">性别</text><picker class="field-picker" mode="selector" :range="genderOptions" @change="onGenderChange"><text>{{ genderText }}</text></picker></view>
-					<view class="field-row"><text class="field-label">出生日期</text><picker class="field-picker" mode="date" :value="formData.birthday" start="1900-01-01" end="2100-12-31" @change="onBirthdayChange"><text>{{ formData.birthday || '请选择' }}</text></picker></view>
-					<view class="field-row"><text class="field-label">身高（cm）</text><input class="field-input" type="number" :value="formData.height" placeholder="150-200" @input="onInput('height', $event)" /></view>
-					<view class="field-row"><text class="field-label">学历等级</text><picker class="field-picker" mode="selector" :range="educationOptions" @change="onEducationChange"><text>{{ educationText }}</text></picker></view>
-					<view class="field-row"><text class="field-label">居住城市编码</text><input class="field-input" :value="formData.residenceCityCode" placeholder="例如 310100" @input="onInput('residenceCityCode', $event)" /></view>
+			<view class="section-card preview-card">
+				<view class="section-heading"><text class="section-title">基础信息</text><text class="section-action">编辑　›</text></view>
+				<view class="preview-list">
+					<view class="preview-row"><text class="preview-label">现居地</text><text class="preview-value">{{ formData.residenceCityCode || '未填写' }}</text></view>
+					<view class="preview-row"><text class="preview-label">学历</text><text class="preview-value">{{ educationText }}</text></view>
+					<view class="preview-row"><text class="preview-label">职业</text><text class="preview-value">{{ formData.occupation || '未填写' }}{{ formData.industry ? ' · ' + formData.industry : '' }}</text></view>
+					<view class="preview-row"><text class="preview-label">收入</text><text class="preview-value">{{ formData.income !== '' ? formData.income : '未填写' }}</text></view>
+					<view class="preview-row"><text class="preview-label">婚姻状况</text><text class="preview-value">{{ maritalText }}</text></view>
+					<view class="preview-row"><text class="preview-label">MBTI</text><text class="preview-value">{{ formData.mbti || '未填写' }}</text></view>
 				</view>
 			</view>
 
-			<view class="section-card">
-				<text class="section-title">工作情况</text>
-				<view class="field-list">
-					<view class="field-row"><text class="field-label">职业</text><input class="field-input" :value="formData.occupation" placeholder="填写职业" @input="onInput('occupation', $event)" /></view>
-					<view class="field-row"><text class="field-label">行业</text><input class="field-input" :value="formData.industry" placeholder="填写行业" @input="onInput('industry', $event)" /></view>
-					<view class="field-row"><text class="field-label">收入数值</text><input class="field-input" type="number" :value="formData.income" placeholder="填写收入数值" @input="onInput('income', $event)" /></view>
+			<view class="section-card detail-card">
+				<view class="section-heading"><text class="section-title">详细资料</text><text class="section-caption">可随时更新</text></view>
+				<view class="detail-group">
+					<text class="detail-group-title">基本资料</text>
+					<view class="field-list">
+						<view class="field-row"><text class="field-label">昵称</text><text class="field-readonly">{{ formData.nickname || '未设置' }}</text></view>
+						<view class="field-row"><text class="field-label">性别</text><picker class="field-picker" mode="selector" :range="genderOptions" @change="onGenderChange"><text>{{ genderText }}</text></picker></view>
+						<view class="field-row"><text class="field-label">出生日期</text><picker class="field-picker" mode="date" :value="formData.birthday" start="1900-01-01" end="2100-12-31" @change="onBirthdayChange"><text>{{ formData.birthday || '请选择' }}</text></picker></view>
+						<view class="field-row"><text class="field-label">身高（cm）</text><input class="field-input" type="number" :value="formData.height" placeholder="150-200" @input="onInput('height', $event)" /></view>
+						<view class="field-row"><text class="field-label">学历等级</text><picker class="field-picker" mode="selector" :range="educationOptions" @change="onEducationChange"><text>{{ educationText }}</text></picker></view>
+						<view class="field-row"><text class="field-label">居住城市编码</text><input class="field-input" :value="formData.residenceCityCode" placeholder="例如 310100" @input="onInput('residenceCityCode', $event)" /></view>
+					</view>
 				</view>
-			</view>
-
-			<view class="section-card">
-				<text class="section-title">婚恋情况</text>
-				<view class="field-list">
-					<view class="field-row"><text class="field-label">婚姻状态</text><picker class="field-picker" mode="selector" :range="maritalOptions" @change="onMaritalChange"><text>{{ maritalText }}</text></picker></view>
-					<view class="field-row"><text class="field-label">MBTI</text><input class="field-input" :value="formData.mbti" placeholder="例如 ENFP" maxlength="4" @input="onInput('mbti', $event)" /></view>
-					<view class="field-column"><text class="field-label">自我介绍</text><textarea class="intro-input" :value="formData.introduction" maxlength="1000" placeholder="分享你的性格、兴趣和生活节奏" @input="onInput('introduction', $event)"></textarea></view>
+				<view class="detail-group">
+					<text class="detail-group-title">工作情况</text>
+					<view class="field-list">
+						<view class="field-row"><text class="field-label">职业</text><input class="field-input" :value="formData.occupation" placeholder="填写职业" @input="onInput('occupation', $event)" /></view>
+						<view class="field-row"><text class="field-label">行业</text><input class="field-input" :value="formData.industry" placeholder="填写行业" @input="onInput('industry', $event)" /></view>
+						<view class="field-row"><text class="field-label">收入数值</text><input class="field-input" type="number" :value="formData.income" placeholder="填写收入数值" @input="onInput('income', $event)" /></view>
+					</view>
 				</view>
-			</view>
-
-			<view class="section-card">
-				<view class="section-heading"><text class="section-title">择偶要求</text><text class="section-caption">会影响后续推荐</text></view>
-				<view class="field-list">
-					<view class="range-row"><view class="range-field"><text class="field-label">年龄下限</text><input class="field-input" type="number" :value="formData.ageMin" placeholder="不限" @input="onInput('ageMin', $event)" /></view><text class="range-separator">至</text><view class="range-field"><text class="field-label">年龄上限</text><input class="field-input" type="number" :value="formData.ageMax" placeholder="不限" @input="onInput('ageMax', $event)" /></view></view>
-					<view class="range-row"><view class="range-field"><text class="field-label">身高下限</text><input class="field-input" type="number" :value="formData.heightMin" placeholder="不限" @input="onInput('heightMin', $event)" /></view><text class="range-separator">至</text><view class="range-field"><text class="field-label">身高上限</text><input class="field-input" type="number" :value="formData.heightMax" placeholder="不限" @input="onInput('heightMax', $event)" /></view></view>
-					<view class="field-row"><text class="field-label">最低学历等级</text><input class="field-input" type="number" :value="formData.educationMin" placeholder="不限" @input="onInput('educationMin', $event)" /></view>
-					<view class="field-row"><text class="field-label">接受异地</text><switch :checked="formData.acceptLongDistance" color="var(--accent)" @change="onSwitchChange('acceptLongDistance', $event)" /></view>
-					<view class="field-row"><text class="field-label">接受跨省</text><switch :checked="formData.acceptCrossProvince" color="var(--accent)" @change="onSwitchChange('acceptCrossProvince', $event)" /></view>
-					<view class="field-column"><text class="field-label">其他要求</text><textarea class="intro-input" :value="formData.extraRequirement" maxlength="255" placeholder="填写希望对方了解的边界" @input="onInput('extraRequirement', $event)"></textarea></view>
+				<view class="detail-group">
+					<text class="detail-group-title">婚恋情况</text>
+					<view class="field-list">
+						<view class="field-row"><text class="field-label">婚姻状态</text><picker class="field-picker" mode="selector" :range="maritalOptions" @change="onMaritalChange"><text>{{ maritalText }}</text></picker></view>
+						<view class="field-row"><text class="field-label">MBTI</text><input class="field-input" :value="formData.mbti" placeholder="例如 ENFP" maxlength="4" @input="onInput('mbti', $event)" /></view>
+					</view>
+				</view>
+				<view class="detail-group">
+					<view class="section-heading"><text class="detail-group-title">择偶要求</text><text class="section-caption">会影响后续推荐</text></view>
+					<view class="field-list">
+						<view class="range-row"><view class="range-field"><text class="field-label">年龄下限</text><input class="field-input" type="number" :value="formData.ageMin" placeholder="不限" @input="onInput('ageMin', $event)" /></view><text class="range-separator">至</text><view class="range-field"><text class="field-label">年龄上限</text><input class="field-input" type="number" :value="formData.ageMax" placeholder="不限" @input="onInput('ageMax', $event)" /></view></view>
+						<view class="range-row"><view class="range-field"><text class="field-label">身高下限</text><input class="field-input" type="number" :value="formData.heightMin" placeholder="不限" @input="onInput('heightMin', $event)" /></view><text class="range-separator">至</text><view class="range-field"><text class="field-label">身高上限</text><input class="field-input" type="number" :value="formData.heightMax" placeholder="不限" @input="onInput('heightMax', $event)" /></view></view>
+						<view class="field-row"><text class="field-label">最低学历等级</text><input class="field-input" type="number" :value="formData.educationMin" placeholder="不限" @input="onInput('educationMin', $event)" /></view>
+						<view class="field-row"><text class="field-label">接受异地</text><switch :checked="formData.acceptLongDistance" color="var(--accent)" @change="onSwitchChange('acceptLongDistance', $event)" /></view>
+						<view class="field-row"><text class="field-label">接受跨省</text><switch :checked="formData.acceptCrossProvince" color="var(--accent)" @change="onSwitchChange('acceptCrossProvince', $event)" /></view>
+						<view class="field-column"><text class="field-label">其他要求</text><textarea class="intro-input" :value="formData.extraRequirement" maxlength="255" placeholder="填写希望对方了解的边界" @input="onInput('extraRequirement', $event)"></textarea></view>
+					</view>
 				</view>
 			</view>
 
 			<view class="section-card certification-card">
-				<view class="section-heading"><text class="section-title">认证状态</text><text class="section-caption">审核结果来自服务端</text></view>
+				<view class="section-heading"><text class="section-title">四重认证</text><text class="section-caption">审核结果来自服务端</text></view>
 				<view class="cert-row" v-for="cert in certifications" :key="cert.key" @tap="goCertification(cert.key)">
-					<text class="cert-label">{{ cert.label }}</text><text class="cert-status" :class="{ passed: cert.passed }">{{ cert.status }}</text><text class="cert-arrow">›</text>
+					<view class="cert-icon-wrap"><text class="cert-icon">{{ cert.key == 'realname' ? '✓' : cert.key == 'education' ? '学' : cert.key == 'avatar' ? '像' : '♥' }}</text></view>
+					<view class="cert-copy"><text class="cert-label">{{ cert.label }}</text><text class="cert-description">{{ cert.status }}</text></view>
+					<text class="cert-status" :class="{ passed: cert.passed }">{{ cert.passed ? '已通过' : '去认证 ›' }}</text>
 				</view>
 			</view>
 
-			<view class="intro-section"><text class="safe-note">你的资料会按照公开范围展示，联系方式不会在未同意前公开。</text><view class="save-button" :class="{ disabled: saving || uploadingMedia }" @tap="handleSave"><text>{{ saving ? '保存中...' : '保存资料' }}</text></view></view>
+			<view class="section-card intro-card">
+				<text class="section-title">自我介绍</text>
+				<textarea class="intro-input intro-main-input" :value="formData.introduction" maxlength="1000" placeholder="分享一下你的性格、爱好、生活态度...让TA更快了解你" @input="onInput('introduction', $event)"></textarea>
+				<text class="section-caption">超有趣的自我介绍会被更多人看见哦！完成后建议搭配照片验证</text>
+			</view>
+
+			<view class="section-card tags-card">
+				<text class="section-title">我的标签</text>
+				<text class="section-caption">选择最能代表你的个性标签（最多20个）</text>
+				<view class="tag-list">
+					<view class="profile-tag" v-for="tag in formData.interestTags" :key="tag"><text>{{ tag }}</text></view>
+					<view class="profile-tag accent-tag" v-for="tag in formData.personalityTags" :key="'p-' + tag"><text>{{ tag }}</text></view>
+					<view class="tag-add"><text>+ 添加</text></view>
+				</view>
+			</view>
+
+			<view class="section-card qa-card">
+				<text class="section-title">关于我</text>
+				<text class="section-caption">你的回答将展示在个人主页，帮助对方更深入了解你</text>
+				<view class="qa-item"><text class="qa-question">你理想中的另一半是什么样的</text><text class="qa-hint">点击填写你的回答...　›</text></view>
+				<view class="qa-item"><text class="qa-question">喜欢什么运动</text><text class="qa-hint">点击填写你的回答...　›</text></view>
+				<view class="qa-item"><text class="qa-question">你期待的爱情是什么样子的</text><text class="qa-hint">点击填写你的回答...　›</text></view>
+			</view>
+
 			<view class="scroll-bottom-spacer"></view>
 		</scroll-view>
+
+		<view v-if="!loading && loadError == ''" class="bottom-bar">
+			<view class="cancel-button" @tap="onCancel"><text>取消</text></view>
+			<view class="save-button" :class="{ disabled: saving || uploadingMedia }" @tap="handleSave"><text>{{ saving ? '保存中...' : '保存' }}</text></view>
+		</view>
 	</view>
 </template>
 
@@ -146,6 +191,7 @@
 		extraRequirement: ''
 	})
 	const completionScore = ref(0)
+	const usingLocalDraft = ref(false)
 
 	const textValue = (value: any): string => value == null ? '' : '' + value
 	const optionalNumber = (value: any): any => {
@@ -194,19 +240,34 @@
 		formData.value.extraRequirement = textValue(data.extra_requirement)
 	}
 
+	const applyLocalDraft = () => {
+		usingLocalDraft.value = true
+		applyProfile({
+			user_id: 9001,
+			nickname: '苏晚晴', gender: 2, birthday: '1998-05-15', height: 165,
+			education_level: 3, residence_city_code: '杭州', occupation: '插画师', industry: '文化创意', income: 20000, is_married: 1, mbti: 'INFP',
+			self_intro: '喜欢画画、猫和下雨天。周末常在西湖边写生，希望找到能一起看展、一起发呆的人。',
+			interest_tags: ['看展', '咖啡', '宠物'], personality_tags: ['文艺', '温和'], tag_selections: {}, avatar: DEFAULT_AVATAR, background_wall: DEFAULT_COVER,
+			photos: [{ id: 1, file_url: DEFAULT_AVATAR }, { id: 2, file_url: DEFAULT_COVER }], completion_score: 72
+		})
+		applyPreferences({ age_min: 25, age_max: 35, height_min: 170, height_max: '', education_min: 3, accept_long_distance: true, accept_cross_province: true, extra_requirement: '愿意真诚沟通，也尊重彼此的生活节奏。' })
+	}
+
 	const load = async () => {
 		loading.value = true
 		loadError.value = ''
 		try {
 			const profileRes = await getOwnProfile()
 			if (!profileRes.success || profileRes.data == null) {
-				loadError.value = profileRes.message != null ? '' + profileRes.message : '请稍后重试'
+				applyLocalDraft()
+				uni.showToast({ title: '服务暂不可用，已打开本地资料', icon: 'none' })
 				return
 			}
 			applyProfile(profileRes.data)
 			const preferenceRes = await getOwnPreferences()
 			if (!preferenceRes.success || preferenceRes.data == null) {
-				loadError.value = preferenceRes.message != null ? '' + preferenceRes.message : '择偶要求暂时无法加载'
+				applyLocalDraft()
+				uni.showToast({ title: '择偶要求暂不可用，已打开本地资料', icon: 'none' })
 				return
 			}
 			applyPreferences(preferenceRes.data)
@@ -215,7 +276,8 @@
 				realNameStatus.value = meRes.data.realNameStatus != null ? '' + meRes.data.realNameStatus : 'missing'
 			}
 		} catch (e) {
-			loadError.value = '网络异常，请稍后重试'
+			applyLocalDraft()
+			uni.showToast({ title: '网络不可用，已打开本地资料', icon: 'none' })
 		} finally {
 			loading.value = false
 		}
@@ -301,35 +363,12 @@
 	}
 
 	const goCertification = (key: string) => uni.navigateTo({ url: '/pages/profile/certification?type=' + key })
-	const onPreview = () => uni.navigateTo({ url: '/pages/user/detail?own=true' })
-
-	const closeBasicInfoEditor = () => {
-		basicInfoEditVisible.value = false
-	}
-
-	// 字段编辑
-	const showFieldEditor = (field: string) => {
-		uni.showToast({ title: '选择器开发中', icon: 'none' })
-	}
-
-	// 认证跳转
-	const goCertification = (key: string) => {
-		uni.navigateTo({ url: '/pages/profile/certification?type=' + key })
-	}
-
-	const onPreview = () => {
-		uni.navigateTo({ url: '/pages/user/detail?own=true&preview=true' })
-	}
+	const onPreview = () => uni.navigateTo({ url: '/pages/user/detail?own=true&preview=true' })
 
 	const onCancel = () => {
 		uni.navigateBack({ delta: 1 })
 	}
 
-	// 输入
-	// 输入事件
-	const onIntroInput = (e: InputEvent) => {
-		formData.value.introduction = e.detail.value
-	}
 	const buildProfilePayload = () => ({
 		gender: formData.value.gender,
 		birthday: formData.value.birthday != '' ? formData.value.birthday : null,
@@ -389,38 +428,56 @@
 
 <style scoped>
 .edit-page { min-height: 100vh; background: var(--canvas); display: flex; flex-direction: column; }
-.nav-bar { height: 52px; padding: 0 16px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; background: var(--paper); border-bottom: 1px solid var(--line); }
-.nav-title { font-size: 20px; font-weight: 700; color: var(--ink); }
-.nav-preview { font-size: 13px; color: var(--accent2); }
+.nav-bar { height: 48px; padding: 0 16px; display: flex; flex-direction: row; align-items: center; justify-content: center; position: relative; background: var(--paper); border-bottom: 1px solid var(--line); }
+.nav-back { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface); }
+.nav-back-icon { font-size: 28px; font-weight: 700; color: var(--ink); line-height: 1; }
+.nav-title { font-size: 18px; font-weight: 700; color: var(--ink); }
+.nav-preview { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--muted); }
 .state-block { padding: 72px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .state-title { font-size: 16px; font-weight: 700; color: var(--ink); }
 .state-description { font-size: 13px; color: var(--muted); }
-.scroll-content { flex: 1; height: 0; padding: 12px 16px 0; box-sizing: border-box; }
+.scroll-content { flex: 1; height: 0; padding: 12px 16px 100px; box-sizing: border-box; }
 .progress-section { padding: 4px 0 16px; display: flex; flex-direction: column; gap: 8px; }
-.progress-header, .section-heading, .field-row, .range-row, .cert-row { display: flex; flex-direction: row; align-items: center; }
+.progress-header, .section-heading, .field-row, .range-row { display: flex; flex-direction: row; align-items: center; }
 .progress-header, .section-heading { justify-content: space-between; }
 .progress-label, .section-title { font-size: 16px; font-weight: 700; color: var(--ink); }
-.progress-value { font-size: 14px; font-weight: 700; color: var(--accent2); }
+.progress-value { font-size: 14px; font-weight: 700; color: var(--sage); }
 .progress-track { height: 6px; border-radius: 3px; background: var(--warm); overflow: hidden; }
-.progress-fill { height: 100%; border-radius: 3px; background: var(--accent); }
-.progress-hint, .section-caption, .media-note, .safe-note { font-size: 12px; color: var(--muted); }
-.section-card { margin-bottom: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
-.section-heading { margin-bottom: 14px; }
-.media-row { display: flex; flex-direction: row; gap: 10px; margin-bottom: 12px; }
-.avatar-box, .background-box { position: relative; overflow: hidden; border-radius: 8px; background: var(--warm); }
-.avatar-box { width: 88px; height: 88px; }
-.background-box { flex: 1; height: 88px; }
-.avatar-image, .background-image { width: 100%; height: 100%; }
-.media-action { position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 4px; text-align: center; background: var(--surface-overlay); color: var(--ink); font-size: 11px; }
-.album-grid { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
-.album-cell { position: relative; width: calc((100% - 24px) / 4); aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: var(--warm); }
+.progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--sage), var(--accent)); }
+.progress-hint { font-size: 11px; color: var(--muted); }
+.section-caption { font-size: 12px; color: var(--muted); }
+.section-action { font-size: 13px; color: var(--muted); }
+.section-card { margin-bottom: 12px; padding: 16px 18px; background: var(--surface); border-radius: 20px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 12px; }
+.section-heading { margin-bottom: 0; }
+.avatar-row { display: flex; flex-direction: row; gap: 14px; align-items: center; }
+.avatar-box { position: relative; width: 72px; height: 72px; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: var(--warm); }
+.avatar-image { width: 100%; height: 100%; }
+.camera-badge { position: absolute; right: 0; bottom: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--sage); display: flex; align-items: center; justify-content: center; }
+.camera-icon { font-size: 14px; color: var(--text-invert); }
+.avatar-copy { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.avatar-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.avatar-description { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.background-preview { position: relative; width: 100%; height: 80px; overflow: hidden; border-radius: 10px; background: var(--warm); }
+.background-image { width: 100%; height: 100%; }
+.background-label { position: absolute; right: 10px; bottom: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(12,19,19,0.45); color: var(--text-invert); font-size: 11px; }
+.avatar-rule { font-size: 11px; color: var(--ink2); line-height: 1.4; }
+.album-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.album-cell { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: var(--warm); }
 .album-photo { width: 100%; height: 100%; }
-.album-delete { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--ink); color: var(--text-invert); font-size: 16px; }
-.add-cell { display: flex; align-items: center; justify-content: center; border: 1px dashed var(--line); }
+.album-delete { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(12,19,19,0.7); color: var(--text-invert); font-size: 16px; }
+.add-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px dashed var(--line); }
 .add-icon { font-size: 24px; color: var(--muted); }
-.media-note { display: block; margin-top: 10px; color: var(--accent2); }
+.add-label { font-size: 11px; color: var(--muted); }
+.media-note { display: block; margin-top: 2px; color: var(--accent2); font-size: 12px; }
+.preview-list { display: flex; flex-direction: column; }
+.preview-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 10px 0; }
+.preview-row + .preview-row { border-top: 1px solid var(--line); }
+.preview-label { font-size: 13px; color: var(--muted); }
+.preview-value { font-size: 13px; color: var(--ink); font-weight: 500; }
+.detail-group { padding: 4px 0; }
+.detail-group-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 8px; display: block; }
 .field-list { display: flex; flex-direction: column; }
-.field-row { min-height: 46px; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+.field-row { min-height: 44px; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
 .field-row:last-child { border-bottom: 0; }
 .field-label { flex-shrink: 0; font-size: 13px; color: var(--ink2); }
 .field-input, .field-picker, .field-readonly { flex: 1; min-width: 0; text-align: right; font-size: 13px; color: var(--ink); }
@@ -428,19 +485,35 @@
 .field-picker { padding: 10px 0; }
 .field-readonly { color: var(--muted); }
 .field-column { padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-.intro-input { width: 100%; min-height: 92px; padding: 10px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font-size: 13px; line-height: 1.5; }
 .range-row { gap: 10px; padding: 8px 0; align-items: flex-end; }
 .range-field { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .range-separator { padding-bottom: 12px; color: var(--muted); font-size: 12px; }
-.certification-card { padding-bottom: 4px; }
-.cert-row { min-height: 44px; gap: 8px; border-top: 1px solid var(--line); }
-.cert-label { flex: 1; font-size: 13px; color: var(--ink); }
-.cert-status { font-size: 12px; color: var(--muted); }
-.cert-status.passed { color: var(--sage); }
-.cert-arrow { color: var(--muted); font-size: 18px; }
-.intro-section { padding: 4px 0 16px; display: flex; flex-direction: column; gap: 12px; }
-.save-button { height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--brown); color: var(--text-invert); font-size: 14px; font-weight: 700; }
+.certification-card { padding-bottom: 8px; }
+.cert-row { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 6px 0; }
+.cert-row + .cert-row { border-top: 1px solid var(--line); }
+.cert-icon-wrap { width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: var(--sage-soft); display: flex; align-items: center; justify-content: center; }
+.cert-icon { font-size: 16px; color: var(--sage); font-weight: 700; }
+.cert-copy { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.cert-label { font-size: 13px; color: var(--ink); font-weight: 600; }
+.cert-description { font-size: 11px; color: var(--muted); }
+.cert-status { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.cert-status.passed { font-size: 16px; color: var(--sage); }
+.intro-card { gap: 10px; }
+.intro-main-input { width: 100%; min-height: 100px; padding: 12px; box-sizing: border-box; border: none; border-radius: 12px; background: var(--warm); color: var(--ink); font-size: 13px; line-height: 1.5; }
+.intro-input { width: 100%; min-height: 92px; padding: 10px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font-size: 13px; line-height: 1.5; }
+.tags-card { gap: 6px; }
+.tag-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.profile-tag { padding: 6px 14px; border-radius: 999px; background: var(--warm); color: var(--ink2); font-size: 13px; font-weight: 500; }
+.accent-tag { background: var(--sage-soft); color: var(--sage); }
+.tag-add { padding: 6px 14px; border-radius: 999px; border: 1px dashed var(--accent); color: var(--accent); font-size: 13px; font-weight: 500; }
+.qa-card { gap: 8px; }
+.qa-item { padding: 12px; border-radius: 12px; background: var(--warm); display: flex; flex-direction: column; gap: 6px; }
+.qa-question { font-size: 13px; font-weight: 600; color: var(--ink); }
+.qa-hint { font-size: 12px; color: var(--muted); }
+.bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); display: flex; flex-direction: row; gap: 12px; align-items: center; z-index: 10; }
+.cancel-button { flex: 1; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; background: var(--warm); color: var(--ink2); font-size: 15px; font-weight: 600; }
+.save-button { flex: 1; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; background: var(--sage); color: var(--text-invert); font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(51,141,107,0.25); }
 .save-button.disabled { opacity: 0.55; }
-.scroll-bottom-spacer { height: calc(20px + env(safe-area-inset-bottom)); }
-@media (max-width: 350px) { .scroll-content { padding-left: 12px; padding-right: 12px; } .section-card { padding: 13px; } }
+.scroll-bottom-spacer { height: 60px; }
+@media (max-width: 350px) { .scroll-content { padding-left: 12px; padding-right: 12px; } .section-card { padding: 13px 14px; } }
 </style>

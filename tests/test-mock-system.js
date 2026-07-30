@@ -43,7 +43,8 @@ try {
     'mock/user.uts',
     'mock/message.uts',
     'mock/community.uts',
-    'mock/matchmaker.uts'
+    'mock/matchmaker.uts',
+    'mock/spotlight.uts'
   ]
 
   mockFiles.forEach(file => {
@@ -71,7 +72,8 @@ try {
     'api/user.uts',
     'api/message.uts',
     'api/community.uts',
-    'api/matchmaker.uts'
+    'api/matchmaker.uts',
+    'api/spotlight.uts'
   ]
 
   apiFiles.forEach(file => {

@@ -1,0 +1,69 @@
+import { mockSpotlightPaymentOrders } from '@/mock/spotlight.uts'
+import { USE_MOCK } from './config.uts'
+import { request } from './request.uts'
+
+export const SPOTLIGHT_AMOUNT = 9.9
+const STORAGE_KEY = 'xsa_spotlight_orders_v1'
+
+export type SpotlightTarget = {
+  id: number
+  name: string
+  avatar: string
+  meta: string
+}
+
+export type SpotlightPaymentOrder = {
+  orderNo: string
+  targetUserId: number
+  targetUserName: string
+  amount: number
+  paymentStatus: string
+  spotlightStatus: string
+  paidAt: string
+}
+
+function restoreOrders(): void {
+  try {
+    const saved = uni.getStorageSync(STORAGE_KEY)
+    if (saved != null && Array.isArray(saved)) {
+      mockSpotlightPaymentOrders.splice(0, mockSpotlightPaymentOrders.length)
+      const records = saved as any[]
+      for (let i = 0; i < records.length; i++) mockSpotlightPaymentOrders.push(records[i])
+    }
+  } catch (e) {}
+}
+
+function persistOrders(): void {
+  try { uni.setStorageSync(STORAGE_KEY, mockSpotlightPaymentOrders) } catch (e) {}
+}
+
+function createMockOrder(target: SpotlightTarget): SpotlightPaymentOrder {
+  const now = Date.now()
+  const order: SpotlightPaymentOrder = {
+    orderNo: 'MOCK-SPOTLIGHT-' + String(now),
+    targetUserId: target.id,
+    targetUserName: target.name,
+    amount: SPOTLIGHT_AMOUNT,
+    paymentStatus: 'paid',
+    spotlightStatus: 'delivered',
+    paidAt: new Date(now).toISOString()
+  }
+  mockSpotlightPaymentOrders.unshift(order)
+  persistOrders()
+  return order
+}
+
+export async function paySpotlight(target: SpotlightTarget) {
+  if (target == null || target.id <= 0 || target.name == '') {
+    return { success: false, data: null, code: 400, message: '爆灯对象无效' }
+  }
+  if (USE_MOCK) {
+    restoreOrders()
+    return { success: true, data: createMockOrder(target), code: 0, message: '支付成功，爆灯已送达' }
+  }
+  return request({
+    url: '/spotlights/payments',
+    method: 'POST',
+    data: { target_user_id: target.id }
+  })
+}
