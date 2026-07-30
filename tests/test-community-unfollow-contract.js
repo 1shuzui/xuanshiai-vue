@@ -19,6 +19,6 @@ assert.doesNotMatch(community, /cancelColor:|confirmColor:/)
 assert.match(community, /label:\s*'喜欢'/)
 assert.match(community, /const isValidCity = \(name: string\)/)
 assert.doesNotMatch(community, /source=community/)
-assert.match(community, /bottom:\s*calc\(50px \+ 32px \+ env\(safe-area-inset-bottom\)\)/)
+assert.match(community, /bottom:\s*calc\(50px \+ 48px \+ env\(safe-area-inset-bottom\)\)/)
 
 console.log('community unfollow contract passed')
