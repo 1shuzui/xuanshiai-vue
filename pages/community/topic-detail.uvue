@@ -1,6 +1,6 @@
 <template>
 	<view class="page">
-		<scroll-view class="scroll" scroll-y>
+		<scroll-view class="scroll" scroll-y @scrolltolower="loadMore">
 			<view class="hero" v-if="topic != null">
 				<view class="hero-card">
 					<image v-if="topic.cover != null" class="hero-cover" :src="topic.cover" mode="aspectFill"></image>
@@ -12,6 +12,7 @@
 					</view>
 				</view>
 			</view>
+
 			<XsaEmpty v-if="!loading && topicError" text="话题暂时无法打开" description="请稍后重试" :show-action="true" action-text="重试" @action="load" />
 			<view v-if="!topicError" class="sort-row">
 				<view class="chip" :class="{ active: sort == 'hot' }" @click="changeSort('hot')"><text>热门</text></view>
@@ -102,6 +103,7 @@ import {
 		const reportVisible = ref(false)
 		const reportTargetId = ref(0)
 		const reportUserId = ref(0)
+		const unfollowPendingUserId = ref(0)
 
 		const topicJoined = computed(() => {
 			const t = topic.value as any
@@ -165,41 +167,86 @@ onShow(() => {
 				cityTag: item.cityTag === true,
 				relationTags: item.relationTags != null ? item.relationTags : [],
 				topicTitle: item.topicTitle != null ? item.topicTitle : '',
-videos: item.videos != null ? item.videos : [],
-					mediaType: item.mediaType != null ? item.mediaType : '',
-					likeAvatars: item.likeAvatars != null ? item.likeAvatars : (item.like_avatars != null ? item.like_avatars : [])
-				}
+				videos: item.videos != null ? item.videos : [],
+				mediaType: item.mediaType != null ? item.mediaType : ''
 			}
-		const load = async () => {
+		}
+
+	const load = async () => {
 		if (topicId.value <= 0) {
 			topicError.value = true
 			return
 		}
+		const requestedTopicId = topicId.value
+		const requestedSort = sort.value
+		const requestedPage = 1
+		const seq = topicLoadSeq.value + 1
+		topicLoadSeq.value = seq
 		loading.value = true
+		loadingMore.value = false
 		topicError.value = false
+		page.value = requestedPage
+		hasMore.value = true
 		try {
-			const res = await getTopicDetail(topicId.value, sort.value)
+			const res = await getTopicDetail(requestedTopicId, requestedSort, requestedPage, pageSize)
+			if (seq != topicLoadSeq.value || requestedTopicId != topicId.value || requestedSort != sort.value) return
 			if (res.success && res.data != null && res.data.topic != null) {
 				topic.value = res.data.topic
 				posts.value = res.data.posts != null ? res.data.posts : []
+				hasMore.value = res.data.hasMore === true
 			} else {
 				topic.value = null
 				posts.value = []
 				topicError.value = true
 			}
 		} catch (e) {
+			if (seq != topicLoadSeq.value || requestedTopicId != topicId.value || requestedSort != sort.value) return
 			console.error(e)
 			topic.value = null
 			posts.value = []
 			topicError.value = true
 		} finally {
-			loading.value = false
+			if (seq == topicLoadSeq.value) loading.value = false
+		}
+	}
+
+	const loadMore = async () => {
+		if (loading.value || loadingMore.value || !hasMore.value || topicId.value <= 0 || topicError.value) return
+		const nextPage = page.value + 1
+		const requestedTopicId = topicId.value
+		const requestedSort = sort.value
+		const requestedPage = nextPage
+		const seq = topicLoadSeq.value + 1
+		topicLoadSeq.value = seq
+		loadingMore.value = true
+		try {
+			const res = await getTopicDetail(requestedTopicId, requestedSort, requestedPage, pageSize)
+			if (seq != topicLoadSeq.value || requestedTopicId != topicId.value || requestedSort != sort.value || requestedPage != page.value + 1) return
+			if (!res.success || res.data == null) {
+				uni.showToast({ title: '加载更多失败，请重试', icon: 'none' })
+				return
+			}
+			const next = res.data.posts != null ? (res.data.posts as any[]) : []
+			const current = posts.value as any[]
+			for (let i = 0; i < next.length; i++) {
+				const item = next[i]
+				if (current.findIndex((p: any) => p.id == item.id) < 0) current.push(item)
+			}
+			page.value = requestedPage
+			hasMore.value = res.data.hasMore === true
+		} catch (e) {
+			if (seq != topicLoadSeq.value) return
+			uni.showToast({ title: '加载更多失败，请重试', icon: 'none' })
+		} finally {
+			if (seq == topicLoadSeq.value) loadingMore.value = false
 		}
 	}
 
 	const changeSort = async (s: string) => {
 		if (sort.value === s) return
 		sort.value = s
+		page.value = 1
+		hasMore.value = true
 		await load()
 	}
 
@@ -299,6 +346,8 @@ const applyParticipation = (joined: boolean, participantCount: any) => {
 				p.liked = res.data.liked
 				p.likeCount = res.data.likeCount
 			}
+		} else {
+			uni.showToast({ title: '点赞失败，请重试', icon: 'none' })
 		}
 	}
 
@@ -314,6 +363,8 @@ const applyParticipation = (joined: boolean, participantCount: any) => {
 					p.collectCount = res.data.collectCount
 				}
 			}
+		} else {
+			uni.showToast({ title: '收藏失败，请重试', icon: 'none' })
 		}
 	}
 
@@ -326,18 +377,24 @@ const applyParticipation = (joined: boolean, participantCount: any) => {
 				if (p.user != null && p.user.id == userId) p.followed = true
 			})
 			uni.showToast({ title: '已关注', icon: 'none' })
+		} else {
+			uni.showToast({ title: '关注失败，请重试', icon: 'none' })
 		}
 	}
 
 	const onUnfollow = (userId: number) => {
+		if (unfollowPendingUserId.value != 0) return
+		unfollowPendingUserId.value = userId
 		uni.showModal({
-			content: '确定取消关注吗？',
+			title: '取消关注',
+			content: '确定不再关注这位用户吗？',
 			cancelText: '取消',
-			cancelColor: '#000000',
 			confirmText: '确定',
-			confirmColor: '#38988D',
 			success: async (modalRes: any) => {
-				if (!modalRes.confirm) return
+				if (modalRes == null || modalRes.confirm != true) {
+					unfollowPendingUserId.value = 0
+					return
+				}
 				try {
 					const res = await unfollowUserFromCommunity(userId)
 					if (res.success) {
@@ -345,10 +402,23 @@ const applyParticipation = (joined: boolean, participantCount: any) => {
 							if (p.user != null && p.user.id == userId) p.followed = false
 						})
 						uni.showToast({ title: '已取消关注', icon: 'none' })
+					} else {
+						const msg =
+							res != null && res.data != null && res.data.message != null
+								? '' + res.data.message
+								: res != null && res.message != null
+									? '' + res.message
+									: '取消关注失败，请重试'
+						uni.showToast({ title: msg, icon: 'none' })
 					}
 				} catch (e) {
 					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				} finally {
+					if (unfollowPendingUserId.value == userId) unfollowPendingUserId.value = 0
 				}
+			}
+			, fail: () => {
+				if (unfollowPendingUserId.value == userId) unfollowPendingUserId.value = 0
 			}
 		})
 	}

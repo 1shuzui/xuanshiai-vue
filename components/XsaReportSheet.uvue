@@ -162,6 +162,14 @@
 						uni.showToast({ title: '已屏蔽', icon: 'success' })
 						emit('blocked', props.userId)
 						emit('close')
+					} else {
+						const msg =
+							r.data != null && r.data.message != null
+								? r.data.message
+								: r.message != null
+									? r.message
+									: '屏蔽失败，请重试'
+						uni.showToast({ title: msg, icon: 'none' })
 					}
 				} catch (e) {
 					uni.showToast({ title: '操作失败', icon: 'none' })

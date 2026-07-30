@@ -1,10 +1,38 @@
 <script setup lang="uts">
+	import {
+		FASTAPI_AUTO_ENTER_COMMUNITY,
+		FASTAPI_DEV_ACCESS_TOKEN,
+		FASTAPI_DEV_USER_ID,
+		getAccessToken,
+		setAuthTokens
+	} from './api/config.uts'
+
+	const tryAutoEnterFastApiCommunity = (): boolean => {
+		if (FASTAPI_AUTO_ENTER_COMMUNITY != true) return false
+		if (FASTAPI_DEV_ACCESS_TOKEN == '' || FASTAPI_DEV_USER_ID <= 0) return false
+
+		setAuthTokens(FASTAPI_DEV_ACCESS_TOKEN)
+		if (getAccessToken() != FASTAPI_DEV_ACCESS_TOKEN) return false
+
+		try {
+			uni.setStorageSync('xsa_user_id', FASTAPI_DEV_USER_ID)
+		} catch (e) {
+			return false
+		}
+
+		uni.switchTab({
+			url: '/pages/community/community'
+		})
+		return true
+	}
+
 	// #ifdef APP-ANDROID || APP-HARMONY
 	let firstBackTime = 0
 	// #endif
 
 	onLaunch(() => {
 		console.log('App Launch')
+		tryAutoEnterFastApiCommunity()
 	})
 
 	onShow(() => {
@@ -79,12 +107,6 @@
 		--shortcut-plane: #DDF1F5;
 		--shortcut-dynamic: #DDF2EC;
 		--shortcut-lab: #F6E8DE;
-
-		/* 社区互动状态 */
-		--like: #E85A6B;
-		--like-bg: rgba(232, 90, 107, 0.12);
-		--superlike: #F4B942;
-		--superlike-bg: rgba(244, 185, 66, 0.16);
 
 		/* 纸飞机工作台 */
 		--plane-purple: #7450C8;

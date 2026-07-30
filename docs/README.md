@@ -26,10 +26,11 @@
 | [`DEV_PLAN_HBUILDERX.md`](./DEV_PLAN_HBUILDERX.md) | 下一阶段完整开发文档：P0 壳层/首页 → 主路径 → 会员付费；立刻开工 8 项 |
 | [`小程序UI样式注意事项.md`](./小程序UI样式注意事项.md) | 小程序优先的标签、布局、样式与交互规则 |
 | [`MOCK_API_GUIDE.md`](./MOCK_API_GUIDE.md) | 当前 Mock/API 结构与真实接口切换前提（含社区话题/活动/纸飞机/通知） |
+| [`COMMUNITY_HTTP_CHANGELOG.md`](./COMMUNITY_HTTP_CHANGELOG.md) | 社区 FE↔BE 联调修改记录（双路径 + 审查修复） |
+| [`COMMUNITY_ADVERSARIAL_REVIEW.md`](./COMMUNITY_ADVERSARIAL_REVIEW.md) | 社区对抗审查台账与 P0/P1 修复状态 |
 | [`Mock使用与退役约定.md`](./Mock使用与退役约定.md) | Mock 分模块退役规则 |
 | [`图片上传与包体注意事项.md`](./图片上传与包体注意事项.md) | 图片、上传、静态资源与包体规则 |
 | [`开发自检清单.md`](./开发自检清单.md) | 合并或提测前检查清单 |
-| [`微信小程序包体质量治理计划`](../WECHAT_PACKAGE_GOVERNANCE_PLAN.md) | 组件按需注入、媒体预算、静态资源清理和业务分包实施计划 |
 
 ## 组件文档
 

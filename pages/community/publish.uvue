@@ -1,123 +1,135 @@
 <template>
-		<view class="publish-page">
-			<scroll-view class="publish-scroll" scroll-y>
-			<view class="publish-content">
-				<view class="publish-tip" @click="openTopicSheet">
-					<view class="tip-icon"><text>✦</text></view>
-					<text class="tip-text">添加相关话题，方便更多人找到你的动态</text>
-					<text class="tip-arrow">›</text>
-				</view>
-
-				<view class="publish-compose">
-					<textarea
-						class="compose-textarea"
-						:value="content"
-						@input="onContentInput"
-						placeholder="分享此刻的心情..."
-						maxlength="500"
-						auto-height
-					></textarea>
-					<view class="compose-meta">
-						<text class="compose-note">记录生活 · 认真表达</text>
-						<text class="char-count">{{ content.length }}/500</text>
-					</view>
-				</view>
-
-				<view class="publish-media">
-					<view class="photo-grid" v-if="videoItems.length == 0 && photoItems.length > 0">
-						<view class="photo-item" v-for="(item, index) in photoItems" :key="index">
-							<image class="photo" :src="item.localPath" mode="aspectFill"></image>
-							<view class="media-status" v-if="item.status == 'uploading' || item.status == 'pending'">
-								<text class="media-status-text">上传中</text>
-							</view>
-							<view class="media-status media-failed" v-else-if="item.status == 'failed'" @click="retryPhoto(index)">
-								<text class="media-status-text">失败·点重试</text>
-							</view>
-							<view class="delete-btn" @click.stop="deletePhoto(index)">
-								<text class="icon">✕</text>
-							</view>
+	<view class="publish-page">
+		<scroll-view class="scroll-content" scroll-y>
+			<!-- 媒体区：图片 / 视频互斥；选择后立即上传 -->
+			<view class="photo-section">
+				<view class="photo-grid" v-if="videoItems.length == 0">
+					<view class="photo-item" v-for="(item, index) in photoItems" :key="index">
+						<image class="photo" :src="item.localPath" mode="aspectFill"></image>
+						<view class="media-status" v-if="item.status == 'uploading' || item.status == 'pending'">
+							<text class="media-status-text">上传中</text>
 						</view>
-						<view class="photo-item publish-media-tile" @click="addPhoto" v-if="canAddPhoto">
-							<text class="media-plus">+</text>
-							<text class="media-tile-label">添加照片</text>
+						<view class="media-status media-failed" v-else-if="item.status == 'failed'" @click="retryPhoto(index)">
+							<text class="media-status-text">失败·点重试</text>
+						</view>
+						<view class="delete-btn" @click="deletePhoto(index)">
+							<text class="icon">✕</text>
 						</view>
 					</view>
-
-					<view class="publish-media-tile media-empty" v-if="photoItems.length == 0 && videoItems.length == 0" @click="addPhoto">
-						<text class="media-plus">+</text>
+					<view class="photo-item add-btn" @click="addPhoto" v-if="canAddPhoto">
+						<text class="icon">+</text>
+						<text class="text">添加图片</text>
 					</view>
+				</view>
 
-					<view class="video-block" v-if="videoItems.length > 0">
-						<view class="video-preview">
-							<video class="video-player" :src="videoItems[0].localPath" controls></video>
-							<view class="media-status" v-if="videoItems[0].status == 'uploading' || videoItems[0].status == 'pending'">
-								<text class="media-status-text">上传中</text>
-							</view>
-							<view class="media-status media-failed" v-else-if="videoItems[0].status == 'failed'" @click="retryVideo">
-								<text class="media-status-text">失败·点重试</text>
-							</view>
-							<view class="delete-btn" @click.stop="deleteVideo">
-								<text class="icon">✕</text>
-							</view>
+				<view class="video-block" v-if="videoItems.length > 0">
+					<view class="video-preview">
+						<video class="video-player" :src="videoItems[0].localPath" controls></video>
+						<view class="media-status" v-if="videoItems[0].status == 'uploading' || videoItems[0].status == 'pending'">
+							<text class="media-status-text">上传中</text>
+						</view>
+						<view class="media-status media-failed" v-else-if="videoItems[0].status == 'failed'" @click="retryVideo">
+							<text class="media-status-text">失败·点重试</text>
+						</view>
+						<view class="delete-btn" @click="deleteVideo">
+							<text class="icon">✕</text>
 						</view>
 					</view>
 				</view>
 
-				<view class="quick-topic-row">
-					<scroll-view class="quick-topic-scroll" scroll-x>
-						<view class="topic-chip topic-chip-selected" v-if="topicTitle !== ''" @click="openTopicSheet">
-							<text># {{ topicTitle }}</text>
-						</view>
-						<view class="topic-chip" v-for="topic in quickTopics" :key="topic.id" @click="pickTopic(topic)">
-							<text>{{ topicLabel(topic) }}</text>
-						</view>
-						<view class="topic-chip topic-chip-more" @click="openTopicSheet">
-							<text># 更多话题</text>
-							<text class="chip-arrow">›</text>
-						</view>
-					</scroll-view>
-				</view>
-
-				<view class="visibility-row" @click="selectVisibility">
-					<view class="visibility-main">
-						<text class="visibility-icon">⌁</text>
-						<text class="visibility-label">谁可以看</text>
-					</view>
-					<view class="visibility-value">
-						<text>{{ visibilityText }}</text>
-						<text class="row-arrow">›</text>
+				<view class="media-actions" v-if="videoItems.length == 0">
+					<view class="media-action-btn" @click="addVideo" v-if="canAddVideo || photoItems.length > 0">
+						<text class="media-action-text">添加视频</text>
 					</view>
 				</view>
 
-				<view class="publish-settings">
-					<view class="setting-row" @click="chooseLocation">
-						<view class="setting-main"><text class="setting-icon">⌖</text><text>添加位置</text></view>
-						<view class="setting-value"><text v-if="location">{{ location }}</text><text v-else>可选</text><text class="row-arrow">›</text></view>
-					</view>
-					<view class="setting-row" @click="selectDeclaration">
-						<view class="setting-main"><text class="setting-icon">ⓘ</text><text>内容声明</text></view>
-						<view class="setting-value"><text>{{ declarationText }}</text><text class="row-arrow">›</text></view>
-					</view>
-					<view class="setting-row" @click="selectMention">
-						<view class="setting-main"><text class="setting-icon">@</text><text>提醒谁看</text></view>
-						<view class="setting-value"><text>{{ mentions.length > 0 ? '已选择' + mentions.length + '人' : '可选' }}</text><text class="row-arrow">›</text></view>
-					</view>
+				<text class="photo-tip text-muted">图片最多 9 张，或视频 1 条（互斥）；选择后自动上传</text>
+			</view>
+
+			<!-- 内容输入 + 表情 -->
+			<view class="content-section">
+				<textarea
+					class="textarea"
+					:value="content"
+					@input="onContentInput"
+					placeholder="分享此刻的心情..."
+					maxlength="500"
+					auto-height
+				></textarea>
+				<view class="content-footer">
+					<text class="emoji-btn" @click="toggleEmoji">表情</text>
+					<text class="char-count">{{ content.length }}/500</text>
+				</view>
+			</view>
+
+			<!-- 位置 -->
+			<view class="option-item" @click="chooseLocation">
+				<view class="option-left">
+					<text class="option-icon">📍</text>
+					<text class="option-label">添加位置</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted" v-if="location">{{ location }}</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 话题 -->
+			<view class="option-item" @click="openTopicSheet">
+				<view class="option-left">
+					<text class="option-icon">#</text>
+					<text class="option-label">添加话题</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted" v-if="topicTitle !== ''">{{ topicTitle }}</text>
+					<text class="option-value text-muted" v-else>选择话题</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 内容声明 -->
+			<view class="option-item" @click="selectDeclaration">
+				<view class="option-left">
+					<text class="option-icon">ⓘ</text>
+					<text class="option-label">内容声明</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted">{{ declarationText }}</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 可见范围 -->
+			<view class="option-item" @click="selectVisibility">
+				<view class="option-left">
+					<text class="option-icon">👁️</text>
+					<text class="option-label">谁可以看</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted">{{ visibilityText }}</text>
+					<text class="arrow">›</text>
+				</view>
+			</view>
+
+			<!-- 提醒谁看 -->
+			<view class="option-item" @click="selectMention">
+				<view class="option-left">
+					<text class="option-icon">@</text>
+					<text class="option-label">提醒谁看</text>
+				</view>
+				<view class="option-right">
+					<text class="option-value text-muted" v-if="mentions.length > 0">
+						已选择{{ mentions.length }}人
+					</text>
+					<text class="arrow">›</text>
 				</view>
 			</view>
 		</scroll-view>
 
-		<view class="publish-footer">
-			<view class="publish-toolbar">
-				<view class="toolbar-btn" @click="addPhoto"><text class="toolbar-icon">▧</text></view>
-				<view class="toolbar-btn" @click="addVideo"><text class="toolbar-icon">▣</text></view>
-				<view class="toolbar-btn" @click="toggleEmoji"><text class="toolbar-icon">☺</text></view>
-				<view class="assistant-btn" @click="selectMention">
-					<text class="assistant-icon">✥</text>
-					<text class="assistant-label">合拍助手</text>
-					<text class="new-badge">新</text>
-				</view>
-			</view>
-			<button class="footer-publish" @click="handlePublish" :disabled="!canPublish || publishing">{{ publishing ? '发布中' : '发布' }}</button>
+		<!-- 底部发布按钮 -->
+		<view class="footer">
+			<button class="cancel-btn" @click="handleCancel">取消</button>
+			<button class="publish-btn" @click="handlePublish" :disabled="!canPublish">发布</button>
 		</view>
 
 		<!-- 表情浮层 -->
@@ -214,18 +226,6 @@ const EMOJI_LIST = [
 	'❤️', '🤍', '🌟', '🌸', '🍜', '🎨', '📷', '🌙'
 ]
 
-const quickTopics = computed(() => {
-	const list = topicOptions.value as any[]
-	const result: any[] = []
-	for (let i = 0; i < list.length && result.length < 3; i++) {
-		const topic = list[i]
-		if (topic != null && topic.id != null && topic.id != topicId.value) {
-			result.push(topic)
-		}
-	}
-	return result
-})
-
 onLoad(async (query: any) => {
 		const raw = query != null ? query.topicId : null
 		const parsed = raw != null ? parseInt('' + raw) : 0
@@ -250,7 +250,6 @@ onLoad(async (query: any) => {
 					const res = await getTopics('hot')
 					if (res.success && res.data != null) {
 						const list = res.data as any[]
-						topicOptions.value = list
 						for (let i = 0; i < list.length; i++) {
 							if (list[i].id == topicId.value) {
 								topicTitle.value = list[i].title != null ? ('' + list[i].title) : ''
@@ -268,7 +267,6 @@ onLoad(async (query: any) => {
 				uni.showToast({ title: '话题标题加载失败，可重新选择', icon: 'none' })
 			}
 		}
-		await loadTopicOptions()
 	})
 
 	const canPublish = computed(() => {
@@ -459,14 +457,6 @@ const filteredTopics = computed(() => {
 	}
 	return out
 })
-
-const topicLabel = (topic: any): string => {
-	const title = topic != null && topic.title != null ? ('' + topic.title).trim() : ''
-	const tag = topic != null && topic.tag != null ? ('' + topic.tag).trim() : ''
-	const raw = title != '' ? title : tag
-	if (raw == '') return '# 话题'
-	return raw.indexOf('#') == 0 ? raw : '# ' + raw
-}
 
 const addPhoto = () => {
 		if (!canAddPhoto.value) {
@@ -676,7 +666,6 @@ const openTopicSheet = async () => {
 }
 
 const loadTopicOptions = async () => {
-	if (topicOptions.value.length > 0) return
 	topicLoading.value = true
 	topicError.value = ''
 	try {
@@ -714,16 +703,13 @@ const closeTopicSheet = () => {
 	topicKeyword.value = ''
 }
 
-const hasUnsavedDraft = (): boolean => {
-			return (
-				photoItems.value.length > 0 ||
-				videoItems.value.length > 0 ||
-				content.value.trim().length > 0 ||
-				topicId.value > 0
-			)
-		}
-
-		const confirmLeaveDraft = () => {
+const handleCancel = () => {
+		if (
+			photoItems.value.length > 0 ||
+			videoItems.value.length > 0 ||
+			content.value.trim().length > 0 ||
+			topicId.value > 0
+		) {
 			uni.showModal({
 				title: '提示',
 				content: '确定放弃编辑吗？',
@@ -735,15 +721,11 @@ const hasUnsavedDraft = (): boolean => {
 					}
 				}
 			})
+		} else {
+			discardPendingPublishKey()
+			uni.navigateBack()
 		}
-
-		// 系统导航返回：有草稿时拦截并确认（App/H5；小程序主要依赖 onUnload 清理）
-		onBackPress(() => {
-			if (publishedOk.value) return false
-			if (!hasUnsavedDraft()) return false
-			confirmLeaveDraft()
-			return true
-		})
+	}
 
 	const discardPendingPublishKey = () => {
 		if (pendingPublishKey.value != '') {
@@ -872,122 +854,33 @@ const hasUnsavedDraft = (): boolean => {
 
 <style scoped>
 .publish-page {
-		height: 100vh;
-		background: var(--surface);
-		display: flex;
-		flex-direction: column;
-	}
-
-	.publish-scroll {
-		flex: 1;
-		min-height: 0;
-	}
-
-	.publish-content {
-	padding: 10px 18px 22px;
-}
-
-.publish-tip {
-	min-height: 36px;
-	padding: 0 10px;
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	background: var(--accent-bg);
-	border-radius: 8px;
-}
-
-.tip-icon {
-	width: 22px;
-	height: 22px;
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	justify-content: center;
-	color: var(--accent2);
-}
-
-
-.tip-icon text {
-	font-size: 16px;
-}
-
-.tip-text {
-	flex: 1;
-	margin: 0 8px;
-	font-size: 11px;
-	line-height: 1.4;
-	color: var(--accent2);
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.tip-arrow,
-.row-arrow {
-	font-size: 20px;
-	line-height: 1;
-	color: var(--accent2);
-}
-
-.publish-compose {
-	min-height: 188px;
-	padding: 16px 0 8px;
+	height: 100vh;
+	background: var(--canvas);
 	display: flex;
 	flex-direction: column;
 }
 
-.compose-textarea {
-	width: 100%;
-	min-height: 156px;
-	font-size: 15px;
-	line-height: 1.65;
-	color: var(--ink);
-	background: transparent;
+.scroll-content {
+	flex: 1;
+	padding: 16px;
 }
 
-.compose-meta {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding-top: 8px;
+.photo-section {
+	margin-bottom: 16px;
 }
-
-.compose-note {
-	font-size: 11px;
-	color: var(--muted);
-}
-
-.char-count {
-	font-size: 11px;
-	color: var(--muted);
-}
-
-.publish-media {
-	min-height: 353px;
-	display: flex;
-	flex-direction: row;
-	align-items: flex-start;
-}
-
 
 .photo-grid {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
-	gap: 8px;
-	width: 100%;
+	gap: 12px;
+	margin-bottom: 8px;
 }
 
-.photo-item,
-.publish-media-tile {
+.photo-item {
 	position: relative;
 	aspect-ratio: 1;
 	border-radius: 8px;
 	overflow: hidden;
-}
-
-.photo-item {
-	background: var(--warm);
 }
 
 .photo {
@@ -995,45 +888,17 @@ const hasUnsavedDraft = (): boolean => {
 	height: 100%;
 }
 
-.publish-media-tile {
-	background: var(--canvas);
-	border: 1px solid var(--warm);
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-}
-
-.media-empty {
-	width: 106px;
-	height: 106px;
-	flex-shrink: 0;
-}
-
-.media-plus {
-	font-size: 34px;
-	font-weight: 300;
-	line-height: 1;
-	color: var(--muted);
-}
-
-.media-tile-label {
-	margin-top: 5px;
-	font-size: 11px;
-	color: var(--muted);
-}
-
 .video-block {
-	width: 100%;
+	margin-bottom: 8px;
 }
 
 .video-preview {
 	position: relative;
 	width: 100%;
-	height: 210px;
+	height: 200px;
 	border-radius: 8px;
 	overflow: hidden;
-	background: var(--ink);
+	background: var(--surface);
 }
 
 .video-player {
@@ -1043,260 +908,201 @@ const hasUnsavedDraft = (): boolean => {
 
 .delete-btn {
 	position: absolute;
-	top: 6px;
-	right: 6px;
+	top: 4px;
+	right: 4px;
 	width: 24px;
 	height: 24px;
-	background: var(--ink);
-	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.6);
+	border-radius: 50%;
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	justify-content: center;
-	opacity: 0.82;
 }
 
 .delete-btn .icon {
-	color: var(--text-invert);
-	font-size: 15px;
-}
+		color: var(--text-invert);
+		font-size: 16px;
+	}
 
+	.media-status {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 4px 0;
+		background: rgba(0, 0, 0, 0.55);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
 
-.media-status {
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	padding: 5px 0;
-	background: var(--ink);
+	.media-failed {
+		background: rgba(0, 0, 0, 0.7);
+	}
+
+	.media-status-text {
+		font-size: 11px;
+		color: var(--text-invert);
+	}
+
+.add-btn {
+	background: var(--surface);
+	border: 1px dashed var(--line);
 	display: flex;
-	flex-direction: row;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	opacity: 0.86;
+	gap: 4px;
 }
 
-.media-failed {
-	opacity: 0.96;
-}
-
-.media-status-text {
-	font-size: 11px;
-	color: var(--text-invert);
-}
-
-.quick-topic-row {
-	margin-top: 19px;
-	width: 100%;
-}
-
-.quick-topic-scroll {
-	width: 100%;
-	white-space: nowrap;
-}
-
-.topic-chip {
-	display: inline-flex;
-	flex-direction: row;
-	align-items: center;
-	margin-right: 7px;
-	padding: 7px 10px;
-	background: var(--canvas);
-	border-radius: 999px;
+.add-btn .icon {
+	font-size: 32px;
 	color: var(--muted);
-	font-size: 11px;
-	line-height: 1.2;
 }
 
-.topic-chip-selected {
-	background: var(--accent-bg);
-	color: var(--accent2);
+.add-btn .text {
+	font-size: 12px;
+	color: var(--muted);
 }
 
-.topic-chip-more {
-	background: var(--paper);
-	border: 1px solid var(--warm);
-	color: var(--ink2);
+.media-actions {
+	display: flex;
+	flex-direction: row;
+	margin-bottom: 8px;
 }
 
-.chip-arrow {
-	margin-left: 4px;
-	font-size: 16px;
-	line-height: 10px;
+.media-action-btn {
+	padding: 8px 12px;
+	background: var(--surface);
+	border: 1px dashed var(--line);
+	border-radius: 8px;
 }
 
-.visibility-row {
-	height: 50px;
-	margin-top: 3px;
+.media-action-text {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.photo-tip {
+	font-size: 12px;
+}
+
+.content-section {
+	background: var(--surface);
+	border-radius: 12px;
+	padding: 16px;
+	margin-bottom: 12px;
+}
+
+.textarea {
+	width: 100%;
+	min-height: 120px;
+	font-size: 15px;
+	color: var(--ink);
+	line-height: 1.6;
+}
+
+.content-footer {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	border-bottom: 1px solid var(--warm);
+	margin-top: 8px;
 }
 
-.visibility-main,
-.visibility-value,
-.setting-main,
-.setting-value {
+.emoji-btn {
+	font-size: 13px;
+	color: var(--accent);
+	padding: 4px 8px;
+}
+
+.char-count {
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.option-item {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
+	justify-content: space-between;
+	height: 52px;
+	padding: 0 16px;
+	background: var(--surface);
+	border-radius: 12px;
+	margin-bottom: 8px;
 }
 
-.visibility-main,
-.setting-main {
-	gap: 9px;
+.option-left {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+}
+
+.option-icon {
+	font-size: 20px;
+}
+
+.option-label {
+	font-size: 15px;
 	color: var(--ink);
 }
 
-.visibility-label,
-.setting-main text:last-child {
-	font-size: 13px;
+.option-right {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
 }
 
-.visibility-icon,
-.setting-icon {
-	width: 20px;
-	text-align: center;
-	font-size: 16px;
-	color: var(--ink2);
-}
-
-.visibility-value,
-.setting-value {
-	gap: 6px;
-	max-width: 68%;
-	font-size: 12px;
-	color: var(--muted);
-	min-width: 0;
-}
-
-.visibility-value text:first-child,
-.setting-value text:first-child {
+.option-value {
+	font-size: 14px;
+	max-width: 160px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.visibility-value .row-arrow {
+.arrow {
+	font-size: 20px;
 	color: var(--muted);
 }
 
-.publish-settings {
-	padding-bottom: 6px;
-}
-
-.setting-row {
-	height: 48px;
+.footer {
 	display: flex;
 	flex-direction: row;
-	align-items: center;
-	justify-content: space-between;
-	border-bottom: 1px solid var(--warm);
-}
-
-.setting-value {
-	max-width: 62%;
-}
-
-.publish-footer {
-	min-height: 62px;
-	padding: 8px 18px;
-	padding-bottom: calc(8px + env(safe-area-inset-bottom));
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	justify-content: space-between;
 	gap: 12px;
+	padding: 12px 16px;
 	background: var(--surface);
-	border-top: 1px solid var(--warm);
-	flex-shrink: 0;
+	border-top: 1px solid var(--line);
+	padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
-.publish-toolbar {
+.cancel-btn {
 	flex: 1;
-	min-width: 0;
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 12px;
-}
-
-.toolbar-btn {
-	width: 28px;
-	height: 34px;
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	justify-content: center;
-}
-
-.toolbar-icon {
-	font-size: 23px;
-	line-height: 1;
-	color: var(--ink2);
-}
-
-.assistant-btn {
-	position: relative;
-	height: 34px;
-	max-width: 90px;
-	padding: 0 8px;
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 4px;
-	background: var(--canvas);
-	border-radius: 999px;
-}
-
-.assistant-icon {
-	font-size: 16px;
-	color: var(--accent2);
-}
-
-.assistant-label {
-	font-size: 10px;
-	color: var(--ink2);
-	white-space: nowrap;
-}
-
-.new-badge {
-	position: absolute;
-	top: -6px;
-	right: -3px;
-	min-width: 16px;
-	height: 16px;
-	padding: 0 3px;
-	border-radius: 999px;
-	background: var(--plane-yellow);
+	height: 44px;
+	background: var(--paper);
 	color: var(--ink);
-	font-size: 9px;
-	line-height: 16px;
-	text-align: center;
-}
-
-.footer-publish {
-	width: 56px;
-	height: 34px;
-	padding: 0;
-	border: 0;
+	border: 1px solid var(--line);
 	border-radius: 999px;
-	background: var(--warm);
-	color: var(--muted);
-	font-size: 12px;
-	line-height: 34px;
-	flex-shrink: 0;
+	font-size: 15px;
 }
 
-.footer-publish:not([disabled]) {
+.publish-btn {
+	flex: 2;
+	height: 44px;
 	background: var(--accent);
 	color: var(--text-invert);
+	border-radius: 999px;
+	font-size: 15px;
+	font-weight: 500;
 }
 
-.footer-publish[disabled] {
-	opacity: 0.72;
+.publish-btn[disabled] {
+	opacity: 0.5;
 }
 
 /* 表情浮层 */
