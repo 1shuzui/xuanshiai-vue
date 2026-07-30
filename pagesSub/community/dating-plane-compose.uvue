@@ -1,0 +1,137 @@
+<template>
+	<view class="page">
+		<view class="topbar" :style="{ paddingTop: statusBarHeight + 'px' }">
+			<button class="back-button" @click="goBack">‹</button>
+			<text class="topbar-title">脱单纸飞机</text>
+			<view class="topbar-placeholder"></view>
+		</view>
+
+		<view class="content">
+			<text class="eyebrow">DATING PAPER PLANE</text>
+			<text class="page-title">认真介绍自己，遇见合拍的 TA</text>
+			<text class="page-desc">写下真实的你，也写下你想遇见的人。</text>
+
+			<view class="form-card">
+				<text class="field-label">自我介绍</text>
+				<textarea
+					class="field-input"
+					:value="selfIntroduction"
+					@input="onSelfIntroductionInput"
+					placeholder="介绍一下你的生活、兴趣或想分享的事"
+					maxlength="52"
+				></textarea>
+				<text class="field-count">{{ selfIntroduction.length }}/52</text>
+
+				<text class="field-label ideal-label">理想的 TA</text>
+				<textarea
+					class="field-input"
+					:value="idealPartner"
+					@input="onIdealPartnerInput"
+					placeholder="你期待和怎样的人认真认识"
+					maxlength="52"
+				></textarea>
+				<text class="field-count">{{ idealPartner.length }}/52</text>
+			</view>
+		</view>
+
+		<view class="send-area">
+			<button class="send-button" :disabled="sending" @click="sendDatingPlane">{{ sending ? '正在扔出...' : '扔出去' }}</button>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { getCommunityQuotas, sendPaperPlane } from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	const systemInfo = uni.getSystemInfoSync()
+	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+	const selfIntroduction = ref('')
+	const idealPartner = ref('')
+	const sending = ref(false)
+	const remain = ref(0)
+
+	onMounted(() => {
+		loadQuota()
+	})
+
+	const loadQuota = async () => {
+		try {
+			const res = await getCommunityQuotas()
+			if (res != null && res.success && res.data != null && res.data.paperPlaneDaily != null) {
+				remain.value = res.data.paperPlaneDaily.remain
+			}
+		} catch (e) {
+			console.error(e)
+		}
+	}
+
+	const onSelfIntroductionInput = (e: any) => {
+		selfIntroduction.value = e.detail.value
+	}
+
+	const onIdealPartnerInput = (e: any) => {
+		idealPartner.value = e.detail.value
+	}
+
+	const sendDatingPlane = async () => {
+		const introduction = selfIntroduction.value.trim()
+		const partner = idealPartner.value.trim()
+		if (introduction.length == 0 || partner.length == 0) {
+			uni.showToast({ title: '请完成自我介绍和理想的 TA', icon: 'none' })
+			return
+		}
+		if (remain.value <= 0) {
+			uni.showToast({ title: '今日免费次数已用完，可用积分加次', icon: 'none' })
+			return
+		}
+		const passed = await guardRealName('paperPlane')
+		if (!passed || sending.value) return
+
+		sending.value = true
+		try {
+			const content = '自我介绍：' + introduction + '\n理想的TA：' + partner
+			const res = await sendPaperPlane({ content, scope: 'city', anonymous: true })
+			const data = res != null ? res.data : null
+			if (res != null && res.success && data != null && data.success != false) {
+				uni.reLaunch({ url: '/pagesSub/community/paper-plane' })
+				return
+			}
+			const message = data != null && data.message != null ? data.message : '扔出失败，请稍后再试'
+			uni.showToast({ title: message, icon: 'none' })
+		} catch (e) {
+			uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' })
+		} finally {
+			sending.value = false
+		}
+	}
+
+	const goBack = () => {
+		uni.navigateBack()
+	}
+</script>
+
+<style scoped>
+	.page { height: 100%; min-height: 0; width: 100vw; overflow: hidden; display: flex; flex-direction: column; background: #F7F2FF; }
+	/* #ifdef H5 */
+	.page { height: 100vh; }
+	/* #endif */
+	.topbar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #E7DDFB; }
+	.back-button, .topbar-placeholder { width: 36px; height: 36px; }
+	.back-button { border-radius: 18px; background: #EEE8FF; color: #4D2E96; font-size: 26px; line-height: 29px; }
+	.back-button::after { border: none; }
+	.topbar-title { font-size: 17px; font-weight: 800; color: #21153A; }
+	.content { flex: 1; min-height: 0; padding: 22px 16px 96px; box-sizing: border-box; }
+	.eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #7450C8; }
+	.page-title { display: block; margin-top: 6px; font-size: 24px; line-height: 1.3; font-family: var(--serif); font-weight: 700; color: #21153A; }
+	.page-desc { display: block; margin-top: 6px; font-size: 12px; color: #8B8298; }
+	.form-card { margin-top: 20px; padding: 16px; border: 1px solid #E4D6FA; border-radius: 18px; background: rgba(255, 255, 255, 0.95); box-shadow: 0 8px 22px rgba(116, 80, 200, 0.1); }
+	.field-label { display: block; font-size: 14px; font-weight: 800; color: #3A2A50; }
+	.ideal-label { margin-top: 17px; }
+	.field-input { width: 100%; height: 82px; margin-top: 9px; padding: 11px; box-sizing: border-box; border: 1px solid #DDCEF4; border-radius: 12px; background: #FCFAFF; color: #322747; font-size: 13px; line-height: 1.5; }
+	.field-count { display: block; margin-top: 5px; text-align: right; color: #A49AAF; font-size: 10px; }
+	.send-area { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.96); border-top: 1px solid #E7DDFB; }
+	.send-button { width: 100%; height: 47px; border-radius: 14px; background: #7450C8; color: #FFFFFF; font-size: 15px; font-weight: 800; }
+	.send-button::after { border: none; }
+	.send-button:disabled { opacity: 0.5; }
+</style>

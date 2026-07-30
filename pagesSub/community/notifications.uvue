@@ -1,0 +1,265 @@
+<template>
+	<view class="page">
+		<view class="tabs">
+			<view
+				class="tab"
+				:class="{ active: currentTab === 'comment' }"
+				@click="switchTab('comment')"
+			>
+				<text class="tab-text">评论</text>
+			</view>
+			<view
+				class="tab"
+				:class="{ active: currentTab === 'like' }"
+				@click="switchTab('like')"
+			>
+				<text class="tab-text">点赞</text>
+			</view>
+			<view
+				class="tab"
+				:class="{ active: currentTab === 'notice' }"
+				@click="switchTab('notice')"
+			>
+				<text class="tab-text">通知</text>
+			</view>
+		</view>
+		<view class="toolbar" v-if="list.length > 0">
+			<text class="mark-all text-accent" @click="markAll">全部已读</text>
+		</view>
+		<scroll-view class="list" scroll-y>
+			<view class="state" v-if="loading"><text class="text-muted">通知加载中...</text></view>
+			<XsaEmpty
+				v-else-if="notificationError"
+				type="noNetwork"
+				text="通知加载失败"
+				description="请检查网络后重试"
+				:show-action="true"
+				action-text="重试"
+				@action="load"
+			/>
+			<XsaEmpty
+				v-else-if="filteredList.length == 0"
+				:text="emptyText"
+				:description="emptyDesc"
+			/>
+			<view
+				class="item"
+				:class="{ unread: !n.read }"
+				v-for="n in filteredList"
+				:key="n.id"
+				@click="open(n)"
+			>
+				<view class="dot" v-if="!n.read"></view>
+				<view class="body">
+					<text class="title">{{ n.title }}</text>
+					<text class="content text-muted">{{ n.content }}</text>
+					<text class="time text-muted">{{ n.timeText }}</text>
+				</view>
+			</view>
+			<view class="pad"></view>
+		</scroll-view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import {
+		getCommunityNotifications,
+		markNotificationRead,
+		markAllNotificationsRead
+	} from '@/api'
+
+	const list = ref([] as any[])
+	const loading = ref(false)
+	const notificationError = ref(false)
+	const currentTab = ref('comment')
+
+	const switchTab = (tab: string) => {
+		currentTab.value = tab
+	}
+
+	const filteredList = computed(() => {
+		const all = list.value as any[]
+		const out: any[] = []
+		for (let i = 0; i < all.length; i++) {
+			const n = all[i]
+			const t = n.type != null ? ('' + n.type) : ''
+			if (currentTab.value == 'comment' && t == 'comment') out.push(n)
+			else if (currentTab.value == 'like' && t == 'like') out.push(n)
+			else if (
+				currentTab.value == 'notice' &&
+				t != 'comment' &&
+				t != 'like'
+			) {
+				out.push(n)
+			}
+		}
+		return out
+	})
+
+	const emptyText = computed(() => {
+		if (currentTab.value == 'comment') return '暂无评论'
+		if (currentTab.value == 'like') return '暂无点赞'
+		return '暂无通知'
+	})
+
+	const emptyDesc = computed(() => {
+		if (currentTab.value == 'comment') return '收到的评论会出现在这里'
+		if (currentTab.value == 'like') return '收到的点赞会出现在这里'
+		return '申请认识与活动进展会出现在这里'
+	})
+
+	onMounted(() => {
+		load()
+	})
+
+	const load = async () => {
+		loading.value = true
+		notificationError.value = false
+		try {
+			const res = await getCommunityNotifications()
+			if (res.success) list.value = res.data as any[]
+			else notificationError.value = true
+		} catch (e) {
+			notificationError.value = true
+			uni.showToast({ title: '通知加载失败', icon: 'none' })
+		} finally {
+			loading.value = false
+		}
+	}
+
+	const open = async (n: any) => {
+		if (n.read != true) {
+			n.read = true
+			try {
+				await markNotificationRead(n.id as number)
+			} catch (e) {}
+		}
+		if (n.targetType == 'post' && n.targetId > 0) {
+			uni.navigateTo({ url: `/pagesSub/community/post-detail?id=${n.targetId}` })
+		} else if (n.targetType == 'comment') {
+			const postId = n.payload != null && n.payload.post_id != null ? n.payload.post_id : n.targetId
+			if (postId > 0) uni.navigateTo({ url: `/pagesSub/community/post-detail?id=${postId}` })
+			else uni.showToast({ title: '该评论已不可查看', icon: 'none' })
+		} else if (n.targetType == 'activity' && n.targetId > 0) {
+			uni.navigateTo({ url: `/pagesSub/community/activity-detail?id=${n.targetId}` })
+		} else if (n.targetType == 'user' && n.targetId > 0) {
+			uni.navigateTo({ url: `/pagesSub/userExtra/user/detail?userId=${n.targetId}` })
+		} else if (n.targetType == 'report' || n.targetType == 'appeal') {
+			uni.navigateTo({ url: '/pagesSub/profileExtra/settings' })
+		} else if (n.targetType == 'message') {
+			uni.switchTab({ url: '/pages/message/message' })
+		} else {
+			uni.showToast({ title: '该通知关联内容已不可查看', icon: 'none' })
+		}
+	}
+
+	const markAll = async () => {
+		try {
+			const res = await markAllNotificationsRead()
+			if (res.success) {
+				const items = list.value as any[]
+				for (let i = 0; i < items.length; i++) {
+					items[i].read = true
+				}
+				uni.showToast({ title: '已全部标为已读', icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '操作失败', icon: 'none' })
+		}
+	}
+</script>
+
+<style scoped>
+	.page {
+		height: 100vh;
+		background: var(--canvas);
+		display: flex;
+		flex-direction: column;
+	}
+	.tabs {
+		display: flex;
+		flex-direction: row;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+	}
+	.tab {
+		flex: 1;
+		height: 44px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		border-bottom: 2px solid transparent;
+	}
+	.tab.active {
+		border-bottom-color: var(--accent);
+	}
+	.tab-text {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--muted);
+	}
+	.tab.active .tab-text {
+		color: var(--accent);
+		font-weight: 700;
+	}
+	.toolbar {
+		height: 40px;
+		padding: 0 16px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-end;
+		border-bottom: 1px solid var(--line);
+		background: var(--surface);
+	}
+	.mark-all {
+		font-size: 12px;
+		font-weight: 700;
+	}
+	.list {
+		flex: 1;
+		height: 0;
+	}
+	.item {
+		display: flex;
+		flex-direction: row;
+		gap: 10px;
+		padding: 14px 16px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+	}
+	.item.unread {
+		background: var(--soft);
+	}
+	.dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--accent);
+		margin-top: 6px;
+		flex-shrink: 0;
+	}
+	.body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.title {
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--ink);
+	}
+	.content {
+		font-size: 12px;
+		line-height: 1.45;
+	}
+	.time {
+		font-size: 11px;
+	}
+	.pad {
+		height: 24px;
+	}
+</style>

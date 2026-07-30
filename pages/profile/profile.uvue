@@ -122,15 +122,15 @@ const onMessages = () => {
 }
 
 const onSettings = () => {
-	uni.navigateTo({ url: '/pages/profile/settings' })
+	uni.navigateTo({ url: '/pagesSub/profileExtra/settings' })
 }
 
 const onViewMyProfile = () => {
-	uni.navigateTo({ url: '/pages/user/edit' })
+	uni.navigateTo({ url: '/pagesSub/userExtra/user/edit' })
 }
 
 const onOpenVIP = () => {
-	uni.navigateTo({ url: '/pages/profile/vip', fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) } })
+	uni.navigateTo({ url: '/pagesSub/profileExtra/vip', fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) } })
 }
 
 const onMyTasks = () => {
@@ -138,7 +138,7 @@ const onMyTasks = () => {
 }
 
 const onMyMoments = () => {
-	uni.navigateTo({ url: '/pages/profile/my-moments' })
+	uni.navigateTo({ url: '/pagesSub/profileExtra/my-moments' })
 }
 
 const onMyPoster = () => {
@@ -150,7 +150,7 @@ const onMyRegistration = () => {
 }
 
 const onCertification = () => {
-	uni.navigateTo({ url: '/pages/profile/certification' })
+	uni.navigateTo({ url: '/pagesSub/profileExtra/certification' })
 }
 
 const onInviteFriend = () => {
@@ -158,7 +158,7 @@ const onInviteFriend = () => {
 }
 
 const onMenuSettings = () => {
-	uni.navigateTo({ url: '/pages/profile/settings' })
+	uni.navigateTo({ url: '/pagesSub/profileExtra/settings' })
 }
 
 const onHelp = () => {
@@ -166,7 +166,7 @@ const onHelp = () => {
 }
 
 const onAbout = () => {
-	uni.navigateTo({ url: '/pages/about/about' })
+	uni.navigateTo({ url: '/pagesSub/about/about' })
 }
 
 const onSecurity = () => {

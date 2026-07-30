@@ -1,6 +1,6 @@
 ﻿# Mock 与 API 快速说明
 
-> 当前状态：`api/config.uts` 中 `USE_MOCK = true`。Mock 是开发支撑，不是生产后端。
+> 当前状态：社区 1.0 验收使用 `api/config.uts` 中的 `USE_MOCK = false`；Mock 仍是开发支撑，不是生产后端。
 
 ## 数据流
 
@@ -11,7 +11,7 @@ api/*.uts
   ↓
 api/request.uts
   ├─ USE_MOCK = true  → 返回调用方传入的 mockData
-  └─ USE_MOCK = false → 调用 uniCloud.callFunction
+  └─ USE_MOCK = false → 通过 HTTP 请求 FastAPI（当前社区路径）
 ```
 
 ## 页面调用规则

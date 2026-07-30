@@ -31,17 +31,17 @@ ENOENT: no such file or directory, open '<项目目录>\\src\\manifest.json'
 
 ## 3. uniCloud 服务空间提示
 
-当前开发环境使用 Mock：
+当前社区 1.0 本地验收使用 FastAPI HTTP；只有结构预览或尚未接入后端的模块才临时使用 Mock：
 
 ```uts
 // api/config.uts
-export const USE_MOCK = true
+export const USE_MOCK = false
 ```
 
 `manifest.json` 当前包含 `"uniCloud": false`，但工程中仍保留受保护的 `uniCloud-aliyun/` 目录。若 HBuilderX 仍提示关联服务空间：
 
 1. 先取消或跳过关联提示并重新编译。
-2. 确认 Mock 开关仍为 `true`。
+2. 若要排查 Mock 分支，临时确认开关为 `true`；社区 1.0 真实接口排查则保持为 `false`。
 3. 清理构建缓存后重试。
 4. 记录 HBuilderX 版本和完整错误信息。
 
@@ -77,12 +77,12 @@ export const USE_MOCK = true
 
 常见原因（开发期）：
 
-1. `manifest.json` 里 `mp-weixin.appid` 仍为空；只改了 `unpackage/.../project.config.json` 的 `touristappid`，下次 HBuilderX 编译会覆盖产物。
+1. `manifest.json` 里的 `mp-weixin.appid` 必须是已授权的 `wxb5f4e639f4eb2591`；只改产物里的旧 `touristappid`，下次 HBuilderX 编译会覆盖产物。
 2. 填成了 uni-app 应用标识（如 `__UNI__...`）而不是微信小程序 AppID。
 3. 未获授权修改受保护的 `manifest.json`，或开发者工具无该 AppID 权限。
 4. 微信开发者工具项目仍指向旧目录或旧产物。
 
-正式 AppID 需负责人授权后改 `manifest.json`，再重新编译导入；游客/测试号足够做 Mock 烟测。
+当前授权 AppID 已写入 `manifest.json`；修改后必须重新用 HBuilderX 编译并导入最新产物。物理真机和生产发布还需正式 HTTPS 合法域名及相应权限。
 
 ## 6. 微信开发者工具未自动打开
 
@@ -108,7 +108,7 @@ unpackage/dist/dev/mp-weixin
 1. 打开的是 `xuanshiai-vue` 目录本身，而不是上一级 `宣誓爱`，也不是 `unpackage/`。
 2. 根目录必须有 `App.uvue`、`main.uts`、`manifest.json`、`pages.json`。
 3. `static/logo.png` 应存在；缺失时 App 图标配置会报警。业务肖像在 `static/portraits/`。
-4. 开发期 `uniCloud: false` 且 `USE_MOCK = true`；若提示关联云服务空间，可取消/跳过，不要删 `uniCloud-aliyun/`。
+4. 开发期 `uniCloud: false`；社区 1.0 联调使用 `USE_MOCK = false` + `http://127.0.0.1:8000`。若提示关联云服务空间，可取消/跳过，不要删 `uniCloud-aliyun/`。
 5. 本工程是 **uni-app x（`.uvue` / `.uts`）**，需使用支持 uni-app x 的 HBuilderX 版本；旧版只认 `.vue` 时会识别异常。
 6. 项目路径含中文（如 `宣誓爱`）在多数新版本可用；若工具链报路径编码错误，可临时复制到纯英文路径做对照验证，但不要把对照副本当唯一主仓库。
 7. 导入后先清一次运行缓存，再“运行到微信开发者工具”，避免沿用旧 `unpackage` 产物误判。

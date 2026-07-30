@@ -1,0 +1,561 @@
+<template>
+	<view class="page">
+		<scroll-view class="scroll" scroll-y>
+			<view v-if="loading" class="state"><text class="text-muted">加载中…</text></view>
+			<view v-else-if="post == null" class="state">
+				<XsaEmpty text="动态不存在" description="可能已被删除" />
+			</view>
+			<view v-else>
+				<XsaDynamicCard
+					:dynamic="normalize(post)"
+					:show-follow="true"
+					@user-click="goUser"
+					@like="onLike"
+					@comment="focusComment"
+					@collect="onCollect"
+					@follow="onFollow"
+					@unfollow="onUnfollow"
+					@apply="onApply"
+					@more="onMore"
+					@topic="goTopic"
+				/>
+				<view class="comment-head">
+					<text class="title">评论 {{ post.commentCount || 0 }}</text>
+				</view>
+				<view v-if="comments.length == 0" class="empty-c">
+					<text class="text-muted">还没有评论，说一句真诚的话吧</text>
+				</view>
+<view class="comment" v-for="c in comments" :key="c.id" @longpress="replyTo(c)">
+						<image class="avatar" :src="c.user.avatar" mode="aspectFill"></image>
+						<view class="body">
+							<view class="comment-row">
+								<text class="name">{{ c.user.name }}</text>
+								<text class="report-link" @click="onReportComment(c)">举报</text>
+							</view>
+							<text class="content">{{ c.content }}</text>
+							<view class="comment-foot">
+								<text class="time text-muted">{{ c.timeText }}</text>
+								<text class="like-btn" @click="replyTo(c)">回复</text>
+								<text class="like-btn" v-if="c.canDelete" @click="removeComment(c)">删除</text>
+								<text class="like-btn" :class="{ on: c.liked }" @click="onLikeComment(c)">
+									{{ c.liked ? '已赞' : '点赞' }} {{ c.likeCount > 0 ? c.likeCount : '' }}
+								</text>
+						</view>
+						<view class="reply" v-for="r in c.replies" :key="r.id" @click="replyTo(r)" @longpress="replyTo(r)"><text class="name">{{ r.user.name }}</text><text v-if="r.replyToUserName"> 回复 @{{ r.replyToUserName }}</text><text>：{{ r.content }}</text></view>
+						<text class="like-btn" v-if="c.replyCount > (c.replies != null ? c.replies.length : 0)" @click="loadReplies(c)">加载更多回复</text>
+					</view>
+				</view>
+				<text class="like-btn load-more" v-if="commentHasMore" @click="loadMoreComments">加载更多评论</text>
+			</view>
+			<view class="pad"></view>
+		</scroll-view>
+
+		<view class="composer" v-if="post != null">
+			<input
+				class="input"
+				:value="draft"
+				@input="onDraft"
+				:placeholder="replyTarget != null ? '回复 @' + replyTarget.user.name : '友善评论，完成实名后可发送'"
+				confirm-type="send"
+				@confirm="submitComment"
+			/>
+			<button class="send" :disabled="sending" @click="submitComment">发送</button>
+		</view>
+
+<XsaApplySheet
+				:visible="applyVisible"
+				:user-id="applyUserId"
+				@close="applyVisible = false"
+				@success="onApplyOk"
+			/>
+				<XsaReportSheet
+					:visible="reportVisible"
+					:target-type="reportTargetType"
+					:target-id="reportTargetId"
+					:user-id="reportUserId"
+					@close="reportVisible = false"
+					@blocked="onBlocked"
+				/>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import XsaDynamicCard from '@/components/XsaDynamicCard.uvue'
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
+	import XsaReportSheet from '@/components/XsaReportSheet.uvue'
+import {
+			getDynamicDetail,
+			likeDynamic,
+			likeComment,
+			collectDynamic,
+			followUserFromCommunity,
+			unfollowUserFromCommunity,
+			commentDynamic,
+			deleteComment,
+			getThreadedComments,
+			getCommentReplies,
+			createCommunityCreateKey,
+			discardCommunityCreateKey
+		} from '@/api'
+	import { guardRealName } from '@/utils/realNameGate.uts'
+
+	const postId = ref(0)
+	const post = ref(null)
+	const comments = ref([])
+	const loading = ref(false)
+	const draft = ref('')
+	const sending = ref(false)
+	const pendingCommentKey = ref('')
+	const pendingCommentFingerprint = ref('')
+	const applyVisible = ref(false)
+	const applyUserId = ref(0)
+	const reportVisible = ref(false)
+	const reportTargetId = ref(0)
+	const reportUserId = ref(0)
+	const replyTarget = ref(null as any)
+	const commentCursor = ref('')
+	const commentHasMore = ref(false)
+	const unfollowPendingUserId = ref(0)
+
+	onLoad((q: any) => {
+		postId.value = q != null && q.id != null ? parseInt('' + q.id) : 0
+		load()
+	})
+
+const normalize = (item: any) => {
+			const photos = item.photos != null ? item.photos : item.media
+			return {
+				id: item.id,
+				user: item.user,
+				content: item.content,
+				photos,
+				location: item.location,
+				time: item.timeText != null ? item.timeText : '',
+				timeText: item.timeText,
+				likeCount: item.likeCount,
+				commentCount: item.commentCount,
+				collectCount: item.collectCount,
+				liked: item.liked,
+				collected: item.collected,
+				followed: item.followed,
+				applyStatus: item.applyStatus,
+				topicId: item.topicId,
+				tags: item.tags,
+				declaration: item.declaration,
+				cityTag: item.cityTag === true,
+				relationTags: item.relationTags != null ? item.relationTags : [],
+				topicTitle: item.topicTitle != null ? item.topicTitle : '',
+				videos: item.videos != null ? item.videos : [],
+				mediaType: item.mediaType != null ? item.mediaType : ''
+			}
+		}
+
+const load = async () => {
+			if (postId.value <= 0) return
+			loading.value = true
+			try {
+				const res = await getDynamicDetail(postId.value)
+				if (res.success) {
+					post.value = res.data
+					comments.value = []
+					commentCursor.value = ''
+					await loadMoreComments()
+					if (res.data != null && res.data.commentsLoadError == true) {
+						uni.showToast({ title: '评论加载失败', icon: 'none' })
+					}
+				} else {
+					const msg =
+						res.data != null && res.data.message != null
+							? res.data.message
+							: res.message != null
+								? res.message
+								: '加载失败'
+					uni.showToast({ title: msg, icon: 'none' })
+				}
+			} catch (e) {
+				console.error(e)
+				uni.showToast({ title: '加载失败', icon: 'none' })
+			} finally {
+				loading.value = false
+			}
+		}
+
+	const commentFingerprint = (text: string) => postId.value + '|' + text + '|' + (replyTarget.value != null ? replyTarget.value.id : 0)
+	const loadMoreComments = async () => {
+		const res = await getThreadedComments(postId.value, commentCursor.value)
+		if (!res.success || res.data == null) return
+		const raw = res.data as any
+		const items = raw.items != null ? raw.items : []
+		for (let i = 0; i < items.length; i++) { if (items[i].replies == null) items[i].replies = []; (comments.value as any[]).push(items[i]) }
+		commentCursor.value = raw.next_cursor != null ? raw.next_cursor : ''
+		commentHasMore.value = raw.has_more == true
+	}
+	const loadReplies = async (comment: any) => { const res = await getCommentReplies(comment.id, comment.replyCursor != null ? comment.replyCursor : ''); if (res.success && res.data != null) { const data = res.data as any; const more = data.items != null ? data.items as any[] : []; if (comment.replies == null) comment.replies = []; for (let i = 0; i < more.length; i++) comment.replies.push(more[i]); comment.replyCursor = data.next_cursor != null ? data.next_cursor : ''; comment.replyHasMore = data.has_more == true } else uni.showToast({ title: '回复加载失败，请重试', icon: 'none' }) }
+	const replyTo = (comment: any) => { if (comment.isDeleted == true) return; replyTarget.value = comment }
+	const removeComment = async (comment: any) => { const res = await deleteComment(comment.id, postId.value); if (res.success) { comment.content = '该评论已删除'; comment.isDeleted = true; comment.canDelete = false } else uni.showToast({ title: '删除失败，请重试', icon: 'none' }) }
+	const discardPendingCommentKey = () => {
+		if (pendingCommentKey.value != '') {
+			discardCommunityCreateKey(pendingCommentKey.value)
+		}
+		pendingCommentKey.value = ''
+		pendingCommentFingerprint.value = ''
+	}
+	const shouldDiscardCommentKey = (res: any): boolean => {
+		if (res == null) return false
+		if (res.success == false) return res.code != null && res.code != -1
+		return res.data != null && res.data.success == false
+	}
+
+	const onDraft = (e: any) => {
+		draft.value = e.detail.value
+		if (pendingCommentFingerprint.value != '' && pendingCommentFingerprint.value != commentFingerprint(draft.value.trim())) {
+			discardPendingCommentKey()
+		}
+	}
+
+	onUnload(() => {
+		discardPendingCommentKey()
+	})
+
+	const focusComment = async () => {
+		// 底部输入即可
+	}
+
+const submitComment = async () => {
+			const text = draft.value.trim()
+			if (text.length == 0) {
+				uni.showToast({ title: '请输入评论', icon: 'none' })
+				return
+			}
+			const ok = await guardRealName('comment')
+			if (!ok) return
+			if (sending.value) return
+			const fingerprint = commentFingerprint(text)
+			if (pendingCommentKey.value == '' || pendingCommentFingerprint.value != fingerprint) {
+				discardPendingCommentKey()
+				pendingCommentKey.value = createCommunityCreateKey('comment')
+				pendingCommentFingerprint.value = fingerprint
+			}
+			sending.value = true
+			try {
+				const res = await commentDynamic({
+					dynamicId: postId.value,
+					content: text,
+					replyToCommentId: replyTarget.value != null ? replyTarget.value.id : 0,
+					idempotencyKey: pendingCommentKey.value
+				})
+				const data = res != null ? res.data : null
+				const bizOk = res != null && res.success && (data == null || data.success != false)
+				if (bizOk && data != null && data.comment != null) {
+					if (replyTarget.value != null) {
+						const root = (comments.value as any[]).find((c: any) => c.id == replyTarget.value.id || c.id == replyTarget.value.rootId)
+						if (root != null) { if (root.replies == null) root.replies = []; root.replies.push(data.comment) }
+					} else comments.value.push(data.comment)
+					if (post.value != null) {
+						post.value.commentCount = (post.value.commentCount || 0) + 1
+					}
+					discardPendingCommentKey()
+					draft.value = ''
+					replyTarget.value = null
+					uni.showToast({ title: '已发送', icon: 'success' })
+				} else {
+					if (shouldDiscardCommentKey(res)) discardPendingCommentKey()
+					const msg = data != null && data.message != null ? data.message : '发送失败'
+					uni.showToast({ title: msg, icon: 'none' })
+				}
+			} catch (e) {
+				uni.showToast({ title: '发送失败', icon: 'none' })
+			} finally {
+				sending.value = false
+			}
+		}
+
+	const goUser = (id: number) => {
+		uni.navigateTo({ url: `/pagesSub/userExtra/user/detail?userId=${id}` })
+	}
+
+	const goTopic = (id: number) => {
+		uni.navigateTo({ url: `/pagesSub/community/topic-detail?id=${id}` })
+	}
+
+const onLike = async (id: number) => {
+			const ok = await guardRealName('like')
+			if (!ok) return
+			const res = await likeDynamic(id)
+			if (res.success && post.value != null && res.data != null) {
+				post.value.liked = res.data.liked
+				post.value.likeCount = res.data.likeCount
+			} else if (!res.success) {
+				const msg =
+					res.data != null && res.data.message != null
+						? res.data.message
+						: res.message != null
+							? res.message
+							: '点赞失败'
+				uni.showToast({ title: msg, icon: 'none' })
+			}
+		}
+
+		const onLikeComment = async (c: any) => {
+			if (c == null) return
+			const ok = await guardRealName('like')
+			if (!ok) return
+			const prevLiked = c.liked == true
+			const prevCount = c.likeCount != null ? (c.likeCount as number) : 0
+			c.liked = !prevLiked
+			c.likeCount = prevCount + (c.liked ? 1 : -1)
+			if (c.likeCount < 0) c.likeCount = 0
+			const res = await likeComment(c.id, prevLiked)
+			if (res.success && res.data != null) {
+				c.liked = res.data.liked == true
+				if (res.data.likeCount != null) c.likeCount = res.data.likeCount
+			} else {
+				c.liked = prevLiked
+				c.likeCount = prevCount
+				const msg =
+					res != null && res.data != null && res.data.message != null
+						? res.data.message
+						: res != null && res.message != null
+							? res.message
+							: '评论点赞失败'
+				uni.showToast({ title: msg, icon: 'none' })
+			}
+		}
+
+		const onCollect = async (id: number) => {
+			const ok = await guardRealName('collect')
+			if (!ok) return
+			const res = await collectDynamic(id)
+			if (res.success && post.value != null && res.data != null) {
+				post.value.collected = res.data.collected
+				if (res.data.collectCount != null) {
+					post.value.collectCount = res.data.collectCount
+				}
+			} else if (!res.success) {
+				const msg =
+					res.data != null && res.data.message != null
+						? res.data.message
+						: res.message != null
+							? res.message
+							: '收藏失败'
+				uni.showToast({ title: msg, icon: 'none' })
+			}
+		}
+
+	const onFollow = async (userId: number) => {
+		const ok = await guardRealName('follow')
+		if (!ok) return
+		const res = await followUserFromCommunity(userId)
+		if (res.success && post.value != null) {
+			post.value.followed = true
+		} else if (!res.success) {
+			const msg =
+				res.data != null && res.data.message != null
+					? res.data.message
+					: res.message != null
+						? res.message
+						: '关注失败'
+			uni.showToast({ title: msg, icon: 'none' })
+		}
+	}
+
+	const onUnfollow = (userId: number) => {
+		if (unfollowPendingUserId.value != 0) return
+		unfollowPendingUserId.value = userId
+		uni.showModal({
+			title: '取消关注',
+			content: '确定不再关注这位用户吗？',
+			cancelText: '取消',
+			confirmText: '确定',
+			success: async (modalRes: any) => {
+				if (modalRes == null || modalRes.confirm != true) {
+					unfollowPendingUserId.value = 0
+					return
+				}
+				try {
+					const res = await unfollowUserFromCommunity(userId)
+					if (res.success && post.value != null) {
+						post.value.followed = false
+						uni.showToast({ title: '已取消关注', icon: 'none' })
+					} else {
+						const msg =
+							res != null && res.data != null && res.data.message != null
+								? '' + res.data.message
+								: res != null && res.message != null
+									? '' + res.message
+									: '取消关注失败，请重试'
+						uni.showToast({ title: msg, icon: 'none' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '取消关注失败，请重试', icon: 'none' })
+				} finally {
+					if (unfollowPendingUserId.value == userId) unfollowPendingUserId.value = 0
+				}
+			}
+			, fail: () => {
+				if (unfollowPendingUserId.value == userId) unfollowPendingUserId.value = 0
+			}
+		})
+	}
+
+const onApply = (userId: number) => {
+			applyUserId.value = userId
+			applyVisible.value = true
+		}
+
+		const onApplyOk = (payload: any) => {
+			const status =
+				payload != null && payload.applyStatus != null ? (payload.applyStatus as string) : 'pending'
+			if (post.value != null) {
+				post.value.applyStatus = status
+			}
+		}
+
+			const onMore = (dynamicId: number, userId: number) => {
+				reportTargetType.value = 'post'
+				reportTargetId.value = dynamicId
+				reportUserId.value = userId
+				reportVisible.value = true
+			}
+
+			const onReportComment = (c: any) => {
+				if (c == null) return
+				reportTargetType.value = 'comment'
+				reportTargetId.value = c.id != null ? (c.id as number) : 0
+				const uid = c.user != null && c.user.id != null ? (c.user.id as number) : 0
+				reportUserId.value = uid
+				reportVisible.value = true
+			}
+
+			const onBlocked = (_userId: number) => {
+				uni.showToast({ title: '已屏蔽，返回上一页', icon: 'none' })
+				setTimeout(() => {
+					uni.navigateBack()
+				}, 400)
+			}
+		</script>
+
+<style scoped>
+	.page {
+		height: 100vh;
+		background: var(--canvas);
+		display: flex;
+		flex-direction: column;
+	}
+	.scroll {
+		flex: 1;
+		height: 0;
+	}
+	.state {
+		padding: 40px 16px;
+	}
+	.comment-head {
+		padding: 12px 16px 6px;
+	}
+	.comment-head .title {
+		font-size: 16px;
+		font-weight: 700;
+		font-family: var(--serif);
+	}
+	.empty-c {
+		padding: 16px;
+	}
+	.comment {
+		display: flex;
+		flex-direction: row;
+		gap: 10px;
+		padding: 12px 16px;
+		border-bottom: 1px solid var(--line);
+		background: var(--surface);
+	}
+	.avatar {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+	}
+	.body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.name {
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--ink);
+	}
+	.content {
+		font-size: 14px;
+		line-height: 1.5;
+		color: var(--ink);
+	}
+	.time {
+		font-size: 11px;
+	}
+	.comment-foot {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 2px;
+	}
+	.like-btn {
+		font-size: 12px;
+		color: var(--muted);
+		padding: 2px 0 2px 8px;
+	}
+	.like-btn.on {
+		color: var(--accent);
+		font-weight: 600;
+	}
+	.composer {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 12px;
+		padding-bottom: calc(10px + env(safe-area-inset-bottom));
+		background: var(--surface);
+		border-top: 1px solid var(--line);
+	}
+	.input {
+		flex: 1;
+		height: 40px;
+		padding: 0 12px;
+		background: var(--paper);
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		font-size: 14px;
+	}
+	.reply { margin: 6px 0 0 42px; padding: 7px 10px; background: var(--soft); border-radius: 6px; font-size: 12px; color: var(--ink); }
+	.load-more { display: block; padding: 12px 16px; text-align: center; }
+	.send {
+		height: 40px;
+		padding: 0 14px;
+		background: var(--accent);
+		color: var(--text-invert);
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 700;
+		border: none;
+	}
+	.send[disabled] {
+		opacity: 0.5;
+	}
+	.pad {
+		height: 24px;
+	}
+
+		.comment-row {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+		}
+		.report-link {
+			font-size: 12px;
+			color: var(--text-muted, #999);
+			padding: 2px 4px;
+		}
+</style>

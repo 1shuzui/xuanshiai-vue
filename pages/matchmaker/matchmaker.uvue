@@ -285,7 +285,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	const handleTabChange = (index : number) => {
 		if (tabValues[index] === 'custom') {
 			uni.navigateTo({
-				url: '/pages/matchmaker/custom'
+				url: '/pagesSub/matchmaker/custom'
 			})
 			return
 		}
@@ -341,25 +341,25 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 
 	const handleMatchmakerDetail = (item : any) => {
 		uni.navigateTo({
-			url: '/pages/matchmaker/detail?id=' + item.id
+			url: '/pagesSub/matchmaker/detail?id=' + item.id
 		})
 	}
 
 	const handleMatchmakerContact = (item : any) => {
 		uni.navigateTo({
-			url: '/pages/matchmaker/detail?id=' + item.id
+			url: '/pagesSub/matchmaker/detail?id=' + item.id
 		})
 	}
 
 	const handleSelectPlan = (item : any) => {
 		uni.navigateTo({
-			url: '/pages/matchmaker/custom?id=' + item.id
+			url: '/pagesSub/matchmaker/custom?id=' + item.id
 		})
 	}
 
 	const goCustomPlans = () => {
 		uni.navigateTo({
-			url: '/pages/matchmaker/custom'
+			url: '/pagesSub/matchmaker/custom'
 		})
 	}
 
@@ -375,7 +375,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 		}
 		const name = plan.name
 		uni.navigateTo({
-			url: '/pages/matchmaker/apply?type=custom&matchmakerName=' + encodeURIComponent(name)
+			url: '/pagesSub/matchmaker/apply?type=custom&matchmakerName=' + encodeURIComponent(name)
 				+ '&planId=' + plan.id
 				+ '&planName=' + encodeURIComponent(name)
 				+ '&planPrice=' + plan.price
@@ -389,19 +389,19 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 
 	const handleBecomeMatchmaker = () => {
 		uni.navigateTo({
-			url: '/pages/matchmaker/become-matchmaker'
+			url: '/pagesSub/matchmaker/become-matchmaker'
 		})
 	}
 
 	const handleBecomePartner = () => {
 		uni.navigateTo({
-			url: '/pages/matchmaker/become-partner'
+			url: '/pagesSub/matchmaker/become-partner'
 		})
 	}
 
 	const handleBecomePromoter = () => {
 		uni.navigateTo({
-			url: '/pages/matchmaker/become-promoter'
+			url: '/pagesSub/matchmaker/become-promoter'
 		})
 	}
 

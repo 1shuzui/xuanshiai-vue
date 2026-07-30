@@ -31,19 +31,19 @@ expect(apiIndex, 'getMockMatchmakerContact', 'contact API export')
 
 const matchmakerHome = read('pages/matchmaker/matchmaker.uvue')
 expect(matchmakerHome, 'const handleMatchmakerContact', 'contact action handler')
-expect(matchmakerHome, "url: '/pages/matchmaker/detail?id=' + item.id", 'contact opens matchmaker profile')
-if (matchmakerHome.includes("url: '/pages/matchmaker/apply?matchmakerId='")) {
+expect(matchmakerHome, "url: '/pagesSub/matchmaker/detail?id=' + item.id", 'contact opens matchmaker profile')
+if (matchmakerHome.includes("url: '/pagesSub/matchmaker/apply?matchmakerId='")) {
   throw new Error('contact action must not open the matchmaker recruitment form')
 }
 console.log('PASS contact action does not open recruitment form')
 
-const page = read('pages/matchmaker/custom.uvue')
+const page = read('pagesSub/matchmaker/custom.uvue')
 expect(page, 'contactPanelVisible', 'contact panel state')
 expect(page, 'getMockMatchmakerContact()', 'contact data loading')
 expect(page, 'uni.makePhoneCall', 'phone action')
 expect(page, 'uni.setClipboardData', 'WeChat copy action')
 
-const detail = read('pages/matchmaker/detail.uvue')
+const detail = read('pagesSub/matchmaker/detail.uvue')
 expect(detail, "import { mockMatchmakerContact } from '@/mock'", 'shared contact Mock import')
 expect(detail, 'phone: mockMatchmakerContact.phone', 'shared detail phone')
 expect(detail, 'wechat: mockMatchmakerContact.wechat', 'shared detail WeChat')

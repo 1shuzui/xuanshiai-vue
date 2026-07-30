@@ -558,25 +558,25 @@ const bannerCta = (type: string) => {
 		if (b.type === 'topic') {
 			const tid = b.targetId != null ? b.targetId : (featuredTopic.value != null ? featuredTopic.value.id : 0)
 			if (tid > 0) {
-				uni.navigateTo({ url: '/pages/community/topic-detail?id=' + tid })
+				uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + tid })
 			} else {
-				uni.navigateTo({ url: '/pages/community/topic-list' })
+				uni.navigateTo({ url: '/pagesSub/community/topic-list' })
 			}
 			return
 		}
 		if (b.type === 'plane') {
-			uni.navigateTo({ url: '/pages/community/paper-plane' })
+			uni.navigateTo({ url: '/pagesSub/community/paper-plane' })
 			return
 		}
 		if (b.type === 'activity') {
 			const id = b.targetId != null ? b.targetId : (activity.value != null ? activity.value.id : 0)
-			uni.navigateTo({ url: '/pages/community/activity-detail?id=' + id })
+			uni.navigateTo({ url: '/pagesSub/community/activity-detail?id=' + id })
 			return
 		}
 	}
 
 	const handleUserClick = (userId: number) => {
-		uni.navigateTo({ url: '/pages/user/detail?userId=' + userId })
+		uni.navigateTo({ url: '/pagesSub/userExtra/user/detail?userId=' + userId })
 	}
 
 const handleLike = async (dynamicId: number) => {
@@ -606,7 +606,7 @@ const handleLike = async (dynamicId: number) => {
 		}
 
 	const handleComment = (dynamicId: number) => {
-		uni.navigateTo({ url: '/pages/community/post-detail?id=' + dynamicId })
+		uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + dynamicId })
 	}
 
 const handleCollect = async (dynamicId: number) => {
@@ -731,17 +731,17 @@ const handleCollect = async (dynamicId: number) => {
 	}
 
 	const handleTopic = (topicId: number) => {
-		uni.navigateTo({ url: '/pages/community/topic-detail?id=' + topicId })
+		uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + topicId })
 	}
 
 	const handleOpen = (dynamicId: number) => {
-		uni.navigateTo({ url: '/pages/community/post-detail?id=' + dynamicId })
+		uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + dynamicId })
 	}
 
 	const handlePublish = async () => {
 		const ok = await guardRealName('publish')
 		if (!ok) return
-		uni.navigateTo({ url: '/pages/community/publish' })
+		uni.navigateTo({ url: '/pagesSub/community/publish' })
 	}
 
 const handleEmptyAction = () => {
@@ -758,19 +758,19 @@ const handleEmptyAction = () => {
 
 	const openActivity = () => {
 		if (activity.value == null) return
-		uni.navigateTo({ url: '/pages/community/activity-detail?id=' + activity.value.id })
+		uni.navigateTo({ url: '/pagesSub/community/activity-detail?id=' + activity.value.id })
 	}
 
 	const openTopics = () => {
-		uni.navigateTo({ url: '/pages/community/topic-list' })
+		uni.navigateTo({ url: '/pagesSub/community/topic-list' })
 	}
 
 	const openTopic = (t: any) => {
-		uni.navigateTo({ url: '/pages/community/topic-detail?id=' + t.id })
+		uni.navigateTo({ url: '/pagesSub/community/topic-detail?id=' + t.id })
 	}
 
 	const openNotifications = () => {
-		uni.navigateTo({ url: '/pages/community/notifications' })
+		uni.navigateTo({ url: '/pagesSub/community/notifications' })
 	}
 
 const switchCity = () => {

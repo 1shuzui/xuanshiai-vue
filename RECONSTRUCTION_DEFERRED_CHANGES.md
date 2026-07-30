@@ -4,7 +4,7 @@
 
 | 状态 | 改动 | 关联文件 | 当前决定 | 重新判断条件 |
 | --- | --- | --- | --- | --- |
-| 未采纳 | 资料付费解锁 | `api/user.uts`、`api/index.uts`、`pages/user/detail.uvue` | 不加入资料解锁接口、本地解锁状态、跨存储积分同步和“50 积分解锁全部资料”界面 | 产品范围明确允许、FastAPI 提供服务端权限合同，并完成隐私与安全评审 |
+| 未采纳 | 资料付费解锁 | `api/user.uts`、`api/index.uts`、`pagesSub/userExtra/user/detail.uvue` | 不加入资料解锁接口、本地解锁状态、跨存储积分同步和“50 积分解锁全部资料”界面 | 产品范围明确允许、FastAPI 提供服务端权限合同，并完成隐私与安全评审 |
 | 暂缓 | 纸飞机专属 Mock 用户 | `mock/user.uts`、`mock/index.uts`、`api/user.uts` | 当前不导入 `mockPaperPlanePeerProfile`；仅吸收广场用户兜底和简介字段兼容 | 审查 `mock/user.uts` 与 `mock/index.uts` 时结合纸飞机资料入口统一判断 |
 | 持续关注 | 申请认识额度合同 | `components/XsaApplySheet.uvue`、`api/user.uts`、`api/community.uts` | 额度以服务端返回为准；响应缺少 `remain` 时禁止前端自行减一，额度刷新失败必须保留可见提示 | 任何申请次数、积分加次、会员额度或本地额度缓存改动都必须单独复核前后端合同 |
 
@@ -12,4 +12,4 @@
 
 | 风险项 | 关联文件 | 当前实现 | 后续可能影响 | 收口条件 |
 | --- | --- | --- | --- | --- |
-| 纸飞机会话头像进入对方资料 | `pages/community/paper-plane-messages.uvue`、`api/community.uts`、FastAPI 纸飞机会话接口 | 点击头像阻止打开会话，存在有效 `userId` 时进入用户资料；缺少用户 ID 时显示不可用提示 | 真实接口映射当前固定返回 `userId: 0`，因此该入口在真实数据下不可用；Mock 与真实行为不一致；若后端直接暴露用户 ID，可能提前破坏纸飞机匿名边界 | FastAPI 明确返回经过权限判断的 `peer_user_id` 与 `can_view_profile`，前后端统一匿名规则，并补充真实接口与隐私边界回归测试 |
+| 纸飞机会话头像进入对方资料 | `pagesSub/community/paper-plane-messages.uvue`、`api/community.uts`、FastAPI 纸飞机会话接口 | 点击头像阻止打开会话，存在有效 `userId` 时进入用户资料；缺少用户 ID 时显示不可用提示 | 真实接口映射当前固定返回 `userId: 0`，因此该入口在真实数据下不可用；Mock 与真实行为不一致；若后端直接暴露用户 ID，可能提前破坏纸飞机匿名边界 | FastAPI 明确返回经过权限判断的 `peer_user_id` 与 `can_view_profile`，前后端统一匿名规则，并补充真实接口与隐私边界回归测试 |

@@ -754,13 +754,13 @@
 	const switchTab = (index: number) => { currentTab.value = index }
 	const openVipPage = () => {
 		uni.navigateTo({
-			url: '/pages/profile/vip',
+			url: '/pagesSub/profileExtra/vip',
 			fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
 	const openTopPlacement = () => {
 		uni.navigateTo({
-			url: '/pages/index/top-placement',
+			url: '/pagesSub/userExtra/index/top-placement',
 			fail: () => { uni.showToast({ title: '置顶页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
@@ -846,7 +846,7 @@
 }
 		quotaExhaustedVisible.value = true
 	}
-	const handleQuotaUpgrade = () => { quotaExhaustedVisible.value = false; uni.navigateTo({ url: '/pages/profile/vip' }) }
+	const handleQuotaUpgrade = () => { quotaExhaustedVisible.value = false; uni.navigateTo({ url: '/pagesSub/profileExtra/vip' }) }
 	const switchToNextRecommend = () => {
 		if (!recordProfileView()) { showQuotaExhausted(); return }
 		const list = filteredRecommendUsers.value as any[]
@@ -884,7 +884,7 @@
 	]
 		const viewAllFeed = () => { showToast('查看全部动态') }
 		const goPostDetail = (postId: number) => {
-			uni.navigateTo({ url: '/pages/community/post-detail?id=' + postId })
+			uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + postId })
 		}
 
 	// ========== AI 合拍度 ==========
@@ -921,14 +921,14 @@
 
 	const goMessages = () => { successVisible.value = false; uni.switchTab({ url: '/pages/message/message' }) }
 	const simulateMatch = () => { successVisible.value = false; matchedVisible.value = true }
-	const startChat = () => { matchedVisible.value = false; uni.navigateTo({ url: '/pages/chat/detail?userId=user_001&userName=林悦' }) }
+	const startChat = () => { matchedVisible.value = false; uni.navigateTo({ url: '/pagesSub/chat/detail?userId=user_001&userName=林悦' }) }
 
 	// ========== 通用操作 ==========
 	// 推荐卡默认嘉宾 id（与 mock 动态作者对齐，便于验证关注·喜欢）
 	const recommendUserId = ref(1)
 	const goUserDetail = (userId: number = 1) => {
 		const id = userId > 0 ? userId : 1
-		uni.navigateTo({ url: '/pages/user/detail?userId=' + id })
+		uni.navigateTo({ url: '/pagesSub/userExtra/user/detail?userId=' + id })
 	}
 	const shareProfile = () => { showToast('已生成分享入口') }
 	// 用户级喜欢：写入 mockLikedUserIds，供社区「关注·喜欢」使用

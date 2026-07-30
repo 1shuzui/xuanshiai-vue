@@ -200,7 +200,7 @@ export async function guardDualVerification(action: GateAction | string = 'topic
     cancelText: '稍后再说',
     success: (res) => {
       if (res.confirm) {
-        uni.navigateTo({ url: '/pages/profile/certification' })
+        uni.navigateTo({ url: '/pagesSub/profileExtra/certification' })
       }
     }
   })
@@ -221,7 +221,7 @@ export async function guardRealName(action: GateAction | string = 'publish'): Pr
     cancelText: '稍后再说',
     success: (res) => {
       if (res.confirm) {
-        uni.navigateTo({ url: '/pages/profile/certification' })
+        uni.navigateTo({ url: '/pagesSub/profileExtra/certification' })
       }
     }
   })

@@ -75,7 +75,7 @@
 		uni.showToast({ title: '登录成功', icon: 'success' })
 		setTimeout(() => {
 			if (data != null && data.need_bind_phone === true) {
-				uni.navigateTo({ url: '/pages/onboarding/profile' })
+				uni.navigateTo({ url: '/pagesSub/userExtra/onboarding/profile' })
 				return
 			}
 			goHome()
@@ -94,9 +94,9 @@
 	}
 
 	const openAgreement = (type: string) => {
-		let url = '/pages/about/article?type=terms'
+		let url = '/pagesSub/about/article?type=terms'
 		if (type == 'privacy') {
-			url = '/pages/about/article?type=privacy'
+			url = '/pagesSub/about/article?type=privacy'
 		}
 		uni.navigateTo({ url })
 	}
@@ -178,7 +178,7 @@
 
 	const handleFirstLogin = () => {
 		if (!agreementChecked.value) return
-		uni.navigateTo({ url: '/pages/onboarding/profile' })
+		uni.navigateTo({ url: '/pagesSub/userExtra/onboarding/profile' })
 	}
 
 </script>
