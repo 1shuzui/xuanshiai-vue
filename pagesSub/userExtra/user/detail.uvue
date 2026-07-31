@@ -383,7 +383,12 @@ const load = async () => {
 	detailLoading.value = true
 	detailError.value = ''
 	try {
-		const res = isOwnProfile.value ? await getOwnProfile() : await getUserDetail(user.value.id)
+		let res: any = null
+		if (isOwnProfile.value) {
+			res = await getOwnProfile()
+		} else {
+			res = await getUserDetail(user.value.id)
+		}
 		if (res != null && res.success === true && res.data != null) {
 			mapDetailUser(res, user.value.id)
 		} else {
