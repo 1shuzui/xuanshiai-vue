@@ -1,22 +1,13 @@
 <template>
 	<view class="page">
-		<!-- 状态栏 -->
-		<view class="status-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-			<text class="time-text">9:41</text>
-			<view class="status-icons">
-				<text class="battery-icon">●●●</text>
-			</view>
-		</view>
-
 		<!-- 导航栏 -->
-		<view class="nav-bar">
-			<text class="nav-title">我的</text>
+		<view class="nav-bar" :style="{ paddingTop: (statusBarHeight + 12) + 'px', paddingRight: (menuButtonSpacing + 8) + 'px' }">
 			<view class="nav-right">
 				<view class="nav-icon-btn" @tap="onMessages">
-					<text class="nav-icon">🔔</text>
+					<text class="ic ic-social ic-tongzhi nav-icon"></text>
 				</view>
 				<view class="nav-icon-btn" @tap="onSettings">
-					<text class="nav-icon">⚙</text>
+					<text class="ic ic-me ic-shezhi nav-icon"></text>
 				</view>
 			</view>
 		</view>
@@ -27,7 +18,7 @@
 			<!-- 个人资料头部（横向布局） -->
 			<view class="profile-header">
 				<view class="avatar-wrap" @tap="onViewMyProfile">
-					<text class="avatar-emoji">👤</text>
+					<text class="ic ic-social ic-touxiang avatar-icon"></text>
 				</view>
 				<view class="profile-info">
 					<text class="nickname">张小姐</text>
@@ -48,7 +39,7 @@
 
 			<!-- 统计数据行 -->
 			<view class="stats-card">
-				<view class="stat-item" v-for="stat in stats" :key="stat.label">
+				<view class="stat-item" v-for="stat in stats" :key="stat.label" @click="openStatPage(stat.route)">
 					<text class="stat-value">{{ stat.value }}</text>
 					<text class="stat-label">{{ stat.label }}</text>
 				</view>
@@ -57,27 +48,27 @@
 			<!-- VIP 会员卡 -->
 			<view class="vip-card" @tap="onOpenVIP">
 				<view class="vip-crown-wrap">
-					<text class="vip-crown">👑</text>
+					<text class="ic ic-vip ic-huiyuan vip-crown"></text>
 				</view>
 				<view class="vip-text-col">
 					<text class="vip-card-title">开通会员</text>
 					<text class="vip-card-sub">解锁全部功能，遇见更多可能</text>
 				</view>
-				<text class="vip-arrow">›</text>
+				<text class="ic ic-sys ic-jiantou-you vip-arrow"></text>
 			</view>
 
 			<!-- 主菜单 -->
 			<view class="menu-card">
 				<view class="menu-row" v-for="item in mainMenuItems" :key="item.label" @tap="item.action">
 					<view class="menu-icon-wrap" :style="{ backgroundColor: item.iconBg }">
-						<text class="menu-icon">{{ item.icon }}</text>
+						<text :class="item.iconClass + ' menu-icon'"></text>
 					</view>
 					<text class="menu-label">{{ item.label }}</text>
 					<view v-if="item.badge" class="menu-badge">
 						<text class="menu-badge-text">{{ item.badge }}</text>
 					</view>
 					<view class="menu-spacer"></view>
-					<text class="menu-arrow">›</text>
+					<text class="ic ic-sys ic-jiantou-you menu-arrow"></text>
 				</view>
 			</view>
 
@@ -85,14 +76,14 @@
 			<view class="menu-card">
 				<view class="menu-row" v-for="item in bottomMenuItems" :key="item.label" @tap="item.action">
 					<view class="menu-icon-wrap" :style="{ backgroundColor: item.iconBg }">
-						<text class="menu-icon">{{ item.icon }}</text>
+						<text :class="item.iconClass + ' menu-icon'"></text>
 					</view>
 					<view class="menu-text-col">
 						<text class="menu-label">{{ item.label }}</text>
 						<text v-if="item.subtitle" class="menu-subtitle">{{ item.subtitle }}</text>
 					</view>
 					<view class="menu-spacer"></view>
-					<text class="menu-arrow">›</text>
+					<text class="ic ic-sys ic-jiantou-you menu-arrow"></text>
 				</view>
 			</view>
 
@@ -101,11 +92,18 @@
 			</view>
 		</scroll-view>
 	</view>
+
+	<!-- 自定义底部导航栏 -->
+	<XsaTabBar />
 </template>
 
 <script setup lang="uts">
+import XsaTabBar from '@/components/XsaTabBar.uvue'
+
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+const menuButtonInfo = uni.getMenuButtonBoundingClientRect()
+const menuButtonSpacing = menuButtonInfo != null ? (systemInfo.windowWidth - menuButtonInfo.left) : 8
 
 const user = ref({
 	nickname: '张小姐',
@@ -113,10 +111,10 @@ const user = ref({
 })
 
 const stats = [
-	{ value: '56', label: '我的申请' },
-	{ value: '128', label: '我看过谁/看过我' },
-	{ value: '12', label: '我的喜欢' },
-	{ value: '3', label: '我的爆灯' },
+	{ value: '56', label: '我的申请', route: '/pagesSub/profileExtra/applications' },
+	{ value: '128', label: '我看过谁/看过我', route: '/pagesSub/profileExtra/visitors' },
+	{ value: '12', label: '我的收藏', route: '' },
+	{ value: '3', label: '我的爆灯', route: '' },
 ]
 
 const onMessages = () => {
@@ -132,23 +130,17 @@ const onViewMyProfile = () => {
 }
 
 const onOpenVIP = () => {
-<<<<<<< HEAD
-	uni.navigateTo({ url: '/pages/profile/vip' })
-=======
 	uni.navigateTo({ url: '/pagesSub/profileExtra/vip', fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) } })
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 }
+
+const openStatPage = (url: string) => { if (url != '') uni.navigateTo({ url }) }
 
 const onMyTasks = () => {
 	uni.showToast({ title: '我的任务', icon: 'none' })
 }
 
 const onMyMoments = () => {
-<<<<<<< HEAD
-	uni.showToast({ title: '我的动态', icon: 'none' })
-=======
 	uni.navigateTo({ url: '/pagesSub/profileExtra/my-moments' })
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 }
 
 const onMyPoster = () => {
@@ -161,10 +153,6 @@ const onMyRegistration = () => {
 
 const onCertification = () => {
 	uni.navigateTo({ url: '/pagesSub/profileExtra/certification' })
-}
-
-const onEmotionLab = () => {
-	uni.navigateTo({ url: '/pages/emotion-lab/emotion-lab' })
 }
 
 const onInviteFriend = () => {
@@ -188,17 +176,6 @@ const onSecurity = () => {
 }
 
 const mainMenuItems = [
-<<<<<<< HEAD
-	{ icon: 'M', iconBg: 'var(--accent-bg)', label: '情感实验室', action: onEmotionLab },
-	{ icon: '👁', iconBg: '#EDE4F0', label: '我的任务', badge: 'NEW', action: onMyTasks },
-	{ icon: '👀', iconBg: '#E4EDE8', label: '我的动态', action: onMyMoments },
-	{ icon: '❤', iconBg: '#FDE8EC', label: '我的海报', action: onMyPoster },
-	{ icon: '💡', iconBg: '#FEF3E4', label: '我的报名', action: onMyRegistration },
-	{ icon: '💡', iconBg: '#FEF3E4', label: '诚信认证', action: onCertification },
-	{ icon: '💡', iconBg: '#FEF3E4', label: '推荐给好友', action: onInviteFriend },
-	{ icon: '💡', iconBg: '#FEF3E4', label: '设置', action: onMenuSettings },
-=======
-	{ iconClass: 'ic ic-home ic-star', iconBg: '#E4EDE8', label: '情感实验室', action: onEmotionLab },
 	{ iconClass: 'ic ic-vip ic-renwu', iconBg: '#EDE4F0', label: '我的任务', badge: 'NEW', action: onMyTasks },
 	{ iconClass: 'ic ic-me ic-dongtai', iconBg: '#E4EDE8', label: '我的动态', action: onMyMoments },
 	{ iconClass: 'ic ic-home ic-heart', iconBg: '#FDE8EC', label: '我的海报', action: onMyPoster },
@@ -206,13 +183,12 @@ const mainMenuItems = [
 	{ iconClass: 'ic ic-sys ic-shiming', iconBg: '#FEF3E4', label: '诚信认证', action: onCertification },
 	{ iconClass: 'ic ic-sys ic-fenxiang', iconBg: '#FEF3E4', label: '推荐给好友', action: onInviteFriend },
 	{ iconClass: 'ic ic-me ic-shezhi', iconBg: '#FEF3E4', label: '设置', action: onMenuSettings },
->>>>>>> sync/upstream-main-751a9f4
 ]
 
 const bottomMenuItems = [
-	{ icon: '🎧', iconBg: '#F7F4F0', label: '客服与帮助', subtitle: 'AI客服 . 意见反馈', action: onHelp },
-	{ icon: 'ℹ', iconBg: '#F7F4F0', label: '关于我们', subtitle: '版本 1.0.0', action: onAbout },
-	{ icon: '💡', iconBg: '#FEF3E4', label: '安全中心', action: onSecurity },
+	{ iconClass: 'ic ic-me ic-kefu', iconBg: '#F7F4F0', label: '客服与帮助', subtitle: 'AI客服 . 意见反馈', action: onHelp },
+	{ iconClass: 'ic ic-me ic-bangzhu', iconBg: '#F7F4F0', label: '关于我们', subtitle: '版本 1.0.0', action: onAbout },
+	{ iconClass: 'ic ic-sys ic-shiming', iconBg: '#FEF3E4', label: '安全中心', action: onSecurity },
 ]
 </script>
 
@@ -244,44 +220,14 @@ page {
 	flex-direction: column;
 }
 
-/* ==================== 状态栏 ==================== */
-.status-bar {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	height: 44px;
-	padding-left: 16px;
-	padding-right: 16px;
-	box-sizing: border-box;
-}
-
-.time-text {
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--profile-text);
-}
-
-.status-icons {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-}
-
-.battery-icon {
-	font-size: 12px;
-	color: var(--profile-text);
-	letter-spacing: 1px;
-}
 
 /* ==================== 导航栏 ==================== */
 .nav-bar {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	justify-content: center;
+	justify-content: flex-end;
 	padding: 12px 16px 16px 16px;
-	position: relative;
 }
 
 .nav-title {
@@ -291,9 +237,6 @@ page {
 }
 
 .nav-right {
-	position: absolute;
-	right: 16px;
-	top: 12px;
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -587,4 +530,61 @@ page {
 	height: 120px;
 	flex-shrink: 0;
 }
+
+/* ============================================================
+   婚恋图标字体
+   ============================================================ */
+@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/系统通用/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-social"; src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-vip"; src: url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-me"; src: url('/static/婚恋小程序图标/个人中心/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/个人中心/iconfont.woff') format('woff'); }
+
+.ic { font-style: normal; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+.ic-home { font-family: "iconfont-home" !important; }
+.ic-sys { font-family: "iconfont-sys" !important; }
+.ic-social { font-family: "iconfont-social" !important; }
+.ic-vip { font-family: "iconfont-vip" !important; }
+.ic-me { font-family: "iconfont-me" !important; }
+
+/* 图标 unicode 映射 */
+.ic-search:before { content: "\e600"; }
+.ic-heart:before { content: "\e614"; }
+.ic-star:before { content: "\e60e"; }
+.ic-history:before { content: "\e658"; }
+.ic-hello:before { content: "\e601"; }
+.ic-dingwei:before { content: "\e63a"; }
+.ic-fenxiang:before { content: "\e636"; }
+.ic-shiming:before { content: "\e605"; }
+.ic-guanbi:before { content: "\e604"; }
+.ic-fanhui:before { content: "\e606"; }
+.ic-gengduo:before { content: "\e63f"; }
+.ic-jiantou-you:before { content: "\e928"; }
+.ic-zhankai:before { content: "\e602"; }
+.ic-xiala:before { content: "\e609"; }
+.ic-shuaxin:before { content: "\e782"; }
+.ic-tianjia:before { content: "\e62b"; }
+.ic-pinglun:before { content: "\e679"; }
+.ic-dianzan:before { content: "\ec8c"; }
+.ic-paishe:before { content: "\e603"; }
+.ic-tongzhi:before { content: "\e68c"; }
+.ic-huati:before { content: "\e651"; }
+.ic-tupian-s:before { content: "\e61d"; }
+.ic-touxiang:before { content: "\e632"; }
+.ic-yuyin:before { content: "\e888"; }
+.ic-peidui:before { content: "\e634"; }
+.ic-zhifeiji:before { content: "\e69c"; }
+.ic-huodong:before { content: "\e704"; }
+.ic-huiyuan:before { content: "\e65d"; }
+.ic-jinbi:before { content: "\e64a"; }
+.ic-qianbao:before { content: "\e625"; }
+.ic-renwu:before { content: "\e69f"; }
+.ic-xueli:before { content: "\e66d"; }
+.ic-dongtai:before { content: "\e609"; }
+.ic-shezhi:before { content: "\e69d"; }
+.ic-kefu:before { content: "\e6d0"; }
+.ic-bangzhu:before { content: "\e623"; }
+
+/* 个人中心图标尺寸 */
+.avatar-icon { font-size: 28px; color: var(--profile-text-inverse); }
 </style>

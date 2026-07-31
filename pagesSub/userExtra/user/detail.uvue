@@ -1,305 +1,632 @@
 <template>
-	<view class="page">
-		<view class="topbar">
-			<view class="topbar-button" @tap="onBack"><text class="topbar-icon">‹</text></view>
-			<text class="topbar-title">个人资料</text>
-			<view class="topbar-button" @tap="onShare"><text class="topbar-icon">↗</text></view>
-		</view>
-
+	<view class="detail-page">
 		<view v-if="detailLoading" class="state-block">
 			<text class="state-title">正在加载资料</text>
 			<text class="state-description">请稍候，正在读取最新信息</text>
 		</view>
 		<XsaEmpty
 			v-else-if="detailError != ''"
-			:text="detailErrorTitle"
+			text="资料暂时无法打开"
 			:description="detailError"
 			:show-action="true"
 			action-text="重试"
 			@action="load"
 		/>
-
-		<scroll-view v-else-if="user != null" class="detail-scroll" scroll-y enhanced show-scrollbar="false">
-			<view class="cover-area">
-				<image class="cover-image" :src="user.cover" mode="aspectFill"></image>
-				<view class="cover-shade"></view>
-			</view>
-
-			<view class="profile-card">
-				<image class="avatar" :src="user.avatar" mode="aspectFill"></image>
-				<view class="profile-main">
-					<view class="name-row">
-						<text class="profile-name">{{ user.name }}</text>
-						<text class="profile-age" v-if="user.age != ''">{{ user.age }}岁</text>
+		<scroll-view v-else scroll-y class="detail-scroll" enhanced show-scrollbar="false">
+			<view v-if="!isLockedView" class="ordinary-detail-page">
+				<view class="ordinary-profile-card">
+					<view class="ordinary-cover">
+						<image class="ordinary-cover-img" :src="user.photos[0]" mode="aspectFill"></image>
+						<view class="cover-actions">
+							<view class="round-action" @tap="onBack"><text class="round-action-text">←</text></view>
+							<view v-if="!isPreview" class="round-action" @tap="onShare"><text class="round-action-text share-symbol">↗</text></view>
+						</view>
+						<view class="ordinary-cover-user">
+							<image class="ordinary-avatar" :src="user.avatar" mode="aspectFill"></image>
+							<view class="ordinary-cover-copy">
+								<view class="ordinary-name-row">
+									<text class="ordinary-name">{{ user.name }}，{{ user.age }}岁</text>
+									<view v-if="user.isVIP" class="vip-badge"><text class="vip-badge-text">VIP</text></view>
+								</view>
+								<text class="ordinary-cover-meta">{{ user.edu }} · {{ user.job }} · {{ user.city }}</text>
+								<text class="ordinary-active">{{ user.online }} · {{ user.distance }}</text>
+							</view>
+						</view>
 					</view>
-					<text class="profile-meta">{{ user.meta }}</text>
-					<view class="tag-row" v-if="user.tags.length > 0">
-						<view class="tag" v-for="tag in user.tags" :key="tag"><text>{{ tag }}</text></view>
+
+					<view class="ordinary-card-body">
+						<view class="ordinary-section about-me-section">
+							<text class="ordinary-section-title">关于我</text>
+							<view class="tag-row">
+								<view v-for="tag in user.tags" :key="tag" class="profile-tag"><text class="profile-tag-text">{{ tag }}</text></view>
+							</view>
+							<text class="about-text">{{ user.bio }}</text>
+							<view class="cert-summary">
+								<text class="cert-summary-label">已认证：</text>
+								<text v-for="cert in certs" :key="cert.label" class="cert-summary-item">✓ {{ cert.shortLabel }}</text>
+							</view>
+						</view>
+
+						<view class="ai-match-section">
+							<view class="match-score"><text class="match-score-value">{{ user.match }}%</text></view>
+							<view class="match-copy">
+								<text class="match-title">AI 匹配度分析</text>
+								<text class="match-desc">MBTI高度契合 · 兴趣重合度高 · 三观相近</text>
+							</view>
+						</view>
+
+						<view class="ordinary-section basic-info-section">
+							<text class="ordinary-section-title">基础资料</text>
+							<view class="basic-info-grid">
+								<view v-for="(row, ri) in user.basicInfo" :key="ri" class="basic-info-row">
+									<view v-for="(item, ii) in row" :key="ii" class="basic-info-cell">
+										<text class="basic-info-label">{{ item.label }}</text>
+										<text class="basic-info-value">{{ item.value }}</text>
+									</view>
+								</view>
+							</view>
+						</view>
+
+						<view class="ordinary-section moments-section">
+							<text class="ordinary-section-title">Ta的瞬间</text>
+							<image class="moment-hero" :src="user.lifePhotos[0]" mode="aspectFill"></image>
+							<view class="qa-card">
+								<text class="qa-question">💭 爱情观</text>
+								<text class="qa-answer">{{ user.expect[0] }}。相信爱情是两个人相互成就的旅程，期待细水长流的陪伴与理解。</text>
+							</view>
+							<image class="moment-hero" :src="user.lifePhotos[1]" mode="aspectFill"></image>
+							<view class="qa-card">
+								<text class="qa-question">🏃 喜欢什么运动</text>
+								<text class="qa-answer">平时喜欢瑜伽和慢跑，周末偶尔去爬山。运动让我保持身心平衡，也期待遇到可以一起挥洒汗水的伙伴。</text>
+							</view>
+							<image class="moment-hero" :src="user.lifePhotos[2]" mode="aspectFill"></image>
+							<view class="qa-card">
+								<text class="qa-question">✈️ 下一个旅行目的地</text>
+								<text class="qa-answer">想去京都感受古都的宁静，也想去冰岛看极光。如果你也喜欢旅行，我们可以一起规划下一次冒险。</text>
+							</view>
+						</view>
+
+						<view class="ordinary-section dynamics-section">
+							<view class="section-heading-row">
+								<text class="ordinary-section-title">Ta的动态</text>
+								<text class="section-more">查看全部 ›</text>
+							</view>
+							<view v-for="item in dynamics" :key="item.id" class="dynamic-card">
+								<view class="dynamic-user-row">
+									<image class="dynamic-avatar" :src="user.avatar" mode="aspectFill"></image>
+									<view class="dynamic-user-copy"><text class="dynamic-name">{{ user.name }}</text><text class="dynamic-time">{{ item.time }}</text></view>
+								</view>
+								<text class="dynamic-content">{{ item.content }}</text>
+								<image class="dynamic-photo" :src="item.photo" mode="aspectFill"></image>
+								<view class="dynamic-footer"><text class="dynamic-topic">{{ item.topic }}</text><text class="dynamic-count">♡ {{ item.likes }}　◌ {{ item.comments }}</text></view>
+							</view>
+							<view class="more-dynamics"><text class="more-dynamics-text">查看更多动态</text></view>
+						</view>
+
+													<view class="ordinary-section spotlight-section">
+								<view class="section-heading-row">
+									<view class="spot-heading-left"><text class="spot-light-icon">💡</text><text class="ordinary-section-title">爆灯嘉宾</text><text class="spot-count">32人</text></view>
+									<text class="section-more">查看全部 ›</text>
+								</view>
+								<view class="visitor-row">
+									<view v-for="visitor in visitors" :key="visitor.name" class="visitor-avatar"><image class="visitor-img" :src="visitor.avatar" mode="aspectFill"></image></view>
+									<text class="visitor-more">+26人</text>
+								</view>
+								<text class="spot-desc">非常中意Ta？爆灯后系统将立即短信通知对方，您的头像将显示在爆灯栏，让Ta第一时间注意到你！</text>
+								<view class="spot-benefits">
+									<view class="spot-benefit"><text class="spot-benefit-icon">▣</text><text class="spot-benefit-title">快速触达</text><text class="spot-benefit-desc">即时短信通知</text></view>
+									<view class="spot-benefit"><text class="spot-benefit-icon">♙</text><text class="spot-benefit-title">展示曝光</text><text class="spot-benefit-desc">头像展示在爆灯栏</text></view>
+									<view class="spot-benefit"><text class="spot-benefit-icon">♥</text><text class="spot-benefit-title">增加好感</text><text class="spot-benefit-desc">更容易被留意</text></view>
+								</view>
+								<view class="spot-price"><text class="spot-price-label">单次爆灯</text><text class="spot-price-value">¥9.9</text><text class="spot-price-unit">/次</text></view>
+							<view class="spotlight-button" @tap="onSpotlight"><text class="spotlight-button-text">💡 我要爆灯</text></view>
+							</view>
+
+							<view class="activity-row">
+							<text class="activity-text">● {{ user.recentActivity }} · {{ user.distance }}</text>
+							<text class="viewed-text">23人看过</text>
+						</view>
 					</view>
-					<text class="profile-bio">{{ user.bio }}</text>
 				</view>
 			</view>
 
-			<view class="section-card">
-				<view class="section-heading"><text class="section-title">基础资料</text><text class="section-caption" v-if="user.detailLocked">部分暂不可见</text></view>
-				<view v-if="user.detailLocked" class="locked-note">
-					<text class="locked-note-title">详细资料暂不可见</text>
-					<text class="locked-note-description">当前仅展示公开摘要，更多信息以对方实际公开范围为准。</text>
+			<view v-else class="locked-detail-page">
+				<view class="locked-cover-area">
+					<image class="locked-cover-img" :src="user.photos[0]" mode="aspectFill"></image>
+					<view class="cover-actions">
+						<view class="round-action" @tap="onBack"><text class="round-action-text">←</text></view>
+						<view class="round-action" @tap="onShare"><text class="round-action-text share-symbol">↗</text></view>
+					</view>
+					<view class="locked-avatar-circle"><image class="locked-avatar" :src="user.avatar" mode="aspectFill"></image></view>
 				</view>
-				<view v-else class="info-grid">
-					<view class="info-item" v-for="item in user.basicInfo" :key="item.label">
-						<text class="info-label">{{ item.label }}</text>
-						<text class="info-value">{{ item.value }}</text>
+
+				<view class="locked-profile-header">
+					<view class="locked-name-vip-row">
+						<view class="locked-name-group"><text class="locked-name">{{ user.name }}</text><text class="locked-age">{{ user.age }}岁</text></view>
+						<view v-if="user.isVIP" class="vip-badge vip-badge-large"><text class="vip-crown">♛</text><text class="vip-badge-text">VIP会员</text></view>
+					</view>
+					<text class="locked-meta">{{ user.job }} · {{ user.edu }}　{{ user.city }}　<text class="online-text">在线</text></text>
+					<view class="tag-row">
+						<view v-for="tag in user.tags" :key="tag" class="profile-tag"><text class="profile-tag-text">{{ tag }}</text></view>
+					</view>
+					<text class="locked-bio">{{ user.bio }}</text>
+				</view>
+
+				<view class="locked-detail-content">
+					<view class="locked-section-card">
+						<text class="locked-section-title">基础资料</text>
+						<view class="vip-exclusive-card">
+							<text class="exclusive-lock">▢</text>
+							<text class="exclusive-title">VIP会员专属内容</text>
+							<text class="exclusive-desc">开通VIP会员即可解锁Ta的语音介绍</text>
+							<view class="unlock-button" @tap="openVipUnlock"><text class="unlock-button-text">去开通</text></view>
+						</view>
+					</view>
+
+					<view class="locked-section-card certification-section">
+						<text class="locked-section-title">认证信息</text>
+						<view v-for="cert in certs" :key="cert.label" class="cert-item">
+							<view class="cert-icon-wrap"><text class="cert-icon">{{ cert.icon }}</text></view>
+							<view class="cert-copy"><text class="cert-label">{{ cert.label }}</text><text class="cert-desc">{{ cert.desc }}</text></view>
+							<text class="cert-check">✓</text>
+						</view>
+					</view>
+
+					<view class="locked-section-card">
+						<text class="locked-section-title">Ta的瞬间</text>
+						<view class="vip-exclusive-card">
+							<text class="exclusive-lock">▢</text>
+							<text class="exclusive-title">VIP会员专属内容</text>
+							<text class="exclusive-desc">开通VIP会员即可解锁Ta的语音介绍</text>
+							<view class="unlock-button" @tap="openVipUnlock"><text class="unlock-button-text">去开通</text></view>
+						</view>
+					</view>
+
+					<view class="locked-section-card">
+						<text class="locked-section-title">Ta的问答</text>
+						<view class="vip-exclusive-card">
+							<text class="exclusive-lock">▢</text>
+							<text class="exclusive-title">VIP会员专属内容</text>
+							<text class="exclusive-desc">开通VIP会员即可查看TA的择偶标准与期待</text>
+							<view class="unlock-button" @tap="openVipUnlock"><text class="unlock-button-text">去开通</text></view>
+						</view>
+					</view>
+
+					<view class="locked-section-card spotlight-section">
+						<view class="spot-heading"><view class="spot-heading-left"><text class="spot-light-icon">💡</text><text class="locked-section-title">爆灯嘉宾</text><text class="spot-count">32人</text></view><text class="spot-more">查看全部 ›</text></view>
+						<view class="visitor-row">
+							<view v-for="visitor in visitors" :key="visitor.name" class="visitor-avatar"><image class="visitor-img" :src="visitor.avatar" mode="aspectFill"></image></view>
+							<text class="visitor-more">+26人</text>
+						</view>
+						<text class="spot-desc">非常中意Ta？爆灯后系统将立即短信通知对方，您的头像将显示在此处，让Ta第一时间注意到你！</text>
+						<view class="spot-benefits">
+							<view class="spot-benefit"><text class="spot-benefit-icon">▣</text><text class="spot-benefit-title">快速触达</text><text class="spot-benefit-desc">即时短信通知</text></view>
+							<view class="spot-benefit"><text class="spot-benefit-icon">♙</text><text class="spot-benefit-title">展示曝光</text><text class="spot-benefit-desc">头像展示在爆灯栏</text></view>
+							<view class="spot-benefit"><text class="spot-benefit-icon">♥</text><text class="spot-benefit-title">增加好感</text><text class="spot-benefit-desc">更容易被留意</text></view>
+						</view>
+						<view class="spot-price"><text class="spot-price-label">单次爆灯</text><text class="spot-price-value">¥9.9</text><text class="spot-price-unit">/次</text></view>
+						<view class="spotlight-button" @tap="onSpotlight"><text class="spotlight-button-text">💡 我要爆灯</text></view>
 					</view>
 				</view>
 			</view>
 
-			<view class="section-card" v-if="user.certifications.length > 0">
-				<view class="section-heading"><text class="section-title">认证状态</text><text class="section-caption">以平台审核为准</text></view>
-				<view class="cert-list">
-					<view class="cert-item" v-for="cert in user.certifications" :key="cert.label">
-						<view class="cert-mark"><text>✓</text></view>
-						<text class="cert-label">{{ cert.label }}</text>
-						<text class="cert-status">{{ cert.status }}</text>
-					</view>
-				</view>
-			</view>
-
-			<view class="section-card">
-				<text class="section-title">自我介绍</text>
-				<text class="intro-text">{{ user.bio }}</text>
-			</view>
-
-			<view class="section-card" v-if="user.expectations.length > 0">
-				<text class="section-title">关系期待</text>
-				<view class="expectation-list">
-					<view class="expectation-item" v-for="item in user.expectations" :key="item"><text>{{ item }}</text></view>
-				</view>
-			</view>
 			<view class="scroll-bottom-spacer"></view>
 		</scroll-view>
 
-		<view v-if="user != null && !user.isOwn" class="bottom-bar">
-			<view class="back-action" @tap="onBack"><text class="back-action-icon">‹</text><text>返回</text></view>
-			<view class="apply-action" @tap="onMatch"><text>申请认识</text></view>
-			<view class="like-action" @tap="onLike"><text>{{ user.liked ? '已喜欢' : '喜欢' }}</text></view>
-		</view>
-		<view v-if="user != null && user.isOwn" class="bottom-bar own-bar">
-			<view class="apply-action" @tap="goEdit"><text>编辑资料</text></view>
+			<view v-if="!isLockedView && isOwnProfile && !isPreview && !detailLoading && detailError == ''" class="bottom-bar bottom-bar-own">
+				<view class="primary-action edit-only-btn" @tap="goEdit"><text class="primary-action-text">编辑资料</text></view>
+			</view>
+			<view v-if="!isOwnProfile && !isPreview && !detailLoading && detailError == ''" class="bottom-bar">
+			<view class="bottom-back" @tap="onBack"><text class="bottom-back-icon">←</text><text class="bottom-back-text">返回</text></view>
+			<view class="primary-action" @tap="onMatch"><text class="primary-action-text">♥　申请认识</text></view>
+			<view class="like-action" @tap="onLike"><text class="like-action-text">♥</text></view>
 		</view>
 
 		<XsaApplySheet :visible="applyVisible" :user-id="applyUserId" @close="applyVisible = false" @success="onApplySuccess" />
+		<XsaPaymentSheet :visible="spotlightPaymentVisible" :amount="SPOTLIGHT_AMOUNT" :loading="spotlightPaying" confirm-text="确认支付爆灯" notice="爆灯 9.9 元/次：确认后展示爆灯成功状态。" @close="closeSpotlightPayment" @confirm="confirmSpotlightPayment" />
+		<XsaSpotlightSuccessSheet :visible="spotlightSuccessVisible" :target="spotlightTarget" @close="closeSpotlightSuccess" />
 	</view>
 </template>
 
 <script setup lang="uts">
-	import XsaEmpty from '@/components/XsaEmpty.uvue'
-	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
-	import { getUserDetail, getOwnProfile, likeUser } from '@/api'
-	import { guardRealName } from '@/utils/realNameGate.uts'
+import { ref } from 'vue'
+import XsaEmpty from '@/components/XsaEmpty.uvue'
+import XsaApplySheet from '@/components/XsaApplySheet.uvue'
+import XsaPaymentSheet from '@/components/XsaPaymentSheet.uvue'
+import XsaSpotlightSuccessSheet from '@/components/XsaSpotlightSuccessSheet.uvue'
+import { getUserDetail, likeUser, getOwnProfile } from '@/api'
+import { SPOTLIGHT_AMOUNT, paySpotlight } from '@/api/spotlight.uts'
+import { guardRealName } from '@/utils/realNameGate.uts'
+import { getCurrentUserVipStatus } from '@/utils/quota.uts'
 
-	const DEFAULT_AVATAR = '/static/portraits/profile-woman-main.jpg'
-	const DEFAULT_COVER = '/static/portraits/profile-woman-community.jpg'
-	const detailLoading = ref(true)
-	const detailError = ref('')
-	const detailErrorTitle = ref('资料暂时无法打开')
-	const routeUserId = ref(0)
-	const applyVisible = ref(false)
-	const applyUserId = ref(0)
-	const user = ref(null as any)
-	const isOwnRoute = ref(false)
+const isLockedView = ref(false)
+const isOwnProfile = ref(false)
+const isPreview = ref(false)
+const detailLoading = ref(true)
+const detailError = ref('')
+const applyVisible = ref(false)
+const applyUserId = ref(1)
+const spotlightPaymentVisible = ref(false)
+const spotlightSuccessVisible = ref(false)
+const spotlightPaying = ref(false)
+const spotlightTarget = ref({ id: 0, name: '', avatar: '', meta: '' })
 
-	const textValue = (value: any, fallback: string = '未填写'): string => {
-		if (value == null || ('' + value).trim() == '') return fallback
-		return '' + value
+const user = ref({
+	id: 1,
+	name: '林悦',
+	age: '26',
+	avatar: '/static/portraits/profile-woman-main.jpg',
+	isVIP: true,
+	job: '产品经理',
+	edu: '本科',
+	city: '北京',
+	online: '当前在线',
+	distance: '距你 3.2km',
+	recentActivity: '近期活跃',
+	match: 92,
+	tags: ['积极营业', 'ENFJ', '颜控', '旅行', '摄影'],
+	bio: '性格温和，热爱生活～ 平时喜欢旅行探索世界，也享受宅家的宁静时光。希望遇到一个真诚的人，一起经营温暖的小日子。',
+	photos: [
+		'/static/portraits/profile-woman-main.jpg',
+		'/static/portraits/profile-woman-alt.jpg'
+	],
+	lifePhotos: [
+		'/static/portraits/profile-woman-community.jpg',
+		'/static/portraits/profile-woman-alt.jpg',
+		'/static/portraits/profile-woman-main.jpg'
+	],
+	expect: [
+		'愿意把真实想法说清楚，不用猜来猜去',
+		'各自有生活，也愿意为共同计划留出时间',
+		'把长期关系当作两个人一起完成的作品'
+	],
+	basicInfo: [
+		[{ label: '年龄', value: '26岁' }, { label: '身高', value: '168cm' }, { label: '体重', value: '52kg' }],
+		[{ label: '星座', value: '天秤座' }, { label: '学历', value: '本科' }, { label: '职业', value: '产品经理' }],
+		[{ label: '现居', value: '北京朝阳' }, { label: '家乡', value: '浙江杭州' }, { label: '收入', value: '30-50万' }]
+	]
+})
+
+const certs = ref([
+	{ icon: '盾', shortLabel: '实名', label: '实名认证', desc: '已通过平台实名认证' },
+	{ icon: '学', shortLabel: '学历', label: '学历认证', desc: '学历信息已核验' },
+	{ icon: '像', shortLabel: '头像', label: '头像认证', desc: '头像为本人真实照片' },
+	{ icon: '房', shortLabel: '房产', label: '房产认证', desc: '房产信息已认证' }
+])
+
+const visitors = ref([
+	{ name: '张伟', avatar: '/static/portraits/profile-woman-alt.jpg' },
+	{ name: '李明', avatar: '/static/portraits/profile-man-light.jpg' },
+	{ name: '王强', avatar: '/static/portraits/profile-man-sea.jpg' },
+	{ name: '刘洋', avatar: '/static/portraits/profile-woman-community.jpg' }
+])
+
+const dynamics = ref([
+	{ id: 1, time: '2小时前 · 大理', content: '周末和朋友去了趟大理，洱海边的风真的好舒服。停下来拍照的时候，感觉整个世界都慢下来了。', photo: '/static/portraits/profile-woman-community.jpg', topic: '#旅行', likes: 89, comments: 12 },
+	{ id: 2, time: '昨天 18:30 · 奥体中心', content: '完成了人生第一个半马！虽然很累，但冲线的那一刻，一切都值得。', photo: '/static/portraits/profile-woman-alt.jpg', topic: '#健身', likes: 156, comments: 28 },
+	{ id: 3, time: '3天前 · 蜂巢剧场', content: '新年第一场脱口秀。笑到腹肌疼，才发现快乐原来这么简单。', photo: '/static/portraits/profile-woman-main.jpg', topic: '#生活', likes: 203, comments: 8 }
+])
+
+const textValue = (value: any, fallback: string): string => {
+	return value != null && value != '' ? '' + value : fallback
+}
+
+const mapDetailUser = (raw: any, id: number) => {
+	if (raw == null) return
+	const envelope = raw.data != null ? raw.data : raw
+	if (envelope == null) return
+	const card = envelope.card != null ? envelope.card : envelope
+	const profile = envelope.profile != null ? envelope.profile : envelope
+	const value = (primary: any, secondary: any, fallback: string): string => {
+		return textValue(primary, textValue(secondary, fallback))
 	}
-
-	const educationText = (value: any): string => {
+	const age = value(card.age, profile.age, user.value.age)
+	const educationLabel = (level: any): string => {
 		const labels = ['', '高中及以下', '大专', '本科', '硕士', '博士']
-		const index = value != null ? Number(value) : 0
-		return index > 0 && index < labels.length ? labels[index] : '未填写'
+		const index = level != null ? Number(level) : 0
+		return index > 0 && index < labels.length ? labels[index] : ''
 	}
-
-	const mapCertifications = (tags: any): any[] => {
-		const list = tags != null && Array.isArray(tags) ? tags as any[] : []
-		return list.map((item: any) => ({ label: '' + item, status: '已通过' }))
+	const edu = value(card.education, profile.education, value(card.edu, educationLabel(profile.education_level), user.value.edu))
+	const job = value(card.job, profile.occupation, user.value.job)
+	const city = value(card.city, profile.city_code, user.value.city)
+	const height = value(card.height, profile.height != null ? '' + profile.height + 'cm' : null, '168cm')
+	const weight = value(card.weight, profile.weight != null ? '' + profile.weight + 'kg' : null, '52kg')
+	const constellation = value(card.constellation, profile.constellation, '天秤座')
+	const hometown = value(card.hometown, profile.hometown, '浙江杭州')
+	const income = value(card.income, profile.income, value(card.salary, profile.income, '30-50万'))
+	const marriage = value(card.marriage, profile.is_married == 1 ? '未婚' : profile.is_married == 2 ? '离异' : profile.is_married == 3 ? '丧偶' : null, '未填写')
+	const mbti = value(card.mbti, profile.mbti, '未填写')
+	const activeStatus = value(card.activeStatus, card.active_status, '未填写')
+	const avatar = value(card.avatar, profile.avatar, user.value.avatar)
+	const rawPhotos = card.photos != null ? card.photos : profile.photos
+	const photos = Array.isArray(rawPhotos)
+		? (rawPhotos as any[]).map((photo: any) => photo != null && typeof photo === 'object' ? value(photo.url, photo.file_url, avatar) : '' + photo)
+		: user.value.photos
+	const lifePhotos = Array.isArray(card.lifePhotos) && card.lifePhotos.length >= 3
+		? card.lifePhotos as string[]
+		: photos.length >= 3 ? photos.slice(0, 3) : user.value.lifePhotos
+	const tags = Array.isArray(card.tags) ? card.tags as string[] : Array.isArray(profile.interest_tags) ? profile.interest_tags as string[] : user.value.tags
+	const expectations = profile.tag_selections != null && Array.isArray(profile.tag_selections.relationship_expectation)
+		? profile.tag_selections.relationship_expectation as string[]
+		: Array.isArray(card.expect) && card.expect.length > 0 ? card.expect as string[] : user.value.expect
+	const mappedInfo = [
+		[{ label: '年龄', value: age + '岁' }, { label: '身高', value: height }, { label: '体重', value: weight }],
+		[{ label: '星座', value: constellation }, { label: '学历', value: edu }, { label: '职业', value: job }],
+		[{ label: '现居', value: city }, { label: '家乡', value: hometown }, { label: '收入', value: income }],
+		[{ label: '婚姻', value: marriage }, { label: 'MBTI', value: mbti }, { label: '状态', value: activeStatus }]
+	]
+	user.value = {
+		...user.value,
+		id: envelope.user_id != null ? Number(envelope.user_id) : (card.id != null ? Number(card.id) : id),
+		name: value(card.name, card.nickname, user.value.name),
+		age,
+		avatar,
+		isVIP: card.isVip === true || card.isVIP === true || profile.isVip === true || profile.isVIP === true,
+		job,
+		edu,
+		city,
+		online: value(card.online, card.online_status, user.value.online),
+		distance: value(card.distance, null, user.value.distance),
+		recentActivity: value(card.recentActivity, card.activeStatus, user.value.recentActivity),
+		match: card.match != null ? Number(card.match) : user.value.match,
+		tags,
+		bio: value(card.intro, profile.self_intro, value(card.introduction, profile.introduction, user.value.bio)),
+		photos: photos.length > 0 ? photos : user.value.photos,
+		lifePhotos,
+		expect: expectations,
+		basicInfo: Array.isArray(card.basicInfo) && card.basicInfo.length > 0 ? card.basicInfo : mappedInfo
 	}
+	applyUserId.value = user.value.id
+}
 
-	const mapProfile = (envelope: any, own: boolean): any => {
-		const raw = envelope != null ? envelope : {}
-		const card = raw.card != null ? raw.card : raw
-		const profile = raw.profile != null ? raw.profile : own ? raw : null
-		const tagValues: any[] = []
-		const interestTags = card.interest_tags != null ? card.interest_tags : profile != null ? profile.interest_tags : []
-		if (interestTags != null && Array.isArray(interestTags)) tagValues.push(...(interestTags as any[]).slice(0, 5))
-		const certificationTags = card.certification_tags != null ? card.certification_tags : []
-		if (certificationTags != null && Array.isArray(certificationTags)) tagValues.push(...(certificationTags as any[]).slice(0, 3))
-		const detailLocked = !own && (card.detail_locked == true || raw.detail_locked == true || profile == null)
-		const basicInfo: any[] = []
-		if (profile != null && !detailLocked) {
-			basicInfo.push({ label: '身高', value: profile.height != null ? profile.height + ' cm' : '未填写' })
-			basicInfo.push({ label: '学历', value: educationText(profile.education_level) })
-			basicInfo.push({ label: '职业', value: textValue(profile.occupation) })
-			basicInfo.push({ label: '婚姻', value: textValue(profile.is_married == 1 ? '未婚' : profile.is_married == 2 ? '离异' : profile.is_married == 3 ? '丧偶' : null) })
-			basicInfo.push({ label: '常住地', value: textValue(profile.residence_city_code || profile.residence_province_code) })
-			basicInfo.push({ label: 'MBTI', value: textValue(profile.mbti) })
+const load = async () => {
+	detailLoading.value = true
+	detailError.value = ''
+	try {
+		let res: any = null
+		if (isOwnProfile.value) {
+			res = await getOwnProfile()
+		} else {
+			res = await getUserDetail(user.value.id)
 		}
-		const selections = profile != null && profile.tag_selections != null ? profile.tag_selections : {}
-		const expectations = selections.relationship_expectation != null && Array.isArray(selections.relationship_expectation)
-			? selections.relationship_expectation as any[]
-			: []
-		return {
-			id: raw.user_id != null ? Number(raw.user_id) : Number(card.user_id),
-			name: textValue(card.nickname, '未设置昵称'),
-			age: card.age != null ? '' + card.age : profile != null && profile.age != null ? '' + profile.age : '',
-			avatar: textValue(card.avatar || (profile != null ? profile.avatar : null), DEFAULT_AVATAR),
-			cover: textValue(profile != null ? profile.background_wall : null, DEFAULT_COVER),
-			meta: [textValue(card.occupation || (profile != null ? profile.occupation : null)), textValue(card.city_code || (profile != null ? profile.residence_city_code : null))].join(' · '),
-			tags: tagValues,
-			bio: textValue(profile != null ? profile.self_intro : null, '这位用户还没有填写自我介绍。'),
-			basicInfo,
-			certifications: mapCertifications(certificationTags),
-			expectations,
-			detailLocked,
-			liked: card.is_favorite == true,
-			canApply: raw.can_apply != false,
-			isOwn: own
+		if (res != null && res.success === true && res.data != null) {
+			mapDetailUser(res, user.value.id)
+		} else {
+			detailError.value = res != null && res.message != null ? '' + res.message : '请稍后重试'
 		}
+	} catch (e) {
+		detailError.value = '网络异常，请稍后重试'
+	} finally {
+		detailLoading.value = false
+		refreshLockedView()
 	}
+}
 
-	const load = async () => {
-		detailLoading.value = true
-		detailError.value = ''
-		try {
-			const res = isOwnRoute.value ? await getOwnProfile() : await getUserDetail(routeUserId.value)
-			if (res != null && res.success && res.data != null) {
-				const raw = res.data as any
-				const hasIdentity = raw.user_id != null || (raw.card != null && raw.card.user_id != null)
-				if (!hasIdentity) {
-					user.value = null
-					detailErrorTitle.value = '资料暂时无法打开'
-					detailError.value = '服务端没有返回有效用户资料'
-					return
-				}
-				user.value = mapProfile(raw, isOwnRoute.value)
-				applyUserId.value = user.value.id
-			} else {
-				user.value = null
-				const code = res != null ? Number(res.code) : 0
-				detailErrorTitle.value = code == 404 ? '用户不存在' : code == 403 ? '暂时没有查看权限' : '资料暂时无法打开'
-				detailError.value = res != null && res.message != null ? '' + res.message : '请稍后重试'
-			}
-		} catch (e) {
-			user.value = null
-			detailErrorTitle.value = '网络连接失败'
-			detailError.value = '请检查网络后重试'
-		} finally {
-			detailLoading.value = false
-		}
+const refreshLockedView = () => {
+	const viewerIsVip = getCurrentUserVipStatus()
+	const targetIsVip = user.value.isVIP === true
+	isLockedView.value =
+		!isPreview.value &&
+		!isOwnProfile.value &&
+		viewerIsVip !== true &&
+		targetIsVip
+}
+
+onMounted(async () => {
+	const pages = getCurrentPages()
+	const currentPage = pages[pages.length - 1]
+	const options = currentPage.options
+	isOwnProfile.value = options.own === 'true'
+	isPreview.value = options.preview === 'true'
+
+	let parsed = 1
+	if (options.userId != null && options.userId != '') {
+		const candidate = Number(options.userId)
+		if (!isNaN(candidate) && candidate > 0) parsed = candidate
 	}
+	user.value.id = parsed
+	applyUserId.value = parsed
+	await load()
+})
 
-	onLoad((query: any) => {
-		isOwnRoute.value = query != null && query.own == 'true'
-		const pages = getCurrentPages()
-		const currentPage = pages.length > 0 ? pages[pages.length - 1] : null
-		const options: any = currentPage != null ? currentPage.options : {}
-		let routeValue: any = query != null && query.userId != null ? query.userId : null
-		if (options.userId != null && options.userId != '') routeValue = options.userId
-		const parsed = routeValue != null ? Number(routeValue) : 0
-		routeUserId.value = parsed > 0 ? parsed : 0
-		if (!isOwnRoute.value && routeUserId.value <= 0) {
-			detailErrorTitle.value = '用户不存在'
-			detailError.value = '缺少有效的用户编号'
+onShow(() => {
+	refreshLockedView()
+})
+
+const onBack = () => { uni.navigateBack({ delta: 1 }) }
+const onShare = () => { uni.showToast({ title: '分享给朋友', icon: 'none' }) }
+const goEdit = () => { uni.navigateTo({ url: '/pagesSub/userExtra/user/edit' }) }
+const onSpotlight = () => {
+	if (isOwnProfile.value) {
+		uni.showToast({ title: '不能向自己爆灯', icon: 'none' })
+		return
+	}
+	if (spotlightPaying.value) return
+	spotlightTarget.value = { id: Number(user.value.id), name: '' + user.value.name, avatar: '' + user.value.avatar, meta: '' + user.value.age + '岁 · ' + user.value.job }
+	spotlightPaymentVisible.value = true
+}
+const closeSpotlightPayment = () => { if (!spotlightPaying.value) spotlightPaymentVisible.value = false }
+const closeSpotlightSuccess = () => {
+	spotlightSuccessVisible.value = false
+	spotlightTarget.value = { id: 0, name: '', avatar: '', meta: '' }
+}
+const confirmSpotlightPayment = async () => {
+	if (spotlightPaying.value) return
+	spotlightPaying.value = true
+	try {
+		const res = await paySpotlight(spotlightTarget.value)
+		if (res.success !== true) {
+			uni.showToast({ title: res.message != null ? '' + res.message : '支付失败，请重试', icon: 'none' })
 			return
 		}
-		load()
+		spotlightPaymentVisible.value = false
+		spotlightSuccessVisible.value = true
+	} catch (e) {
+		uni.showToast({ title: '网络异常，支付未完成', icon: 'none' })
+	} finally {
+		spotlightPaying.value = false
+	}
+}
+const openVipUnlock = () => {
+	const redirect = '/pagesSub/userExtra/user/detail?userId=' + user.value.id
+	uni.navigateTo({
+		url: '/pagesSub/profileExtra/vip?source=user-detail&userId=' + user.value.id + '&redirect=' + encodeURIComponent(redirect)
 	})
-
-	const onBack = () => uni.navigateBack({ delta: 1 })
-	const onShare = () => uni.showToast({ title: '分享功能将在确认后开放', icon: 'none' })
-	const goEdit = () => uni.navigateTo({ url: '/pagesSub/userExtra/user/edit' })
-
-	const onMatch = async () => {
-		if (user.value == null || user.value.isOwn) return
-		if (user.value.canApply == false) {
-			uni.showToast({ title: '请先完成实名认证或完善资料', icon: 'none' })
-			return
+}
+const onMatch = async () => {
+	if (isOwnProfile.value) {
+		uni.showToast({ title: '不能向自己申请认识', icon: 'none' })
+		return
+	}
+	const ok = await guardRealName('apply')
+	if (!ok) return
+	applyUserId.value = user.value.id
+	applyVisible.value = true
+}
+const onApplySuccess = (_payload: any) => {
+	applyVisible.value = false
+	uni.showToast({ title: '申请已送达，等待对方回应', icon: 'none' })
+}
+const onLike = async () => {
+	if (isOwnProfile.value) {
+		uni.showToast({ title: '不能喜欢自己', icon: 'none' })
+		return
+	}
+	const ok = await guardRealName('like')
+	if (!ok) return
+	const id = user.value.id != null ? Number(user.value.id) : 1
+	try {
+		const res = await likeUser(id)
+		if (res.success && res.data != null) {
+			const liked = res.data.liked == true
+			uni.showToast({ title: liked ? '已喜欢，仅你自己可见' : '已取消喜欢', icon: 'none' })
+		} else {
+			uni.showToast({ title: '操作失败，请重试', icon: 'none' })
 		}
-		const ok = await guardRealName('apply')
-		if (!ok) return
-		applyUserId.value = user.value.id
-		applyVisible.value = true
+	} catch (e) {
+		uni.showToast({ title: '操作失败，请重试', icon: 'none' })
 	}
-
-	const onApplySuccess = (_payload: any) => {
-		applyVisible.value = false
-		uni.showToast({ title: '申请已送达，等待对方回应', icon: 'none' })
-	}
-
-	const onLike = async () => {
-		if (user.value == null || user.value.isOwn) return
-		const ok = await guardRealName('like')
-		if (!ok) return
-		try {
-			const res = await likeUser(user.value.id)
-			if (res.success && res.data != null) {
-				user.value.liked = res.data.liked == true
-				uni.showToast({ title: user.value.liked ? '已喜欢，仅你自己可见' : '已取消喜欢', icon: 'none' })
-			} else {
-				uni.showToast({ title: res.message != null ? '' + res.message : '操作失败，请重试', icon: 'none' })
-			}
-		} catch (e) {
-			uni.showToast({ title: '网络异常，请稍后重试', icon: 'none' })
-		}
-	}
+}
 </script>
 
 <style scoped>
-.page { min-height: 100vh; background: var(--canvas); display: flex; flex-direction: column; }
-.topbar { height: 48px; padding: 0 12px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; background: var(--paper); border-bottom: 1px solid var(--line); }
-.topbar-button { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
-.topbar-icon { font-size: 28px; line-height: 1; color: var(--ink); }
-.topbar-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+.detail-page { position: relative; width: 100%; max-width: 750rpx; height: 100vh; margin: 0 auto; background-color: var(--canvas); color: var(--ink); }
 .state-block { padding: 72px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .state-title { font-size: 16px; font-weight: 700; color: var(--ink); }
 .state-description { font-size: 13px; color: var(--muted); }
-.detail-scroll { flex: 1; height: 0; padding-bottom: 88px; }
-.cover-area { height: 196px; position: relative; overflow: hidden; background: var(--warm); }
-.cover-image { width: 100%; height: 100%; }
-.cover-shade { position: absolute; inset: 0; background: var(--image-hero); }
-.profile-card { position: relative; margin: -40px 16px 12px; padding: 52px 16px 16px; background: var(--surface); border-radius: 12px; border: 1px solid var(--line); }
-.avatar { position: absolute; top: -36px; left: 16px; width: 72px; height: 72px; border-radius: 50%; border: 4px solid var(--surface); background: var(--warm); }
-.profile-main { display: flex; flex-direction: column; gap: 8px; }
-.name-row { display: flex; flex-direction: row; align-items: baseline; gap: 8px; }
-.profile-name { font-size: 22px; font-weight: 700; font-family: var(--serif); color: var(--ink); }
-.profile-age { font-size: 13px; color: var(--muted); }
-.profile-meta { font-size: 13px; color: var(--ink2); }
-.tag-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; }
-.tag, .expectation-item { padding: 4px 8px; border-radius: 999px; background: var(--accent-bg); color: var(--accent2); font-size: 11px; }
-.profile-bio, .intro-text { font-size: 14px; line-height: 1.65; color: var(--ink2); }
-.section-card { margin: 0 16px 12px; padding: 16px; background: var(--surface); border-radius: 12px; border: 1px solid var(--line); }
-.section-heading { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.section-title { font-size: 16px; font-weight: 700; color: var(--ink); }
-.section-caption { font-size: 11px; color: var(--muted); }
-.info-grid { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px 0; }
-.info-item { width: 50%; display: flex; flex-direction: column; gap: 4px; }
-.info-label { font-size: 11px; color: var(--muted); }
-.info-value { font-size: 14px; color: var(--ink); }
-.locked-note { padding: 12px; background: var(--warm); border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }
-.locked-note-title { font-size: 14px; font-weight: 700; color: var(--ink); }
-.locked-note-description { font-size: 12px; line-height: 1.5; color: var(--muted); }
-.cert-list, .expectation-list { display: flex; flex-direction: column; gap: 10px; }
-.cert-item { display: flex; flex-direction: row; align-items: center; gap: 10px; }
-.cert-mark { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--sage-soft); color: var(--sage); font-size: 13px; }
-.cert-label { flex: 1; font-size: 13px; color: var(--ink); }
-.cert-status { font-size: 11px; color: var(--sage); }
-.expectation-list { flex-direction: row; flex-wrap: wrap; }
-.scroll-bottom-spacer { height: 20px; }
-.bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: row; align-items: center; gap: 10px; background: var(--surface-overlay); border-top: 1px solid var(--line); }
-.back-action, .like-action { min-width: 58px; height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--ink2); font-size: 11px; }
-.back-action-icon { font-size: 20px; line-height: 16px; }
-.apply-action { flex: 1; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--brown); color: var(--text-invert); font-size: 14px; font-weight: 700; }
-.like-action { border: 1px solid var(--line); border-radius: 8px; color: var(--accent2); }
-.own-bar .apply-action { flex: 1; }
-@media (max-width: 350px) { .profile-card, .section-card { margin-left: 12px; margin-right: 12px; } .profile-card { padding-left: 12px; padding-right: 12px; } }
+.detail-scroll { width: 100%; height: 100vh; }
+.ordinary-detail-page { padding: 24rpx 32rpx 0; }
+.ordinary-profile-card { overflow: hidden; border-radius: 28rpx; background-color: var(--surface); box-shadow: var(--shadow-md); }
+.ordinary-cover, .locked-cover-area { position: relative; width: 100%; height: 560rpx; overflow: hidden; background-color: var(--warm); }
+.ordinary-cover-img, .locked-cover-img { width: 100%; height: 100%; }
+.cover-actions { position: absolute; top: 32rpx; right: 32rpx; left: 32rpx; display: flex; flex-direction: row; justify-content: space-between; }
+.round-action { display: flex; align-items: center; justify-content: center; width: 72rpx; height: 72rpx; border-radius: 50%; background-color: rgba(12, 19, 19, 0.45); }
+.round-action-text { color: var(--text-invert); font-size: 36rpx; font-weight: 700; }
+.share-symbol { transform: rotate(-45deg); }
+.ordinary-cover-user { position: absolute; right: 24rpx; bottom: 24rpx; left: 24rpx; display: flex; flex-direction: row; align-items: flex-end; gap: 20rpx; }
+.ordinary-avatar { width: 128rpx; height: 128rpx; flex-shrink: 0; border: 6rpx solid var(--surface); border-radius: 50%; background-color: var(--warm); }
+.ordinary-cover-copy { flex: 1; display: flex; flex-direction: column; gap: 8rpx; padding: 18rpx; border-radius: 18rpx; background-color: rgba(12, 19, 19, 0.45); }
+.ordinary-name-row, .locked-name-vip-row, .section-heading-row, .activity-row, .spot-heading, .spot-heading-left, .dynamic-footer { display: flex; flex-direction: row; align-items: center; }
+.ordinary-name-row, .locked-name-vip-row, .section-heading-row, .activity-row, .spot-heading, .dynamic-footer { justify-content: space-between; }
+.ordinary-name { color: var(--text-invert); font-family: var(--serif); font-size: 34rpx; font-weight: 700; }
+.ordinary-cover-meta, .ordinary-active { color: var(--text-invert); font-size: 22rpx; }
+.vip-badge { display: flex; flex-direction: row; align-items: center; gap: 6rpx; padding: 6rpx 14rpx; border-radius: 999px; background-color: var(--plane-yellow); }
+.vip-badge-large { padding: 10rpx 18rpx; }
+.vip-badge-text { color: var(--ink); font-size: 20rpx; font-weight: 700; }
+.vip-crown { color: var(--ink); font-size: 22rpx; }
+.ordinary-card-body { padding: 32rpx 24rpx; }
+.ordinary-section { display: flex; flex-direction: column; gap: 24rpx; padding: 28rpx 0; border-bottom: 2rpx solid var(--line); }
+.ordinary-section-title, .locked-section-title { font-family: var(--serif); font-size: 30rpx; font-weight: 700; color: var(--ink); }
+.tag-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12rpx; }
+.profile-tag { padding: 8rpx 18rpx; border-radius: 999px; background-color: var(--accent-bg); }
+.profile-tag-text { color: var(--accent2); font-size: 22rpx; font-weight: 600; }
+.about-text, .locked-bio { color: var(--ink2); font-size: 25rpx; line-height: 1.65; }
+.cert-summary { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 16rpx; }
+.cert-summary-label { color: var(--muted); font-size: 22rpx; }
+.cert-summary-item { color: var(--accent2); font-size: 22rpx; }
+.ai-match-section { display: flex; flex-direction: row; align-items: center; gap: 24rpx; margin: 24rpx 0 0; padding: 24rpx; border-radius: 20rpx; background-color: var(--accent-bg); }
+.match-score { display: flex; align-items: center; justify-content: center; width: 104rpx; height: 104rpx; flex-shrink: 0; border: 8rpx solid var(--accent); border-radius: 50%; background-color: var(--surface); }
+.match-score-value { color: var(--accent2); font-size: 28rpx; font-weight: 800; }
+.match-copy { flex: 1; display: flex; flex-direction: column; gap: 8rpx; }
+.match-title { color: var(--ink); font-size: 28rpx; font-weight: 700; }
+.match-desc { color: var(--ink2); font-size: 22rpx; line-height: 1.5; }
+.basic-info-grid { display: flex; flex-direction: column; gap: 12rpx; }
+.basic-info-row { display: flex; flex-direction: row; gap: 12rpx; }
+.basic-info-cell { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6rpx; padding: 18rpx 8rpx; border-radius: 12rpx; background-color: var(--canvas); }
+.basic-info-label { color: var(--muted); font-size: 20rpx; }
+.basic-info-value { color: var(--ink); font-size: 24rpx; font-weight: 600; }
+.moment-hero { width: 100%; height: 380rpx; border-radius: 16rpx; background-color: var(--warm); }
+.qa-card { display: flex; flex-direction: column; gap: 12rpx; padding: 24rpx; border-radius: 16rpx; background-color: var(--canvas); }
+.qa-question { color: var(--accent2); font-size: 24rpx; font-weight: 700; }
+.qa-answer { color: var(--ink2); font-size: 24rpx; line-height: 1.6; }
+.section-more { color: var(--accent2); font-size: 22rpx; }
+.dynamic-card { display: flex; flex-direction: column; gap: 18rpx; padding: 24rpx; border-radius: 18rpx; background-color: var(--canvas); }
+.dynamic-user-row { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.dynamic-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background-color: var(--warm); }
+.dynamic-user-copy { display: flex; flex-direction: column; gap: 4rpx; }
+.dynamic-name { color: var(--ink); font-size: 24rpx; font-weight: 700; }
+.dynamic-time { color: var(--muted); font-size: 20rpx; }
+.dynamic-content { color: var(--ink2); font-size: 24rpx; line-height: 1.6; }
+.dynamic-photo { width: 100%; height: 320rpx; border-radius: 14rpx; background-color: var(--warm); }
+.dynamic-topic { color: var(--accent2); font-size: 22rpx; }
+.dynamic-count { color: var(--muted); font-size: 21rpx; }
+.more-dynamics { display: flex; align-items: center; justify-content: center; padding: 18rpx; }
+.more-dynamics-text { color: var(--accent2); font-size: 24rpx; font-weight: 600; }
+.activity-row { padding-top: 28rpx; }
+.activity-text { color: var(--accent2); font-size: 22rpx; }
+.viewed-text { color: var(--muted); font-size: 22rpx; }
+.locked-detail-page { background-color: var(--canvas); }
+.locked-avatar-circle { position: absolute; left: 32rpx; bottom: 0; width: 160rpx; height: 160rpx; overflow: hidden; border: 6rpx solid var(--surface); border-radius: 50%; background-color: var(--warm); }
+.locked-avatar { width: 100%; height: 100%; }
+.locked-profile-header { display: flex; flex-direction: column; gap: 16rpx; padding: 24rpx 40rpx 32rpx; background-color: var(--surface); }
+.locked-name-group { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
+.locked-name { color: var(--ink); font-family: var(--serif); font-size: 42rpx; font-weight: 700; }
+.locked-age { color: var(--ink2); font-size: 28rpx; }
+.locked-meta { color: var(--ink2); font-size: 24rpx; }
+.online-text { color: var(--accent2); font-weight: 600; }
+.locked-detail-content { display: flex; flex-direction: column; gap: 24rpx; padding: 24rpx 32rpx; }
+.locked-section-card { display: flex; flex-direction: column; gap: 24rpx; padding: 32rpx; border-radius: 20rpx; background-color: var(--surface); box-shadow: var(--shadow-sm); }
+.vip-exclusive-card { display: flex; flex-direction: column; align-items: center; gap: 12rpx; padding: 28rpx 20rpx; border-radius: 16rpx; background-color: var(--canvas); }
+.exclusive-lock { color: var(--accent2); font-size: 32rpx; }
+.exclusive-title { color: var(--ink); font-size: 26rpx; font-weight: 700; }
+.exclusive-desc { color: var(--muted); font-size: 22rpx; text-align: center; }
+.unlock-button { margin-top: 4rpx; padding: 14rpx 42rpx; border-radius: 999px; background-color: var(--plane-yellow); }
+.unlock-button-text { color: var(--ink); font-size: 24rpx; font-weight: 700; }
+.cert-item { display: flex; flex-direction: row; align-items: center; gap: 20rpx; padding: 10rpx 0; }
+.cert-icon-wrap { display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; flex-shrink: 0; border-radius: 50%; background-color: var(--accent-bg); }
+.cert-icon { color: var(--accent2); font-size: 24rpx; font-weight: 700; }
+.cert-copy { flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+.cert-label { color: var(--ink); font-size: 25rpx; font-weight: 600; }
+.cert-desc { color: var(--muted); font-size: 21rpx; }
+.cert-check { color: var(--accent2); font-size: 30rpx; font-weight: 700; }
+.spot-heading-left { gap: 12rpx; }
+.spot-light-icon { font-size: 30rpx; }
+.spot-count { color: var(--plane-yellow); font-size: 22rpx; font-weight: 700; }
+.spot-more { color: var(--muted); font-size: 21rpx; }
+.visitor-row { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
+.visitor-avatar { width: 64rpx; height: 64rpx; overflow: hidden; border-radius: 50%; background-color: var(--warm); }
+.visitor-img { width: 100%; height: 100%; }
+.visitor-more { margin-left: auto; color: var(--ink2); font-size: 22rpx; font-weight: 600; }
+.spot-desc { color: var(--muted); font-size: 22rpx; line-height: 1.5; }
+.spot-benefits { display: flex; flex-direction: row; gap: 12rpx; }
+.spot-benefit { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6rpx; padding: 16rpx 6rpx; border-radius: 14rpx; background-color: var(--canvas); }
+.spot-benefit-icon { color: var(--plane-yellow); font-size: 28rpx; }
+.spot-benefit-title { color: var(--ink); font-size: 22rpx; font-weight: 700; }
+.spot-benefit-desc { color: var(--muted); font-size: 18rpx; text-align: center; }
+.spot-price { display: flex; flex-direction: row; align-items: baseline; justify-content: center; gap: 10rpx; }
+.spot-price-label, .spot-price-unit { color: var(--ink2); font-size: 23rpx; }
+.spot-price-value { color: var(--ink); font-family: var(--serif); font-size: 40rpx; font-weight: 800; }
+.spotlight-button { display: flex; align-items: center; justify-content: center; height: 88rpx; border-radius: 44rpx; background-color: var(--plane-yellow); }
+.spotlight-button-text { color: var(--ink); font-size: 28rpx; font-weight: 700; }
+.scroll-bottom-spacer { height: 180rpx; }
+.bottom-bar { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom)); background-color: var(--surface); box-shadow: var(--shadow-md); }
+.bottom-bar-own { justify-content: center; }
+.bottom-back { display: flex; flex-direction: column; align-items: center; gap: 2rpx; }
+.bottom-back-icon { color: var(--ink2); font-size: 36rpx; font-weight: 700; }
+.bottom-back-text { color: var(--muted); font-size: 19rpx; }
+.primary-action { display: flex; align-items: center; justify-content: center; width: 400rpx; height: 88rpx; border-radius: 44rpx; background-color: var(--accent); box-shadow: var(--shadow-sm); }
+.edit-only-btn { width: 480rpx; }
+.primary-action-text { color: var(--text-invert); font-size: 28rpx; font-weight: 700; }
+.like-action { display: flex; align-items: center; justify-content: center; width: 88rpx; height: 88rpx; border-radius: 50%; background-color: var(--accent-bg); }
+.like-action-text { color: var(--accent2); font-size: 40rpx; }
 </style>

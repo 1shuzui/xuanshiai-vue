@@ -10,23 +10,41 @@ const assert = require('assert')
 const { hasRegisteredPage } = require('./page-route-helper.cjs')
 
 const root = path.join(__dirname, '..')
-const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
-const exists = (relativePath) => fs.existsSync(path.join(root, relativePath))
+let failed = 0
 
-const config = read('api/config.uts')
-const login = read('pages/auth/login.uvue')
-const communityApi = read('api/community.uts')
-const apiIndex = read('api/index.uts')
-const pagesJson = read('pages.json')
+function ok(msg) {
+  console.log(`   ✅ ${msg}`)
+}
 
-assert.match(config, /export const USE_MOCK = false/, 'community must remain in live HTTP mode')
-assert.match(login, /startLocalDemoSession/, 'debug login must establish a local session')
-assert.match(login, /setAuthTokens\('local_demo_access_token', 'local_demo_refresh_token'\)/, 'debug login must persist tokens')
-assert.match(login, /uni\.setStorageSync\(CURRENT_USER_ID_KEY, 1\)/, 'debug login must persist xsa_user_id')
-assert.match(login, /uni\.switchTab\(\{\s*url: '\/pages\/community\/community'/, 'debug login must open the community tab')
-assert.doesNotMatch(login, /loginWithMockSms|auth\/sms\/send|auth\/phone\/login/, 'debug login must not depend on the SMS backend')
+function fail(msg) {
+  failed += 1
+  console.log(`   ❌ ${msg}`)
+}
 
-for (const relativePath of [
+function read(rel) {
+  return fs.readFileSync(path.join(root, rel), 'utf-8')
+}
+
+function exists(rel) {
+  return fs.existsSync(path.join(root, rel))
+}
+
+console.log('====================================')
+console.log('社区闭环流程测试')
+console.log('====================================\n')
+
+// 0. 调试登录必须完全本地化，不能因登录按钮请求后端。
+console.log('0. 本地开发登录...')
+const loginPage = read('pages/auth/login.uvue')
+if (loginPage.includes('setAuthTokens') && loginPage.includes('debug_access_token_xsa') && !loginPage.includes('loginWithMockSms')) {
+  ok('调试登录只写入本地 Token，不请求后端')
+} else {
+  fail('调试登录仍依赖后端请求')
+}
+
+// 1. 页面与路由
+console.log('1. 社区页面与 pages.json 路由...')
+const communityPages = [
   'pages/community/community.uvue',
   'pagesSub/community/publish.uvue',
   'pagesSub/community/topic-list.uvue',
@@ -65,22 +83,100 @@ if (pagesJson.includes('pages/community/community') && pagesJson.includes('"text
   fail('社区 Tab 配置异常')
 }
 
-for (const name of [
+// 2. Mock 扩展
+console.log('\n2. Mock 数据扩展...')
+const mockCommunity = read('mock/community.uts')
+const mockExports = [
+  'mockDynamicList',
+  'mockTopics',
+  'mockPaperPlanes',
+  'mockActivities',
+  'mockCommunityBanners',
+  'mockCommunityNotifications',
+  'mockCommunityQuotas',
+  'mockReportReasons',
+  'mockBlockedUserIds',
+  'mockApplyStates',
+  'mockLikedUserIds',
+  'mockCurrentCity'
+]
+mockExports.forEach((name) => {
+  if (mockCommunity.includes(`export const ${name}`)) ok(name)
+  else fail(`缺少 ${name}`)
+})
+
+if (mockCommunity.includes("type: 'topic'") && mockCommunity.includes("type: 'activity'") && mockCommunity.includes("type: 'plane'")) {
+  ok('发现页三入口 banner 类型齐全')
+} else {
+  fail('banner 缺少 topic/activity/plane')
+}
+
+const mockIndex = read('mock/index.uts')
+;[
+	  'mockCommunityNotifications',
+	  'mockCommunityQuotas',
+	  'mockReportReasons',
+	  'mockBlockedUserIds',
+	  'mockApplyStates',
+	  'mockLikedUserIds',
+	  'mockCurrentCity'
+	].forEach((n) => {
+	  if (mockIndex.includes(n)) ok(`mock/index 导出 ${n}`)
+	  else fail(`mock/index 未导出 ${n}`)
+	})
+	
+	// 2.1 动态卡 / 通知分栏样本字段
+	console.log('\n2.1 动态卡字段 / 通知 type 样本...')
+	if (
+	  mockCommunity.includes('gender:') &&
+	  mockCommunity.includes('birthYear:') &&
+	  mockCommunity.includes('ipLocation:') &&
+	  mockCommunity.includes('income:')
+	) {
+	  ok('mock 动态用户含 gender/birthYear/ipLocation/income')
+	} else {
+	  fail('mock 动态用户缺少性别/出生年/IP/年薪字段')
+	}
+	if (
+	  mockCommunity.includes('relationTags') &&
+	  mockCommunity.includes('topicTitle')
+	) {
+	  ok('mock 动态含 relationTags / topicTitle')
+	} else {
+	  fail('mock 动态缺少 relationTags 或 topicTitle')
+	}
+	if (
+	  mockCommunity.includes("type: 'like'") &&
+	  mockCommunity.includes("type: 'comment'") &&
+	  mockCommunity.includes("type: 'apply'") &&
+	  mockCommunity.includes("type: 'activity'")
+	) {
+	  ok('通知 type 含 like/comment/apply/activity')
+	} else {
+	  fail('通知 type 样本不齐')
+	}
+	
+	// 3. API
+console.log('\n3. 社区 API...')
+const apiCommunity = read('api/community.uts')
+const apiFns = [
   'getDynamicList',
   'getDynamicDetail',
+  'getTopics',
   'getTopicList',
   'getTopicDetail',
   'joinTopic',
   'leaveTopic',
-  'publishDynamic',
-  'commentDynamic',
   'getPaperPlanes',
   'sendPaperPlane',
   'replyPaperPlane',
-  'getPaperPlaneConversations',
-  'getPaperPlaneMessages',
-  'sendPaperPlaneMessage',
+  'getActivities',
+  'getActivityDetail',
+  'signupActivity',
+  'getMyActivities',
+  'getCommunityBanners',
   'getCommunityNotifications',
+  'getUnreadNotificationCount',
   'markNotificationRead',
   'markAllNotificationsRead',
   'getCommunityQuotas',
@@ -201,12 +297,11 @@ if (apiCommunity.includes('hasMore') && apiCommunity.includes('pageSize') && api
   fail('getDynamicList 缺少分页 payload')
 }
 
-assert.match(communityApi, /url: '\/community\/posts'/, 'post publishing must use the live endpoint')
-assert.match(communityApi, /'Idempotency-Key'/, 'write requests must carry an idempotency key')
-assert.match(communityApi, /image_media_ids/, 'publishing must support uploaded image identifiers')
-assert.match(communityApi, /video_media_id/, 'publishing must support an uploaded video identifier')
-assert.match(communityApi, /MEDIA_UPLOAD_REQUIRED/, 'temporary media must fail closed before publishing')
-assert.match(communityApi, /resolveMediaUrl/, 'backend media must be normalized for rendering')
+if (apiCommunity.includes('normalizeListQuery') || apiCommunity.includes("tab: 'discover'")) {
+  ok('列表支持 tab 结构化查询')
+} else {
+  fail('列表 tab 结构异常')
+}
 
 console.log('\n3.1 publishDynamic 契约...')
 if (

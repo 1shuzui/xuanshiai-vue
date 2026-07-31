@@ -62,10 +62,13 @@
 </template>
 
 <script setup lang="uts">
+import { setCurrentUserVipStatus } from '@/utils/quota.uts'
+
 const isVip = ref(false)
 const paymentVisible = ref(false)
 const paymentSelected = ref(true)
 const selectedPlan = ref(1)
+const redirectUrl = ref('/pages/index/index')
 const plans = [
 	{ tag: '含3次申请', name: '新人专享', price: 299, days: '90天' },
 	{ tag: '含5次申请', name: '心动专享', price: 520, days: '150天' },
@@ -85,6 +88,28 @@ const noop = () => {}
 const handleBuy = () => { paymentVisible.value = true }
 const closePayment = () => { paymentVisible.value = false }
 const togglePayment = () => { paymentSelected.value = !paymentSelected.value }
+const returnAfterPayment = () => {
+	const pages = getCurrentPages()
+	if (pages.length > 1) {
+		uni.navigateBack({ delta: 1 })
+		return
+	}
+	uni.reLaunch({ url: redirectUrl.value })
+}
+
+onMounted(() => {
+	const pages = getCurrentPages()
+	const currentPage = pages[pages.length - 1]
+	const options = currentPage.options
+	if (options.redirect != null && options.redirect != '') {
+		try {
+			redirectUrl.value = decodeURIComponent('' + options.redirect)
+		} catch (e) {
+			redirectUrl.value = '/pages/index/index'
+		}
+	}
+})
+
 const confirmPayment = () => {
 	if (!paymentSelected.value) {
 		uni.showToast({ title: '请选择支付方式', icon: 'none' })
@@ -92,7 +117,9 @@ const confirmPayment = () => {
 	}
 	paymentVisible.value = false
 	isVip.value = true
+	setCurrentUserVipStatus(true)
 	uni.showToast({ title: '开通成功', icon: 'success' })
+	setTimeout(() => { returnAfterPayment() }, 600)
 }
 </script>
 

@@ -26,16 +26,8 @@
 		</view>
 
 		<view v-else class="page">
-			<!-- 状态栏 -->
-			<view class="status-bar">
-				<text class="time-text">9:41</text>
-				<view class="status-icons">
-					<text class="signal-icon">●●●●</text>
-					<text class="wifi-icon">◉</text>
-					<text class="battery-icon">●●●</text>
-				</view>
-			</view>
-
+			<!-- 固定头部 -->
+			<view class="sticky-header" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<!-- 导航栏 -->
 			<view class="nav-bar">
 				<view class="nav-tabs">
@@ -44,49 +36,56 @@
 						<view v-if="currentTab === i" class="active-indicator"></view>
 					</view>
 				</view>
-				<view class="history-btn" @click="onHistory">
-					<text class="history-icon">🕐</text>
+				<view class="history-btn" @tap="onHistory">
+					<text class="ic ic-home ic-history history-icon"></text>
 				</view>
 			</view>
 
 			<!-- 筛选搜索栏 -->
 			<view v-if="currentTab === 0" class="filter-bar">
 				<view class="search-box" @click="onSearch">
-					<text class="search-icon">🔍</text>
+					<text class="ic ic-home ic-search search-icon"></text>
 					<text class="search-placeholder">按城市、年龄、学历、MBTI筛选…</text>
 				</view>
 			</view>
 			<view v-if="currentTab === 1" class="filter-bar filter-bar-square">
 				<view class="search-box square-search-box" @click="onSearch">
-					<text class="search-icon">🔍</text>
+					<text class="ic ic-home ic-search search-icon"></text>
 					<text class="search-placeholder">按城市、年龄、学历、MBTI…</text>
 				</view>
 				<view class="ai-match-btn" @click="showAiScore">
-					<text class="ai-match-icon">✦</text>
+					<text class="ic ic-home ic-star ai-match-icon"></text>
 					<text class="ai-match-text">AI匹配</text>
 				</view>
 			</view>
 
+			</view>
 			<!-- 推荐 Tab -->
-			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll" enhanced show-scrollbar="false">
+			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll" enhanced show-scrollbar="false" @touchstart="onTouchStart" @touchend="onTouchEnd">
 				<view class="profile-card">
 					<view class="cover-wrap">
-						<image class="cover-img" src="/static/portraits/profile-woman-alt.jpg" mode="aspectFill"></image>
+						<image class="cover-img" :src="currentRecommendUser.photos != null && currentRecommendUser.photos.length > 0 ? currentRecommendUser.photos[0] : '/static/portraits/profile-woman-alt.jpg'" mode="aspectFill"></image>
 					</view>
 
 					<!-- 头像在 profile-card 下独立定位，不被 card-body 盖住 -->
-					<view class="avatar-wrap" @tap="goUserDetail(1)">
-						<image class="avatar-img" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+					<view class="avatar-wrap" @tap="goUserDetail(currentRecommendUser.id)">
+						<image class="avatar-img" :src="currentRecommendUser.avatar" mode="aspectFill"></image>
 					</view>
 					<view class="card-body">
 						<view class="user-info-header">
-							<text class="name-age">林悦，26岁</text>
+							<view class="user-name-line">
+								<text class="name-age">{{ currentRecommendUser.name }}，{{ currentRecommendUser.age }}岁</text>
+								<view v-if="currentRecommendUser.isVip === true" class="recommend-vip-badge">
+									<text class="ic ic-vip ic-huiyuan recommend-vip-icon"></text>
+									<text class="recommend-vip-text">VIP</text>
+								</view>
+							</view>
 							<view class="basic-line">
-								<text class="basic-text">本科</text>
+								<text class="basic-text">{{ currentRecommendUser.education }}</text>
 								<view class="dot-sep"></view>
-								<text class="basic-text">互联网·产品经理</text>
+								<text class="basic-text">{{ currentRecommendUser.job }}</text>
 								<view class="dot-sep"></view>
-								<text class="basic-text">北京</text>
+								<text class="basic-text">{{ currentRecommendUser.city }}</text>
 							</view>
 							<view class="online-row">
 								<view class="online-dot"></view>
@@ -119,19 +118,19 @@
 						<view class="cert-section">
 							<text class="cert-label">已认证:</text>
 							<view class="cert-tag">
-								<text class="cert-icon">🛡</text>
+								<text class="ic ic-sys ic-shiming cert-icon"></text>
 								<text class="cert-text">实名</text>
 							</view>
 							<view class="cert-tag">
-								<text class="cert-icon">🎓</text>
+								<text class="ic ic-me ic-xueli cert-icon"></text>
 								<text class="cert-text">学历</text>
 							</view>
 							<view class="cert-tag">
-								<text class="cert-icon gold-icon">♥</text>
+								<text class="ic ic-home ic-heart cert-icon gold-icon"></text>
 								<text class="cert-text">单身</text>
 							</view>
 							<view class="cert-tag">
-								<text class="cert-icon">📷</text>
+								<text class="ic ic-social ic-paishe cert-icon"></text>
 								<text class="cert-text">头像</text>
 							</view>
 						</view>
@@ -147,7 +146,7 @@
 							</view>
 							<view class="match-info">
 								<text class="match-title">AI 匹配度分析</text>
-								<text class="match-desc">基于公开资料与共同兴趣生成参考</text>
+								<text class="match-desc">MBTI高度契合 · 兴趣重合度高 · 三观相近</text>
 							</view>
 						</view>
 
@@ -188,13 +187,88 @@
 
 						<view class="divider"></view>
 
+<view class="divider"></view>
+
+<!-- Ta的动态 -->
+
+<view class="feed-section">
+
+<view class="feed-section-header">
+
+<text class="section-title">Ta的动态</text>
+
+<text class="feed-more" @click="viewAllFeed">查看全部 ›</text>
+
+</view>
+
+<view class="feed-list">
+
+<view class="feed-card" v-for="(feed, fi) in feedDynamics" :key="fi" @tap="goPostDetail(feed.id)">
+
+<view class="feed-card-header">
+
+<image class="feed-card-avatar" :src="feed.avatar" mode="aspectFill"></image>
+
+<view class="feed-card-user-col">
+
+<text class="feed-card-name">{{ feed.name }}</text>
+
+<text class="feed-card-meta">{{ feed.timeText }} · {{ feed.location }}</text>
+
+</view>
+
+</view>
+
+<text class="feed-card-content">{{ feed.content }}</text>
+
+<view class="feed-card-photos" v-if="feed.photos && feed.photos.length > 0">
+
+<image v-for="(photo, pi) in feed.photos" :key="pi" class="feed-photo" :class="feed.photos.length === 1 ? 'feed-photo-single' : 'feed-photo-double'" :src="photo" mode="aspectFill"></image>
+
+</view>
+
+<view class="feed-card-tags" v-if="feed.tags && feed.tags.length > 0">
+
+<text class="feed-tag" v-for="(tag, ti) in feed.tags" :key="ti">{{ tag }}</text>
+
+</view>
+
+<view class="feed-card-divider"></view>
+
+<view class="feed-card-footer">
+
+<text class="feed-date">2025-05-12 · 大理</text>
+
+<view class="feed-actions">
+
+<view class="feed-action"><text class="ic ic-home ic-heart feed-action-icon"></text><text class="feed-action-count">{{ feed.likeCount }}</text></view>
+
+<view class="feed-action"><text class="ic ic-social ic-pinglun feed-action-icon"></text><text class="feed-action-count">{{ feed.commentCount }}</text></view>
+
+<view class="feed-action"><text class="ic ic-sys ic-fenxiang feed-action-icon"></text></view>
+
+</view>
+
+</view>
+
+</view>
+
+</view>
+
+</view>
+
+<!-- 动态区块结束 -->
 						<view class="activity-row">
-							<text class="activity-text">🟢 近期活跃 · 距你 3.2km</text>
+							<text class="ic ic-home ic-dingwei activity-dot"></text><text class="activity-text"> 近期活跃 · 距你 3.2km</text>
 							<text class="viewed-text">23人看过</text>
 						</view>
 					</view>
 				</view>
 
+				<!-- 屏蔽/举报行 -->
+				<view class="block-row">
+					<text class="block-text" @click="showBlockReport">屏蔽Ta/举报Ta</text>
+				</view>
 				<view class="scroll-bottom-spacer"></view>
 			</scroll-view>
 
@@ -202,26 +276,21 @@
 			<scroll-view v-if="currentTab === 1" scroll-y class="content-scroll" enhanced show-scrollbar="false">
 				<view class="pinned-bar">
 					<view class="pinned-left">
-						<text class="pinned-flame">🔥</text>
+						<text class="ic ic-home ic-star pinned-flame"></text>
 						<text class="pinned-title">置顶推荐</text>
 						<view class="quality-badge"><text class="quality-text">优质</text></view>
 					</view>
-<<<<<<< HEAD
-					<view class="want-top-btn">
-						<text class="want-top-icon">↑</text>
-=======
 					<view class="want-top-btn" @tap="openTopPlacement">
 						<text class="ic ic-sys ic-zhankai want-top-icon"></text>
->>>>>>> sync/upstream-main-751a9f4
 						<text class="want-top-text">我要置顶</text>
 					</view>
 				</view>
 
 				<view class="square-feed">
-					<view class="square-user-card" @tap="goUserDetail">
+					<view class="square-user-card" @tap="goUserDetail(2)">
 						<view class="sq-photo-wrap">
 							<image class="sq-photo" src="/static/portraits/profile-woman-alt.jpg" mode="aspectFill"></image>
-							<view class="vip-tag"><text class="vip-tag-text">👑 VIP</text></view>
+							<view class="vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
 						</view>
 						<view class="sq-card-info">
 							<view class="sq-left-info">
@@ -230,18 +299,18 @@
 									<text class="sq-age">26岁 · 女</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text">📍 距你 3.2km</text>
+									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 3.2km</text>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">产品经理 · 北京</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click.stop="onLike(1)">
-								<text class="sq-heart">♥</text>
+							<view class="sq-like-btn" @click.stop="onLike(2)">
+								<text class="ic ic-home ic-heart sq-heart"></text>
 							</view>
 						</view>
 					</view>
 
-					<view class="square-user-card" @tap="goUserDetail">
+					<view class="square-user-card" @tap="goUserDetail(1)">
 						<view class="sq-photo-wrap">
 							<image class="sq-photo" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
 						</view>
@@ -252,13 +321,13 @@
 									<text class="sq-age">24岁 · 女</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text">📍 距你 1.8km</text>
+									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 1.8km</text>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">UI设计师 · 上海</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click.stop="onLike(2)">
-								<text class="sq-heart">♥</text>
+							<view class="sq-like-btn" @click.stop="onLike(1)">
+								<text class="ic ic-home ic-heart sq-heart"></text>
 							</view>
 						</view>
 					</view>
@@ -266,37 +335,41 @@
 					<view class="sq-section">
 						<view class="sq-section-header">
 							<view class="sq-section-title-group">
-								<text class="sq-section-icon">👑</text>
+								<text class="ic ic-vip ic-huiyuan sq-section-icon"></text>
 								<text class="sq-section-title">会员专区</text>
 								<text class="sq-section-count">128位</text>
 							</view>
-							<text class="sq-section-more">查看全部 →</text>
+							<text class="sq-section-more">查看全部 ›</text>
 						</view>
 						<view class="sq-vip-row">
-							<view class="sq-vip-mini" @tap="goUserDetail">
-								<image class="sq-vip-photo" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
-								<view class="sq-vip-info">
-									<view class="sq-vip-left">
-										<text class="sq-vip-name">小倩</text>
-										<text class="sq-vip-detail">26岁 · 165cm</text>
-									</view>
-									<view class="sq-vip-like"><text class="sq-heart-sm">♥</text></view>
-								</view>
+							<view class="sq-vip-mini" @tap="goUserDetail(2)">
+								<view class="sq-vip-content">
+									<image class="sq-vip-photo" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
+									<view class="vip-tag sq-vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+									<view class="sq-vip-info">
+										<view class="sq-vip-left">
+											<text class="sq-vip-name">小倩</text>
+											<text class="sq-vip-detail">26岁 · 165cm</text>
+										</view>
+										<view class="sq-vip-like" @tap.stop="onLike(2)"><text class="ic ic-home ic-heart sq-heart-sm"></text></view>
+									</view></view>
 							</view>
-							<view class="sq-vip-mini" @tap="goUserDetail">
-								<image class="sq-vip-photo" src="/static/portraits/profile-man-light.jpg" mode="aspectFill"></image>
-								<view class="sq-vip-info">
-									<view class="sq-vip-left">
-										<text class="sq-vip-name">思思</text>
-										<text class="sq-vip-detail">24岁 · 168cm</text>
-									</view>
-									<view class="sq-vip-like"><text class="sq-heart-sm">♥</text></view>
-								</view>
+							<view class="sq-vip-mini" @tap="goUserDetail(3)">
+								<view class="sq-vip-content">
+									<image class="sq-vip-photo" src="/static/portraits/profile-man-light.jpg" mode="aspectFill"></image>
+									<view class="vip-tag sq-vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+									<view class="sq-vip-info">
+										<view class="sq-vip-left">
+											<text class="sq-vip-name">思思</text>
+											<text class="sq-vip-detail">24岁 · 168cm</text>
+										</view>
+										<view class="sq-vip-like" @tap.stop="onLike(3)"><text class="ic ic-home ic-heart sq-heart-sm"></text></view>
+									</view></view>
 							</view>
 						</view>
 					</view>
 
-					<view class="square-user-card" @tap="goUserDetail">
+					<view class="square-user-card" @tap="goUserDetail(4)">
 						<view class="sq-photo-wrap">
 							<image class="sq-photo" src="/static/portraits/profile-man-sea.jpg" mode="aspectFill"></image>
 						</view>
@@ -307,18 +380,18 @@
 									<text class="sq-age">28岁 · 女</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text">📍 距你 5.1km</text>
+									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 5.1km</text>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">律师 · 深圳</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click.stop="onLike(3)">
-								<text class="sq-heart">♥</text>
+							<view class="sq-like-btn" @click.stop="onLike(4)">
+								<text class="ic ic-home ic-heart sq-heart"></text>
 							</view>
 						</view>
 					</view>
 
-					<view class="square-user-card" @tap="goUserDetail">
+					<view class="square-user-card" @tap="goUserDetail(7)">
 						<view class="sq-photo-wrap">
 							<image class="sq-photo" src="/static/portraits/profile-woman-alt.jpg" mode="aspectFill"></image>
 						</view>
@@ -329,13 +402,13 @@
 									<text class="sq-age">25岁 · 女</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text">📍 距你 2.5km</text>
+									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 2.5km</text>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">医生 · 广州</text>
 								</view>
 							</view>
 							<view class="sq-like-btn" @click.stop="onLike(7)">
-								<text class="sq-heart">♥</text>
+								<text class="ic ic-home ic-heart sq-heart"></text>
 							</view>
 						</view>
 					</view>
@@ -343,37 +416,41 @@
 					<view class="sq-section">
 						<view class="sq-section-header">
 							<view class="sq-section-title-group">
-								<text class="sq-section-icon">👑</text>
+								<text class="ic ic-vip ic-huiyuan sq-section-icon"></text>
 								<text class="sq-section-title">高收入专区</text>
 								<text class="sq-section-count">56位</text>
 							</view>
-							<text class="sq-section-more">查看全部 →</text>
+							<text class="sq-section-more">查看全部 ›</text>
 						</view>
 						<view class="sq-vip-row">
-							<view class="sq-vip-mini" @tap="goUserDetail">
-								<image class="sq-vip-photo" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
-								<view class="sq-vip-info">
-									<view class="sq-vip-left">
-										<text class="sq-vip-name">杨总</text>
-										<text class="sq-vip-detail">32岁 · 182cm</text>
-									</view>
-									<view class="sq-vip-like"><text class="sq-heart-sm">♥</text></view>
-								</view>
+							<view class="sq-vip-mini" @tap="goUserDetail(2)">
+								<view class="sq-vip-content">
+									<image class="sq-vip-photo" src="/static/portraits/profile-woman-community.jpg" mode="aspectFill"></image>
+									<view class="vip-tag sq-vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+									<view class="sq-vip-info">
+										<view class="sq-vip-left">
+											<text class="sq-vip-name">杨总</text>
+											<text class="sq-vip-detail">32岁 · 182cm</text>
+										</view>
+										<view class="sq-vip-like" @tap.stop="onLike(2)"><text class="ic ic-home ic-heart sq-heart-sm"></text></view>
+									</view></view>
 							</view>
-							<view class="sq-vip-mini" @tap="goUserDetail">
-								<image class="sq-vip-photo" src="/static/portraits/profile-man-light.jpg" mode="aspectFill"></image>
-								<view class="sq-vip-info">
-									<view class="sq-vip-left">
-										<text class="sq-vip-name">海归姐</text>
-										<text class="sq-vip-detail">29岁 · 166cm</text>
-									</view>
-									<view class="sq-vip-like"><text class="sq-heart-sm">♥</text></view>
-								</view>
+							<view class="sq-vip-mini" @tap="goUserDetail(3)">
+								<view class="sq-vip-content">
+									<image class="sq-vip-photo" src="/static/portraits/profile-man-light.jpg" mode="aspectFill"></image>
+									<view class="vip-tag sq-vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+									<view class="sq-vip-info">
+										<view class="sq-vip-left">
+											<text class="sq-vip-name">海归姐</text>
+											<text class="sq-vip-detail">29岁 · 166cm</text>
+										</view>
+										<view class="sq-vip-like" @tap.stop="onLike(3)"><text class="ic ic-home ic-heart sq-heart-sm"></text></view>
+									</view></view>
 							</view>
 						</view>
 					</view>
 
-					<view class="square-user-card" @tap="goUserDetail">
+					<view class="square-user-card" @tap="goUserDetail(6)">
 						<view class="sq-photo-wrap">
 							<image class="sq-photo" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
 						</view>
@@ -384,18 +461,18 @@
 									<text class="sq-age">27岁 · 女</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text">📍 距你 4.2km</text>
+									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 4.2km</text>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">金融分析师 · 上海</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click.stop="onLike(2)">
-								<text class="sq-heart">♥</text>
+							<view class="sq-like-btn" @click.stop="onLike(6)">
+								<text class="ic ic-home ic-heart sq-heart"></text>
 							</view>
 						</view>
 					</view>
 
-					<view class="square-user-card" @tap="goUserDetail">
+					<view class="square-user-card" @tap="goUserDetail(1)">
 						<view class="sq-photo-wrap">
 							<image class="sq-photo" src="/static/portraits/profile-man-sea.jpg" mode="aspectFill"></image>
 						</view>
@@ -406,13 +483,13 @@
 									<text class="sq-age">29岁 · 女</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text">📍 距你 6.3km</text>
+									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 6.3km</text>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">建筑师 · 杭州</text>
 								</view>
 							</view>
-							<view class="sq-like-btn" @click.stop="onLike(3)">
-								<text class="sq-heart">♥</text>
+							<view class="sq-like-btn" @click.stop="onLike(1)">
+								<text class="ic ic-home ic-heart sq-heart"></text>
 							</view>
 						</view>
 					</view>
@@ -430,15 +507,15 @@
 					</view>
 					<view class="vip-hero-badges">
 						<view class="vip-hero-badge">
-							<text class="vip-hero-badge-icon">✦</text>
+							<text class="ic ic-home ic-star vip-hero-badge-icon"></text>
 							<text class="vip-hero-badge-text">VIP标识</text>
 						</view>
 						<view class="vip-hero-badge">
-							<text class="vip-hero-badge-icon">✦</text>
+							<text class="ic ic-home ic-star vip-hero-badge-icon"></text>
 							<text class="vip-hero-badge-text">多重认证</text>
 						</view>
 						<view class="vip-hero-badge">
-							<text class="vip-hero-badge-icon">✦</text>
+							<text class="ic ic-home ic-star vip-hero-badge-icon"></text>
 							<text class="vip-hero-badge-text">优先匹配</text>
 						</view>
 					</view>
@@ -456,10 +533,10 @@
 					<view class="vip-filter-right">
 						<view class="vip-sort-btn">
 							<text class="vip-sort-text">综合排序</text>
-							<text class="vip-sort-icon">▼</text>
+							<text class="ic ic-sys ic-xiala vip-sort-icon"></text>
 						</view>
 						<view class="vip-accelerate-btn">
-							<text class="vip-accel-icon">✦</text>
+							<text class="ic ic-home ic-star vip-accel-icon"></text>
 							<text class="vip-accel-text">加速匹配</text>
 						</view>
 					</view>
@@ -467,22 +544,24 @@
 
 				<view class="vip-card-grid">
 					<view class="vip-card-row" v-for="(row, ri) in vipCardRows" :key="ri">
-						<view class="vip-card-item" v-for="(card, ci) in row" :key="ci" @tap="goUserDetail">
-							<view class="vip-card-photo">
-								<image class="vip-card-photo-img" :src="card.photo" mode="aspectFill"></image>
-								<view class="vip-card-crown"><text class="vip-card-crown-icon">👑</text></view>
-								<view :class="['vip-card-gender', card.gender === '女' ? 'female' : 'male']">
-									<text :class="['vip-gender-icon', card.gender === '女' ? 'female' : 'male']">{{ card.gender === '女' ? '♀' : '♂' }}</text>
+						<view class="vip-card-item" v-for="(card, ci) in row" :key="card.id + '-' + ci">
+							<view class="vip-card-content" @tap="goUserDetail(card.id)">
+								<view class="vip-card-photo">
+									<image class="vip-card-photo-img" :src="card.photo" mode="aspectFill"></image>
+									<view class="vip-card-crown"><text class="ic ic-vip ic-huiyuan vip-card-crown-icon"></text></view>
+									<view :class="['vip-card-gender', card.gender === '女' ? 'female' : 'male']">
+										<text :class="['vip-gender-icon', card.gender === '女' ? 'female' : 'male']">{{ card.gender === '女' ? '♀' : '♂' }}</text>
+									</view>
 								</view>
-							</view>
-							<view class="vip-card-bottom">
-								<text class="vip-card-name">{{ card.name }}</text>
-								<view class="vip-card-meta">
-									<text class="vip-card-age">{{ card.age }}</text>
-									<view class="vip-card-dot"></view>
-									<text class="vip-card-height">{{ card.height }}</text>
+								<view class="vip-card-bottom">
+									<text class="vip-card-name">{{ card.name }}</text>
+									<view class="vip-card-meta">
+										<text class="vip-card-age">{{ card.age }}</text>
+										<view class="vip-card-dot"></view>
+										<text class="vip-card-height">{{ card.height }}</text>
+									</view>
 								</view>
-							</view>
+</view>
 						</view>
 					</view>
 				</view>
@@ -490,15 +569,15 @@
 				<view class="vip-privilege-section">
 					<view class="vip-priv-header">
 						<text class="vip-priv-title">VIP会员专属特权</text>
-						<view class="vip-upgrade-btn">
-							<text class="vip-upgrade-icon">👑</text>
+						<view class="vip-upgrade-btn" @tap="openVipPage">
+							<text class="ic ic-vip ic-huiyuan vip-upgrade-icon"></text>
 							<text class="vip-upgrade-text">立即开通</text>
 						</view>
 					</view>
 					<view class="vip-priv-row">
 						<view class="vip-priv-card" v-for="priv in vipPrivileges" :key="priv.title">
 							<view class="vip-priv-icon-circle">
-								<text class="vip-priv-icon-text">{{ priv.icon }}</text>
+								<text :class="priv.iconClass + ' vip-priv-icon-text'"></text>
 							</view>
 							<text class="vip-priv-card-title">{{ priv.title }}</text>
 							<text class="vip-priv-card-desc">{{ priv.desc }}</text>
@@ -511,17 +590,17 @@
 				<view class="vip-spotlight">
 					<view class="vip-spot-header">
 						<view class="vip-spot-title-group">
-							<text class="vip-spot-icon">🔥</text>
+							<text class="ic ic-home ic-star vip-spot-icon"></text>
 							<text class="vip-spot-title">人气爆灯嘉宾</text>
 							<text class="vip-spot-count">32人</text>
 						</view>
-						<text class="vip-spot-more">查看全部 →</text>
+						<text class="vip-spot-more">查看全部 ›</text>
 					</view>
 					<text class="vip-spot-desc">爆灯后系统将短信通知对方，头像将显示在对方爆灯栏中</text>
 					<view class="vip-spot-row">
 						<view class="vip-spot-card" v-for="spot in vipSpots" :key="spot.name">
 							<view class="vip-spot-photo">
-								<text class="vip-spot-photo-icon">👤</text>
+								<text class="ic ic-social ic-touxiang vip-spot-photo-icon"></text>
 							</view>
 							<view class="vip-spot-info">
 								<text class="vip-spot-name">{{ spot.name }}</text>
@@ -532,24 +611,24 @@
 				</view>
 
 				<view class="vip-bottom-cta">
-					<text class="vip-cta-title">🚀 升级VIP会员</text>
+					<text class="ic ic-home ic-star vip-cta-icon"></text><text class="vip-cta-title"> 升级VIP会员</text>
 					<text class="vip-cta-desc">解锁全部会员资料 · 无限牵线次数 · 优先展示曝光</text>
-					<view class="vip-price-row">
-						<view class="vip-price-opt">
+						<view class="vip-price-row">
+							<view class="vip-price-opt">
 							<text class="vip-price-period">7天</text>
 							<text class="vip-price-value">¥99</text>
 						</view>
-						<view class="vip-price-opt recommended">
+							<view class="vip-price-opt recommended">
 							<view class="vip-price-badge"><text class="vip-price-badge-text">推荐</text></view>
 							<text class="vip-price-period">30天</text>
 							<text class="vip-price-value">¥299</text>
 						</view>
-						<view class="vip-price-opt">
+							<view class="vip-price-opt">
 							<text class="vip-price-period">90天</text>
 							<text class="vip-price-value">¥799</text>
 						</view>
 					</view>
-					<view class="vip-cta-btn">
+					<view class="vip-cta-btn" @tap="openVipPage">
 						<text class="vip-cta-btn-text">立即开通VIP</text>
 					</view>
 					<text class="vip-cta-hint">付费即同意《会员服务协议》· 可随时取消</text>
@@ -561,32 +640,31 @@
 			<!-- 底部操作栏（仅推荐页显示） -->
 			<view v-if="currentTab === 0" class="bottom-bar">
 				<view class="share-btn" @click="shareProfile">
-					<text class="share-icon">↗</text>
+					<text class="ic ic-sys ic-fenxiang share-icon"></text>
 				</view>
 				<view class="chat-btn" @click="openApplyModal">
-					<text class="chat-icon">💬</text>
-					<text class="chat-text">申请牵线</text>
+					<text class="ic ic-home ic-hello chat-icon"></text>
+						<text class="chat-text">申请认识</text>
 				</view>
 				<view class="like-btn" @click="onLike(recommendUserId)">
-					<text class="heart-icon">♥</text>
+					<text class="ic ic-home ic-heart heart-icon"></text>
 				</view>
 			</view>
 
 			<!-- AI悬浮按钮（仅推荐页显示） -->
 			<view v-if="currentTab === 0" class="ai-float-btn" @click="showAiScore">
-				<text class="ai-icon">✦</text>
+				<text class="ic ic-home ic-star ai-icon"></text>
 			</view>
 		</view>
 
 		<!-- ====== Sheets & Modals ====== -->
 		<XsaSheet :visible="aiVisible" title="AI 合拍度解读" @close="aiVisible = false">
 			<view class="ai-sheet">
-<<<<<<< HEAD
-=======
-				<view class="ai-context-row">
-					<text>仅使用双方已确认且公开的资料与兴趣信息，不展示或推断人格测试结果。</text>
+				<view class="ai-mbti-row">
+					<view class="ai-mbti-card"><text class="ai-mbti-label">你的 MBTI</text><text class="ai-mbti-type">INFP</text></view>
+					<text class="ai-mbti-x">×</text>
+					<view class="ai-mbti-card you"><text class="ai-mbti-label">TA 的 MBTI</text><text class="ai-mbti-type">ENFJ</text></view>
 				</view>
->>>>>>> sync/upstream-main-751a9f4
 				<view class="ai-score-big"><text>92%</text></view>
 				<view class="ai-bars"><view v-for="b in aiBars" :key="b.label" class="ai-bar"><view class="ai-bar-head"><text>{{ b.label }}</text><text>{{ b.value }}%</text></view><view class="ai-bar-trk"><view class="ai-bar-fill" :style="{ width: b.value + '%' }"></view></view></view></view>
 				<view class="ai-tip"><text>基于公开资料与兴趣交集生成，不代表平台承诺结果。建议从共同兴趣或城市周末安排开始聊。</text></view>
@@ -616,35 +694,48 @@
 			<view class="apply-body"><text>认真关系从一段真诚对话开始。请注意保护隐私与财产安全。</text></view>
 		</XsaModal>
 
+<!-- 自定义底部导航栏 -->
+
+<XsaTabBar />
+
+<!-- 每日查看配额用尽弹窗 -->
+		<XsaModal
+			:visible="quotaExhaustedVisible"
+			title="今日查看次数已用完"
+			:show-cancel="true"
+			cancel-text="积分兑换"
+			confirm-text="升级VIP"
+			@close="quotaExhaustedVisible = false"
+			@cancel="quotaExhaustedVisible = false"
+			@confirm="handleQuotaUpgrade"
+		>
+			<view class="apply-body">
+				<text>{{ quotaExhaustedMessage }}</text>
+			</view>
+		</XsaModal>
 		<XsaToast :visible="toastVisible" :message="toastMessage" @hide="toastVisible = false" />
 	</view>
 </template>
 
 <script setup lang="uts">
+	const systemInfo = uni.getSystemInfoSync()
+	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
+
 	import XsaSheet from '@/components/XsaSheet.uvue'
 	import XsaModal from '@/components/XsaModal.uvue'
 	import XsaToast from '@/components/XsaToast.uvue'
 	import XsaApplySheet from '@/components/XsaApplySheet.uvue'
+	import XsaTabBar from '@/components/XsaTabBar.uvue'
 	import { guardRealName } from '@/utils/realNameGate.uts'
-	import { getChatPermission, likeUser } from '@/api'
-
-	const parentRouting = ref(false)
-	const routeParentMode = (): boolean => {
-		const storedMode = uni.getStorageSync('xsa_onboarding_mode')
-		if (storedMode == null || String(storedMode) != 'parent') {
-			parentRouting.value = false
-			return false
-		}
-		if (parentRouting.value) return true
-		parentRouting.value = true
-		uni.reLaunch({
-			url: '/pages/parent/parent',
-			fail: () => {
-				parentRouting.value = false
-			}
-		})
-		return true
-	}
+	import { likeUser } from '@/api'
+	import { getAccessToken } from '@/api/config.uts'
+	import { mockRecommendUsers } from '@/mock/user.uts'
+	import {
+		recordProfileView,
+		resetDailyIfNeeded,
+		getDailyViewRemaining,
+		getDailyViewQuota
+	} from '@/utils/quota.uts'
 
 	// ========== 欢迎页 ==========
 	const welcomeVisible = ref(true)
@@ -656,23 +747,17 @@
 	const acceptWelcomeAgreement = () => {
 		uni.setStorageSync('xsa_welcome_agreed', true)
 		welcomeAgreementVisible.value = false; welcomeVisible.value = false
-		uni.showTabBar({
-			animation: false,
-			fail: () => {}
-		})
 		uni.navigateTo({ url: '/pages/auth/login' })
 	}
 
 	// ========== 导航 ==========
 	const currentTab = ref(0)
 	const navTabs = ['推荐', '广场', '会员专区']
-
 	const switchTab = (index: number) => { currentTab.value = index }
-<<<<<<< HEAD
-=======
 	const openVipPage = () => {
+		const redirect = '/pages/index/index?tab=' + currentTab.value
 		uni.navigateTo({
-			url: '/pagesSub/profileExtra/vip',
+			url: '/pagesSub/profileExtra/vip?redirect=' + encodeURIComponent(redirect),
 			fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
@@ -682,8 +767,7 @@
 			fail: () => { uni.showToast({ title: '置顶页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
->>>>>>> sync/upstream-main-751a9f4
-	const onHistory = () => {}
+	const onHistory = () => { uni.navigateTo({ url: '/pagesSub/profileExtra/history' }) }
 	const onSearch = () => {}
 
 	// ========== 推荐页数据 ==========
@@ -711,26 +795,26 @@
 
 	const vipCardRows = [
 		[
-			{ name: '林悦', age: '26岁', height: '165cm', gender: '女', photo: '/static/portraits/profile-woman-alt.jpg' },
-			{ name: '周思涵', age: '24岁', height: '168cm', gender: '女', photo: '/static/portraits/profile-woman-main.jpg' },
-			{ name: '陈雨晴', age: '28岁', height: '162cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' }
+			{ id: 2, isVip: true, name: '林悦', age: '26岁', height: '165cm', gender: '女', photo: '/static/portraits/profile-woman-alt.jpg' },
+			{ id: 3, isVip: true, name: '周思涵', age: '24岁', height: '168cm', gender: '女', photo: '/static/portraits/profile-woman-main.jpg' },
+			{ id: 4, isVip: true, name: '陈雨晴', age: '28岁', height: '162cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' }
 		],
 		[
-			{ name: '赵晓雯', age: '25岁', height: '170cm', gender: '女', photo: '/static/portraits/profile-man-light.jpg' },
-			{ name: '王梓萱', age: '27岁', height: '163cm', gender: '女', photo: '/static/portraits/profile-man-sea.jpg' },
-			{ name: '张俊杰', age: '30岁', height: '180cm', gender: '男', photo: '/static/portraits/profile-woman-alt.jpg' }
+			{ id: 1, isVip: true, name: '赵晓雯', age: '25岁', height: '170cm', gender: '女', photo: '/static/portraits/profile-woman-main.jpg' },
+			{ id: 5, isVip: true, name: '王梓萱', age: '27岁', height: '163cm', gender: '女', photo: '/static/portraits/profile-woman-alt.jpg' },
+			{ id: 6, isVip: true, name: '张俊杰', age: '30岁', height: '180cm', gender: '男', photo: '/static/portraits/profile-man-light.jpg' }
 		],
 		[
-			{ name: '李浩然', age: '29岁', height: '178cm', gender: '男', photo: '/static/portraits/profile-woman-main.jpg' },
-			{ name: '孙悦然', age: '29岁', height: '166cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' },
-			{ name: '刘子轩', age: '32岁', height: '182cm', gender: '男', photo: '/static/portraits/profile-man-light.jpg' }
+			{ id: 7, isVip: true, name: '李浩然', age: '29岁', height: '178cm', gender: '男', photo: '/static/portraits/profile-man-sea.jpg' },
+			{ id: 2, isVip: true, name: '孙悦然', age: '29岁', height: '166cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' },
+			{ id: 3, isVip: true, name: '刘子轩', age: '32岁', height: '182cm', gender: '男', photo: '/static/portraits/profile-man-light.jpg' }
 		]
 	]
 
 	const vipPrivileges = [
-		{ icon: '🎙', title: 'Ta的语音', desc: '聆听心动声音' },
-		{ icon: '💝', title: '择偶要求', desc: '了解TA的期待' },
-		{ icon: '💥', title: '爆灯特权', desc: '短信即时通知TA' }
+		{ iconClass: 'ic ic-social ic-paishe', title: 'Ta的瞬间', desc: '查看精彩生活瞬间' },
+		{ iconClass: 'ic ic-social ic-pinglun', title: 'Ta的问答怎么样', desc: '了解TA的真实想法' },
+		{ iconClass: 'ic ic-home ic-star', title: '爆灯特权', desc: '短信即时通知TA' }
 	]
 
 	const vipSpots = [
@@ -741,15 +825,8 @@
 
 	const switchVipCat = (index: number) => { vipCatIndex.value = index }
 
-<<<<<<< HEAD
-=======
 	// ========== 推荐页过滤 + 配额 ==========
-	const filteredRecommendUsers = computed(() => {
-		const isVip = getCurrentUserVipStatus()
-		if (isVip) return mockRecommendUsers
-		const filtered = (mockRecommendUsers as any[]).filter((u: any) => u.isVip !== true)
-		return filtered.length > 0 ? filtered : mockRecommendUsers
-	})
+	const filteredRecommendUsers = computed(() => mockRecommendUsers)
 	const currentRecommendIndex = ref(0)
 	const currentRecommendUser = computed(() => {
 		const list = filteredRecommendUsers.value as any[]
@@ -808,7 +885,6 @@
 			uni.navigateTo({ url: '/pagesSub/community/post-detail?id=' + postId })
 		}
 
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 	// ========== AI 合拍度 ==========
 	const aiVisible = ref(false)
 	const aiBars = [{ label: '关系目标', value: 96 }, { label: '生活节奏', value: 89 }, { label: '兴趣交集', value: 86 }]
@@ -838,30 +914,12 @@
 		successVisible.value = true
 		if (payload != null && payload.code == 'ALREADY_PENDING') {
 			showToast('申请已发送，请等待对方回应')
-		}
+}
 	}
 
 	const goMessages = () => { successVisible.value = false; uni.switchTab({ url: '/pages/message/message' }) }
 	const simulateMatch = () => { successVisible.value = false; matchedVisible.value = true }
-<<<<<<< HEAD
-	const startChat = async () => {
-		matchedVisible.value = false
-		const targetUserId = recommendUserId.value
-		try {
-			const res = await getChatPermission(targetUserId)
-			const permission = res != null ? res.data : null
-			if (res != null && res.success == true && permission != null && permission.canChat == true) {
-				uni.navigateTo({ url: '/pages/chat/detail?userId=' + targetUserId + '&userName=林悦' })
-				return
-			}
-			showToast(permission != null && permission.reason != null ? '' + permission.reason : '双方同意后才能开始聊天')
-		} catch (error) {
-			showToast('暂时无法确认聊天权限，请稍后重试')
-		}
-	}
-=======
 	const startChat = () => { matchedVisible.value = false; uni.navigateTo({ url: '/pagesSub/chat/detail?userId=user_001&userName=林悦' }) }
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
 	// ========== 通用操作 ==========
 	// 推荐卡默认嘉宾 id（与 mock 动态作者对齐，便于验证关注·喜欢）
@@ -884,25 +942,27 @@
 			} else {
 				showToast('操作失败，请重试')
 			}
-		} catch (e) {
+} catch (e) {
 			showToast('操作失败，请重试')
-		}
+}
 	}
 
 	// ========== 生命周期 ==========
-	onShow(() => {
-		routeParentMode()
-	})
-
 	onMounted(() => {
-		if (routeParentMode()) return
-		welcomeVisible.value = uni.getStorageSync('xsa_welcome_agreed') != true
-		if (welcomeVisible.value) {
-			uni.hideTabBar({
-				animation: false,
-				fail: () => {}
-			})
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = currentPage.options
+		const hasAuthenticatedSession = getAccessToken() != ''
+		welcomeVisible.value =
+			!hasAuthenticatedSession &&
+			(options.tab == null || options.tab == '')
+		if (options.tab != null && options.tab != '') {
+			const parsedTab = Number(options.tab)
+			if (!isNaN(parsedTab) && parsedTab >= 0 && parsedTab < navTabs.length) {
+				currentTab.value = parsedTab
+			}
 		}
+		resetDailyIfNeeded()
 	})
 </script>
 
@@ -963,22 +1023,15 @@
 	--radius-full: 9999rpx;
 }
 
-/* ==================== 状态栏 ==================== */
-.status-bar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; height: 124rpx; padding: 32rpx 40rpx 16rpx 40rpx; box-sizing: border-box; }
-.time-text { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
-.status-icons { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
-.signal-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
-.wifi-icon { font-size: 24rpx; color: var(--text-primary); }
-.battery-icon { font-size: 24rpx; color: var(--text-primary); letter-spacing: 2rpx; }
 
 /* ==================== 导航栏 ==================== */
-.nav-bar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0 40rpx 24rpx 40rpx; }
+.nav-bar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0 40rpx 24rpx 40rpx; margin-right: -4rpx; }
 .nav-tabs { display: flex; flex-direction: row; align-items: center; gap: 48rpx; }
 .nav-tab-item { display: flex; flex-direction: column; align-items: center; gap: 12rpx; position: relative; }
 .nav-tab-text { font-size: 28rpx; font-weight: 500; color: var(--text-muted); }
 .nav-tab-text.active { font-size: 36rpx; font-weight: 700; color: var(--text-primary); }
 .active-indicator { width: 40rpx; height: 6rpx; background-color: var(--accent); border-radius: 3rpx; }
-.history-btn { width: 72rpx; height: 72rpx; border-radius: var(--radius-full); background-color: var(--bg-card-soft); display: flex; align-items: center; justify-content: center; }
+.history-btn { width: 72rpx; height: 72rpx; border-radius: var(--radius-full); background-color: var(--bg-card-soft); display: flex; align-items: center; justify-content: center; margin-right: 184rpx; }
 .history-icon { font-size: 32rpx; }
 
 /* ==================== 筛选栏 ==================== */
@@ -993,7 +1046,6 @@
 .ai-match-text { font-size: 24rpx; color: var(--text-inverse); font-weight: 600; }
 
 /* ==================== 滚动内容区 ==================== */
-.content-scroll { flex: 1; padding: 24rpx 32rpx 0 32rpx; }
 
 /* ==================== 个人资料卡 ==================== */
 .profile-card { position: relative; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: 40rpx; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
@@ -1001,6 +1053,10 @@
 .card-body { display: flex; flex-direction: column; gap: 28rpx; padding: 32rpx; }
 .cover-img { width: 100%; height: 100%; }
 .user-info-header { display: flex; flex-direction: column; gap: 8rpx; padding-top: 8rpx; padding-left: 230rpx; }
+.user-name-line { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
+.recommend-vip-badge { display: flex; flex-direction: row; align-items: center; gap: 4rpx; padding: 5rpx 10rpx; border-radius: var(--radius-full); background-color: #FEF3D8; }
+.recommend-vip-icon { color: var(--gold); font-size: 20rpx; }
+.recommend-vip-text { color: var(--gold); font-size: 20rpx; font-weight: 700; }
 .avatar-wrap { position: absolute; left: 30rpx; top: 348rpx; width: 184rpx; height: 184rpx; border-radius: 50%; overflow: hidden; border: 6rpx solid var(--bg-card); background-color: var(--bg-card-soft); z-index: 10; }
 .avatar-img { width: 100%; height: 100%; }
 .name-age { font-size: 44rpx; font-weight: 700; color: var(--text-primary); margin-top: 8rpx; }
@@ -1067,10 +1123,10 @@
 .viewed-text { font-size: 24rpx; color: var(--text-muted); }
 
 /* 滚动区域底部留白 */
-.scroll-bottom-spacer { height: 200rpx; }
+.scroll-bottom-spacer { height: 320rpx; }
 
 /* ==================== 底部操作栏 ==================== */
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; flex-direction: row; align-items: center; gap: 24rpx; padding: 32rpx 40rpx; padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); background-color: transparent; box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.02); }
+.bottom-bar { position: fixed; bottom: 190rpx; left: 0; right: 0; display: flex; flex-direction: row; align-items: center; gap: 24rpx; padding: 24rpx 40rpx; z-index: 55; }
 .share-btn { width: 88rpx; height: 88rpx; border-radius: 44rpx; background-color: var(--bg-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04); }
 .share-icon { font-size: 40rpx; font-weight: 700; color: var(--text-secondary); transform: rotate(-45deg); }
 .chat-btn { flex: 1; height: 96rpx; border-radius: 48rpx; background-color: var(--accent); display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 16rpx; }
@@ -1119,13 +1175,14 @@
 .sq-section-count { font-size: 24rpx; color: var(--gold); font-weight: 500; }
 .sq-section-more { font-size: 24rpx; color: var(--text-muted); }
 .sq-vip-row { display: flex; flex-direction: row; gap: 24rpx; }
-.sq-vip-mini { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-xl); overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
+.sq-vip-mini { position: relative; flex: 1; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-xl); overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
 .sq-vip-photo { width: 100%; height: 320rpx; }
+.sq-vip-tag { top: 12rpx; left: 12rpx; }
 .sq-vip-info { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20rpx; }
 .sq-vip-left { display: flex; flex-direction: column; gap: 4rpx; }
 .sq-vip-name { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
 .sq-vip-detail { font-size: 22rpx; color: var(--text-muted); }
-.sq-vip-like { width: 64rpx; height: 64rpx; border-radius: 50%; background-color: #FFF0F0; display: flex; align-items: center; justify-content: center; }
+.sq-vip-like { position: relative; z-index: 5; width: 64rpx; height: 64rpx; border-radius: 50%; background-color: #FFF0F0; display: flex; align-items: center; justify-content: center; }
 .sq-heart-sm { font-size: 32rpx; color: var(--heart-red); }
 
 /* ==================== 会员专区页面 ==================== */
@@ -1158,6 +1215,7 @@
 .vip-card-grid { display: flex; flex-direction: column; gap: 20rpx; }
 .vip-card-row { display: flex; flex-direction: row; gap: 20rpx; }
 .vip-card-item { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03); }
+.vip-card-content { position: relative; display: flex; flex-direction: column; }
 .vip-card-photo { width: 100%; height: 280rpx; position: relative; overflow: hidden; }
 .vip-card-photo-img { width: 100%; height: 100%; }
 .vip-card-crown { position: absolute; top: 12rpx; left: 12rpx; display: flex; align-items: center; padding: 4rpx 10rpx; border-radius: var(--radius-sm); background-color: #C9A96E; }
@@ -1207,11 +1265,11 @@
 .vip-bottom-cta { display: flex; flex-direction: column; align-items: center; gap: 20rpx; padding: 40rpx 32rpx 48rpx 32rpx; background: linear-gradient(135deg, #2D4A3E, #C9A96E); border-radius: var(--radius-xl); }
 .vip-cta-title { font-size: 36rpx; font-weight: 700; color: #FFFFFF; }
 .vip-cta-desc { font-size: 24rpx; color: #CCCCCC; text-align: center; line-height: 1.5; }
-.vip-price-row { display: flex; flex-direction: row; gap: 16rpx; width: 100%; }
-.vip-price-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8rpx; padding: 20rpx; border-radius: var(--radius-md); background-color: rgba(255, 255, 255, 0.1); position: relative; }
+.vip-price-row { display: flex; flex-direction: row; gap: 16rpx; width: 100%; padding-top: 24rpx; }
+.vip-price-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8rpx; padding: 28rpx 16rpx 16rpx 16rpx; border-radius: var(--radius-md); background-color: rgba(255, 255, 255, 0.1); position: relative; overflow: visible; }
 .vip-price-opt.recommended { background-color: rgba(201, 169, 110, 0.2); border: 2rpx solid var(--gold); }
-.vip-price-badge { position: absolute; top: -20rpx; padding: 4rpx 12rpx; border-radius: var(--radius-sm); background-color: var(--gold); }
-.vip-price-badge-text { font-size: 20rpx; color: #FFFFFF; font-weight: 600; }
+.vip-price-badge { position: absolute; top: -20rpx; left: 50%; transform: translateX(-50%); padding: 6rpx 18rpx; border-radius: var(--radius-sm); background-color: var(--gold); white-space: nowrap; z-index: 2; }
+.vip-price-badge-text { font-size: 20rpx; color: #FFFFFF; font-weight: 600; line-height: 1.2; }
 .vip-price-period { font-size: 24rpx; color: #CCCCCC; }
 .vip-price-value { font-size: 36rpx; font-weight: 700; color: var(--gold); }
 .vip-cta-btn { width: 100%; height: 96rpx; border-radius: 48rpx; background-color: var(--accent); display: flex; align-items: center; justify-content: center; }
@@ -1222,10 +1280,12 @@
    AI Sheet
    ============================================================ */
 .ai-sheet { display: flex; flex-direction: column; gap: 16px; }
-<<<<<<< HEAD
-=======
-.ai-context-row { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 12px; line-height: 1.6; color: var(--muted); }
->>>>>>> sync/upstream-main-751a9f4
+.ai-mbti-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.ai-mbti-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 20px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.ai-mbti-card.you { background: var(--accent-bg); border-color: var(--accent); }
+.ai-mbti-label { font-size: 10px; color: var(--muted); }
+.ai-mbti-type { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--accent2); }
+.ai-mbti-x { font-size: 18px; color: var(--ink2); }
 .ai-score-big text { font-size: 48px; font-weight: 900; color: var(--accent2); font-family: var(--serif); }
 .ai-score-big { text-align: center; }
 .ai-bars { display: flex; flex-direction: column; gap: 10px; }
@@ -1243,4 +1303,84 @@
 .apply-note { padding: 10px; background: var(--warm); border-radius: 8px; font-size: 11px; }
 .apply-note .em { color: var(--accent2); font-weight: 800; }
 .apply-input { width: 100%; min-height: 72px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+
+/* 固定头部 */
+.sticky-header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; max-width: 750rpx; margin: 0 auto; background-color: var(--bg-primary); }
+.content-scroll { flex: 1; padding: 254rpx 32rpx 0 32rpx; }
+/* 屏蔽/举报行 */
+.block-row { display: flex; justify-content: center; align-items: center; width: 100%; padding: 16rpx 0 8rpx 0; }
+.block-text { font-size: 24rpx; color: var(--text-muted); }
+/* 底部操作栏 */
+
+.ai-float-btn { z-index: 55; bottom: 360rpx; }
+/* Ta的动态 */
+.feed-section { display: flex; flex-direction: column; gap: 20rpx; }
+.feed-section-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
+.feed-more { font-size: 22rpx; font-weight: 500; color: var(--accent-dark); }
+.feed-list { display: flex; flex-direction: column; gap: 24rpx; }
+.feed-card { display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-lg); box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.02); overflow: hidden; }
+.feed-card-header { display: flex; flex-direction: row; align-items: center; gap: 20rpx; padding: 28rpx 28rpx 12rpx 28rpx; }
+.feed-card-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background-color: var(--bg-card-soft); }
+.feed-card-user-col { flex: 1; display: flex; flex-direction: column; gap: 2rpx; }
+.feed-card-name { font-size: 26rpx; font-weight: 700; color: var(--text-primary); }
+.feed-card-meta { font-size: 20rpx; color: var(--text-muted); }
+.feed-card-content { padding: 0 28rpx 16rpx 28rpx; font-size: 24rpx; color: var(--text-secondary); line-height: 1.55; }
+.feed-card-photos { display: flex; flex-direction: row; gap: 10rpx; padding: 0 28rpx 16rpx 28rpx; }
+.feed-photo { border-radius: var(--radius-sm); background-color: var(--bg-card-soft); }
+.feed-photo-single { width: 100%; height: 320rpx; }
+.feed-photo-double { flex: 1; height: 220rpx; }
+.feed-card-tags { display: flex; flex-direction: row; gap: 12rpx; padding: 0 28rpx 8rpx 28rpx; }
+.feed-tag { padding: 8rpx 24rpx; border-radius: var(--radius-full); background-color: var(--bg-card-soft); font-size: 20rpx; font-weight: 500; color: var(--accent-dark); }
+.feed-card-divider { width: 100%; height: 2rpx; background-color: var(--border-soft); }
+.feed-card-footer { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 16rpx 28rpx 20rpx 28rpx; }
+.feed-date { font-size: 20rpx; color: var(--text-muted); }
+.feed-actions { display: flex; flex-direction: row; align-items: center; gap: 28rpx; }
+.feed-action { display: flex; flex-direction: row; align-items: center; gap: 8rpx; }
+.feed-action-icon { font-size: 26rpx; color: var(--text-muted); }
+.feed-action-count { font-size: 20rpx; color: var(--text-muted); }
+/* 内联图标 */
+.sq-loc-icon { font-size: 24rpx; color: var(--text-muted); margin-right: 2rpx; }
+.sq-arrow { font-size: 22rpx; color: var(--text-muted); }
+.activity-dot { font-size: 24rpx; color: var(--accent); margin-right: 4rpx; }
+.vip-tag-icon { font-size: 24rpx; color: var(--text-inverse); margin-right: 4rpx; }
+.vip-cta-icon { font-size: 36rpx; color: var(--gold); margin-right: 8rpx; }
+
+/* 婚恋图标字体 */
+@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/系统通用/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-social"; src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-vip"; src: url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff') format('woff'); }
+@font-face { font-family: "iconfont-me"; src: url('/static/婚恋小程序图标/个人中心/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/个人中心/iconfont.woff') format('woff'); }
+.ic { font-style: normal; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+.ic-home { font-family: "iconfont-home" !important; }
+.ic-sys { font-family: "iconfont-sys" !important; }
+.ic-social { font-family: "iconfont-social" !important; }
+.ic-vip { font-family: "iconfont-vip" !important; }
+.ic-me { font-family: "iconfont-me" !important; }
+/* unicode 映射 */
+.ic-search:before { content: "\e600"; }
+.ic-hello:before { content: "\e601"; }
+.ic-star:before { content: "\e60e"; }
+.ic-heart:before { content: "\e614"; }
+.ic-history:before { content: "\e658"; }
+.ic-dingwei:before { content: "\e63a"; }
+.ic-fenxiang:before { content: "\e636"; }
+.ic-shiming:before { content: "\e605"; }
+.ic-jiantou-you:before { content: "\e928"; }
+.ic-zhankai:before { content: "\e602"; }
+.ic-xiala:before { content: "\e609"; }
+.ic-pinglun:before { content: "\e679"; }
+.ic-paishe:before { content: "\e603"; }
+.ic-tongzhi:before { content: "\e68c"; }
+.ic-huati:before { content: "\e651"; }
+.ic-touxiang:before { content: "\e632"; }
+.ic-huodong:before { content: "\e704"; }
+.ic-huiyuan:before { content: "\e65d"; }
+.ic-jinbi:before { content: "\e64a"; }
+.ic-renwu:before { content: "\e69f"; }
+.ic-xueli:before { content: "\e66d"; }
+.ic-dongtai:before { content: "\e609"; }
+.ic-shezhi:before { content: "\e69d"; }
+.ic-kefu:before { content: "\e6d0"; }
+.ic-bangzhu:before { content: "\e623"; }
 </style>

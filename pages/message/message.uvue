@@ -192,10 +192,10 @@
 		appVisible.value = true
 	}
 
-	const openPaperPlane = () => {
-		markShortcutNoticeRead(PAPER_PLANE_NOTICE_KEY)
-		openHint('纸飞机 · 3 次免费机会')
-	}
+const openPaperPlane = () => {
+			markShortcutNoticeRead(PAPER_PLANE_NOTICE_KEY)
+			uni.navigateTo({ url: '/pagesSub/community/paper-plane' })
+		}
 
 	const openDynamicNotice = () => {
 		markShortcutNoticeRead(DYNAMIC_NOTICE_KEY)

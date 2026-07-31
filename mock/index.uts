@@ -38,6 +38,11 @@ export {
   mockCurrentCity
 } from './community.uts'
 
+// 爆灯相关
+export {
+  mockSpotlightPaymentOrders
+} from './spotlight.uts'
+
 // 红娘相关
 export {
   mockMatchmakerContact,

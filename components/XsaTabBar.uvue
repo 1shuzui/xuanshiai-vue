@@ -15,21 +15,21 @@
 <script setup lang="uts">
 	const currentIndex = ref(0)
 
-	const tabs = [
-		{ text: '首页', iconClass: 'iconfont icon-shouye tab-ic', pagePath: '/pages/index/index' },
-		{ text: '社区', iconClass: 'iconfont icon-shequ tab-ic', pagePath: '/pages/community/community' },
-		{ text: '牵线', iconClass: 'iconfont icon-qianxian tab-ic', pagePath: '/pages/matchmaker/matchmaker' },
-		{ text: '消息', iconClass: 'iconfont icon-xiaoxi tab-ic', pagePath: '/pages/message/message' },
-		{ text: '我的', iconClass: 'iconfont icon-a-wodedefuben2 tab-ic', pagePath: '/pages/profile/profile' }
-	]
+const tabs = [
+			{ text: '首页', iconClass: 'iconfont icon-shouye tab-ic', pagePath: '/pages/index/index' },
+			{ text: '牵线', iconClass: 'iconfont icon-qianxian tab-ic', pagePath: '/pages/matchmaker/matchmaker' },
+			{ text: '社区', iconClass: 'iconfont icon-shequ tab-ic', pagePath: '/pages/community/community' },
+			{ text: '消息', iconClass: 'iconfont icon-xiaoxi tab-ic', pagePath: '/pages/message/message' },
+			{ text: '我的', iconClass: 'iconfont icon-a-wodedefuben2 tab-ic', pagePath: '/pages/profile/profile' }
+		]
 
-	// 通过当前页面路径确定选中项
-	const pageMap: Map<string, number> = new Map()
-	pageMap.set('pages/index/index', 0)
-	pageMap.set('pages/community/community', 1)
-	pageMap.set('pages/matchmaker/matchmaker', 2)
-	pageMap.set('pages/message/message', 3)
-	pageMap.set('pages/profile/profile', 4)
+		// 通过当前页面路径确定选中项
+		const pageMap: Map<string, number> = new Map()
+		pageMap.set('pages/index/index', 0)
+		pageMap.set('pages/matchmaker/matchmaker', 1)
+		pageMap.set('pages/community/community', 2)
+		pageMap.set('pages/message/message', 3)
+		pageMap.set('pages/profile/profile', 4)
 
 	// 获取当前页面路由
 	const pages = getCurrentPages()

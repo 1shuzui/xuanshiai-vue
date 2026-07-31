@@ -1,7 +1,9 @@
 <template>
 	<view class="onboarding-page">
 		<view class="topbar">
-			<text class="back-button" @click="handleBack"></text>
+			<view class="back-button-hit" @tap="handleBack"></view>
+			<view class="topbar-space"></view>
+			<view class="topbar-space"></view>
 		</view>
 
 		<view v-if="step === 0" class="identity-page">
@@ -39,6 +41,20 @@
 				<text class="question-hint">这些信息只用于为你推荐更合适的人</text>
 			</view>
 
+			<view v-if="currentType === 'date'" class="onboarding-picker">
+				<picker-view class="date-picker-view" :value="datePickerValue" indicator-style="height: 52px; background: transparent;" mask-style="background: linear-gradient(to bottom, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 72%, rgba(255,255,255,1) 100%);" @change="onDatePickerChange">
+					<picker-view-column><view v-for="year in yearOptions" :key="year" class="picker-column-item"><text>{{ year }}年</text></view></picker-view-column>
+					<picker-view-column><view v-for="month in monthOptions" :key="month" class="picker-column-item"><text>{{ month }}月</text></view></picker-view-column>
+					<picker-view-column><view v-for="day in dayOptions" :key="day" class="picker-column-item"><text>{{ day }}日</text></view></picker-view-column>
+				</picker-view>
+				<text class="picker-selected-text">{{ selectedValue || '上下滑动选择出生日期' }}</text>
+			</view>
+			<view v-if="currentType === 'picker'" class="onboarding-picker">
+				<picker-view class="single-picker-view" :value="pickerViewValue" indicator-style="height: 52px; background: transparent;" mask-style="background: linear-gradient(to bottom, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 72%, rgba(255,255,255,1) 100%);" @change="onPickerViewChange">
+					<picker-view-column><view v-for="option in currentOptions" :key="option" class="picker-column-item"><text>{{ option }}</text></view></picker-view-column>
+				</picker-view>
+				<text class="picker-selected-text">{{ selectedValue || '上下滑动选择' }}</text>
+			</view>
 			<view v-if="currentType === 'grid'" class="option-grid">
 				<view
 					v-for="option in currentOptions"
@@ -50,7 +66,7 @@
 					<text>{{ option }}</text>
 				</view>
 			</view>
-			<view v-else class="option-list">
+			<view v-if="currentType !== 'date' && currentType !== 'picker' && currentType !== 'grid'" class="option-list">
 				<view
 					v-for="option in currentOptions"
 					:key="option"
@@ -82,16 +98,29 @@
 		{ key: 'matchmaker', title: '当红娘', subtitle: '当红娘，我推荐单身', icon: '♧', tone: 'role-pink', iconTone: 'icon-pink' }
 	]
 
+	const numericOptions = (start: number, end: number, suffix: string): string[] => {
+		const options = [] as string[]
+		for (let value = start; value <= end; value++) options.push('' + value + suffix)
+		return options
+	}
+	const heightOptions = numericOptions(140, 220, 'cm')
+	const weightOptions = numericOptions(40, 120, 'kg')
+	const yearOptions = numericOptions(1966, 2008, '')
+	const monthOptions = numericOptions(1, 12, '')
+	const dayOptions = numericOptions(1, 31, '')
+	const datePickerValue = ref([34, 0, 0] as number[])
+	const pickerIndex = ref(0)
+	const pickerViewValue = computed(() => [pickerIndex.value])
 	const questions = [
-		{ title: '您的出生日期', type: 'list', options: ['1990年01月01日', '1992年05月20日', '1995年08月18日', '1998年05月15日', '2000年10月01日'] },
+		{ title: '您的出生日期', type: 'date', options: [] as string[] },
 		{ title: '您的老家是哪里', type: 'list', options: ['江苏省 南京市 市辖区', '浙江省 杭州市 西湖区', '上海市 上海市 浦东新区', '安徽省 合肥市 蜀山区'] },
 		{ title: '您的工作地区', type: 'list', options: ['江苏省 南京市 市辖区', '浙江省 杭州市 西湖区', '上海市 上海市 浦东新区', '广东省 深圳市 南山区'] },
-		{ title: '您的身高是多少', type: 'list', options: ['165cm', '168cm', '172cm', '175cm', '178cm'] },
-		{ title: '您的体重是多少', type: 'list', options: ['50kg', '55kg', '60kg', '65kg', '70kg'] },
-		{ title: '您的最高学历', type: 'list', options: ['高中', '大专', '本科', '硕士', '博士'] },
+		{ title: '您的身高是多少', type: 'picker', options: heightOptions },
+		{ title: '您的体重是多少', type: 'picker', options: weightOptions },
+		{ title: '您的最高学历', type: 'picker', options: ['大专', '本科', '硕士', '博士'] },
 		{ title: '您从事何种工作', type: 'grid', options: ['不限', '私企员工', '央企/国企', '外企', '事业单位', '公务员', '教师', '医生', '护士', '互联网行业', '自由职业', '军人', '工人', '服务业', '金融', '律师', '求职中', '在校学生'] },
-		{ title: '您的婚姻状况', type: 'list', options: ['未婚', '离异未育', '离异不带孩', '离异带女孩'] },
-		{ title: '您的收入状况', type: 'list', options: ['不限', '3千元以下', '3-5千元', '5-8千元', '8千-1.5万元', '1.5万元以上'] }
+		{ title: '您的婚姻状况', type: 'picker', options: ['未婚', '离异', '丧偶'] },
+		{ title: '您的收入状况', type: 'picker', options: ['小于10w', '10-20w', '30-50w', '50-100w', '100w以上', '保密'] }
 	]
 
 	const totalSteps = questions.length
@@ -113,15 +142,50 @@
 			return
 		}
 		mode.value = key
-		selections.value = []
+		selections.value = questions.map((question: any) => {
+			if (question.type === 'date') return '2000-01-01'
+			if (question.type === 'picker' && question.options.length > 0) return question.options[0]
+			return ''
+		})
 		step.value = 1
 	}
 
+	watch(step, () => {
+		if (step.value <= 0 || currentType.value !== 'picker') return
+		const options = currentOptions.value
+		const selected = selectedValue.value
+		const index = options.indexOf(selected)
+		pickerIndex.value = index >= 0 ? index : 0
+	})
+
 	const selectOption = (option: string) => {
-		if (selections.value.length < totalSteps) {
-			while (selections.value.length < step.value) selections.value.push('')
-			selections.value[step.value - 1] = option
-		}
+		if (step.value <= 0 || step.value > totalSteps) return
+		while (selections.value.length < step.value) selections.value.push('')
+		selections.value[step.value - 1] = option
+	}
+	const selectPicker = (event: any) => {
+		const index = Number(event.detail.value)
+		const options = currentOptions.value
+		if (index >= 0 && index < options.length) selectOption(options[index])
+	}
+	const selectDate = (event: any) => selectOption('' + event.detail.value)
+	const onPickerViewChange = (event: any) => {
+		const values = event.detail.value as any[]
+		const index = Number(values[0])
+		pickerIndex.value = index
+		const options = currentOptions.value
+		if (index >= 0 && index < options.length) selectOption(options[index])
+	}
+	const onDatePickerChange = (event: any) => {
+		const values = event.detail.value as any[]
+		const yearIndex = Number(values[0])
+		const monthIndex = Number(values[1])
+		const dayIndex = Number(values[2])
+		datePickerValue.value = [yearIndex, monthIndex, dayIndex]
+		const year = yearOptions[yearIndex]
+		const month = monthOptions[monthIndex].length == 1 ? '0' + monthOptions[monthIndex] : monthOptions[monthIndex]
+		const day = dayOptions[dayIndex].length == 1 ? '0' + dayOptions[dayIndex] : dayOptions[dayIndex]
+		selectDate({ detail: { value: year + '-' + month + '-' + day } })
 	}
 
 	const previousStep = () => {
@@ -173,6 +237,7 @@
 	}
 
 	.back-button,
+	.back-button-hit,
 	.topbar-space,
 	.topbar-actions {
 		width: 44px;
@@ -192,23 +257,29 @@
 	}
 
 	.back-button {
-		font-size: 34px;
+		font-size: 38px;
 		line-height: 40px;
 		color: var(--ink);
+		text-align: left;
 	}
 
+	.back-button-hit { flex-shrink: 0; }
+
 	.topbar-title {
-		font-size: 18px;
+		font-size: 19px;
 		font-family: var(--serif);
 		font-weight: 700;
+		text-align: center;
 	}
 
 	.identity-page,
 	.step-page {
 		min-height: calc(100vh - 100px);
-		padding: 48px 36px 24px;
+		padding: 0 0 104px;
 		box-sizing: border-box;
 	}
+
+	.identity-page { padding: 48px 36px 24px; }
 
 	.hero-copy {
 		margin-bottom: 48px;
@@ -218,7 +289,7 @@
 	.hero-title,
 	.question-title {
 		display: block;
-		font-size: 27px;
+		font-size: 30px;
 		font-family: var(--serif);
 		font-weight: 700;
 		line-height: 1.35;
@@ -236,6 +307,8 @@
 		font-size: 16px;
 		color: #A0A8A5;
 	}
+
+	.question-hint { display: none; }
 
 	.role-list {
 		display: flex;
@@ -329,7 +402,9 @@
 	}
 
 	.step-head {
-		margin-bottom: 38px;
+		display: block;
+		margin-bottom: 0;
+		padding: 24px 36px 0;
 	}
 
 	.step-label {
@@ -353,8 +428,51 @@
 	}
 
 	.question-head {
-		margin-bottom: 34px;
+		margin-bottom: 0;
+		padding: 64px 24px 48px;
+		background: linear-gradient(105deg, #FFF0FF 0%, #FFFFFF 56%, #EEFFFF 100%);
 		text-align: center;
+	}
+
+	.question-title {
+		font-family: sans-serif;
+		font-weight: 800;
+	}
+
+	.onboarding-picker {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		margin: 0 auto;
+		padding: 0;
+		text-align: center;
+		color: var(--ink);
+	}
+
+	.date-picker-view,
+	.single-picker-view {
+		width: 100%;
+		height: 364px;
+		background: transparent;
+	}
+
+	.single-picker-view {
+		height: 364px;
+	}
+
+	.picker-column-item {
+		height: 52px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		font-size: 24px;
+		font-weight: 800;
+		color: var(--ink);
+	}
+
+	.picker-selected-text {
+		display: none;
 	}
 
 	.option-list {
