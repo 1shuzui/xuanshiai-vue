@@ -1,6 +1,18 @@
 <template>
 	<view class="detail-page">
-		<scroll-view scroll-y class="detail-scroll" enhanced show-scrollbar="false">
+		<view v-if="detailLoading" class="state-block">
+			<text class="state-title">正在加载资料</text>
+			<text class="state-description">请稍候，正在读取最新信息</text>
+		</view>
+		<XsaEmpty
+			v-else-if="detailError != ''"
+			text="资料暂时无法打开"
+			:description="detailError"
+			:show-action="true"
+			action-text="重试"
+			@action="load"
+		/>
+		<scroll-view v-else scroll-y class="detail-scroll" enhanced show-scrollbar="false">
 			<view v-if="!isLockedView" class="ordinary-detail-page">
 				<view class="ordinary-profile-card">
 					<view class="ordinary-cover">
@@ -201,10 +213,10 @@
 			<view class="scroll-bottom-spacer"></view>
 		</scroll-view>
 
-		<view v-if="!isLockedView && isOwnProfile && !isPreview" class="bottom-bar bottom-bar-own">
-			<view class="primary-action edit-only-btn" @tap="goEdit"><text class="primary-action-text">编辑资料</text></view>
-		</view>
-		<view v-if="!isOwnProfile && !isPreview" class="bottom-bar">
+			<view v-if="!isLockedView && isOwnProfile && !isPreview && !detailLoading && detailError == ''" class="bottom-bar bottom-bar-own">
+				<view class="primary-action edit-only-btn" @tap="goEdit"><text class="primary-action-text">编辑资料</text></view>
+			</view>
+			<view v-if="!isOwnProfile && !isPreview && !detailLoading && detailError == ''" class="bottom-bar">
 			<view class="bottom-back" @tap="onBack"><text class="bottom-back-icon">←</text><text class="bottom-back-text">返回</text></view>
 			<view class="primary-action" @tap="onMatch"><text class="primary-action-text">♥　申请认识</text></view>
 			<view class="like-action" @tap="onLike"><text class="like-action-text">♥</text></view>
@@ -218,10 +230,11 @@
 
 <script setup lang="uts">
 import { ref } from 'vue'
+import XsaEmpty from '@/components/XsaEmpty.uvue'
 import XsaApplySheet from '@/components/XsaApplySheet.uvue'
 import XsaPaymentSheet from '@/components/XsaPaymentSheet.uvue'
 import XsaSpotlightSuccessSheet from '@/components/XsaSpotlightSuccessSheet.uvue'
-import { getUserDetail, likeUser } from '@/api'
+import { getUserDetail, likeUser, getOwnProfile } from '@/api'
 import { SPOTLIGHT_AMOUNT, paySpotlight } from '@/api/spotlight.uts'
 import { guardRealName } from '@/utils/realNameGate.uts'
 import { getCurrentUserVipStatus } from '@/utils/quota.uts'
@@ -229,6 +242,8 @@ import { getCurrentUserVipStatus } from '@/utils/quota.uts'
 const isLockedView = ref(false)
 const isOwnProfile = ref(false)
 const isPreview = ref(false)
+const detailLoading = ref(true)
+const detailError = ref('')
 const applyVisible = ref(false)
 const applyUserId = ref(1)
 const spotlightPaymentVisible = ref(false)
@@ -364,12 +379,21 @@ const mapDetailUser = (raw: any, id: number) => {
 	applyUserId.value = user.value.id
 }
 
-const loadDetailUser = async (id: number) => {
+const load = async () => {
+	detailLoading.value = true
+	detailError.value = ''
 	try {
-		const res = await getUserDetail(id)
-		if (res != null && res.success === true) mapDetailUser(res, id)
+		const res = isOwnProfile.value ? await getOwnProfile() : await getUserDetail(user.value.id)
+		if (res != null && res.success === true && res.data != null) {
+			mapDetailUser(res, user.value.id)
+		} else {
+			detailError.value = res != null && res.message != null ? '' + res.message : '请稍后重试'
+		}
 	} catch (e) {
-		// 接口不可用时保留本地预览数据。
+		detailError.value = '网络异常，请稍后重试'
+	} finally {
+		detailLoading.value = false
+		refreshLockedView()
 	}
 }
 
@@ -397,8 +421,7 @@ onMounted(async () => {
 	}
 	user.value.id = parsed
 	applyUserId.value = parsed
-	if (!isOwnProfile.value) await loadDetailUser(parsed)
-	refreshLockedView()
+	await load()
 })
 
 onShow(() => {
@@ -483,6 +506,9 @@ const onLike = async () => {
 
 <style scoped>
 .detail-page { position: relative; width: 100%; max-width: 750rpx; height: 100vh; margin: 0 auto; background-color: var(--canvas); color: var(--ink); }
+.state-block { padding: 72px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.state-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+.state-description { font-size: 13px; color: var(--muted); }
 .detail-scroll { width: 100%; height: 100vh; }
 .ordinary-detail-page { padding: 24rpx 32rpx 0; }
 .ordinary-profile-card { overflow: hidden; border-radius: 28rpx; background-color: var(--surface); box-shadow: var(--shadow-md); }

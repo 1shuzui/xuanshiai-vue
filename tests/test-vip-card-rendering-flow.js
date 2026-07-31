@@ -86,8 +86,8 @@ expect(detailPage, '头像展示在爆灯栏', 'spotlight includes exposure bene
 expect(detailPage, '更容易被留意', 'spotlight includes favorability benefit')
 expect(detailPage, "const redirect = '/pagesSub/userExtra/user/detail?userId=' + user.value.id", 'unlock preserves the target detail route')
 expect(detailPage, "url: '/pagesSub/profileExtra/vip?source=user-detail&userId='", 'locked detail opens VIP purchase')
-expect(detailPage, 'v-if="!isLockedView && !isOwnProfile && !isPreview"', 'preview hides other-user actions')
-expect(detailPage, 'v-if="!isLockedView && isOwnProfile && !isPreview"', 'preview hides own-profile edit action')
+expect(detailPage, 'v-if="!isOwnProfile && !isPreview && !detailLoading && detailError == \'\'"', 'preview hides other-user actions')
+expect(detailPage, 'v-if="!isLockedView && isOwnProfile && !isPreview && !detailLoading && detailError == \'\'"', 'preview hides own-profile edit action')
 
 expect(vipPage, 'setCurrentUserVipStatus(true)', 'payment persists VIP status')
 expect(vipPage, 'if (pages.length > 1)', 'payment preserves an existing navigation stack')
