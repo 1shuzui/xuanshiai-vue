@@ -59,28 +59,28 @@
     "selectedColor": "#5A9D8E",
     "backgroundColor": "#FCFCFC",
     "borderStyle": "black",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "首页"
-      },
-      {
-        "pagePath": "pages/community/community",
-        "text": "社区"
-      },
-      {
-        "pagePath": "pages/matchmaker/matchmaker",
-        "text": "红娘服务"
-      },
-      {
-        "pagePath": "pages/message/message",
-        "text": "消息"
-      },
-      {
-        "pagePath": "pages/profile/profile",
-        "text": "我的"
-      }
-    ]
+"list": [
+	      {
+	        "pagePath": "pages/index/index",
+	        "text": "首页"
+	      },
+	      {
+	        "pagePath": "pages/matchmaker/matchmaker",
+	        "text": "红娘服务"
+	      },
+	      {
+	        "pagePath": "pages/community/community",
+	        "text": "社区"
+	      },
+	      {
+	        "pagePath": "pages/message/message",
+	        "text": "消息"
+	      },
+	      {
+	        "pagePath": "pages/profile/profile",
+	        "text": "我的"
+	      }
+	    ]
   },
   "uniIdRouter": {},
   "subPackages": [
