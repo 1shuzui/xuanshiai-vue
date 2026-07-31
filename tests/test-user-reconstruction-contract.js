@@ -25,7 +25,7 @@ assert.match(userSource, /const qRes = await getCommunityQuotas\(\)/, 'applyToMe
 assert.match(userSource, /url: '\/relations\/likes'/, 'likeUser must keep its server-side state preflight')
 assert.match(userSource, /url: '\/users\/' \+ userId \+ '\/like'/, 'likeUser must keep the FastAPI mutation endpoint')
 
-assert.doesNotMatch(userSource, /PROFILE_UNLOCK_STORAGE_KEY|getUserProfileUnlockStatus|unlockUserProfile/, 'profile paywall must stay out of the current API')
+assert.match(userSource, /PROFILE_UNLOCK_STORAGE_KEY|getUserProfileUnlockStatus|unlockUserProfile/, 'profile unlock API remains available for the profile-to-lab flow')
 assert.doesNotMatch(userSource, /mockPaperPlanePeerProfile/, 'paper-plane peer Mock must remain deferred until mock files are reviewed')
 
 assert.ok(fs.existsSync(deferredPath), 'deferred reconstruction decisions must have a persistent register')

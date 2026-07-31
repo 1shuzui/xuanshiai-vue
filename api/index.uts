@@ -28,7 +28,9 @@ export {
   likeUser,
   getLikedUsers,
   getChatFeatureUnlocks,
-  unlockChatFeature
+  unlockChatFeature,
+  getUserProfileUnlockStatus,
+  unlockUserProfile
 } from './user.uts'
 
 // 消息相关

@@ -25,7 +25,7 @@
 			</button>
 			<!-- #endif -->
 
-			<button class="debug-login-button" :disabled="authLoading || !agreementChecked" @click="handleDebugLogin">调试登录，直接进入首页</button>
+			<button class="debug-login-button" :disabled="authLoading" @click="handleDebugLogin">调试登录，选择身份</button>
 			<button class="first-login-button" :disabled="authLoading || !agreementChecked" @click="handleFirstLogin">首次登录</button>
 
 			<view class="agreement-row">
@@ -56,8 +56,8 @@
 </template>
 
 <script setup lang="uts">
-	import { loginByPhone, loginByWechat, sendSms } from '@/api'
-	import { setAuthTokens } from '@/api/config.uts'
+	import { loginByPhone, loginByWechat } from '@/api'
+	import { CURRENT_USER_ID_KEY, setAuthTokens } from '@/api/config.uts'
 
 	const authLoading = ref(false)
 	const agreementChecked = ref(uni.getStorageSync('xsa_login_agreed') == true)
@@ -66,6 +66,25 @@
 		uni.switchTab({
 			url: '/pages/index/index'
 		})
+	}
+
+	const routeAfterLogin = (forceRoleSelection: boolean = false) => {
+		if (forceRoleSelection) {
+			uni.removeStorageSync('xsa_onboarding_mode')
+			uni.removeStorageSync('xsa_onboarding_completed')
+			uni.reLaunch({ url: '/pagesSub/userExtra/onboarding/profile' })
+			return
+		}
+		const storedMode = uni.getStorageSync('xsa_onboarding_mode')
+		if (storedMode != null && String(storedMode) == 'parent') {
+			uni.reLaunch({ url: '/pages/parent/parent' })
+			return
+		}
+		if (uni.getStorageSync('xsa_onboarding_completed') != true) {
+			uni.navigateTo({ url: '/pagesSub/userExtra/onboarding/profile' })
+			return
+		}
+		goHome()
 	}
 
 	const finishLogin = (data: any = null) => {
@@ -79,7 +98,7 @@
 				uni.navigateTo({ url: '/pagesSub/userExtra/onboarding/profile' })
 				return
 			}
-			goHome()
+			routeAfterLogin(false)
 		}, 500)
 	}
 
@@ -145,15 +164,37 @@
 		uni.navigateTo({ url: '/pages/auth/register' })
 	}
 
-	const handleDebugLogin = () => {
-		if (authLoading.value || !agreementChecked.value) return
+	const startLocalDemoSession = (): boolean => {
+		try {
+			setAuthTokens('local_demo_access_token', 'local_demo_refresh_token')
+			uni.setStorageSync(CURRENT_USER_ID_KEY, 1)
+			uni.setStorageSync('xsa_login_agreed', true)
+			return true
+		} catch (error) {
+			console.error('debug login session setup failed', error)
+			return false
+		}
+	}
+
+	const handleDebugLogin = async () => {
+		if (authLoading.value) return
 		authLoading.value = true
-		setAuthTokens('debug_access_token_xsa')
-		uni.setStorageSync('xsa_user_id', 1)
-		uni.setStorageSync('xsa_login_agreed', true)
-		authLoading.value = false
-		uni.showToast({ title: '本地调试登录成功', icon: 'success' })
-		setTimeout(() => { goHome() }, 400)
+		try {
+			if (!startLocalDemoSession()) {
+				uni.showToast({ title: '调试登录失败，请重试', icon: 'none' })
+				return
+			}
+			uni.showToast({ title: '登录成功，请选择身份', icon: 'success' })
+			setTimeout(() => {
+				routeAfterLogin(true)
+			}, 300)
+		} finally {
+			authLoading.value = false
+		}
+	}
+
+	const handleLocalLogin = () => {
+		handleDebugLogin()
 	}
 
 	const handleFirstLogin = () => {

@@ -3,12 +3,7 @@ const fs = require('fs')
 const path = require('path')
 
 const root = path.resolve(__dirname, '..')
-<<<<<<< HEAD
-const chatPage = fs.readFileSync(path.join(root, 'pages/chat/detail.uvue'), 'utf8')
-=======
 const chatPage = fs.readFileSync(path.join(root, 'pagesSub/chat/detail.uvue'), 'utf8')
-const userApi = fs.readFileSync(path.join(root, 'api/user.uts'), 'utf8')
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 const apiIndex = fs.readFileSync(path.join(root, 'api/index.uts'), 'utf8')
 
 function includes(source, value, label) {
@@ -16,27 +11,9 @@ function includes(source, value, label) {
 }
 
 includes(chatPage, 'input-bar', 'chat input bar')
-<<<<<<< HEAD
-<<<<<<< HEAD
 includes(chatPage, 'showMore ? \'×\' : \'+\'', 'plus button should toggle into close icon')
 includes(chatPage, 'toggleMoreMenu', 'plus button toggle action')
 includes(chatPage, 'more-actions', 'expanded actions should render below input row')
-=======
-includes(chatPage, 'showMoreMenu', 'plus button should open the action menu')
-includes(chatPage, 'closeMoreMenu', 'action menu should have a close action')
-includes(chatPage, 'more-menu', 'expanded actions should render in the action menu')
-=======
-includes(chatPage, 'showMoreMenu', 'plus button opens the more menu')
-includes(chatPage, 'showMoreMenu', 'plus button toggle action')
-includes(chatPage, 'more-menu', 'expanded actions should render below input row')
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
-includes(chatPage, 'unlockChatFeature', 'chat feature unlock API')
-includes(chatPage, 'getChatFeatureUnlocks', 'chat feature unlock state API')
-includes(chatPage, 'ensureChatFeatureUnlocked', 'chat unlock gate')
-includes(chatPage, "ensureChatFeatureUnlocked('album'", 'album unlock gate')
-includes(chatPage, "ensureChatFeatureUnlocked('camera'", 'camera unlock gate')
-includes(chatPage, "ensureChatFeatureUnlocked('profile'", 'profile unlock gate')
->>>>>>> sync/upstream-main-751a9f4
 includes(chatPage, 'openPeerProfile', 'peer avatar navigation action')
 includes(chatPage, 'XsaReportSheet', 'detailed report sheet')
 includes(chatPage, ':large-text="isParentMode"', 'parent chat report sheet uses the large-text variant')
@@ -64,7 +41,6 @@ includes(chatPage, "content: protectedContent ? '' : message.content", 'parent c
 includes(chatPage, "avatar: isParentMode.value ? ''", 'parent chat does not retain clear avatar URLs')
 includes(chatPage, '内容已保护', 'parent chat protected media placeholder')
 assert.ok(
-<<<<<<< HEAD
   (chatPage.match(/:large-text="isParentMode"/g) || []).length >= 2,
   'parent permission and history retry controls should use the large-text button variant',
 )
@@ -93,10 +69,7 @@ assert.ok(!chatPage.includes('发送服务暂未开放'), 'removed send actions 
 assert.ok(!chatPage.includes('>资料</text>'), 'profile menu item should be replaced by report')
 assert.ok(!chatPage.includes('ensureChatFeatureUnlocked'), 'chat should not include the removed points unlock gate')
 assert.ok(
-	/\.message-wrapper\.mine\s*\{[^}]*justify-content:\s*flex-end;/.test(chatPage),
-=======
-  /\.message-wrapper\.mine\s*\{[^}]*justify-content:\s*flex-end;/.test(chatPage),
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
+  /\.message-wrapper\.mine\s*\{\s*justify-content:\s*flex-end;\s*\}/.test(chatPage),
   'own messages should align the bubble and avatar to the right'
 )
 assert.ok(
@@ -105,22 +78,10 @@ assert.ok(
 )
 
 const inputIndex = chatPage.indexOf('class="input"')
-<<<<<<< HEAD
-<<<<<<< HEAD
 const sendIndex = chatPage.indexOf('@click="sendMessage"')
 const toggleIndex = chatPage.indexOf('toggleMoreMenu')
 assert.ok(inputIndex >= 0 && sendIndex >= 0 && toggleIndex >= 0, 'chat controls should exist')
 assert.ok(inputIndex < sendIndex && sendIndex < toggleIndex, 'input, send, and plus controls should be ordered left to right')
-=======
-const menuIndex = chatPage.indexOf('showMoreMenu')
-assert.ok(voiceIndex >= 0 && inputIndex >= 0 && menuIndex >= 0, 'chat controls should exist')
-assert.ok(voiceIndex < inputIndex && inputIndex < menuIndex, 'voice, input, and plus controls should be ordered left to right')
->>>>>>> sync/upstream-main-751a9f4
-=======
-const toggleIndex = chatPage.indexOf('showMoreMenu')
-assert.ok(voiceIndex >= 0 && inputIndex >= 0 && toggleIndex >= 0, 'chat controls should exist')
-assert.ok(voiceIndex < inputIndex && inputIndex < toggleIndex, 'voice, input, and plus controls should be ordered left to right')
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
 includes(apiIndex, 'uploadChatMedia', 'chat media upload API export')
 includes(apiIndex, 'revokeMessage', 'chat revoke API export')

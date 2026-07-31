@@ -1,17 +1,176 @@
 <template>
-	<XsaMessageCenter mode="standard" :refresh-key="refreshKey" />
+	<view class="message-page">
+		<scroll-view class="scroller" scroll-y @scrolltolower="handleLoadMore">
+			<!-- 快捷入口：对齐高保真消息中心 -->
+			<view class="shortcuts">
+				<view class="shortcut shortcut-application" @click="openApplications">
+					<view class="shortcut-notice" v-if="hasApplicationNotice"></view>
+					<view class="sc-copy">
+						<text class="sc-title">认识申请</text>
+						<text class="sc-desc text-muted">{{ applicationHint }}</text>
+					</view>
+					<text class="sc-arrow">›</text>
+					<view class="sc-art sc-art-application">
+						<view class="art-chat art-chat-large"></view>
+						<view class="art-chat art-chat-small"></view>
+					</view>
+				</view>
+				<view class="shortcut shortcut-plane" @click="openPaperPlane">
+					<view class="shortcut-notice" v-if="hasPaperPlaneNotice"></view>
+					<view class="sc-copy">
+						<text class="sc-title">纸飞机</text>
+						<text class="sc-desc text-muted">匿名认真表达</text>
+					</view>
+					<text class="sc-arrow">›</text>
+					<view class="sc-art sc-art-plane">
+						<view class="art-plane-wing"></view>
+						<view class="art-plane-tail"></view>
+					</view>
+				</view>
+				<view class="shortcut shortcut-dynamic" @click="openDynamicNotice">
+					<view class="shortcut-notice" v-if="hasDynamicNotice"></view>
+					<view class="sc-copy">
+						<text class="sc-title">Ta 的动态</text>
+						<text class="sc-desc text-muted">关注的人有更新</text>
+					</view>
+					<text class="sc-arrow">›</text>
+					<view class="sc-art sc-art-dynamic">
+						<view class="art-photo art-photo-back"></view>
+						<view class="art-photo art-photo-front">
+							<view class="art-photo-dot"></view>
+						</view>
+					</view>
+				</view>
+				<view class="shortcut shortcut-lab" @click="openEmotionLab">
+					<view class="sc-copy">
+						<text class="sc-title">情感实验室</text>
+						<text class="sc-desc text-muted">完善匹配线索</text>
+					</view>
+					<text class="sc-arrow">›</text>
+					<view class="sc-art sc-art-lab">
+						<view class="art-flask-neck"></view>
+						<view class="art-flask-body">
+							<view class="art-flask-liquid"></view>
+						</view>
+						<view class="art-flask-bubble art-flask-bubble-one"></view>
+						<view class="art-flask-bubble art-flask-bubble-two"></view>
+					</view>
+				</view>
+			</view>
+
+			<button class="unread-clear-action" aria-label="清除未读" @click="clearUnreadNotices">清除未读</button>
+
+			<XsaEmpty
+				v-if="messageList.length === 0 && !loading"
+				text="暂无消息"
+				description="申请通过后，对话会出现在这里"
+				size="large"
+			/>
+
+			<view v-else class="list">
+				<XsaMessageItem
+					v-for="msg in displayMessageList"
+					:key="msg.id"
+					:message="msg"
+					@click="handleMessageClick"
+					@longpress="handleMessageLongPress"
+				/>
+			</view>
+
+			<view class="load-more" v-if="messageList.length > 0">
+				<text class="load-text text-muted" v-if="loading">加载中...</text>
+				<text class="load-text text-muted" v-else-if="!hasMore">没有更多了</text>
+			</view>
+		</scroll-view>
+
+		<!-- 申请列表 Sheet -->
+		<XsaSheet :visible="appVisible" title="认识申请" @close="appVisible = false">
+			<view class="app-list">
+				<view class="app-item" v-for="item in applications" :key="item.id">
+					<image class="app-avatar" :src="item.avatar" mode="aspectFill"></image>
+					<view class="app-meta">
+						<text class="app-name">{{ item.name }}</text>
+						<text class="app-msg text-muted">{{ item.message }}</text>
+					</view>
+					<view class="app-actions" v-if="item.direction === 'in'">
+						<XsaButton variant="secondary" size="small" @click="rejectApp(item)">拒绝</XsaButton>
+						<XsaButton variant="primary" size="small" @click="acceptApp(item)">同意</XsaButton>
+					</view>
+					<text v-else class="app-status text-muted">{{ item.statusText }}</text>
+				</view>
+				<view v-if="applications.length === 0" class="empty-apps">
+					<text class="text-muted">暂无申请</text>
+				</view>
+			</view>
+		</XsaSheet>
+
+		<XsaSheet :visible="pinVisible" :show-handle="false" @close="closePinSheet">
+			<view class="pin-actions">
+				<XsaButton
+					v-if="selectedMessage != null && selectedMessage.pinned === true"
+					variant="primary"
+					size="medium"
+					@click="togglePin"
+				>取消置顶</XsaButton>
+				<XsaButton v-else variant="primary" size="medium" @click="togglePin">置顶</XsaButton>
+				<XsaButton variant="secondary" size="medium" @click="deleteSelectedMessage">删除</XsaButton>
+				<XsaButton variant="secondary" size="medium" @click="closePinSheet">取消</XsaButton>
+			</view>
+		</XsaSheet>
+
+		<XsaToast :visible="toastVisible" :message="toastMessage" @hide="toastVisible = false" />
+	</view>
+
+	<!-- 自定义底部导航栏 -->
+	<XsaTabBar />
 </template>
 
+
 <script setup lang="uts">
-	import XsaMessageCenter from '@/components/XsaMessageCenter.uvue'
+import XsaTabBar from '@/components/XsaTabBar.uvue'
+	import XsaMessageItem from '@/components/XsaMessageItem.uvue'
+	import XsaEmpty from '@/components/XsaEmpty.uvue'
+	import XsaSheet from '@/components/XsaSheet.uvue'
+	import XsaButton from '@/components/XsaButton.uvue'
+	import XsaToast from '@/components/XsaToast.uvue'
+	import { getMessageList, getApplications, handleApplication } from '@/api'
+	import {
+		createMatchedConversation,
+		getMatchedConversations,
+		getConversationPreviews
+	} from '@/utils/conversation.uts'
 
-	const refreshKey = ref(0)
+	const PINNED_MESSAGE_KEY = 'xsa-pinned-message-ids'
+	const READ_MESSAGE_KEY = 'xsa-read-message-ids'
+	const READ_SHORTCUT_NOTICE_KEY = 'xsa-read-shortcut-notices'
+	const PAPER_PLANE_NOTICE_KEY = 'paper-plane:mock-1'
+	const DYNAMIC_NOTICE_KEY = 'dynamic:mock-1'
+	const loading = ref(false)
+	const hasMore = ref(true)
+	const messageList = ref([])
+	const applications = ref([])
+	const appVisible = ref(false)
+	const pinVisible = ref(false)
+	const selectedMessage = ref<any>(null)
+	const pinnedMessageIds = ref([] as any[])
+	const readMessageIds = ref([] as any[])
+	const readShortcutNotices = ref([] as any[])
+	const toastVisible = ref(false)
+	const toastMessage = ref('')
 
-	onShow(() => {
-		refreshKey.value += 1
+	const displayMessageList = computed(() => {
+		const pinned: any[] = []
+		const regular: any[] = []
+		const source = messageList.value as any[]
+		source.forEach((item: any) => {
+			if (item.pinned === true) {
+				pinned.push(item)
+			} else {
+				regular.push(item)
+			}
+		})
+		return pinned.concat(regular)
 	})
-<<<<<<< HEAD
-=======
 
 	const applicationHint = computed(() => {
 		const n = applications.value.length
@@ -40,6 +199,10 @@
 	const hasDynamicNotice = computed(() => {
 		return readShortcutNotices.value.indexOf(DYNAMIC_NOTICE_KEY) < 0
 	})
+
+	const openEmotionLab = () => {
+		uni.navigateTo({ url: '/pages/emotion-lab/emotion-lab' })
+	}
 
 	onMounted(() => {
 		loadPinnedMessageIds()
@@ -396,5 +559,348 @@ const openPaperPlane = () => {
 			loading.value = false
 		}
 	}
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 </script>
+
+<style scoped>
+	.message-page {
+		min-height: 100vh;
+		background: var(--canvas);
+	}
+
+	.scroller {
+		height: 100vh;
+		padding: 14px 14px 88px;
+	}
+
+	.unread-clear-action {
+		display: block;
+		width: auto;
+		min-height: 0;
+		height: 24px;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		color: var(--accent2);
+		font-size: 12px;
+		line-height: 24px;
+		text-align: left;
+		box-sizing: border-box;
+	}
+
+	.unread-clear-action::after {
+		border: 0;
+	}
+
+	.unread-clear-action:active {
+		color: var(--sage);
+	}
+
+	.shortcuts {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px 8px;
+		margin-bottom: 18px;
+	}
+
+	.shortcut {
+		position: relative;
+		min-height: 96px;
+		padding: 15px 14px;
+		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		overflow: hidden;
+		box-shadow: var(--shadow-sm);
+		transition: transform 0.18s ease-out;
+	}
+
+	.shortcut:active {
+		transform: scale(0.98);
+	}
+
+	.shortcut-notice {
+		position: absolute;
+		top: 7px;
+		left: 7px;
+		z-index: 4;
+		width: 9px;
+		height: 9px;
+		border: 2px solid var(--paper);
+		border-radius: 50%;
+		background: var(--accent);
+		box-sizing: border-box;
+	}
+
+	.shortcut-application {
+		background: var(--shortcut-application);
+	}
+
+	.shortcut-plane {
+		background: var(--shortcut-plane);
+	}
+
+	.shortcut-dynamic {
+		background: var(--shortcut-dynamic);
+	}
+
+	.shortcut-lab {
+		background: var(--shortcut-lab);
+	}
+
+	.sc-copy {
+		position: relative;
+		z-index: 2;
+		max-width: 76%;
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.sc-title {
+		font-size: 15px;
+		font-family: var(--sans);
+		font-weight: 700;
+		line-height: 21px;
+		color: var(--ink);
+	}
+
+	.sc-desc {
+		font-size: 11px;
+		line-height: 17px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sc-arrow {
+		position: absolute;
+		top: 10px;
+		right: 12px;
+		z-index: 3;
+		font-size: 22px;
+		line-height: 22px;
+		color: var(--muted);
+		opacity: 0.72;
+	}
+
+	.sc-art {
+		position: absolute;
+		right: 10px;
+		bottom: 8px;
+		width: 54px;
+		height: 54px;
+		opacity: 0.18;
+		pointer-events: none;
+	}
+
+	.art-chat {
+		position: absolute;
+		background: var(--navy);
+		border-radius: 10px;
+		transform: rotate(-8deg);
+	}
+
+	.art-chat-large {
+		right: 0;
+		top: 5px;
+		width: 39px;
+		height: 27px;
+	}
+
+	.art-chat-small {
+		left: 1px;
+		bottom: 5px;
+		width: 29px;
+		height: 21px;
+		opacity: 0.72;
+	}
+
+	.art-plane-wing {
+		position: absolute;
+		right: 1px;
+		top: 11px;
+		width: 0;
+		height: 0;
+		border-top: 15px solid transparent;
+		border-bottom: 15px solid transparent;
+		border-left: 46px solid var(--accent);
+		transform: rotate(-15deg);
+	}
+
+	.art-plane-tail {
+		position: absolute;
+		left: 15px;
+		bottom: 5px;
+		width: 18px;
+		height: 8px;
+		background: var(--accent);
+		border-radius: 2px 8px 2px 8px;
+		transform: rotate(-34deg);
+	}
+
+	.art-photo {
+		position: absolute;
+		width: 36px;
+		height: 27px;
+		border-radius: 6px;
+		background: var(--sage);
+	}
+
+	.art-photo-back {
+		left: 1px;
+		top: 7px;
+		transform: rotate(-12deg);
+		opacity: 0.68;
+	}
+
+	.art-photo-front {
+		right: 1px;
+		bottom: 7px;
+		transform: rotate(8deg);
+	}
+
+	.art-photo-dot {
+		width: 8px;
+		height: 8px;
+		margin: 6px 0 0 7px;
+		border-radius: 999px;
+		background: var(--surface);
+	}
+
+	.art-flask-neck {
+		position: absolute;
+		left: 22px;
+		top: 4px;
+		width: 11px;
+		height: 18px;
+		border: 3px solid var(--sage);
+		border-bottom: 0;
+		border-radius: 4px 4px 0 0;
+		box-sizing: border-box;
+	}
+
+	.art-flask-body {
+		position: absolute;
+		left: 11px;
+		top: 17px;
+		width: 33px;
+		height: 31px;
+		border: 3px solid var(--sage);
+		border-radius: 7px 7px 14px 14px;
+		background: var(--paper);
+		box-sizing: border-box;
+		transform: rotate(4deg);
+		overflow: hidden;
+	}
+
+	.art-flask-liquid {
+		position: absolute;
+		left: -3px;
+		bottom: -3px;
+		width: 33px;
+		height: 16px;
+		background: var(--sage);
+		opacity: 0.86;
+		transform: rotate(-4deg);
+	}
+
+	.art-flask-bubble {
+		position: absolute;
+		border-radius: 999px;
+		background: var(--sage);
+	}
+
+	.art-flask-bubble-one {
+		right: 3px;
+		top: 9px;
+		width: 7px;
+		height: 7px;
+	}
+
+	.art-flask-bubble-two {
+		right: 0;
+		top: 1px;
+		width: 4px;
+		height: 4px;
+		opacity: 0.72;
+	}
+
+	.list {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		margin: 0 -14px;
+		padding: 0;
+		background: var(--surface);
+	}
+
+	.load-more {
+		text-align: center;
+		padding: 20px 0;
+	}
+
+	.load-text {
+		font-size: 13px;
+	}
+
+	.app-list {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.app-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding-bottom: 12px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.app-avatar {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+	}
+
+	.app-meta {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 0;
+	}
+
+	.app-name {
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	.app-msg {
+		font-size: 11px;
+	}
+
+	.app-actions {
+		display: flex;
+		gap: 6px;
+	}
+
+	.app-status {
+		font-size: 11px;
+	}
+
+	.empty-apps {
+		padding: 24px 0;
+		text-align: center;
+	}
+
+	.pin-actions {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+	}
+</style>

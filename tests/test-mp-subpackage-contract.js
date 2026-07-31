@@ -63,7 +63,15 @@ const expectedSubpackages = {
     'application-success',
     'custom'
   ],
-  'pagesSub/profileExtra': ['settings', 'certification', 'vip', 'my-moments'],
+  'pagesSub/profileExtra': [
+    'settings',
+    'certification',
+    'vip',
+    'my-moments',
+    'history',
+    'visitors',
+    'applications'
+  ],
   'pagesSub/chat': ['detail'],
   'pagesSub/about': ['about', 'article'],
   'pagesSub/userExtra': [

@@ -1,15 +1,7 @@
 /**
  * 统一请求封装
  * - USE_MOCK=true：返回 mockData
-<<<<<<< HEAD
-<<<<<<< HEAD
  * - USE_MOCK=false：HTTP 调 FastAPI（Bearer）
-=======
- * - 默认：通过 HTTP 调用 FastAPI，并自动附加 Bearer token
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
-=======
- * - USE_MOCK=false：HTTP 调 FastAPI（Bearer）
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
  */
 
 import {
@@ -17,8 +9,6 @@ import {
   API_CONFIG,
   MOCK_DELAY,
   getAccessToken,
-<<<<<<< HEAD
-<<<<<<< HEAD
   clearAuthTokens,
   buildApiUrl
 } from './config.uts'
@@ -38,49 +28,13 @@ export async function request(options: any) {
   if (USE_MOCK) {
     return mockRequest(options)
   }
-=======
-  setAuthTokens,
-=======
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
-  clearAuthTokens,
-  buildApiUrl
-} from './config.uts'
-
-/**
- * 统一请求方法
- * options:
- *  - url: string 路径（/community/posts 或完整 http）
- *  - method: GET|POST|PUT|DELETE
- *  - data: query 或 body
- *  - mockData: Mock 模式返回值
- *  - headers: 额外请求头
- *  - skipAuth: 跳过 Authorization
- *  - raw: true 时不包 success 层（少用）
- */
-export async function request(options: any) {
-<<<<<<< HEAD
-  if (USE_MOCK) return mockRequest(options)
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
-=======
-  if (USE_MOCK) {
-    return mockRequest(options)
-  }
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   return httpRequest(options)
 }
 
 async function mockRequest(options: any) {
   console.log('📦 [Mock Request]', options.url, options.data)
   await sleep(MOCK_DELAY)
-<<<<<<< HEAD
-<<<<<<< HEAD
   // 允许 mock 侧直接给出失败包
-=======
-
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
-=======
-  // 允许 mock 侧直接给出失败包
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   if (
     options.mockData != null &&
     typeof options.mockData === 'object' &&
@@ -92,40 +46,15 @@ async function mockRequest(options: any) {
       code: options.mockData.code != null ? options.mockData.code : -1,
       message: options.mockData.message != null ? options.mockData.message : 'error'
     }
-<<<<<<< HEAD
   }
   return {
     success: true,
     data: options.mockData,
     code: 0,
     message: 'success'
-=======
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
   }
-<<<<<<< HEAD
-
-  return { success: true, data: options.mockData, code: 0, message: 'success' }
 }
 
-<<<<<<< HEAD
-=======
-function resolveApiUrl(path: string): string {
-  let normalized = path != null ? '' + path : ''
-  if (normalized.indexOf('http://') == 0 || normalized.indexOf('https://') == 0) return normalized
-  if (normalized.indexOf('/api/') == 0) return API_BASE_URL + normalized
-  if (normalized.charAt(0) != '/') normalized = '/' + normalized
-  return API_BASE_URL + API_PREFIX + normalized
-=======
-  return {
-    success: true,
-    data: options.mockData,
-    code: 0,
-    message: 'success'
-  }
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
-}
-
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
 function extractDetail(data: any): string {
   if (data == null) return '请求失败'
   if (typeof data === 'string') return data
@@ -142,17 +71,12 @@ function extractDetail(data: any): string {
 }
 
 async function httpRequest(options: any) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
   const methodRaw = options.method != null ? ('' + options.method).toUpperCase() : 'GET'
   const method = methodRaw
   const urlPath = options.url != null ? ('' + options.url) : ''
   let url = buildApiUrl(urlPath)
   const headers: any = {
     'Content-Type': 'application/json'
-<<<<<<< HEAD
   }
   if (options.headers != null) {
     const extra = options.headers
@@ -168,37 +92,6 @@ async function httpRequest(options: any) {
     }
   }
 
-=======
-  const result = await doHttpRequest(options, false)
-  if (result.code == 401 && options.skipAuth !== true && options._retryAfterRefresh !== false) {
-    const refreshed = await tryRefreshToken()
-    if (refreshed) {
-      console.log('🔄 [HTTP Retry] 使用新 token 重试请求')
-      const retryOptions: any = {}
-      const keys = Object.keys(options)
-      for (let i = 0; i < keys.length; i++) retryOptions[keys[i]] = options[keys[i]]
-      retryOptions._retryAfterRefresh = false
-      return doHttpRequest(retryOptions, true)
-    }
-    clearAuthTokens()
-=======
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
-  }
-  if (options.headers != null) {
-    const extra = options.headers
-    const keys = Object.keys(extra)
-    for (let i = 0; i < keys.length; i++) {
-      headers[keys[i]] = extra[keys[i]]
-    }
-  }
-  if (options.skipAuth != true) {
-    const token = getAccessToken()
-    if (token != '') {
-      headers['Authorization'] = 'Bearer ' + token
-    }
-  }
-
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
   let body: any = null
   const data = options.data
   if (method == 'GET' || method == 'DELETE') {
@@ -206,17 +99,12 @@ async function httpRequest(options: any) {
       const parts: string[] = []
       const keys = Object.keys(data)
       for (let i = 0; i < keys.length; i++) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
         const k = keys[i]
         const v = data[k]
         if (v == null) continue
         if (Array.isArray(v)) {
           for (let j = 0; j < v.length; j++) {
             parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v[j]))
-<<<<<<< HEAD
           }
         } else {
           parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v))
@@ -225,42 +113,12 @@ async function httpRequest(options: any) {
       if (parts.length > 0) {
         url = url + (url.indexOf('?') >= 0 ? '&' : '?') + parts.join('&')
       }
-=======
-        const key = keys[i]
-        const value = data[key]
-        if (value == null) continue
-        if (Array.isArray(value)) {
-          for (let j = 0; j < value.length; j++) {
-            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent('' + value[j]))
-=======
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
-          }
-        } else {
-          parts.push(encodeURIComponent(k) + '=' + encodeURIComponent('' + v))
-        }
-      }
-<<<<<<< HEAD
-      if (parts.length > 0) url = url + (url.indexOf('?') >= 0 ? '&' : '?') + parts.join('&')
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
-=======
-      if (parts.length > 0) {
-        url = url + (url.indexOf('?') >= 0 ? '&' : '?') + parts.join('&')
-      }
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
     }
   } else {
     body = data != null ? data : {}
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   console.log('🌐 [HTTP Request]', method, url)
-=======
-  console.log(isRetry ? '🌐 [HTTP Retry]' : '🌐 [HTTP Request]', method, url)
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
-=======
-  console.log('🌐 [HTTP Request]', method, url)
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
   return new Promise((resolve) => {
     uni.request({
@@ -272,8 +130,6 @@ async function httpRequest(options: any) {
       success: (res: any) => {
         const status = res.statusCode != null ? (res.statusCode as number) : 0
         const raw = res.data
-<<<<<<< HEAD
-<<<<<<< HEAD
         if (status == 204) {
           resolve({ success: true, data: null, code: 0, message: 'success' })
           return
@@ -297,38 +153,6 @@ async function httpRequest(options: any) {
           code: status,
           message: message
         })
-=======
-        if (status == 204 || (status >= 200 && status < 300)) {
-          resolve({ success: true, data: status == 204 ? null : raw, code: 0, message: 'success' })
-          return
-        }
-        resolve({ success: false, data: raw, code: status, message: extractDetail(raw) })
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
-=======
-        if (status == 204) {
-          resolve({ success: true, data: null, code: 0, message: 'success' })
-          return
-        }
-        if (status >= 200 && status < 300) {
-          resolve({
-            success: true,
-            data: raw,
-            code: 0,
-            message: 'success'
-          })
-          return
-        }
-        if (status == 401) {
-          clearAuthTokens()
-        }
-        const message = extractDetail(raw)
-        resolve({
-          success: false,
-          data: raw,
-          code: status,
-          message: message
-        })
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
       },
       fail: (err: any) => {
         console.error('❌ [HTTP Error]', err)
@@ -343,100 +167,6 @@ async function httpRequest(options: any) {
   })
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-function normalizeCloudFailure(err: any): any {
-  const data = err != null && err.data != null ? err.data : null
-  let code: any = -1
-  if (err != null && err.code != null) code = err.code
-  else if (data != null && data.code != null) code = data.code
-  else if (err != null && err.errCode != null) code = err.errCode
-
-  let message = '请求失败'
-  if (err != null && err.message != null && String(err.message) != '') {
-    message = String(err.message)
-  } else if (data != null && data.message != null && String(data.message) != '') {
-    message = String(data.message)
-  } else if (err != null && err.errMsg != null && String(err.errMsg) != '') {
-    message = String(err.errMsg)
-  }
-
-  const nestedCode = data != null && data.code != null ? data.code : null
-  const cloudCode = err != null && err.errCode != null ? err.errCode : null
-  if (String(code) == '401' || String(nestedCode) == '401' || String(cloudCode) == '401') {
-    clearAuthTokens()
-  }
-  return {
-    success: false,
-    data: data,
-    code: code,
-    message: message
-  }
-}
-
-async function realCloudRequest(options: any) {
-  console.log('☁️ [Cloud Request]', options.url, options.data)
-  return new Promise((resolve, reject) => {
-    uniCloud.callFunction({
-      name: options.cloudFunctionName,
-      data: {
-        action: options.action,
-        ...options.data
-      },
-      success: (res: any) => {
-        resolve({
-          success: true,
-          data: res.result,
-          code: 0,
-          message: 'success'
-        })
-      },
-      fail: (err: any) => {
-        console.error('❌ [Request Error]', err)
-        reject(normalizeCloudFailure(err))
-      }
-=======
-async function tryRefreshToken(): Promise<boolean> {
-  let refreshToken = ''
-  try {
-    refreshToken = uni.getStorageSync(REFRESH_TOKEN_KEY)
-  } catch (e) {}
-  if (refreshToken == null || refreshToken === '') return false
-
-  console.log('🔄 [Token Refresh] 尝试刷新令牌')
-  return new Promise((resolve) => {
-    uni.request({
-      url: resolveApiUrl('/auth/refresh'),
-      method: 'POST',
-      data: { refresh_token: refreshToken },
-      header: { 'Content-Type': 'application/json' },
-      timeout: API_CONFIG.timeout,
-      success: (res: any) => {
-        const status = res.statusCode != null ? res.statusCode : 0
-        const data = res.data
-        if (status >= 200 && status < 300 && data != null && data.access_token != null) {
-          const nextRefresh = data.refresh_token != null ? '' + data.refresh_token : '' + refreshToken
-          setAuthTokens('' + data.access_token, nextRefresh)
-          console.log('✅ [Token Refresh] 刷新成功')
-          resolve(true)
-          return
-        }
-        resolve(false)
-      },
-      fail: () => resolve(false)
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
-    })
-  })
-}
-
-<<<<<<< HEAD
-=======
->>>>>>> sync/upstream-main-751a9f4
-=======
->>>>>>> 58ca272f19c08e001df456cb1a27178849262b27
-=======
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }

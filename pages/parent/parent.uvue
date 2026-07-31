@@ -20,10 +20,6 @@
 				</view>
 
 					<template v-else>
-						<view v-if="parentContext != null && parentContext.dataMode == 'mock' && parentContext.releaseGate != null" class="demo-notice">
-							<text class="demo-title">内部演示</text>
-							<text class="demo-copy">{{ parentContext.releaseGate.message }}</text>
-						</view>
 						<view v-if="activePanel === 'home'" class="panel">
 						<ParentGateNotice :gate="accessGate" @action="handleGateAction" />
 
@@ -140,26 +136,61 @@
 						/>
 					</view>
 
-					<view v-if="activePanel === 'profile'" class="panel">
+						<view v-if="activePanel === 'profile'" class="panel profile-panel">
 							<view class="profile-card" v-if="parentContext != null && parentContext.child != null">
+								<text class="profile-eyebrow">父母身份</text>
 								<text class="profile-name">{{ parentContext.parent.name }}</text>
-								<text class="profile-child">正在协助：{{ parentContext.child.displayName }}</text>
-							<view class="progress-track">
-								<view class="progress-fill" :style="{ width: parentContext.child.profileProgress + '%' }"></view>
+								<view class="profile-child-row">
+									<text class="profile-child-label">正在协助</text>
+									<text class="profile-child">{{ parentContext.child.displayName }}</text>
+								</view>
+								<view class="progress-track">
+									<view class="progress-fill" :style="{ width: parentContext.child.profileProgress + '%' }"></view>
+								</view>
+								<text class="progress-copy">子女资料完善度 {{ parentContext.child.profileProgress }}%</text>
 							</view>
-							<text class="progress-copy">子女资料完善度 {{ parentContext.child.profileProgress }}%</text>
-						</view>
 
-						<ParentGateNotice :gate="accessGate" @action="handleGateAction" />
-
-							<view class="profile-menu">
-								<button class="menu-row" @click="openProfileEditor"><text>资料管理</text><text>›</text></button>
-								<button class="menu-row" @click="showVerificationStatus"><text>认证与授权</text><text>›</text></button>
-							<button class="menu-row" @click="showLikedOnly"><text>我的喜欢</text><text>›</text></button>
-							<button class="menu-row" @click="showSafetyCenter"><text>安全中心</text><text>›</text></button>
-							<button class="menu-row" @click="openSettings"><text>设置</text><text>›</text></button>
-								<button class="menu-row" @click="switchToStandardMode"><text>切换为普通身份</text><text>›</text></button>
+							<ParentGateNotice v-if="!accessGate.allowed" :gate="accessGate" @action="handleGateAction" />
+							<view v-else class="profile-access-summary">
+								<text class="profile-access-title">身份与授权已确认</text>
+								<text class="profile-access-copy">父母实名认证与子女授权均在有效期内。</text>
 							</view>
+
+							<view class="profile-section">
+								<text class="profile-section-title">账户与资料</text>
+								<view class="profile-menu">
+									<button class="menu-row" @click="openProfileEditor">
+										<view class="menu-copy"><text class="menu-label">资料管理</text><text class="menu-desc">维护子女对外资料</text></view>
+										<text class="menu-arrow">›</text>
+									</button>
+									<button class="menu-row" @click="showVerificationStatus">
+										<view class="menu-copy"><text class="menu-label">认证与授权</text><text class="menu-desc">查看当前身份状态</text></view>
+										<text class="menu-arrow">›</text>
+									</button>
+									<button class="menu-row" @click="showLikedOnly">
+										<view class="menu-copy"><text class="menu-label">我的喜欢</text><text class="menu-desc">查看已标记的资料</text></view>
+										<text class="menu-arrow">›</text>
+									</button>
+								</view>
+							</view>
+
+							<view class="profile-section">
+								<text class="profile-section-title">安全与设置</text>
+								<view class="profile-menu">
+									<button class="menu-row" @click="showSafetyCenter">
+										<view class="menu-copy"><text class="menu-label">安全中心</text><text class="menu-desc">了解举报与屏蔽规则</text></view>
+										<text class="menu-arrow">›</text>
+									</button>
+									<button class="menu-row" @click="openSettings">
+										<view class="menu-copy"><text class="menu-label">设置</text><text class="menu-desc">管理提醒与照片隐私</text></view>
+										<text class="menu-arrow">›</text>
+									</button>
+								</view>
+							</view>
+
+							<button class="identity-switch-row" @click="switchToStandardMode">
+								<text>切换为普通身份</text><text class="menu-arrow">›</text>
+							</button>
 						</view>
 				</template>
 			</view>
@@ -327,9 +358,6 @@
 	const accessGate = computed(() => {
 		accessClock.value
 		return getParentAccessGate(parentContext.value)
-	})
-	const isInternalParentDemo = computed(() => {
-		return parentContext.value != null && parentContext.value.dataMode == 'mock'
 	})
 	const likedCount = computed(() => likedCandidates.value.length)
 	const remainingApplications = computed(() => {
@@ -696,11 +724,7 @@
 					likedCandidates.value = likedCandidates.value.filter((item: any) => item.id != candidate.id)
 				}
 				uni.showToast({
-					title: isInternalParentDemo.value
-						? liked ? '内部演示：已加入喜欢' : '内部演示：已取消喜欢'
-						: res.data.message != null
-						? String(res.data.message)
-						: liked ? '已喜欢，仅自己可见' : '已取消喜欢',
+					title: liked ? '已加入喜欢' : '已取消喜欢',
 				icon: 'none'
 			})
 			return
@@ -735,7 +759,7 @@
 		) {
 			uni.showModal({
 				title: '需要子女授权',
-				content: '真实子女授权服务尚未接入。本期不伪造授权流程，完成后端关系校验前仅供内部演示。',
+				content: '当前尚未取得有效授权，请由子女完成授权后再试。',
 				showCancel: false,
 				confirmText: '知道了'
 			})
@@ -811,7 +835,7 @@
 					if (parentContext.value == null) return
 					parentContext.value.child = result.data
 					profileEditorVisible.value = false
-						uni.showToast({ title: isInternalParentDemo.value ? '内部演示：资料已保存' : '资料已保存', icon: 'success' })
+						uni.showToast({ title: '资料已保存', icon: 'success' })
 					return
 				}
 				uni.showToast({ title: result.message != null ? result.message : '保存失败', icon: 'none' })
@@ -942,29 +966,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 14px;
-	}
-
-	.demo-notice {
-		margin-bottom: 14px;
-		padding: 14px 16px;
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		background: var(--warm);
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.demo-title {
-		font-size: 16px;
-		font-weight: 700;
-		color: var(--ink);
-	}
-
-	.demo-copy {
-		font-size: 14px;
-		line-height: 1.55;
-		color: var(--ink2);
 	}
 
 	.summary-grid {
@@ -1126,23 +1127,48 @@
 	}
 
 	.profile-card {
-		padding: 18px;
+		padding: 20px;
 		border: 1px solid var(--line);
 		border-radius: 8px;
 		background: var(--surface);
 	}
 
+	.profile-eyebrow,
+	.profile-section-title {
+		display: block;
+		font-size: 14px;
+		font-weight: 700;
+		line-height: 1.4;
+		color: var(--accent2);
+	}
+
 	.profile-name {
 		display: block;
-		font-size: 22px;
+		margin-top: 6px;
+		font-size: 24px;
 		font-family: var(--serif);
 		font-weight: 700;
+		line-height: 1.35;
+	}
+
+	.profile-child-row {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		margin-top: 10px;
+	}
+
+	.profile-child-label {
+		font-size: 14px;
+		line-height: 1.5;
+		color: var(--muted);
+		flex-shrink: 0;
 	}
 
 	.profile-child {
-		display: block;
-		margin-top: 6px;
 		font-size: 16px;
+		font-weight: 700;
+		line-height: 1.5;
 		color: var(--ink2);
 	}
 
@@ -1164,7 +1190,42 @@
 		display: block;
 		margin-top: 8px;
 		font-size: 14px;
+		line-height: 1.5;
 		color: var(--ink2);
+	}
+
+	.profile-access-summary {
+		padding: 14px 16px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--sage-soft);
+	}
+
+	.profile-access-title {
+		display: block;
+		font-size: 16px;
+		font-weight: 700;
+		line-height: 1.45;
+		color: var(--ink);
+	}
+
+	.profile-access-copy {
+		display: block;
+		margin-top: 4px;
+		font-size: 14px;
+		line-height: 1.55;
+		color: var(--ink2);
+	}
+
+	.profile-section {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.profile-section-title {
+		padding: 2px 2px 0;
+		color: var(--muted);
 	}
 
 	.profile-menu {
@@ -1176,9 +1237,9 @@
 
 	.menu-row {
 		width: 100%;
-		min-height: 56px;
+		min-height: 68px;
 		margin: 0;
-		padding: 0 16px;
+		padding: 10px 16px;
 		border-bottom: 1px solid var(--line);
 		border-radius: 0;
 		background: var(--surface);
@@ -1186,9 +1247,61 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: 12px;
+		text-align: left;
+	}
+
+	.profile-menu .menu-row:last-child {
+		border-bottom: 0;
+	}
+
+	.menu-copy {
+		min-width: 0;
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.menu-label {
+		display: block;
 		font-size: 16px;
 		font-weight: 700;
-		line-height: 56px;
+		line-height: 1.4;
+		color: var(--ink);
+	}
+
+	.menu-desc {
+		display: block;
+		font-size: 14px;
+		line-height: 1.45;
+		color: var(--ink2);
+	}
+
+	.menu-arrow {
+		font-size: 24px;
+		font-weight: 400;
+		line-height: 1;
+		color: var(--muted);
+		flex-shrink: 0;
+	}
+
+	.identity-switch-row {
+		width: 100%;
+		min-height: 48px;
+		margin: 2px 0 0;
+		padding: 0 16px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--paper);
+		color: var(--ink2);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 16px;
+		font-weight: 700;
+		line-height: 1.4;
+		text-align: left;
 	}
 
 	.profile-editor {

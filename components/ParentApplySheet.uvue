@@ -120,19 +120,7 @@
 				uni.showToast({ title: errorMessage, icon: 'none' })
 				return
 			}
-			if (
-				data.internalDemo == true ||
-				(props.parentContext != null && props.parentContext.dataMode == 'mock')
-			) {
-				uni.showModal({
-					title: '内部演示',
-					content: '当前父母与子女关系为内部演示，此响应不代表已向真实用户发送申请。',
-					showCancel: false,
-					confirmText: '知道了'
-				})
-			} else {
-				uni.showToast({ title: '申请认识已送达', icon: 'success' })
-			}
+			uni.showToast({ title: '申请认识已送达', icon: 'success' })
 			emit('success', data)
 			emit('close')
 		} catch (error) {

@@ -39,7 +39,7 @@
 
 			<!-- 统计数据行 -->
 			<view class="stats-card">
-				<view class="stat-item" v-for="stat in stats" :key="stat.label" @click="openStatPage(stat.route)">
+				<view class="stat-item" v-for="stat in stats" :key="stat.label">
 					<text class="stat-value">{{ stat.value }}</text>
 					<text class="stat-label">{{ stat.label }}</text>
 				</view>
@@ -111,10 +111,10 @@ const user = ref({
 })
 
 const stats = [
-	{ value: '56', label: '我的申请', route: '/pagesSub/profileExtra/applications' },
-	{ value: '128', label: '我看过谁/看过我', route: '/pagesSub/profileExtra/visitors' },
-	{ value: '12', label: '我的收藏', route: '' },
-	{ value: '3', label: '我的爆灯', route: '' },
+	{ value: '56', label: '我的申请' },
+	{ value: '128', label: '我看过谁/看过我' },
+	{ value: '12', label: '我的收藏' },
+	{ value: '3', label: '我的爆灯' },
 ]
 
 const onMessages = () => {
@@ -132,8 +132,6 @@ const onViewMyProfile = () => {
 const onOpenVIP = () => {
 	uni.navigateTo({ url: '/pagesSub/profileExtra/vip', fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) } })
 }
-
-const openStatPage = (url: string) => { if (url != '') uni.navigateTo({ url }) }
 
 const onMyTasks = () => {
 	uni.showToast({ title: '我的任务', icon: 'none' })
@@ -175,6 +173,10 @@ const onSecurity = () => {
 	uni.showToast({ title: '安全中心', icon: 'none' })
 }
 
+const onEmotionLab = () => {
+	uni.navigateTo({ url: '/pages/emotion-lab/emotion-lab' })
+}
+
 const mainMenuItems = [
 	{ iconClass: 'ic ic-vip ic-renwu', iconBg: '#EDE4F0', label: '我的任务', badge: 'NEW', action: onMyTasks },
 	{ iconClass: 'ic ic-me ic-dongtai', iconBg: '#E4EDE8', label: '我的动态', action: onMyMoments },
@@ -183,6 +185,7 @@ const mainMenuItems = [
 	{ iconClass: 'ic ic-sys ic-shiming', iconBg: '#FEF3E4', label: '诚信认证', action: onCertification },
 	{ iconClass: 'ic ic-sys ic-fenxiang', iconBg: '#FEF3E4', label: '推荐给好友', action: onInviteFriend },
 	{ iconClass: 'ic ic-me ic-shezhi', iconBg: '#FEF3E4', label: '设置', action: onMenuSettings },
+	{ iconClass: 'ic ic-home ic-star', iconBg: '#E4EDE8', label: '情感实验室', action: onEmotionLab },
 ]
 
 const bottomMenuItems = [

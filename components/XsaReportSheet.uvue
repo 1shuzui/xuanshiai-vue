@@ -146,11 +146,7 @@
 					)
 					: await reportContent(type, reportId, reasonId.value, reportDetail)
 				if (res.success) {
-					const internalDemo = res.data != null && res.data.internalDemo == true
-					uni.showToast({
-						title: internalDemo ? '内部演示：举报已记录' : '举报已提交',
-						icon: internalDemo ? 'none' : 'success'
-					})
+					uni.showToast({ title: '举报已提交', icon: 'success' })
 				emit('reported')
 				emit('close')
 			} else {
@@ -189,11 +185,7 @@
 						? await blockParentCandidate(props.parentContext, props.userId)
 						: await blockUser(props.userId)
 					if (r.success) {
-						const internalDemo = r.data != null && r.data.internalDemo == true
-						uni.showToast({
-							title: internalDemo ? '内部演示：已隐藏用户' : '已屏蔽',
-							icon: internalDemo ? 'none' : 'success'
-						})
+						uni.showToast({ title: '已屏蔽', icon: 'success' })
 						emit('blocked', props.userId)
 						emit('close')
 					} else {

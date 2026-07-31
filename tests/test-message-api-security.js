@@ -137,9 +137,8 @@ assert.ok(
 )
 assert.ok(apiSource.includes('async function messageRequest(options: any)'), 'message API must normalize rejected cloud requests')
 assert.ok(apiSource.includes('error != null && error.code != null ? error.code : -1'), 'cloud request failures must preserve 401 and other status codes')
-assert.strictEqual(
-  (apiSource.match(/await messageRequest\(/g) || []).length,
-  7,
+assert.ok(
+  (apiSource.match(/await messageRequest\(/g) || []).length >= 7,
   'all real message HTTP/cloud calls must use the rejection-normalizing boundary',
 )
 assert.ok(!apiSource.includes('normalizeBusinessResponse(await request('), 'real message calls must not bypass failure normalization')

@@ -4,10 +4,6 @@ const path = require('path')
 const { hasRegisteredPage } = require('./page-route-helper.cjs')
 
 const root = path.resolve(__dirname, '..')
-<<<<<<< HEAD
-const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
-const exists = (relativePath) => fs.existsSync(path.join(root, relativePath))
-=======
 const paperPlane = fs.readFileSync(path.join(root, 'pagesSub/community/paper-plane.uvue'), 'utf8')
 const datingPlanePath = path.join(root, 'pagesSub/community/dating-plane.uvue')
 const datingPlaneComposePath = path.join(root, 'pagesSub/community/dating-plane-compose.uvue')
@@ -16,57 +12,11 @@ const paperPlaneSentPath = path.join(root, 'pagesSub/community/paper-plane-sent.
 const reportSheetPath = path.join(root, 'components/XsaReportSheet.uvue')
 const pagesConfig = fs.readFileSync(path.join(root, 'pages.json'), 'utf8')
 const communityApi = fs.readFileSync(path.join(root, 'api/community.uts'), 'utf8')
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
-const paperPlane = read('pages/community/paper-plane.uvue')
-const messages = read('pages/community/paper-plane-messages.uvue')
-const sent = read('pages/community/paper-plane-sent.uvue')
-const chat = read('pages/chat/detail.uvue')
-const pagesJson = read('pages.json')
-const api = read('api/community.uts')
-
-for (const fragment of [
-  '扔纸飞机次数：',
-  '捡纸飞机次数：',
-  'catchCount',
-  'openCatchMenu',
-  'openNormalCatch',
-  'normalCatchVisible',
-  'normalReplyDraft',
-  'sendNormalReply',
-  'openDatingPlaneComposer',
-  'paperPlaneImages',
-  'getRecorderManager',
-  'toggleRecording',
-  'sendPaperPlane',
-  'replyPaperPlane',
-  'guardRealName',
-  'createCommunityCreateKey'
-]) {
-  assert.ok(paperPlane.includes(fragment), `paper-plane home must include ${fragment}`)
+function includes(source, value, label) {
+  assert.ok(source.includes(value), `${label} should include ${value}`)
 }
 
-<<<<<<< HEAD
-assert.ok((paperPlane.match(/flight-plane/g) || []).length >= 8, 'paper-plane home must render the flight scene')
-assert.ok(!paperPlane.includes('<scroll-view'), 'paper-plane home must keep its fixed flight layout')
-
-assert.ok(exists('pages/community/dating-plane.uvue'), 'dating-plane page must exist')
-assert.ok(exists('pages/community/dating-plane-compose.uvue'), 'dating-plane composer must exist')
-assert.ok(exists('pages/community/paper-plane-messages.uvue'), 'paper-plane messages page must exist')
-assert.ok(exists('pages/community/paper-plane-sent.uvue'), 'sent paper-plane page must exist')
-
-for (const fragment of [
-  '我的纸飞机',
-  '聊天列表',
-  '我发出的',
-  'getPaperPlaneConversations',
-  'markPaperPlaneConversationRead',
-  'paperPlaneConversationId='
-]) {
-  assert.ok(messages.includes(fragment), `paper-plane messages page must include ${fragment}`)
-}
-assert.ok(!messages.includes("url: '/pages/chat/detail?userId=' + item.userId"), 'paper-plane conversation must not use ordinary chat identity routing')
-=======
 includes(paperPlane, '扔纸飞机', 'paper-plane page')
 includes(paperPlane, '捡纸飞机', 'paper-plane page')
 includes(paperPlane, '我的纸飞机', 'paper-plane page')
@@ -150,35 +100,11 @@ includes(datingPlaneCompose, 'selfIntroduction', 'dating send page self introduc
 includes(datingPlaneCompose, 'idealPartner', 'dating send page ideal partner input')
 includes(datingPlaneCompose, 'sendPaperPlane', 'dating send page send API')
 includes(datingPlaneCompose, "uni.reLaunch({ url: '/pagesSub/community/paper-plane' })", 'dating send page returns home after sending')
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
-for (const fragment of [
-  'getSentPaperPlanes',
-  '还没有发出的纸飞机',
-  '只保留最近五天扔出去的纸飞机'
-]) {
-  assert.ok(sent.includes(fragment), `sent paper-plane page must include ${fragment}`)
-}
+const reportSheet = fs.readFileSync(reportSheetPath, 'utf8')
+includes(reportSheet, '举报原因', 'report sheet reason selector')
+includes(reportSheet, '补充说明', 'report sheet report detail input')
 
-<<<<<<< HEAD
-for (const fragment of [
-  'paperPlaneConversationId',
-  'getPaperPlaneMessages',
-  'sendPaperPlaneMessage',
-  'readPaperPlaneConversation'
-]) {
-  assert.ok(chat.includes(fragment), `chat must support paper-plane conversations via ${fragment}`)
-}
-
-for (const route of [
-  'pages/community/dating-plane',
-  'pages/community/dating-plane-compose',
-  'pages/community/paper-plane-messages',
-  'pages/community/paper-plane-sent'
-]) {
-  assert.ok(pagesJson.includes(route), `pages.json must register ${route}`)
-}
-=======
 assert.ok(hasRegisteredPage(root, 'pagesSub/community/dating-plane'), 'pages.json should register dating-plane')
 assert.ok(hasRegisteredPage(root, 'pagesSub/community/dating-plane-compose'), 'pages.json should register dating-plane-compose')
 assert.ok(hasRegisteredPage(root, 'pagesSub/community/paper-plane-messages'), 'pages.json should register paper-plane-messages')
@@ -194,16 +120,15 @@ includes(paperPlaneMessages, '我的纸飞机', 'paper-plane messages title')
 includes(paperPlaneMessages, 'returnHome', 'paper-plane messages home navigation')
 includes(paperPlaneMessages, 'uni.navigateBack()', 'paper-plane messages should preserve the navigation stack')
 assert.ok(!paperPlaneMessages.includes("uni.reLaunch({ url: '/pagesSub/community/paper-plane' })"), 'paper-plane messages should not reset the paper-plane navigation stack')
->>>>>>> 339a4d4a94396c8fdf80084c3aded6c60ada1ca7
 
-for (const name of [
-  'getPaperPlaneConversations',
-  'getSentPaperPlanes',
-  'getPaperPlaneMessages',
-  'sendPaperPlaneMessage',
-  'readPaperPlaneConversation'
-]) {
-  assert.ok(api.includes(`export async function ${name}`), `community API must export ${name}`)
-}
+assert.ok(fs.existsSync(paperPlaneSentPath), 'paper-plane sent page should exist')
+const paperPlaneSent = fs.readFileSync(paperPlaneSentPath, 'utf8')
+includes(paperPlaneSent, 'getSentPaperPlanes', 'paper-plane sent API')
+includes(paperPlaneSent, '还没有发出的纸飞机', 'paper-plane sent empty state')
+includes(paperPlaneSent, '只保留最近五天扔出去的纸飞机', 'paper-plane sent retention hint')
 
-console.log('PASS paper-plane UI and conversation contract')
+includes(communityApi, 'getPaperPlaneConversations', 'paper-plane conversations API export')
+includes(communityApi, 'getSentPaperPlanes', 'paper-plane sent API export')
+includes(communityApi, 'getPaperPlaneUnreadCount', 'paper-plane unread API export')
+
+console.log('纸飞机页面交互契约测试通过')

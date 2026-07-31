@@ -7,7 +7,7 @@
 			:class="{ active: active === item.key }"
 			@click="selectPanel(item.key)"
 		>
-			<text class="nav-icon">{{ item.icon }}</text>
+			<XsaIcon :name="item.icon" size="medium" />
 			<text class="nav-label">{{ item.label }}</text>
 		</button>
 	</view>
@@ -15,10 +15,12 @@
 
 	<script setup lang="uts">
 		type ParentPanel = 'home' | 'matchmaker' | 'message' | 'profile'
+		import XsaIcon from '@/components/XsaIcon.uvue'
+
 		type ParentNavItem = {
 			key: ParentPanel
 			label: string
-			icon: string
+			icon: 'home' | 'matchmaker' | 'message' | 'profile'
 		}
 
 		interface Props {
@@ -34,10 +36,10 @@
 	}>()
 
 		const navItems: ParentNavItem[] = [
-		{ key: 'home', label: '首页', icon: '⌂' },
-		{ key: 'matchmaker', label: '牵线', icon: '♡' },
-		{ key: 'message', label: '消息', icon: '信' },
-		{ key: 'profile', label: '我的', icon: '人' }
+		{ key: 'home', label: '首页', icon: 'home' },
+		{ key: 'matchmaker', label: '牵线', icon: 'matchmaker' },
+		{ key: 'message', label: '消息', icon: 'message' },
+		{ key: 'profile', label: '我的', icon: 'profile' }
 	]
 
 		const selectPanel = (panel: ParentPanel) => {
@@ -55,7 +57,7 @@
 		z-index: 20;
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
-		padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+		padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
 		background: var(--surface);
 		border-top: 1px solid var(--line);
 	}
@@ -63,9 +65,9 @@
 	.nav-item {
 		min-height: 48px;
 		margin: 0;
-		padding: 4px 2px;
+		padding: 4px 0;
 		border-radius: 8px;
-		background: var(--surface);
+		background: transparent;
 		color: var(--muted);
 		display: flex;
 		flex-direction: column;
@@ -75,14 +77,7 @@
 	}
 
 	.nav-item.active {
-		background: var(--accent-bg);
-		color: var(--accent2);
-	}
-
-	.nav-icon {
-		font-size: 20px;
-		font-weight: 700;
-		line-height: 1;
+		color: var(--accent);
 	}
 
 	.nav-label {

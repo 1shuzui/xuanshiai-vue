@@ -28,12 +28,12 @@ assert.deepStrictEqual(
   pages.tabBar.list.map((item) => `${item.pagePath}:${item.text}`),
   [
     'pages/index/index:首页',
+    'pages/matchmaker/matchmaker:红娘服务',
     'pages/community/community:社区',
-    'pages/matchmaker/matchmaker:牵线',
     'pages/message/message:消息',
     'pages/profile/profile:我的',
   ],
-  'the existing native five-tab order must remain unchanged',
+  'the upstream native five-tab order must remain unchanged',
 )
 
 const onboarding = read('pagesSub/userExtra/onboarding/profile.uvue')

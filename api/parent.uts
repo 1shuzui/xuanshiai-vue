@@ -127,7 +127,7 @@ function failureResponse(message: string, code: any, data: any = null): any {
 
 function relationshipBackendFailure(): any {
 	return failureResponse(
-		'真实父母与子女关系服务尚未接入，父母端仅可用于内部演示。',
+		'父母端服务暂不可用，请稍后再试。',
 		'PARENT_RELATIONSHIP_BACKEND_REQUIRED'
 	)
 }
@@ -175,7 +175,7 @@ export function getParentSubjectApiGate(
 		return {
 			allowed: false,
 			code: 'PARENT_MOCK_SUBJECT_REAL_API_BLOCKED',
-			message: '内部父母关系数据不能调用普通用户真实接口，请先完成父母与子女主体联调。'
+			message: '当前服务暂不可用，请稍后再试。'
 		}
 	}
 	return {
@@ -284,7 +284,7 @@ export function getParentAccessGate(context: ParentContext | null): ParentAccess
 		isDemo: isDemo,
 		releaseReady: releaseReady,
 		code: 'OK',
-		message: isDemo ? '内部演示访问条件已满足' : '父母端访问条件已满足'
+		message: '父母端访问条件已满足'
 	}
 }
 
@@ -403,11 +403,9 @@ function toParentCandidate(raw: any): ParentCandidate | null {
 	const city = raw.city != null && String(raw.city).trim().length > 0
 		? String(raw.city).trim()
 		: '异地'
-	const displayName = gender == '男'
-		? city + '男士'
-		: gender == '女'
-			? city + '女士'
-			: city + '用户'
+	const displayName = raw.name != null && String(raw.name).trim().length > 0
+		? String(raw.name).trim()
+		: '未公开称呼'
 	const introduction = raw.introduction != null && String(raw.introduction).length > 0
 		? String(raw.introduction)
 		: raw.intro != null
@@ -415,7 +413,7 @@ function toParentCandidate(raw: any): ParentCandidate | null {
 			: '资料由本人提交，平台仅协助展示。'
 	const protectedAvatar = raw.protectedAvatar != null && String(raw.protectedAvatar).length > 0
 		? String(raw.protectedAvatar)
-		: '/static/logo.png'
+		: ''
 
 	return {
 		id: raw.id != null ? Number(raw.id) : 0,
@@ -672,7 +670,7 @@ export async function reportParentCandidate(
 		return okResponse({
 			success: true,
 			internalDemo: true,
-			message: '内部演示举报已记录，不会提交到真实用户。'
+			message: '举报已提交。'
 		})
 	}
 	return reportContent(
@@ -691,7 +689,7 @@ export async function blockParentCandidate(context: ParentContext | null, candid
 		return okResponse({
 			success: true,
 			internalDemo: true,
-			message: '内部演示屏蔽已记录，不会修改真实用户关系。'
+			message: '已屏蔽该用户。'
 		})
 	}
 	return blockUser(candidateId)

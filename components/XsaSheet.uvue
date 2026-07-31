@@ -1,9 +1,5 @@
 <template>
-<<<<<<< HEAD
-		<view class="xsa-sheet-overlay" :class="{ open: visible, 'large-text': largeText }" @click="handleOverlayClick">
-=======
-	<view class="xsa-sheet-overlay" :class="{ open: visible, 'large-text': largeText }" @click="handleOverlayClick">
->>>>>>> sync/upstream-main-751a9f4
+	<view class="xsa-sheet-overlay" :class="{ open: visible }" @click="handleOverlayClick">
 		<view class="xsa-sheet" :class="{ tall: tall }" @click.stop>
 			<view class="handle" v-if="showHandle"></view>
 			<view class="sheet-header" v-if="title">
@@ -30,7 +26,6 @@ interface Props {
 	title?: string;
 	tall?: boolean;
 	closeOnOverlay?: boolean;
-	largeText?: boolean;
 	showHandle?: boolean;
 }
 
@@ -38,7 +33,6 @@ const props = withDefaults(defineProps<Props>(), {
 	visible: false,
 	tall: false,
 	closeOnOverlay: true,
-	largeText: false,
 	showHandle: true
 });
 
@@ -61,7 +55,7 @@ const handleOverlayClick = () => {
 /* 遮罩层 - 遵循 DESIGN.md */
 .xsa-sheet-overlay {
 	position: fixed;
-	z-index: 10050;
+	z-index: 60;
 	inset: 0;
 	background: rgba(12, 19, 19, 0.36);
 	opacity: 0;
@@ -130,7 +124,6 @@ const handleOverlayClick = () => {
 	white-space: nowrap;
 }
 
-
 .close-btn {
 	position: absolute;
 	top: 5px;
@@ -140,7 +133,6 @@ const handleOverlayClick = () => {
 	border-radius: 50%;
 	background: transparent;
 	display: flex;
-	flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
@@ -161,14 +153,5 @@ const handleOverlayClick = () => {
 
 .sheet-body::-webkit-scrollbar {
 	display: none;
-}
-
-.xsa-sheet-overlay.large-text .sheet-title {
-	font-size: 20px;
-}
-
-.xsa-sheet-overlay.large-text .close-btn {
-	width: 48px;
-	height: 48px;
 }
 </style>

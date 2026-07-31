@@ -5,7 +5,7 @@ const vm = require('vm')
 
 const root = path.resolve(__dirname, '..')
 const messageCenter = fs.readFileSync(path.join(root, 'components/XsaMessageCenter.uvue'), 'utf8')
-const chatDetail = fs.readFileSync(path.join(root, 'pages/chat/detail.uvue'), 'utf8')
+const chatDetail = fs.readFileSync(path.join(root, 'pagesSub/chat/detail.uvue'), 'utf8')
 const messageApi = fs.readFileSync(path.join(root, 'api/message.uts'), 'utf8')
 const requestApi = fs.readFileSync(path.join(root, 'api/request.uts'), 'utf8')
 const reportSheet = fs.readFileSync(path.join(root, 'components/XsaReportSheet.uvue'), 'utf8')
@@ -62,7 +62,8 @@ includes(chatDetail, 'activeParentContext.value = context', 'verified parent con
 includes(reportSheet, 'reportParentCandidate', 'parent chat reports use the parent safety adapter')
 includes(reportSheet, 'blockParentCandidate', 'parent chat blocks use the parent safety adapter')
 includes(reportSheet, 'props.parentMode && props.parentContext == null', 'parent safety actions fail closed without context')
-includes(reportSheet, '内部演示：举报已记录', 'parent mock reports are visibly identified as internal review')
+includes(reportSheet, "uni.showToast({ title: '举报已提交', icon: 'success' })", 'parent reports use product-facing confirmation copy')
+assert.ok(!reportSheet.includes('内部演示'), 'parent reports do not expose internal implementation state')
 
 // Execute the production stable command-id function.
 let commandFunction = extract(
@@ -246,57 +247,12 @@ assert.ok(
   'removed points unlock flows must not remain in the chat page',
 )
 
-// Cloud failures reject, while the message API converts them back to the same
-// fail-closed response contract consumed by the shared UI handler.
-includes(requestApi, 'function normalizeCloudFailure(err: any): any', 'cloud failure normalizer')
-includes(requestApi, "String(nestedCode) == '401'", 'nested cloud 401 clears auth tokens')
-includes(requestApi, 'clearAuthTokens()', 'cloud 401 clears auth tokens')
-includes(requestApi, 'reject(normalizeCloudFailure(err))', 'cloud rejection uses the normalized failure')
-includes(messageApi, 'async function messageRequest(options: any)', 'message request rejection boundary')
-includes(messageApi, 'error != null && error.code != null ? error.code : -1', 'message request preserves rejected codes')
-includes(messageApi, 'error != null && error.data != null ? error.data : null', 'message request preserves rejected data')
-
-let cloudFailureFunction = extract(
-  requestApi,
-  'function normalizeCloudFailure',
-  'async function realCloudRequest',
-)
-cloudFailureFunction = cloudFailureFunction.replace(
-  /function normalizeCloudFailure\(err: any\): any/,
-  'function normalizeCloudFailure(err)',
-)
-cloudFailureFunction = cloudFailureFunction.replace(/let code: any =/, 'let code =')
-let clearedTokenCount = 0
-const requestContext = {
-  String,
-  clearAuthTokens: () => {
-    clearedTokenCount += 1
-  },
-}
-requestContext.globalThis = requestContext
-vm.runInNewContext(
-  `${cloudFailureFunction}\nglobalThis.normalizeCloudFailure = normalizeCloudFailure`,
-  requestContext,
-  { filename: 'api/request.uts#cloud-failure' },
-)
-const cloudFailureData = { code: 401, message: '会话已过期', reason: 'expired' }
-const normalizedCloudFailure = requestContext.normalizeCloudFailure({ data: cloudFailureData })
-assert.strictEqual(normalizedCloudFailure.success, false, 'cloud rejection remains a failed response')
-assert.strictEqual(normalizedCloudFailure.code, 401, 'cloud rejection preserves a nested 401 code')
-assert.strictEqual(normalizedCloudFailure.message, '会话已过期', 'cloud rejection preserves the failure message')
-assert.strictEqual(normalizedCloudFailure.data, cloudFailureData, 'cloud rejection preserves failure data')
-assert.strictEqual(clearedTokenCount, 1, 'cloud 401 clears auth tokens before rejection')
-requestContext.normalizeCloudFailure({ code: 'FUNCTION_ERROR', data: cloudFailureData })
-assert.strictEqual(clearedTokenCount, 2, 'nested 401 clears auth tokens even when the outer code is generic')
-
-const regularCloudFailure = requestContext.normalizeCloudFailure({
-  code: 'CLOUD_TIMEOUT',
-  message: '云函数超时',
-  data: { retryable: true },
-})
-assert.strictEqual(regularCloudFailure.code, 'CLOUD_TIMEOUT', 'non-401 cloud codes remain intact')
-assert.strictEqual(regularCloudFailure.message, '云函数超时', 'non-401 cloud messages remain intact')
-assert.strictEqual(regularCloudFailure.data.retryable, true, 'non-401 cloud data remains intact')
-assert.strictEqual(clearedTokenCount, 2, 'non-401 cloud failures do not clear auth tokens')
+// The current transport resolves HTTP failures into the shared response
+// contract. Message APIs then normalize that response and fail closed.
+includes(requestApi, 'success: false', 'HTTP failures resolve as failed responses')
+includes(requestApi, 'clearAuthTokens()', 'HTTP 401 clears auth tokens')
+includes(messageApi, 'async function messageRequest(options: any)', 'message request boundary')
+includes(messageApi, 'normalizeBusinessResponse', 'message responses use the shared normalizer')
+assert.ok(!requestApi.includes('normalizeCloudFailure'), 'obsolete cloud rejection normalizer must stay removed')
 
 console.log('消息 UI 主体隔离与失效清理测试通过')

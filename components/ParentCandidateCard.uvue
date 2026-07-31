@@ -8,7 +8,9 @@
 		</view>
 
 		<view class="candidate-photo-wrap">
-			<image class="candidate-photo" :src="candidate.avatar" mode="aspectFill"></image>
+			<view class="candidate-photo-icon">
+				<XsaIcon name="profile" size="large" />
+			</view>
 			<view class="photo-shield"><text>照片已保护</text></view>
 		</view>
 
@@ -22,6 +24,8 @@
 </template>
 
 	<script setup lang="uts">
+		import XsaIcon from '@/components/XsaIcon.uvue'
+
 		interface ParentCandidateView {
 			id: number
 			displayName: string
@@ -100,13 +104,17 @@
 		border-radius: 8px;
 		overflow: hidden;
 		background: var(--warm);
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
-	.candidate-photo {
-		width: 100%;
-		height: 100%;
-		filter: blur(12px);
-		transform: scale(1.12);
+	.candidate-photo-icon {
+		color: var(--accent2);
+		opacity: 0.72;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.photo-shield {
@@ -117,7 +125,7 @@
 		min-height: 32px;
 		padding: 4px 8px;
 		border-radius: 6px;
-		background: var(--surface);
+		background: var(--paper);
 		color: var(--ink2);
 		display: flex;
 		align-items: center;

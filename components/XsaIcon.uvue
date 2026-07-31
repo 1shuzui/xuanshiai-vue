@@ -1,0 +1,41 @@
+<template>
+	<text class="xsa-icon" :class="['xsa-icon-' + name, 'xsa-icon-' + size]"></text>
+</template>
+
+<script setup lang="uts">
+	type XsaIconName = 'home' | 'matchmaker' | 'message' | 'profile'
+	type XsaIconSize = 'small' | 'medium' | 'large'
+
+	interface Props {
+		name: XsaIconName
+		size?: XsaIconSize
+	}
+
+	withDefaults(defineProps<Props>(), {
+		size: 'medium'
+	})
+</script>
+
+<style scoped>
+	@font-face {
+		font-family: "xsa-tab-icon";
+		src: url('/static/底部导航栏/iconfont.woff2') format('woff2'), url('/static/底部导航栏/iconfont.woff') format('woff'), url('/static/底部导航栏/iconfont.ttf') format('truetype');
+	}
+
+	.xsa-icon {
+		font-family: "xsa-tab-icon" !important;
+		font-style: normal;
+		line-height: 1;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	.xsa-icon-home:before { content: "\e602"; }
+	.xsa-icon-matchmaker:before { content: "\e703"; }
+	.xsa-icon-message:before { content: "\e614"; }
+	.xsa-icon-profile:before { content: "\e620"; }
+
+	.xsa-icon-small { font-size: 18px; }
+	.xsa-icon-medium { font-size: 24px; }
+	.xsa-icon-large { font-size: 44px; }
+</style>

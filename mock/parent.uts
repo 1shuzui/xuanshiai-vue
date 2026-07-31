@@ -1,28 +1,31 @@
-const PARENT_PORTRAITS = {
-	womanAlt: '/static/portraits/profile-woman-alt.jpg'
-}
+import { mockMeProfile } from './user.uts'
 
-/** Single-child parent context for internal review only. */
+const ordinaryProfile = mockMeProfile as any
+const childBirthYear = new Date().getFullYear() - Number(ordinaryProfile.age != null ? ordinaryProfile.age : 29)
+
+/**
+ * 单子女上下文仅用于隔离的本地父母主体；生产发布仍须由服务端返回父母端专用的隐私字段。
+ */
 export const mockParentContext = {
 	id: 'parent_context_001',
 	mode: 'parent',
 	dataMode: 'mock',
 	parent: {
 		id: 9101,
-		name: '周妈妈',
-		avatar: PARENT_PORTRAITS.womanAlt,
+		name: String(ordinaryProfile.name) + '的家人',
+		avatar: ordinaryProfile.avatar != null ? String(ordinaryProfile.avatar) : '',
 		realNameStatus: 'passed'
 	},
 	child: {
 		id: 9201,
-		displayName: '周女士的女儿',
-		birthYear: 1997,
-		city: '南京',
-		job: '产品经理',
-		introduction: '生活规律，认真对待长期关系，也尊重彼此的独立空间。',
+		displayName: ordinaryProfile.name != null ? String(ordinaryProfile.name) : '我的子女',
+		birthYear: childBirthYear,
+		city: ordinaryProfile.city != null ? String(ordinaryProfile.city) : '南京',
+		job: ordinaryProfile.job != null ? String(ordinaryProfile.job) : '产品经理',
+		introduction: ordinaryProfile.introduction != null ? String(ordinaryProfile.introduction) : '认真经营生活，也期待稳定长久的关系。',
 		authorizationStatus: 'granted',
 		authorizationExpiresAt: '2099-12-31T23:59:59+08:00',
-		profileProgress: 86
+		profileProgress: Number(ordinaryProfile.profileProgress != null ? ordinaryProfile.profileProgress : 78)
 	},
 	quota: {
 		dailyTotal: 3,
@@ -31,7 +34,7 @@ export const mockParentContext = {
 	releaseGate: {
 		productionReady: false,
 		code: 'PARENT_RELATIONSHIP_BACKEND_REQUIRED',
-		message: '当前为内部演示数据，正式发布前需完成真实父母与子女关系授权，并由服务端返回父母端专用的隐私字段。'
+		message: '父母端服务正在持续完善。'
 	}
 }
 

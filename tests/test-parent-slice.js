@@ -171,6 +171,8 @@ expect(api, 'likeUser(candidateId, parentInternalMockScope(context))', 'parent l
 expect(api, 'applyToMeet(candidateId, String(note).trim(), parentInternalMockScope(context))', 'parent applications delegate with an isolated subject')
 expect(api, "? String(raw.protectedAvatar)", 'candidate adapter prefers server-provided protected photos')
 expectAbsent(api, "protectedAvatar = raw.avatar", 'candidate adapter never falls back to the clear avatar')
+expectAbsent(api, "city + '男士'", 'candidate adapter does not invent gendered city names')
+expectAbsent(api, "city + '女士'", 'candidate adapter does not invent gendered city names')
 expect(api, 'syncRemainingApplications', 'successful applications refresh the parent quota')
 expect(api, 'Math.min(total, Math.max(0, reported))', 'reported quota is capped to the daily total')
 expect(api, 'quotaRefreshFailed == true', 'failed quota refresh does not invent a decrement')
@@ -341,12 +343,11 @@ assert.strictEqual(
 	true,
 	'an explicit parent-only mock scope stays available while global USE_MOCK is disabled',
 )
-expect(userApi, 'const internalUserMockStates: any = {}', 'parent mock state has a separate subject store')
-expect(userApi, "const key = scope != null ? scope.trim() : ''", 'parent mock state is keyed by its explicit subject')
-expect(userApi, 'likedUserIds: (mockLikedUserIds as number[]).slice()', 'parent likes start from a copy of ordinary fixture state')
-expect(userApi, "if (internalMockScope != '')", 'user API has an explicit internal review branch')
-expect(userApi, 'getInternalUserMockState(internalMockScope)', 'internal review operations resolve isolated state')
-expect(userApi, '(mockRecommendUsers as any[]).concat(mockSquareUsers as any[])', 'complete likes include candidates outside recommendations')
+expect(userApi, 'const parentMockLikedUserIds: { [key: string]: number[] } = {}', 'parent mock state has a separate subject store')
+expect(userApi, 'function getParentMockLikedIds(scope: string): number[]', 'parent mock state is keyed by its explicit subject')
+expect(userApi, 'parentMockLikedUserIds[scope] = [...(mockLikedUserIds as number[])]', 'parent likes start from a copy of ordinary fixture state')
+expect(userApi, 'if (isParentMockScope(internalMockScope))', 'user API has an explicit internal review branch')
+expect(userApi, 'getParentMockLikedIds(internalMockScope)', 'internal review operations resolve isolated state')
 expect(communityMock, 'export const mockLikedUserIds: number[] = [7]', 'review fixture includes a liked candidate outside recommendations')
 const recommendFixture = userMock.slice(
 	userMock.indexOf('export const mockRecommendUsers'),
@@ -358,14 +359,24 @@ expect(apiIndex, 'getParentLikedCandidates,', 'unified API exports the parent li
 console.log('PASS parent internal mock remains isolated with global HTTP mode')
 
 const bottomNav = read('components/ParentBottomNav.uvue')
+const parentIcon = read('components/XsaIcon.uvue')
 expect(bottomNav, "key: 'home'", 'parent home nav item')
 expect(bottomNav, "key: 'matchmaker'", 'parent matchmaker nav item')
 expect(bottomNav, "key: 'message'", 'parent message nav item')
 expect(bottomNav, "key: 'profile'", 'parent profile nav item')
 expect(bottomNav, 'min-height: 48px', 'accessible nav targets')
+expect(bottomNav, '<XsaIcon :name="item.icon" size="medium" />', 'parent navigation uses the shared icon component')
+expect(parentIcon, "/static/底部导航栏/iconfont.woff2", 'parent icons reuse the ordinary navigation font asset')
+expect(parentIcon, 'xsa-icon-home:before', 'parent home icon glyph')
+expect(parentIcon, 'xsa-icon-matchmaker:before', 'parent matchmaker icon glyph')
+expect(parentIcon, 'xsa-icon-message:before', 'parent message icon glyph')
+expect(parentIcon, 'xsa-icon-profile:before', 'parent profile icon glyph')
 
 const candidateCard = read('components/ParentCandidateCard.uvue')
-expect(candidateCard, 'filter: blur(', 'candidate photo remains blurred')
+expect(candidateCard, '<XsaIcon name="profile" size="large" />', 'candidate photo uses the shared protected profile icon')
+expect(candidateCard, '照片已保护', 'candidate privacy state is explicit')
+expectAbsent(candidateCard, ':src="candidate.avatar"', 'candidate list never binds a clear ordinary-user avatar')
+expect(candidateCard, 'justify-content: center', 'candidate protected icon is centered')
 expect(candidateCard, 'font-size: 22px', 'candidate primary type scale')
 expect(candidateCard, 'font-size: 16px', 'candidate body type scale')
 expect(candidateCard, 'min-height: 48px', 'candidate action target')
@@ -477,8 +488,9 @@ expect(parentPage, '@click="loadCustomMatchmakerSection"', 'custom advisor secti
 expect(parentPage, 'setInterval(() => ensureParentRole()', 'parent shell continuously validates the stored role')
 expect(parentPage, 'scheduleAuthorizationExpiry()', 'parent shell reacts when child authorization expires')
 expect(parentPage, 'ensureCurrentParentAccess()', 'parent actions continuously re-check stored role and authorization')
-expect(parentPage, '内部演示', 'parent mock state is visibly identified')
-expect(parentPage, 'parentContext.releaseGate.message', 'parent release blocker is visibly represented')
+expectAbsent(parentPage, '内部演示', 'parent page does not expose internal implementation state')
+expectAbsent(parentPage, 'demo-notice', 'parent page does not render a demo-state banner')
+expect(parentPage, '<ParentGateNotice', 'parent page continues to render access gates')
 expect(parentPage, '父母端设置', 'parent profile has role-specific settings')
 expect(parentPage, 'class="settings-toggle-target"', 'parent settings give the notification switch a 48px target')
 assert.ok(
@@ -509,7 +521,11 @@ const detailPage = read('pages/parent/user-detail.uvue')
 expect(detailPage, 'getParentAccessGate', 'detail enforces parent gate')
 expect(detailPage, "const parentContext = ref(null as ParentContext | null)", 'detail uses the ParentContext contract')
 expect(detailPage, 'candidate.canViewClearPhoto', 'detail photo visibility is data gated')
-expect(detailPage, 'filter: blur(', 'detail photo remains blurred by default')
+expect(detailPage, 'v-if="candidate.canViewClearPhoto"', 'detail only binds a clear photo after explicit consent')
+expect(detailPage, ':src="candidate.clearAvatar"', 'detail uses the scoped clear-photo URL')
+expect(detailPage, 'protected-photo-placeholder', 'detail has a protected-photo placeholder')
+expect(detailPage, '<XsaIcon name="profile" size="large" />', 'detail protected-photo placeholder uses shared iconography')
+expectAbsent(detailPage, 'candidate.canViewClearPhoto ? candidate.clearAvatar : candidate.avatar', 'detail never falls back to an ordinary-user avatar')
 expect(detailPage, '仅在本人明确允许后显示清晰照片', 'detail explains the protected photo state')
 expect(detailPage, '申请认识', 'detail apply-to-meet wording')
 expect(detailPage, '<ParentApplySheet', 'detail uses the shared confirmation sheet')
@@ -561,7 +577,7 @@ expectOrdered(
 	['const detailRes = await getParentCandidateDetail(requestContext, candidateId.value)', 'if (!isDetailRequestCurrent(requestId)) return', 'candidate.value = detailRes.data'],
 	'stale candidate-detail responses cannot restore protected data',
 )
-expect(detailPage, '内部演示', 'detail identifies internal review data')
+expectAbsent(detailPage, '内部演示', 'detail does not expose internal implementation state')
 expect(detailPage, '举报资料', 'detail exposes report action')
 expect(detailPage, '屏蔽资料', 'detail exposes block action')
 expect(detailPage, 'font-size: 20px', 'detail heading type scale')
@@ -586,6 +602,28 @@ for (const [file, content] of [
 ]) {
   expectNoLiteralColors(content, file)
 }
+
+for (const [file, content] of [
+	['pages/parent/parent.uvue', parentPage],
+	['pages/parent/user-detail.uvue', detailPage],
+	['components/ParentApplySheet.uvue', applySheet],
+	['components/XsaReportSheet.uvue', read('components/XsaReportSheet.uvue')]
+]) {
+	for (const forbiddenCopy of ['Mock', 'mock', '测试', '内部演示', '流程审校', '仅供审校', '不会影响真实用户', '不代表已向真实用户', '测试数据']) {
+		expectAbsent(content, forbiddenCopy, `${file} hides internal-only copy ${forbiddenCopy}`)
+	}
+}
+
+expect(mock, "import { mockMeProfile } from './user.uts'", 'parent child summary imports ordinary profile fixture')
+expect(mock, 'const ordinaryProfile = mockMeProfile as any', 'parent child summary aliases ordinary profile data')
+expect(mock, 'displayName: ordinaryProfile.name', 'parent child name comes from ordinary profile')
+expect(mock, 'city: ordinaryProfile.city', 'parent child city comes from ordinary profile')
+expect(mock, 'job: ordinaryProfile.job', 'parent child job comes from ordinary profile')
+expect(mock, 'profileProgress: Number(ordinaryProfile.profileProgress', 'parent child progress comes from ordinary profile')
+expect(userApi, 'function getParentMockCandidateSource(): any[]', 'parent candidates aggregate ordinary-user fixtures')
+expect(userApi, 'const groups = [mockRecommendUsers as any[], mockSquareUsers as any[]]', 'parent candidates combine recommendation and square fixtures')
+expect(userApi, 'seen[id] = true', 'parent candidate aggregation de-duplicates by id')
+expect(userApi, 'const source = getParentMockCandidateSource()', 'parent recommendation and like paths use the shared candidate set')
 
 const allParentFiles = [mock, api, bottomNav, candidateCard, gateNotice, applySheet, parentPage, detailPage].join('\n')
 for (const forbidden of ['收藏', '申请牵线', '社区', '情感实验室', '多人子女', '联系人', '会员支付']) {

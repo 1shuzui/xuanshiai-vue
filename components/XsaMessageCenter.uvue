@@ -693,7 +693,7 @@
 			const permission = res != null ? res.data : null
 			if (res != null && res.success == true && permission != null && permission.canChat == true) {
 				uni.navigateTo({
-					url: '/pages/chat/detail?userId=' + userId + '&userName=' + encodeURIComponent(name)
+					url: '/pagesSub/chat/detail?userId=' + userId + '&userName=' + encodeURIComponent(name)
 				})
 				return
 			}

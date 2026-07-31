@@ -9,11 +9,10 @@ const api = read('api/community.uts')
 
 assert.match(
   card,
-  /const followed = computed\(\(\): boolean => \{\s*return props\.dynamic\.followed === true\s*\}\)/,
-  'follow button state must be derived from the parent dynamic state',
+  /const followed = ref\(props\.dynamic\.followed === true\)/,
+  'follow button state must initialize from the parent dynamic state',
 )
-assert.doesNotMatch(card, /const followed = ref\(/, 'dynamic card must not keep a stale local follow state')
-assert.doesNotMatch(card, /followed\.value = true/, 'dynamic card must wait for the parent to confirm a follow-state update')
+assert.match(card, /followed\.value = d\.followed === true/, 'dynamic card must synchronize follow updates from the parent')
 
 assert.match(page, /const syncFollowed = \(userId: number, followed: boolean\) => \{/, 'community page must centralize follow-state updates')
 assert.match(page, /dynamicList\.value = list\.slice\(\)/, 'community page must replace the list reference after follow-state changes')
@@ -21,8 +20,8 @@ assert.match(page, /syncFollowed\(userId, true\)/, 'successful follow must updat
 assert.match(page, /syncFollowed\(userId, false\)/, 'successful unfollow must update the shared list state')
 assert.match(
   page,
-  /onShow\(\(\) => \{\s*loadUnread\(\)\s*if \(dynamicList\.value\.length > 0\) \{\s*reload\(\)\s*\}/,
-  'community page must refresh populated feeds after returning from detail',
+  /onShow\(\(\) => \{\s*loadUnread\(\)[\s\S]*?if \(currentTab\.value === 'follow'\) \{\s*reload\(\)\s*\}/,
+  'community page must refresh the follow feed after returning from detail',
 )
 
 const unfollowStart = api.indexOf('export async function unfollowUserFromCommunity')

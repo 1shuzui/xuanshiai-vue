@@ -17,19 +17,18 @@
 					<ParentGateNotice v-else-if="!accessGate.allowed" :gate="accessGate" @action="handleGateAction" />
 
 					<template v-else-if="candidate != null">
-						<view v-if="parentContext != null && parentContext.dataMode == 'mock'" class="demo-notice">
-							<text class="demo-title">内部演示</text>
-							<text class="demo-copy">清晰照片与操作只用于隐私流程审校，不会影响真实用户。</text>
-						</view>
 						<view class="photo-card">
 						<image
+							v-if="candidate.canViewClearPhoto"
 							class="profile-photo"
-							:class="{ 'protected-photo': !candidate.canViewClearPhoto }"
-							:src="candidate.canViewClearPhoto ? candidate.clearAvatar : candidate.avatar"
+							:src="candidate.clearAvatar"
 							mode="aspectFill"
 						></image>
-						<view class="photo-label" v-if="!candidate.canViewClearPhoto">
-							<text>照片已保护，仅在本人明确允许后显示清晰照片</text>
+						<view class="protected-photo-placeholder" v-else>
+							<XsaIcon name="profile" size="large" />
+							<view class="photo-label">
+								<text>照片已保护，仅在本人明确允许后显示清晰照片</text>
+							</view>
 						</view>
 					</view>
 
@@ -94,6 +93,7 @@
 	<script setup lang="uts">
 		import ParentApplySheet from '@/components/ParentApplySheet.uvue'
 		import ParentGateNotice from '@/components/ParentGateNotice.uvue'
+		import XsaIcon from '@/components/XsaIcon.uvue'
 		import type { ParentContext } from '@/api'
 		import {
 		blockParentCandidate,
@@ -119,9 +119,6 @@
 			const accessGate = computed(() => {
 				accessClock.value
 				return getParentAccessGate(parentContext.value)
-			})
-			const isInternalParentDemo = computed(() => {
-				return parentContext.value != null && parentContext.value.dataMode == 'mock'
 			})
 
 	onLoad((options: any) => {
@@ -337,7 +334,7 @@
 			) {
 				uni.showModal({
 					title: '需要子女授权',
-					content: '真实子女授权服务尚未接入。本期不伪造授权流程，完成后端关系校验前仅供内部演示。',
+				content: '当前尚未取得有效授权，请由子女完成授权后再试。',
 					showCancel: false,
 					confirmText: '知道了'
 				})
@@ -358,11 +355,7 @@
 				if (res.success && res.data != null && res.data.success == true) {
 					candidate.value.liked = res.data.liked == true
 					uni.showToast({
-						title: isInternalParentDemo.value
-							? candidate.value.liked ? '内部演示：已加入喜欢' : '内部演示：已取消喜欢'
-							: res.data.message != null
-							? String(res.data.message)
-							: candidate.value.liked ? '已喜欢，仅自己可见' : '已取消喜欢',
+						title: candidate.value.liked ? '已加入喜欢' : '已取消喜欢',
 					icon: 'none'
 				})
 				return
@@ -395,15 +388,6 @@
 			'父母端资料举报'
 		)
 			if (!isDetailRequestCurrent(requestId)) return
-			if (res != null && res.success == true && isInternalParentDemo.value) {
-					uni.showModal({
-						title: '内部演示',
-						content: '举报接口响应仅用于流程审校，不代表已进入真实审核队列。',
-					showCancel: false,
-					confirmText: '知道了'
-				})
-				return
-			}
 			uni.showToast({ title: res != null && res.success == true ? '举报已提交' : '举报失败，请重试', icon: 'none' })
 		}
 
@@ -426,10 +410,7 @@
 				const res = await blockParentCandidate(requestContext, confirmedTargetId)
 				if (!isDetailRequestCurrent(requestId)) return
 					if (res != null && res.success == true) {
-						const message = isInternalParentDemo.value
-							? '内部演示：已隐藏资料'
-							: res.data != null && res.data.message != null ? String(res.data.message) : '已屏蔽'
-						uni.showToast({ title: message, icon: 'none' })
+						uni.showToast({ title: '已屏蔽', icon: 'none' })
 						setTimeout(() => uni.navigateBack({ delta: 1 }), 500)
 					return
 				}
@@ -497,28 +478,6 @@
 		padding-bottom: calc(118px + env(safe-area-inset-bottom));
 	}
 
-	.demo-notice {
-		padding: 14px 16px;
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		background: var(--warm);
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.demo-title {
-		font-size: 16px;
-		font-weight: 700;
-		color: var(--ink);
-	}
-
-	.demo-copy {
-		font-size: 14px;
-		line-height: 1.55;
-		color: var(--ink2);
-	}
-
 	.photo-card {
 		position: relative;
 		height: 260px;
@@ -532,9 +491,16 @@
 		height: 100%;
 	}
 
-	.protected-photo {
-		filter: blur(16px);
-		transform: scale(1.12);
+	.protected-photo-placeholder {
+		width: 100%;
+		height: 100%;
+		background: var(--warm);
+		color: var(--accent2);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 16px;
 	}
 
 	.photo-label {
