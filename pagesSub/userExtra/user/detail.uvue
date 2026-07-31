@@ -222,7 +222,7 @@ import XsaApplySheet from '@/components/XsaApplySheet.uvue'
 import XsaPaymentSheet from '@/components/XsaPaymentSheet.uvue'
 import XsaSpotlightSuccessSheet from '@/components/XsaSpotlightSuccessSheet.uvue'
 import { getUserDetail, likeUser } from '@/api'
-import { SPOTLIGHT_AMOUNT } from '@/api/spotlight.uts'
+import { SPOTLIGHT_AMOUNT, paySpotlight } from '@/api/spotlight.uts'
 import { guardRealName } from '@/utils/realNameGate.uts'
 import { getCurrentUserVipStatus } from '@/utils/quota.uts'
 
@@ -407,7 +407,7 @@ onShow(() => {
 
 const onBack = () => { uni.navigateBack({ delta: 1 }) }
 const onShare = () => { uni.showToast({ title: '分享给朋友', icon: 'none' }) }
-const goEdit = () => { uni.navigateTo({ url: '/pages/user/edit' }) }
+const goEdit = () => { uni.navigateTo({ url: '/pagesSub/userExtra/user/edit' }) }
 const onSpotlight = () => {
 	if (isOwnProfile.value) {
 		uni.showToast({ title: '不能向自己爆灯', icon: 'none' })
@@ -422,10 +422,22 @@ const closeSpotlightSuccess = () => {
 	spotlightSuccessVisible.value = false
 	spotlightTarget.value = { id: 0, name: '', avatar: '', meta: '' }
 }
-const confirmSpotlightPayment = () => {
+const confirmSpotlightPayment = async () => {
 	if (spotlightPaying.value) return
-	spotlightPaymentVisible.value = false
-	spotlightSuccessVisible.value = true
+	spotlightPaying.value = true
+	try {
+		const res = await paySpotlight(spotlightTarget.value)
+		if (res.success !== true) {
+			uni.showToast({ title: res.message != null ? '' + res.message : '支付失败，请重试', icon: 'none' })
+			return
+		}
+		spotlightPaymentVisible.value = false
+		spotlightSuccessVisible.value = true
+	} catch (e) {
+		uni.showToast({ title: '网络异常，支付未完成', icon: 'none' })
+	} finally {
+		spotlightPaying.value = false
+	}
 }
 const openVipUnlock = () => {
 	const redirect = '/pagesSub/userExtra/user/detail?userId=' + user.value.id
@@ -434,9 +446,8 @@ const openVipUnlock = () => {
 	})
 }
 const onMatch = async () => {
-	if (user.value == null || user.value.isOwn) return
-	if (user.value.canApply == false) {
-		uni.showToast({ title: '请先完成实名认证或完善资料', icon: 'none' })
+	if (isOwnProfile.value) {
+		uni.showToast({ title: '不能向自己申请认识', icon: 'none' })
 		return
 	}
 	const ok = await guardRealName('apply')

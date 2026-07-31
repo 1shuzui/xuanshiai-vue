@@ -20,9 +20,9 @@ function reject(content, fragment, label) {
 }
 
 const indexPage = read('pages/index/index.uvue')
-const detailPage = read('pages/user/detail.uvue')
-const editPage = read('pages/user/edit.uvue')
-const vipPage = read('pages/profile/vip.uvue')
+const detailPage = read('pagesSub/userExtra/user/detail.uvue')
+const editPage = read('pagesSub/userExtra/user/edit.uvue')
+const vipPage = read('pagesSub/profileExtra/vip.uvue')
 
 expect(indexPage, 'const filteredRecommendUsers = computed(() => mockRecommendUsers)', 'recommendations include every target')
 expect(indexPage, 'v-if="currentRecommendUser.isVip === true" class="recommend-vip-badge"', 'VIP recommendation badge renders')
@@ -84,8 +84,8 @@ expect(detailPage, 'spotlight-section', 'locked detail includes the full spotlig
 expect(detailPage, '即时短信通知', 'spotlight includes fast reach benefit')
 expect(detailPage, '头像展示在爆灯栏', 'spotlight includes exposure benefit')
 expect(detailPage, '更容易被留意', 'spotlight includes favorability benefit')
-expect(detailPage, "const redirect = '/pages/user/detail?userId=' + user.value.id", 'unlock preserves the target detail route')
-expect(detailPage, "url: '/pages/profile/vip?source=user-detail&userId='", 'locked detail opens VIP purchase')
+expect(detailPage, "const redirect = '/pagesSub/userExtra/user/detail?userId=' + user.value.id", 'unlock preserves the target detail route')
+expect(detailPage, "url: '/pagesSub/profileExtra/vip?source=user-detail&userId='", 'locked detail opens VIP purchase')
 expect(detailPage, 'v-if="!isLockedView && !isOwnProfile && !isPreview"', 'preview hides other-user actions')
 expect(detailPage, 'v-if="!isLockedView && isOwnProfile && !isPreview"', 'preview hides own-profile edit action')
 

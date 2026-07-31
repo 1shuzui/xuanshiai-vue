@@ -138,22 +138,23 @@
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
 						<text class="sheet-row-label">性别</text>
-						<picker class="sheet-row-right" mode="selector" :range="genderOptions" @change="onGenderChange"><text class="sheet-row-value">{{ genderText == '未选择' ? '请选择' : genderText }}</text><text class="sheet-row-arrow">›</text></picker>
+						<picker class="sheet-row-right" mode="selector" :range="genderOptions" :disabled="isIdentityLocked" @change="onGenderChange"><text class="sheet-row-value">{{ genderText == '未选择' ? '请选择' : genderText }}</text><text class="sheet-row-arrow">›</text></picker>
 					</view>
+					<text v-if="isIdentityLocked" class="sheet-locked-note">实名认证后不可修改性别和生日</text>
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
 						<text class="sheet-row-label">生日</text>
-						<picker class="sheet-row-right" mode="date" :value="formData.birthday" start="1900-01-01" end="2100-12-31" @change="onBirthdayChange"><text class="sheet-row-value">{{ formData.birthday || '请选择出生日期' }}</text><text class="sheet-row-arrow">›</text></picker>
+						<picker class="sheet-row-right" mode="date" :value="formData.birthday" start="1966-01-01" end="2008-07-30" :disabled="isIdentityLocked" @change="onBirthdayChange"><text class="sheet-row-value">{{ formData.birthday || '请选择出生日期' }}</text><text class="sheet-row-arrow">›</text></picker>
 					</view>
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
 						<text class="sheet-row-label">身高</text>
-						<input class="sheet-input" type="number" :value="formData.height" placeholder="未填写" @input="onInput('height', $event)" /><text class="sheet-row-arrow">›</text>
+						<picker class="sheet-row-right" mode="selector" :range="heightOptions" :value="heightPickerIndex" @change="onHeightChange"><text class="sheet-row-value">{{ formData.height != '' ? formData.height + ' cm' : '请选择' }}</text><text class="sheet-row-arrow">›</text></picker>
 					</view>
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
 						<text class="sheet-row-label">体重</text>
-						<input class="sheet-input" type="number" :value="formData.weight" placeholder="未填写" @input="onInput('weight', $event)" /><text class="sheet-row-arrow">›</text>
+						<picker class="sheet-row-right" mode="selector" :range="weightOptions" :value="weightPickerIndex" @change="onWeightChange"><text class="sheet-row-value">{{ formData.weight != '' ? formData.weight + ' kg' : '请选择' }}</text><text class="sheet-row-arrow">›</text></picker>
 					</view>
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
@@ -183,12 +184,13 @@
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
 						<text class="sheet-row-label">公司</text>
-						<input class="sheet-input" :value="formData.industry" placeholder="请选择" @input="onInput('industry', $event)" /><text class="sheet-row-arrow">›</text>
+						<input class="sheet-input" :value="formData.company" placeholder="搜索公司名称" @input="onCompanyInput" /><text class="sheet-row-arrow">›</text>
 					</view>
+					<view v-if="companySuggestions.length > 0" class="sheet-suggestion-list"><view v-for="company in companySuggestions" :key="company" class="sheet-suggestion" @tap="chooseCompany(company)"><text>{{ company }}</text></view></view>
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
 						<text class="sheet-row-label">收入</text>
-						<input class="sheet-input" type="number" :value="formData.income" placeholder="请选择" @input="onInput('income', $event)" /><text class="sheet-row-arrow">›</text>
+						<picker class="sheet-row-right" mode="selector" :range="incomeOptions" :value="incomePickerIndex" @change="onIncomeChange"><text class="sheet-row-value">{{ incomeText }}</text><text class="sheet-row-arrow">›</text></picker>
 					</view>
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
@@ -262,8 +264,18 @@
 	const realNameStatus = ref('missing')
 	const educationStatus = ref('missing')
 	const genderOptions = ['未选择', '男', '女']
+	const numericOptions = (start: number, end: number): string[] => {
+		const options = [] as string[]
+		for (let value = start; value <= end; value++) options.push('' + value)
+		return options
+	}
+	const heightOptions = numericOptions(140, 220)
+	const weightOptions = numericOptions(40, 120)
 	const educationOptions = ['未选择', '高中及以下', '大专', '本科', '硕士', '博士']
 	const maritalOptions = ['未选择', '未婚', '离异', '丧偶']
+	const incomeOptions = ['请选择', '小于10w', '10-20w', '30-50w', '50-100w', '100w以上', '保密']
+	const companyDirectory = ['腾讯', '阿里巴巴', '字节跳动', '华为', '京东', '美团', '小米', '网易', '比亚迪', '中国平安', '招商银行', '中国移动']
+	const companySuggestions = ref([] as string[])
 	const formData = ref({
 		userId: 0,
 		nickname: '',
@@ -277,7 +289,7 @@
 		occupation: '',
 		industry: '',
 		company: '',
-		income: '' as any,
+		income: '',
 		isMarried: null as any,
 		mbti: '',
 		introduction: '',
@@ -325,7 +337,7 @@
 		formData.value.occupation = textValue(data.occupation)
 		formData.value.industry = textValue(data.industry)
 		formData.value.company = textValue(data.company)
-		formData.value.income = data.income != null ? data.income : ''
+		formData.value.income = textValue(data.income_range != null ? data.income_range : data.income)
 		formData.value.isMarried = data.is_married
 		formData.value.mbti = textValue(data.mbti)
 		formData.value.introduction = textValue(data.self_intro)
@@ -396,9 +408,23 @@
 	}
 
 	const completeness = computed(() => completionScore.value > 0 ? completionScore.value : Math.min(100, [formData.value.avatar, formData.value.occupation, formData.value.introduction].filter((item: any) => item != null && ('' + item).trim() != '').length * 25))
+	const isIdentityLocked = computed(() => realNameStatus.value == 'passed')
+	const heightPickerIndex = computed(() => {
+		const value = Number(formData.value.height)
+		return value >= 140 && value <= 220 ? value - 140 : 0
+	})
+	const weightPickerIndex = computed(() => {
+		const value = Number(formData.value.weight)
+		return value >= 40 && value <= 120 ? value - 40 : 0
+	})
 	const genderText = computed(() => formData.value.gender == 1 ? '男' : formData.value.gender == 2 ? '女' : '未选择')
 	const educationText = computed(() => formData.value.educationLevel != null ? educationOptions[Number(formData.value.educationLevel)] || '未选择' : '未选择')
 	const maritalText = computed(() => formData.value.isMarried != null ? maritalOptions[Number(formData.value.isMarried)] || '未选择' : '未选择')
+	const incomeText = computed(() => formData.value.income != '' ? textValue(formData.value.income) : '请选择')
+	const incomePickerIndex = computed(() => {
+		const index = incomeOptions.indexOf(textValue(formData.value.income))
+		return index >= 0 ? index : 0
+	})
 	const occupationPreview = computed(() => {
 		const parts = [formData.value.occupation, formData.value.industry].filter((v: any) => v != null && ('' + v).trim() != '')
 		return parts.length > 0 ? parts.join(' · ') : '未填写'
@@ -421,10 +447,25 @@
 	const onSwitchChange = (field: string, event: any) => {
 		(formData.value as any)[field] = event.detail.value == true
 	}
-	const onGenderChange = (event: any) => formData.value.gender = Number(event.detail.value) == 1 ? 1 : Number(event.detail.value) == 2 ? 2 : null
+	const onGenderChange = (event: any) => { if (!isIdentityLocked.value) formData.value.gender = Number(event.detail.value) == 1 ? 1 : Number(event.detail.value) == 2 ? 2 : null }
 	const onEducationChange = (event: any) => formData.value.educationLevel = Number(event.detail.value) > 0 ? Number(event.detail.value) : null
 	const onMaritalChange = (event: any) => formData.value.isMarried = Number(event.detail.value) > 0 ? Number(event.detail.value) : null
-	const onBirthdayChange = (event: any) => formData.value.birthday = event.detail.value
+	const onBirthdayChange = (event: any) => { if (!isIdentityLocked.value) formData.value.birthday = event.detail.value }
+	const onHeightChange = (event: any) => formData.value.height = Number(heightOptions[Number(event.detail.value)])
+	const onWeightChange = (event: any) => formData.value.weight = Number(weightOptions[Number(event.detail.value)])
+	const onIncomeChange = (event: any) => {
+		const index = Number(event.detail.value)
+		formData.value.income = index > 0 ? incomeOptions[index] : ''
+	}
+	const onCompanyInput = (event: any) => {
+		formData.value.company = event.detail.value
+		const keyword = textValue(event.detail.value).trim().toLowerCase()
+		companySuggestions.value = keyword == '' ? [] : companyDirectory.filter((company: string) => company.toLowerCase().indexOf(keyword) >= 0).slice(0, 6)
+	}
+	const chooseCompany = (company: string) => {
+		formData.value.company = company
+		companySuggestions.value = []
+	}
 
 	const uploadMedia = async (path: string, kind: string) => {
 		if (path == '') return null
@@ -494,11 +535,14 @@
 		birthday: formData.value.birthday != '' ? formData.value.birthday : null,
 		is_married: formData.value.isMarried,
 		height: optionalNumber(formData.value.height),
+		weight: optionalNumber(formData.value.weight),
 		occupation: textValue(formData.value.occupation) || null,
 		industry: textValue(formData.value.industry) || null,
 		education_level: formData.value.educationLevel,
-		income: optionalNumber(formData.value.income),
+		income_range: textValue(formData.value.income) || null,
 		residence_city_code: textValue(formData.value.residenceCityCode) || null,
+		hometown: textValue(formData.value.hometown) || null,
+		company: textValue(formData.value.company) || null,
 		self_intro: textValue(formData.value.introduction) || null,
 		interest_tags: formData.value.interestTags.length >= 3 ? formData.value.interestTags.slice(0, 5) : null,
 		personality_tags: formData.value.personalityTags.length >= 3 ? formData.value.personalityTags.slice(0, 5) : null,
@@ -520,8 +564,13 @@
 	const handleSave = async () => {
 		if (saving.value || uploadingMedia.value) return
 		const height = optionalNumber(formData.value.height)
-		if (height != null && (height < 150 || height > 200)) {
-			uni.showToast({ title: '身高需在150至200厘米之间', icon: 'none' })
+		const weight = optionalNumber(formData.value.weight)
+		if (height != null && (height < 140 || height > 220)) {
+			uni.showToast({ title: '身高需在140至220厘米之间', icon: 'none' })
+			return
+		}
+		if (weight != null && (weight < 40 || weight > 120)) {
+			uni.showToast({ title: '体重需在40至120千克之间', icon: 'none' })
 			return
 		}
 		saving.value = true
@@ -652,6 +701,10 @@
 .sheet-row-value { font-size: 14px; color: var(--muted); }
 .sheet-row-arrow { font-size: 18px; color: var(--muted); }
 .sheet-input { flex: 1; min-width: 0; text-align: right; font-size: 14px; color: var(--muted); height: 24px; }
+.sheet-locked-note { padding: 0 6px 10px; text-align: right; font-size: 11px; color: var(--muted); }
+.sheet-suggestion-list { margin: -4px 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); overflow: hidden; }
+.sheet-suggestion { padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink2); }
+.sheet-suggestion:last-child { border-bottom: 0; }
 .sheet-divider { height: 1px; background: var(--line); }
 .sheet-section-label { font-size: 15px; font-weight: 700; color: var(--ink); padding: 18px 6px 8px; }
 .sheet-row.column-row { flex-direction: column; align-items: stretch; gap: 10px; }

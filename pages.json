@@ -59,28 +59,28 @@
     "selectedColor": "#5A9D8E",
     "backgroundColor": "#FCFCFC",
     "borderStyle": "black",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "首页"
-      },
-      {
-        "pagePath": "pages/community/community",
-        "text": "社区"
-      },
-      {
-        "pagePath": "pages/matchmaker/matchmaker",
-        "text": "红娘服务"
-      },
-      {
-        "pagePath": "pages/message/message",
-        "text": "消息"
-      },
-      {
-        "pagePath": "pages/profile/profile",
-        "text": "我的"
-      }
-    ]
+"list": [
+	      {
+	        "pagePath": "pages/index/index",
+	        "text": "首页"
+	      },
+	      {
+	        "pagePath": "pages/matchmaker/matchmaker",
+	        "text": "红娘服务"
+	      },
+	      {
+	        "pagePath": "pages/community/community",
+	        "text": "社区"
+	      },
+	      {
+	        "pagePath": "pages/message/message",
+	        "text": "消息"
+	      },
+	      {
+	        "pagePath": "pages/profile/profile",
+	        "text": "我的"
+	      }
+	    ]
   },
   "uniIdRouter": {},
   "subPackages": [
@@ -255,6 +255,27 @@
             "navigationBarTitleText": "我的动态",
             "navigationStyle": "custom"
           }
+        },
+        {
+          "path": "history",
+          "style": {
+            "navigationBarTitleText": "浏览记录",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "visitors",
+          "style": {
+            "navigationBarTitleText": "谁看过我",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "applications",
+          "style": {
+            "navigationBarTitleText": "我的申请",
+            "navigationStyle": "custom"
+          }
         }
       ]
     },
@@ -305,7 +326,8 @@
         {
           "path": "user/edit",
           "style": {
-            "navigationBarTitleText": "编辑资料"
+            "navigationBarTitleText": "编辑资料",
+            "navigationStyle": "custom"
           }
         },
         {

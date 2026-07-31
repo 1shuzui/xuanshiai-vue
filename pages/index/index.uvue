@@ -36,7 +36,7 @@
 						<view v-if="currentTab === i" class="active-indicator"></view>
 					</view>
 				</view>
-				<view class="history-btn" @click="onHistory">
+				<view class="history-btn" @tap="onHistory">
 					<text class="ic ic-home ic-history history-icon"></text>
 				</view>
 			</view>
@@ -757,7 +757,7 @@
 	const openVipPage = () => {
 		const redirect = '/pages/index/index?tab=' + currentTab.value
 		uni.navigateTo({
-			url: '/pagesSub/profileExtra/vip',
+			url: '/pagesSub/profileExtra/vip?redirect=' + encodeURIComponent(redirect),
 			fail: () => { uni.showToast({ title: '会员页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
@@ -767,7 +767,7 @@
 			fail: () => { uni.showToast({ title: '置顶页面打开失败，请重试', icon: 'none' }) }
 		})
 	}
-	const onHistory = () => {}
+	const onHistory = () => { uni.navigateTo({ url: '/pagesSub/profileExtra/history' }) }
 	const onSearch = () => {}
 
 	// ========== 推荐页数据 ==========
@@ -797,17 +797,17 @@
 		[
 			{ id: 2, isVip: true, name: '林悦', age: '26岁', height: '165cm', gender: '女', photo: '/static/portraits/profile-woman-alt.jpg' },
 			{ id: 3, isVip: true, name: '周思涵', age: '24岁', height: '168cm', gender: '女', photo: '/static/portraits/profile-woman-main.jpg' },
-			{ id: 2, isVip: true, name: '陈雨晴', age: '28岁', height: '162cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' }
+			{ id: 4, isVip: true, name: '陈雨晴', age: '28岁', height: '162cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' }
 		],
 		[
-			{ id: 3, isVip: true, name: '赵晓雯', age: '25岁', height: '170cm', gender: '女', photo: '/static/portraits/profile-man-light.jpg' },
-			{ id: 2, isVip: true, name: '王梓萱', age: '27岁', height: '163cm', gender: '女', photo: '/static/portraits/profile-man-sea.jpg' },
-			{ id: 3, isVip: true, name: '张俊杰', age: '30岁', height: '180cm', gender: '男', photo: '/static/portraits/profile-woman-alt.jpg' }
+			{ id: 1, isVip: true, name: '赵晓雯', age: '25岁', height: '170cm', gender: '女', photo: '/static/portraits/profile-woman-main.jpg' },
+			{ id: 5, isVip: true, name: '王梓萱', age: '27岁', height: '163cm', gender: '女', photo: '/static/portraits/profile-woman-alt.jpg' },
+			{ id: 6, isVip: true, name: '张俊杰', age: '30岁', height: '180cm', gender: '男', photo: '/static/portraits/profile-man-light.jpg' }
 		],
 		[
-			{ id: 2, isVip: true, name: '李浩然', age: '29岁', height: '178cm', gender: '男', photo: '/static/portraits/profile-woman-main.jpg' },
-			{ id: 3, isVip: true, name: '孙悦然', age: '29岁', height: '166cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' },
-			{ id: 2, isVip: true, name: '刘子轩', age: '32岁', height: '182cm', gender: '男', photo: '/static/portraits/profile-man-light.jpg' }
+			{ id: 7, isVip: true, name: '李浩然', age: '29岁', height: '178cm', gender: '男', photo: '/static/portraits/profile-man-sea.jpg' },
+			{ id: 2, isVip: true, name: '孙悦然', age: '29岁', height: '166cm', gender: '女', photo: '/static/portraits/profile-woman-community.jpg' },
+			{ id: 3, isVip: true, name: '刘子轩', age: '32岁', height: '182cm', gender: '男', photo: '/static/portraits/profile-man-light.jpg' }
 		]
 	]
 

@@ -249,12 +249,11 @@ const cityName = ref('')
 				{ key: 'latest', label: '最新' }
 			]
 		}
-		return [
-			{ key: 'all', label: '全部' },
-			{ key: 'mbti', label: 'MBTI' },
-			{ key: 'alumni', label: '校友' },
-			{ key: 'hometown', label: '同乡' }
-		]
+return [
+				{ key: 'all', label: '全部' },
+				{ key: 'mbti', label: 'MBTI' },
+				{ key: 'alumni', label: '校友' }
+			]
 	})
 
 onMounted(async () => {
