@@ -1,12 +1,17 @@
 <template>
 	<view class="parent-page">
 		<view class="page-header">
-			<view>
-				<text class="page-title">父母端</text>
-				<text class="page-subtitle">替子女认真了解，尊重每一次选择</text>
+			<view class="header-copy">
+				<view class="header-kicker"><view class="header-status-dot"></view><text>父母空间</text></view>
+				<text class="page-title">替子女认真了解</text>
+				<text class="page-subtitle">尊重每一次选择，慢一点也没关系</text>
 			</view>
 			<view class="child-chip" v-if="parentContext != null && parentContext.child != null">
-				<text>{{ parentContext.child.displayName }}</text>
+				<XsaIcon name="profile" size="small" />
+				<view class="child-chip-copy">
+					<text class="child-chip-label">正在协助</text>
+					<text class="child-chip-name">{{ parentContext.child.displayName }}</text>
+				</view>
 			</view>
 		</view>
 
@@ -160,16 +165,16 @@
 								<text class="profile-section-title">账户与资料</text>
 								<view class="profile-menu">
 									<button class="menu-row" @click="openProfileEditor">
+										<view class="menu-icon-wrap"><XsaIcon name="profile" size="small" /></view>
 										<view class="menu-copy"><text class="menu-label">资料管理</text><text class="menu-desc">维护子女对外资料</text></view>
-										<text class="menu-arrow">›</text>
 									</button>
 									<button class="menu-row" @click="showVerificationStatus">
+										<view class="menu-icon-wrap"><XsaIcon name="matchmaker" size="small" /></view>
 										<view class="menu-copy"><text class="menu-label">认证与授权</text><text class="menu-desc">查看当前身份状态</text></view>
-										<text class="menu-arrow">›</text>
 									</button>
 									<button class="menu-row" @click="showLikedOnly">
+										<view class="menu-icon-wrap"><XsaIcon name="home" size="small" /></view>
 										<view class="menu-copy"><text class="menu-label">我的喜欢</text><text class="menu-desc">查看已标记的资料</text></view>
-										<text class="menu-arrow">›</text>
 									</button>
 								</view>
 							</view>
@@ -178,18 +183,18 @@
 								<text class="profile-section-title">安全与设置</text>
 								<view class="profile-menu">
 									<button class="menu-row" @click="showSafetyCenter">
+										<view class="menu-icon-wrap"><XsaIcon name="message" size="small" /></view>
 										<view class="menu-copy"><text class="menu-label">安全中心</text><text class="menu-desc">了解举报与屏蔽规则</text></view>
-										<text class="menu-arrow">›</text>
 									</button>
 									<button class="menu-row" @click="openSettings">
+										<view class="menu-icon-wrap"><XsaIcon name="profile" size="small" /></view>
 										<view class="menu-copy"><text class="menu-label">设置</text><text class="menu-desc">管理提醒与照片隐私</text></view>
-										<text class="menu-arrow">›</text>
 									</button>
 								</view>
 							</view>
 
 							<button class="identity-switch-row" @click="switchToStandardMode">
-								<text>切换为普通身份</text><text class="menu-arrow">›</text>
+								<text>切换为普通身份</text>
 							</button>
 						</view>
 				</template>
@@ -302,6 +307,7 @@
 	import MatchmakerCard from '@/components/MatchmakerCard.uvue'
 	import XsaMessageCenter from '@/components/XsaMessageCenter.uvue'
 	import XsaSheet from '@/components/XsaSheet.uvue'
+	import XsaIcon from '@/components/XsaIcon.uvue'
 	import type { ParentContext } from '@/api'
 	import {
 		getParentAccessGate,
@@ -899,7 +905,7 @@
 
 <style scoped>
 	.parent-page {
-		height: 100vh;
+		min-height: 100vh;
 		background: var(--canvas);
 		color: var(--ink);
 		display: flex;
@@ -907,45 +913,94 @@
 	}
 
 	.page-header {
-		min-height: 92px;
-		padding: calc(18px + env(safe-area-inset-top)) 18px 16px;
+		min-height: 112px;
+		padding: calc(20px + env(safe-area-inset-top)) 20px 18px;
 		background: var(--surface);
 		border-bottom: 1px solid var(--line);
 		display: flex;
-		align-items: flex-end;
+		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: 16px;
 		flex-shrink: 0;
+	}
+
+	.header-copy {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.header-kicker {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 800;
+		letter-spacing: 0.02em;
+		color: var(--accent2);
+	}
+
+	.header-status-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--sage);
 	}
 
 	.page-title {
 		display: block;
-		font-size: 22px;
-		font-family: var(--serif);
-		font-weight: 700;
-		line-height: 1.3;
+		font-size: 24px;
+		font-family: var(--sans);
+		font-weight: 800;
+		line-height: 1.25;
+		color: var(--ink);
 	}
 
 	.page-subtitle {
 		display: block;
-		margin-top: 4px;
 		font-size: 14px;
+		line-height: 1.45;
 		color: var(--ink2);
 	}
 
 	.child-chip {
-		min-height: 48px;
-		max-width: 148px;
-		padding: 8px 12px;
-		border-radius: 8px;
+		min-height: 56px;
+		max-width: 152px;
+		padding: 10px 12px;
+		border-radius: 16px;
 		background: var(--accent-bg);
 		color: var(--accent2);
 		display: flex;
 		align-items: center;
+		gap: 8px;
 		font-size: 14px;
 		font-weight: 700;
 		line-height: 1.45;
 		word-break: break-word;
+	}
+
+	.child-chip-copy {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.child-chip-label {
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--accent2);
+	}
+
+	.child-chip-name {
+		font-size: 14px;
+		font-weight: 800;
+		color: var(--ink);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.page-scroll {
@@ -955,8 +1010,8 @@
 	}
 
 	.page-content {
-		padding: 16px 16px;
-		padding-bottom: calc(96px + env(safe-area-inset-bottom));
+		padding: 20px 16px;
+		padding-bottom: calc(112px + env(safe-area-inset-bottom));
 	}
 
 	.panel,
@@ -965,20 +1020,22 @@
 	.application-list {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: 18px;
 	}
 
 	.summary-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 12px;
+		gap: 10px;
+		padding: 4px 0;
 	}
 
 	.home-child-summary {
 		padding: 18px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 16px;
 		background: var(--surface);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.child-summary-copy {
@@ -986,11 +1043,11 @@
 	}
 
 	.summary-item {
-		min-height: 88px;
-		padding: 14px;
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		background: var(--surface);
+		min-height: 76px;
+		padding: 12px 14px;
+		border-top: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+		background: transparent;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -998,20 +1055,21 @@
 	}
 
 	.summary-value {
-		font-size: 22px;
+		font-size: 24px;
 		font-weight: 800;
 		color: var(--accent2);
 	}
 
 	.summary-label {
-		font-size: 16px;
+		font-size: 14px;
 		font-weight: 700;
+		color: var(--ink2);
 	}
 
 	.section-head {
-		min-height: 56px;
+		min-height: 52px;
 		display: flex;
-		align-items: flex-end;
+		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
 	}
@@ -1019,8 +1077,8 @@
 	.section-title {
 		display: block;
 		font-size: 20px;
-		font-family: var(--serif);
-		font-weight: 700;
+		font-family: var(--sans);
+		font-weight: 800;
 	}
 
 	.section-copy {
@@ -1036,7 +1094,7 @@
 		min-height: 48px;
 		margin: 0;
 		padding: 0 14px;
-		border-radius: 8px;
+		border-radius: 12px;
 		background: var(--paper);
 		border: 1px solid var(--line);
 		color: var(--accent2);
@@ -1047,10 +1105,10 @@
 	}
 
 	.state-panel {
-		min-height: 160px;
+		min-height: 148px;
 		padding: 20px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 16px;
 		background: var(--surface);
 		display: flex;
 		flex-direction: column;
@@ -1066,6 +1124,49 @@
 		font-weight: 700;
 	}
 
+	.profile-panel {
+		gap: 20px;
+	}
+
+	.profile-card {
+		padding: 22px;
+		border: 1px solid var(--line);
+		border-radius: 20px;
+		background: var(--surface);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.profile-name,
+	.profile-section-title,
+	.profile-eyebrow,
+	.profile-child,
+	.menu-label {
+		font-family: var(--sans);
+	}
+
+	.profile-section {
+		gap: 8px;
+	}
+
+	.profile-menu {
+		border: 1px solid var(--line);
+		border-radius: 16px;
+		box-shadow: var(--shadow-sm);
+	}
+
+	.menu-row {
+		min-height: 72px;
+		padding: 12px 16px;
+		background: var(--surface);
+	}
+
+	.identity-switch-row {
+		min-height: 52px;
+		border-radius: 14px;
+		background: var(--paper);
+		color: var(--accent2);
+	}
+
 	.state-copy {
 		font-size: 14px;
 		color: var(--ink2);
@@ -1079,7 +1180,7 @@
 		min-height: 72px;
 		padding: 12px 14px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 14px;
 		background: var(--surface);
 		display: flex;
 		align-items: center;
@@ -1127,10 +1228,11 @@
 	}
 
 	.profile-card {
-		padding: 20px;
+		padding: 22px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 20px;
 		background: var(--surface);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.profile-eyebrow,
@@ -1146,8 +1248,8 @@
 		display: block;
 		margin-top: 6px;
 		font-size: 24px;
-		font-family: var(--serif);
-		font-weight: 700;
+		font-family: var(--sans);
+		font-weight: 800;
 		line-height: 1.35;
 	}
 
@@ -1197,8 +1299,9 @@
 	.profile-access-summary {
 		padding: 14px 16px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 16px;
 		background: var(--sage-soft);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.profile-access-title {
@@ -1226,29 +1329,30 @@
 	.profile-section-title {
 		padding: 2px 2px 0;
 		color: var(--muted);
+		text-align: center;
 	}
 
 	.profile-menu {
 		overflow: hidden;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 16px;
 		background: var(--surface);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.menu-row {
 		width: 100%;
-		min-height: 68px;
 		margin: 0;
-		padding: 10px 16px;
+		padding: 12px 16px;
 		border-bottom: 1px solid var(--line);
 		border-radius: 0;
 		background: var(--surface);
 		color: var(--ink);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: center;
 		gap: 12px;
-		text-align: left;
+		text-align: center;
 	}
 
 	.profile-menu .menu-row:last-child {
@@ -1258,9 +1362,22 @@
 	.menu-copy {
 		min-width: 0;
 		display: flex;
-		flex: 1;
+		flex: 0 1 auto;
 		flex-direction: column;
+		align-items: center;
 		gap: 2px;
+	}
+
+	.menu-icon-wrap {
+		width: 40px;
+		height: 40px;
+		border-radius: 12px;
+		background: var(--accent-bg);
+		color: var(--accent2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
 	}
 
 	.menu-label {
@@ -1278,30 +1395,22 @@
 		color: var(--ink2);
 	}
 
-	.menu-arrow {
-		font-size: 24px;
-		font-weight: 400;
-		line-height: 1;
-		color: var(--muted);
-		flex-shrink: 0;
-	}
-
 	.identity-switch-row {
 		width: 100%;
-		min-height: 48px;
+		min-height: 52px;
 		margin: 2px 0 0;
 		padding: 0 16px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 14px;
 		background: var(--paper);
 		color: var(--ink2);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: center;
 		font-size: 16px;
 		font-weight: 700;
 		line-height: 1.4;
-		text-align: left;
+		text-align: center;
 	}
 
 	.profile-editor {
@@ -1335,7 +1444,7 @@
 		width: 100%;
 		padding: 12px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 12px;
 		background: var(--surface);
 		color: var(--ink);
 		font-size: 16px;
@@ -1360,7 +1469,7 @@
 	.editor-button {
 		min-height: 48px;
 		margin: 0;
-		border-radius: 8px;
+		border-radius: 12px;
 		font-size: 16px;
 		font-weight: 700;
 		line-height: 48px;
@@ -1433,7 +1542,7 @@
 		min-height: 48px;
 		margin: 4px 0 0;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 12px;
 		background: var(--paper);
 		color: var(--ink);
 		font-size: 16px;

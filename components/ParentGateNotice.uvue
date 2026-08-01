@@ -59,11 +59,12 @@
 	.gate-notice {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 16px;
+		gap: 10px;
+		padding: 18px;
 		background: var(--warm);
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 18px;
+		box-shadow: var(--shadow-sm);
 	}
 
 	.gate-notice.ready {
@@ -71,9 +72,9 @@
 	}
 
 	.gate-title {
-		font-size: 20px;
-		font-family: var(--serif);
-		font-weight: 700;
+		font-size: 18px;
+		font-family: var(--sans);
+		font-weight: 800;
 		color: var(--ink);
 	}
 
@@ -81,11 +82,12 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
+		min-height: 48px;
 	}
 
 	.gate-state {
-		width: 32px;
-		height: 32px;
+		width: 34px;
+		height: 34px;
 		border-radius: 999px;
 		background: var(--surface);
 		color: var(--accent2);
@@ -104,20 +106,20 @@
 	}
 
 	.gate-label {
-		font-size: 16px;
+		font-size: 15px;
 		font-weight: 700;
 		color: var(--ink);
 	}
 
 	.gate-desc {
-		font-size: 14px;
+		font-size: 13px;
 		color: var(--ink2);
 	}
 
 	.gate-action {
 		min-height: 48px;
 		margin: 0;
-		border-radius: 8px;
+		border-radius: 12px;
 		background: var(--accent);
 		color: var(--text-invert);
 		font-size: 16px;

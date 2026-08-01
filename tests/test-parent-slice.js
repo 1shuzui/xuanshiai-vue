@@ -364,7 +364,9 @@ expect(bottomNav, "key: 'home'", 'parent home nav item')
 expect(bottomNav, "key: 'matchmaker'", 'parent matchmaker nav item')
 expect(bottomNav, "key: 'message'", 'parent message nav item')
 expect(bottomNav, "key: 'profile'", 'parent profile nav item')
-expect(bottomNav, 'min-height: 48px', 'accessible nav targets')
+expect(bottomNav, 'min-height: 56px', 'accessible nav targets')
+expect(bottomNav, 'box-shadow: var(--shadow-md)', 'parent navigation uses the shared elevation token')
+expect(bottomNav, 'background: var(--accent-bg)', 'parent navigation exposes a clear active surface')
 expect(bottomNav, '<XsaIcon :name="item.icon" size="medium" />', 'parent navigation uses the shared icon component')
 expect(parentIcon, "/static/底部导航栏/iconfont.woff2", 'parent icons reuse the ordinary navigation font asset')
 expect(parentIcon, 'xsa-icon-home:before', 'parent home icon glyph')
@@ -377,8 +379,9 @@ expect(candidateCard, '<XsaIcon name="profile" size="large" />', 'candidate phot
 expect(candidateCard, '照片已保护', 'candidate privacy state is explicit')
 expectAbsent(candidateCard, ':src="candidate.avatar"', 'candidate list never binds a clear ordinary-user avatar')
 expect(candidateCard, 'justify-content: center', 'candidate protected icon is centered')
-expect(candidateCard, 'font-size: 22px', 'candidate primary type scale')
-expect(candidateCard, 'font-size: 16px', 'candidate body type scale')
+expect(candidateCard, 'font-size: 20px', 'candidate primary type scale')
+expect(candidateCard, 'font-size: 14px', 'candidate body type scale')
+expect(candidateCard, 'border-radius: 18px', 'candidate card uses the parent surface radius')
 expect(candidateCard, 'min-height: 48px', 'candidate action target')
 
 const gateNotice = read('components/ParentGateNotice.uvue')
@@ -399,6 +402,10 @@ expect(applySheet, 'applyParentIntroduction(props.parentContext, props.candidate
 expect(applySheet, 'min-height: 48px', 'parent application actions meet the touch target')
 
 const parentPage = read('pages/parent/parent.uvue')
+expect(parentPage, 'header-kicker', 'parent shell exposes a compact identity header')
+expect(parentPage, 'padding-bottom: calc(112px + env(safe-area-inset-bottom))', 'parent content reserves the fixed navigation area')
+expect(parentPage, 'profile-panel', 'parent profile uses the dedicated layout variant')
+expect(parentPage, '<XsaIcon name="profile" size="small" />', 'parent profile reuses ordinary iconography')
 expect(parentPage, '<ParentBottomNav', 'custom parent bottom navigation')
 expect(parentPage, '<ParentCandidateCard', 'parent candidate cards')
 expect(parentPage, '<ParentApplySheet', 'parent list uses the shared confirmation sheet')
@@ -493,6 +500,9 @@ expectAbsent(parentPage, 'demo-notice', 'parent page does not render a demo-stat
 expect(parentPage, '<ParentGateNotice', 'parent page continues to render access gates')
 expect(parentPage, '父母端设置', 'parent profile has role-specific settings')
 expect(parentPage, 'class="settings-toggle-target"', 'parent settings give the notification switch a 48px target')
+expectAbsent(parentPage, 'menu-arrow', 'parent profile menu omits decorative arrows')
+expect(parentPage, 'text-align: center;', 'parent profile titles and menu content are centered')
+expect(parentPage, '.menu-row {\n\t\twidth: 100%;\n\t\tmargin: 0;', 'parent profile menu row height follows its content')
 assert.ok(
 	parentPage.indexOf('\n\t.settings-toggle-target {') < parentPage.indexOf('\n\t@media (max-width: 360px)'),
 	'notification switch target must apply at every supported parent viewport',

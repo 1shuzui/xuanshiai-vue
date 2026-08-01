@@ -41,13 +41,13 @@ typography:
     lineHeight: 1.35
     letterSpacing: "normal"
   body:
-    fontFamily: "Inter, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontFamily: "PingFang SC, Microsoft YaHei, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.6
     letterSpacing: "normal"
   label:
-    fontFamily: "Inter, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontFamily: "PingFang SC, Microsoft YaHei, system-ui, sans-serif"
     fontSize: "12px"
     fontWeight: 700
     lineHeight: 1.45
@@ -175,7 +175,9 @@ components:
 
 ### 父母端可访问性变体
 
-父母端在页面根节点启用局部大字号变体，不修改 `uni.scss` 或普通用户页面：页面标题 22px、卡片标题 20px、正文 16px、辅助文字 14px；按钮、列表项、Tab 和图标操作的触控目标不小于 48px。行高保持至少 1.45，长文案允许自然换行，不能用缩小字号维持单行。
+父母端在页面根节点启用局部可读性变体，不修改 `uni.scss` 或普通用户页面：页面标题 24px、卡片标题 20px、正文 16px、辅助文字 13—14px；父母端 UI 使用无衬线字体，不使用叙事 serif 标题。按钮、列表项、Tab 和图标操作的触控目标不小于 48px。行高保持至少 1.45，长文案允许自然换行，不能用缩小字号维持单行。
+
+父母 shell 使用安全区感知的固定头部、可滚动内容和固定底部导航，滚动内容必须预留 `112px + env(safe-area-inset-bottom)`。身份头部以“父母空间 / 当前协助子女 / 授权状态”形成单一层级，不能让标题贴近状态栏。卡片优先使用 `16—20px` 圆角、轻边界或 `shadow-sm`，不要同时叠加厚边框和重阴影。
 
 复用组件通过 `largeText` / `large-text` 变体放大内部标题、正文、状态、空态和反馈文案。父母端的消息、申请、Sheet、Toast、红娘卡片与底部导航必须完整传递该变体，不能只放大页面外层标题。所有颜色和字体仍使用现有 Token，不建立第二套父母端色板。
 

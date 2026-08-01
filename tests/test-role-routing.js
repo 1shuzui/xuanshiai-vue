@@ -118,6 +118,20 @@ assert.ok(
   profilePage.includes("/pages/emotion-lab/emotion-lab"),
   'normal profile emotion-lab entry should use the registered route',
 )
+assert.ok(profilePage.includes('onSwitchToParent'), 'normal profile should expose the parent identity switch')
+assert.ok(profilePage.includes('ic-shuaxin'), 'parent identity switch should use the shared system icon font')
+assert.ok(
+  profilePage.includes('aria-label="切换到父母端"'),
+  'parent identity switch should expose an accessible label',
+)
+assert.ok(
+  profilePage.includes("uni.setStorageSync('xsa_onboarding_mode', 'parent')"),
+  'parent identity switch should persist parent mode',
+)
+assert.ok(
+  profilePage.includes("uni.reLaunch({ url: '/pages/parent/parent' })"),
+  'parent identity switch should enter the parent shell',
+)
 
 const parentPage = read('pages/parent/parent.uvue')
 assert.ok(parentPage.includes('切换为普通身份'), 'parent profile should expose a clear standard-role switch')

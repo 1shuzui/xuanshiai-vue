@@ -982,11 +982,19 @@
 
 		.parent-mode .scroller {
 			height: auto;
-			padding: 0 0 12px;
+			padding: 0 0 16px;
 		}
 
 		.parent-mode .parent-action {
-			min-height: 72px;
+			min-height: 76px;
+			border-radius: 16px;
+			box-shadow: var(--shadow-sm);
+		}
+
+		.parent-mode .shortcut {
+			min-height: 96px;
+			border-radius: 16px;
+			box-shadow: var(--shadow-sm);
 		}
 
 		.parent-mode .sc-title,
@@ -1009,5 +1017,10 @@
 
 		.parent-mode .app-title {
 			font-size: 16px;
+		}
+
+		.parent-mode .app-card {
+			padding: 16px;
+			border-radius: 14px;
 		}
 	</style>
