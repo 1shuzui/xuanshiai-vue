@@ -239,7 +239,10 @@
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
 						<text class="sheet-row-label">MBTI</text>
-						<picker class="sheet-row-right" mode="selector" :range="mbtiOptions" :value="mbtiPickerIndex" @change="onMbtiChange"><text class="sheet-row-value">{{ formData.mbti || '请选择' }}</text><text class="sheet-row-arrow">›</text></picker>
+						<view class="sheet-row-right" @tap="openEmotionLab">
+                            <text class="sheet-row-value">{{ formData.mbti || '未设置' }}{{ mbtiSourceLabel.length > 0 ? ' · ' + mbtiSourceLabel : '' }}</text>
+                            <text class="sheet-row-arrow">›</text>
+                        </view>
 					</view>
 					<view class="sheet-divider"></view>
 					<view class="sheet-row">
@@ -278,6 +281,8 @@
 	import { getOwnProfile, updateOwnProfile, updateOwnNickname, getOwnPreferences, uploadUserProfileMedia, deleteUserProfilePhoto, getMeProfile, getProfileCompletion, getAgreementVersions, acceptAgreement } from '@/api'
 	import { resolveMediaUrl } from '@/api/config.uts'
 	import locationJson from '@/static/location.json'
+    import { getEmotionLabSummary } from '@/api'
+    import { CURRENT_USER_ID_KEY } from '@/api/config.uts'
 
 	const loading = ref(true)
 	const refreshing = ref(false)
@@ -314,7 +319,6 @@
 	const educationOptions = ['未选择', '高中及以下', '大专', '本科', '硕士', '博士']
 	const maritalOptions = ['未选择', '未婚', '离异', '丧偶']
 	const incomeOptions = ['请选择', '小于10w', '10-20w', '30-50w', '50-100w', '100w以上', '保密']
-	const mbtiOptions = ['未选择', 'INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP']
 	const companyDirectory = ['腾讯', '阿里巴巴', '字节跳动', '华为', '京东', '美团', '小米', '网易', '比亚迪', '中国平安', '招商银行', '中国移动']
 	const companySuggestions = ref([] as string[])
 	const formData = ref({
@@ -358,7 +362,33 @@
 	})
 	const completionScore = ref(0)
 	const completionItems = ref({} as any)
-	const usingLocalDraft = ref(false)
+    const mbtiProfileSource = ref('')
+    const mbtiSourceLabel = computed(() => mbtiProfileSource.value == 'assessment' ? '来自测试结果' : mbtiProfileSource.value == 'self_reported' ? '手动设置' : '')
+    let mbtiRequestVersion = 0
+    const loadConfirmedMbti = async () => {
+        const version = ++mbtiRequestVersion
+        const accountId = String(uni.getStorageSync(CURRENT_USER_ID_KEY))
+        mbtiProfileSource.value = ''
+        try {
+            const result = await getEmotionLabSummary()
+            if (version != mbtiRequestVersion || accountId != String(uni.getStorageSync(CURRENT_USER_ID_KEY))) return
+            if (result == null || result.success != true || result.data == null) return
+            const source = result.data.profileSource
+            if (source == null) return
+            const sourceType = String(source.source)
+            if (sourceType != 'assessment' && sourceType != 'self_reported') return
+            formData.value.mbti = String(source.mbtiType)
+            mbtiProfileSource.value = sourceType
+        } catch (error) {}
+    }
+    const openEmotionLab = () => {
+        detailSheetVisible.value = false
+        uni.navigateTo({ url: '/pages/emotion-lab/emotion-lab' })
+    }
+    onShow(() => {
+        if (!loading.value) loadConfirmedMbti()
+    })
+    onHide(() => { mbtiRequestVersion += 1 })
 
 	const textValue = (value: any): string => value == null ? '' : '' + value
 	const optionalNumber = (value: any): any => {
@@ -502,21 +532,18 @@
 		try {
 			const profileRes = await getOwnProfile()
 			if (!profileRes.success || profileRes.data == null) {
-				loadError.value = profileRes.message != null ? '' + profileRes.message : '个人资料接口暂不可用'
+				loadError.value = profileRes.message || '资料加载失败，请重试'
 				return
 			}
 			profileLoaded.value = true
-			try {
-				applyProfile(profilePayload(profileRes.data))
-			} catch (profileError) {
-				console.error('[EditProfile] profile response mapping failed', profileError)
+			applyProfile(profilePayload(profileRes.data))
+            await loadConfirmedMbti()
+			const preferenceRes = await getOwnPreferences()
+			if (!preferenceRes.success || preferenceRes.data == null) {
+				loadError.value = preferenceRes.message || '择偶要求加载失败，请重试'
+				return
 			}
-			try {
-				const preferenceRes = await getOwnPreferences()
-				if (preferenceRes.success && preferenceRes.data != null) applyPreferences(preferenceRes.data)
-			} catch (preferenceError) {
-				console.error('[EditProfile] preferences unavailable', preferenceError)
-			}
+			applyPreferences(preferenceRes.data)
 			try {
 				const meRes = await getMeProfile()
 				if (meRes.success && meRes.data != null) {
@@ -595,10 +622,6 @@
 	const incomeText = computed(() => formData.value.income != '' ? textValue(formData.value.income) : '请选择')
 	const incomePickerIndex = computed(() => {
 		const index = incomeOptions.indexOf(textValue(formData.value.income))
-		return index >= 0 ? index : 0
-	})
-	const mbtiPickerIndex = computed(() => {
-		const index = mbtiOptions.indexOf(textValue(formData.value.mbti))
 		return index >= 0 ? index : 0
 	})
 	const agePreview = computed(() => {
@@ -698,10 +721,6 @@
 	const onIncomeChange = (event: any) => {
 		const index = Number(event.detail.value)
 		formData.value.income = index > 0 ? incomeOptions[index] : ''
-	}
-	const onMbtiChange = (event: any) => {
-		const index = Number(event.detail.value)
-		formData.value.mbti = index > 0 ? mbtiOptions[index] : ''
 	}
 	const onCompanyInput = (event: any) => {
 		formData.value.company = event.detail.value
@@ -983,7 +1002,6 @@
 			self_intro: textValue(formData.value.introduction) || null,
 			interest_tags: formData.value.interestTags.length >= 3 ? formData.value.interestTags.slice(0, 5) : null,
 			personality_tags: formData.value.personalityTags.length >= 3 ? formData.value.personalityTags.slice(0, 5) : null,
-			mbti: textValue(formData.value.mbti).toUpperCase() || null
 		}
 		const selections = formData.value.tagSelections
 		if (selections != null && typeof selections === 'object') {

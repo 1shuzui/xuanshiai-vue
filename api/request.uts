@@ -8,6 +8,7 @@ import {
   USE_MOCK,
   API_CONFIG,
   MOCK_DELAY,
+  CURRENT_USER_ID_KEY,
   getAccessToken,
   clearAuthTokens,
   buildApiUrl
@@ -24,6 +25,10 @@ import {
  *  - skipAuth: 跳过 Authorization
  *  - raw: true 时不包 success 层（少用）
  */
+export function getCurrentAccountKey(): string {
+  return String(uni.getStorageSync(CURRENT_USER_ID_KEY)) + ':' + getAccessToken()
+}
+
 export async function request(options: any) {
   if (USE_MOCK) {
     return mockRequest(options)
@@ -71,6 +76,13 @@ function extractDetail(data: any): string {
 }
 
 async function httpRequest(options: any) {
+  // Bind every authenticated response to the login that sent it. A late 401
+  // from a previous account must never clear a newer login.
+  const requestToken = getAccessToken()
+  const requestUserId = String(uni.getStorageSync(CURRENT_USER_ID_KEY))
+  const accountChanged = (): boolean => options.skipAuth != true &&
+    (requestToken != getAccessToken() || requestUserId != String(uni.getStorageSync(CURRENT_USER_ID_KEY)))
+  const staleResponse = (): any => ({ success: false, data: null, code: 'ACCOUNT_CHANGED', message: '登录账号已切换，请刷新后重试' })
   const methodRaw = options.method != null ? ('' + options.method).toUpperCase() : 'GET'
   const method = methodRaw
   const urlPath = options.url != null ? ('' + options.url) : ''
@@ -86,7 +98,7 @@ async function httpRequest(options: any) {
     }
   }
   if (options.skipAuth != true) {
-    const token = getAccessToken()
+    const token = requestToken
     if (token != '') {
       headers['Authorization'] = 'Bearer ' + token
     }
@@ -128,6 +140,7 @@ async function httpRequest(options: any) {
       header: headers,
       timeout: API_CONFIG.timeout,
       success: (res: any) => {
+        if (accountChanged()) { resolve(staleResponse()); return }
         const status = res.statusCode != null ? (res.statusCode as number) : 0
         const raw = res.data
         if (status == 204) {
@@ -155,6 +168,7 @@ async function httpRequest(options: any) {
         })
       },
       fail: (err: any) => {
+        if (accountChanged()) { resolve(staleResponse()); return }
         console.error('❌ [HTTP Error]', err)
         resolve({
           success: false,

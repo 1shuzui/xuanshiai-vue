@@ -1,4 +1,5 @@
 import { mockMeProfile } from './user.uts'
+import { CURRENT_USER_ID_KEY, getAccessToken } from '@/api/config.uts'
 
 const ordinaryProfile = mockMeProfile as any
 const childBirthYear = new Date().getFullYear() - Number(ordinaryProfile.age != null ? ordinaryProfile.age : 29)
@@ -54,6 +55,81 @@ function cloneChild(child: any): any {
 }
 
 export function getMockParentContextData(): any {
+    const state = getMockParentStateData()
+	return JSON.parse(JSON.stringify(state.context))
+}
+
+const parentStates: { [key: string]: any } = {}
+
+export function getParentMockSubjectKey(childId: number = 9201): string {
+    const userId = String(uni.getStorageSync(CURRENT_USER_ID_KEY)).trim()
+    if (getAccessToken() == '' || userId == '' || !Number.isFinite(childId) || childId <= 0) {
+        throw new Error('PARENT_AUTH_REQUIRED: 请重新登录')
+    }
+    return 'parent:' + encodeURIComponent(userId) + ':' + childId
+}
+
+export function getMockParentStateData(scope: string = ''): any {
+    const key = scope == '' ? getParentMockSubjectKey() : scope
+    if (key != getParentMockSubjectKey()) throw new Error('PARENT_SUBJECT_CHANGED: 父母账号或子女已变更')
+    if (parentStates[key] == null) {
+        const stored = uni.getStorageSync('xsa_parent_state_v2:' + key)
+        const seed = seedParentContext()
+        seed.parent.id = Number(uni.getStorageSync(CURRENT_USER_ID_KEY))
+        seed.id = key
+        parentStates[key] = stored != null && stored.schemaVersion == 2 && stored.context != null
+            ? JSON.parse(JSON.stringify(stored))
+            : { schemaVersion: 2, context: seed, likedUserIds: [], blockedUserIds: [], reports: [],
+                messageState: null, quotaDate: new Date().toISOString().slice(0, 10), messageNotifications: true }
+    }
+    const state = parentStates[key]
+    const today = new Date().toISOString().slice(0, 10)
+    if (state.quotaDate != today) {
+        state.context.quota.remainingApplications = state.context.quota.dailyTotal
+        state.quotaDate = today
+    }
+    return state
+}
+
+export function saveMockParentStateData(scope: string = ''): void {
+    const key = scope == '' ? getParentMockSubjectKey() : scope
+    const state = getMockParentStateData(key)
+    try {
+        uni.setStorageSync('xsa_parent_state_v2:' + key, JSON.parse(JSON.stringify(state)))
+    } catch (error) {
+        delete parentStates[key]
+        throw new Error('PARENT_STORAGE_FAILED: 保存失败，请重试')
+    }
+}
+
+export function isMockParentCandidateBlocked(candidateId: number, scope: string = ''): boolean {
+    return getMockParentStateData(scope).blockedUserIds.indexOf(candidateId) >= 0
+}
+
+export function blockMockParentCandidate(candidateId: number): any {
+    const state = getMockParentStateData()
+    if (state.blockedUserIds.indexOf(candidateId) < 0) state.blockedUserIds.push(candidateId)
+    state.likedUserIds = state.likedUserIds.filter((id: number) => id != candidateId)
+    if (state.messageState != null) {
+        state.messageState.messageList = state.messageState.messageList.filter((item: any) => item.userId != candidateId)
+        state.messageState.applications = state.messageState.applications.filter((item: any) => item.userId != candidateId)
+        delete state.messageState.chatMessagesByUser[String(candidateId)]
+    }
+    saveMockParentStateData()
+    return { success: true, internalDemo: true }
+}
+
+export function reportMockParentCandidate(candidateId: number, reasonId: string, detail: string): any {
+    const state = getMockParentStateData()
+    const existing = state.reports.find((item: any) => item.targetId == candidateId && item.reasonId == reasonId && item.detail == detail)
+    if (existing != null) return { success: true, reportId: existing.id, internalDemo: true, deduplicated: true }
+    const record = { id: state.reports.length + 1, targetId: candidateId, reasonId: reasonId, detail: detail, createdAt: Date.now(), status: 'pending' }
+    state.reports.push(record)
+    saveMockParentStateData()
+    return { success: true, reportId: record.id, internalDemo: true }
+}
+
+function seedParentContext(): any {
 	return {
 		id: mockParentContext.id,
 		mode: mockParentContext.mode,
@@ -66,7 +142,7 @@ export function getMockParentContextData(): any {
 }
 
 export function updateMockParentChildProfileData(profile: any): any {
-	const child = mockParentContext.child
+	const child = getMockParentStateData().context.child
 	child.displayName = profile.displayName
 	child.birthYear = profile.birthYear
 	child.city = profile.city
@@ -76,12 +152,15 @@ export function updateMockParentChildProfileData(profile: any): any {
 	if (profile.job.length > 0) progress += 20
 	if (profile.introduction.length > 0) progress += 20
 	child.profileProgress = progress
+    saveMockParentStateData()
 	return cloneChild(child)
 }
 
 export function syncMockParentRemainingApplicationsData(remainingApplications: number): number {
-	const total = Math.max(0, Number(mockParentContext.quota.dailyTotal))
+    const context = getMockParentStateData().context
+	const total = Math.max(0, Number(context.quota.dailyTotal))
 	const remaining = Math.min(total, Math.max(0, Number(remainingApplications)))
-	mockParentContext.quota.remainingApplications = remaining
+	context.quota.remainingApplications = remaining
+    saveMockParentStateData()
 	return remaining
 }

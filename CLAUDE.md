@@ -49,3 +49,9 @@ xuanshiai-vue/
 - AGENTS.md：可执行约束、保护文件与验证要求。
 - CLAUDE.md：目录导航、阅读顺序与运行入口。
 - PRODUCT.md、DESIGN.md：项目产品与设计参考。
+
+## 父母端与情感实验室联调说明
+
+本次入口、数据源、自动化验证和待验收说明见[父母端与情感实验室修复验收](docs/父母端与情感实验室修复验收.md)。微信构建应选HBuilderX中名为xuanshiai-vue的生产子项目；外层宣誓爱项目是另一套代码，路径前缀匹配可能选错。
+
+`scripts/verify-mp-weixin.ps1`现在使用同目录版本化的`inspect-wechat-artifact.ps1`，不依赖缺失的外部技能路径；原有预算和页面完整性检查保持有效。

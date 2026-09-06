@@ -4,7 +4,8 @@
  */
 
 import { request } from './request.uts'
-import { buildApiUrl, getAccessToken } from './config.uts'
+import { buildApiUrl, getAccessToken, USE_MOCK } from './config.uts'
+import { getParentMockSubjectKey, getMockParentStateData, saveMockParentStateData, isMockParentCandidateBlocked } from '@/mock/parent.uts'
 import {
   getMockConversationPage,
   getMockApplicationPage,
@@ -17,10 +18,13 @@ import {
   getMockContactExchanges,
   createMockContactExchange,
   respondMockContactExchange
+  , configureParentMessageRuntime
 } from '@/mock/message.uts'
 
-/** 消息切片独立使用可变 Mock，避免受全局联调开关影响。 */
-export const MESSAGE_USE_MOCK = true
+configureParentMessageRuntime(getMockParentStateData, saveMockParentStateData, isMockParentCandidateBlocked)
+
+/** 申请双方与父母端共用同一后端；Mock 仅随全局测试开关启用。 */
+export const MESSAGE_USE_MOCK = USE_MOCK
 
 export type MessageSubject = {
   mode: 'self' | 'parent'
@@ -48,6 +52,16 @@ function failResponse(message: string, code: any = -1, data: any = null): any {
 /** Cloud-function failures reject while HTTP/Mock resolve; normalize both for fail-closed UI handling. */
 async function messageRequest(options: any) {
   try {
+    if (options.data != null && options.data.subjectMode == 'parent') {
+      const childId = Number(options.data.actingChildId)
+      if (!Number.isFinite(childId) || childId <= 0) return failResponse('子女主体无效', 'ACTING_CHILD_REQUIRED')
+      options.url = '/parent/children/' + childId + options.url
+      const data = { ...options.data }
+      delete data.subjectMode
+      delete data.actingChildId
+      delete data.photoScope
+      options.data = data
+    }
     return await request(options)
   } catch (error: any) {
     return failResponse(
@@ -419,21 +433,30 @@ function resolveMessageSubject(subject: MessageSubject | null = null): any {
   if (!isPositiveInteger(childId)) {
     return { valid: false, message: '父母消息主体缺少有效子女授权', code: 'ACTING_CHILD_REQUIRED' }
   }
-  return { valid: true, mode: 'parent', childId: childId, key: 'parent:' + childId }
+  try {
+    const key = getParentMockSubjectKey(childId)
+    if (USE_MOCK) {
+      const context = getMockParentStateData(key).context
+      if (context.parent.realNameStatus != 'passed' || context.child == null || context.child.authorizationStatus != 'granted' || new Date(context.child.authorizationExpiresAt).getTime() <= Date.now()) {
+        return { valid: false, message: '子女授权已失效', code: 'CHILD_AUTHORIZATION_REQUIRED' }
+      }
+    }
+    return { valid: true, mode: 'parent', childId: childId, key: key }
+  } catch (error) {
+    return { valid: false, message: '父母登录状态已失效', code: 'PARENT_AUTH_REQUIRED' }
+  }
 }
 
 function messageSubjectFailure(subjectContext: any): any {
   return failResponse(subjectContext.message, subjectContext.code)
 }
 
-/** Parent acting-subject APIs remain Mock-only until their audited backend exists. */
+/** Parent and profile data share the selected environment. */
+function useMessageMock(subjectContext: any): boolean {
+  return subjectContext.mode == 'parent' ? USE_MOCK : MESSAGE_USE_MOCK
+}
+
 function parentBackendUnavailable(subjectContext: any): any | null {
-  if (!MESSAGE_USE_MOCK && subjectContext.mode == 'parent') {
-    return failResponse(
-      '父母端消息后端尚未开放，不能代子女使用普通用户接口',
-      'PARENT_BACKEND_NOT_AVAILABLE'
-    )
-  }
   return null
 }
 
@@ -501,7 +524,7 @@ export async function getConversationPage(
   if (parentBackendFailure != null) return parentBackendFailure
   const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
   const size = normalizedPageSize(pageSize)
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     return protectSubjectResponse(
       okResponse(protectPageAvatars(
         getMockConversationPage(cursor, size, subjectContext.key),
@@ -543,7 +566,7 @@ export async function getApplicationPage(
   }
   const size = normalizedPageSize(pageSize)
   const normalizedDirection = direction
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     return protectSubjectResponse(
       okResponse(protectPageAvatars(
         getMockApplicationPage(normalizedDirection, cursor, size, subjectContext.key),
@@ -573,13 +596,20 @@ export async function getApplicationPage(
 }
 
 /** 进入会话和加载详情前均需调用；任何不明确结果都视为不可聊天。 */
+export async function getChatSessionId(userId: number) {
+  const result = await getChatPermission(userId)
+  if (!result.success) return result
+  if (!result.data.canChat) return failResponse(result.data.reason, 'CHAT_NOT_ALLOWED')
+  return okResponse({ id: result.data.sessionId })
+}
+
 export async function getChatPermission(userId: number, subject: MessageSubject | null = null) {
   const subjectContext = resolveMessageSubject(subject)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
   const parentBackendFailure = parentBackendUnavailable(subjectContext)
   if (parentBackendFailure != null) return parentBackendFailure
   if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     const permission = getMockChatPermission(userId, subjectContext.key)
     return typeof permission.canChat == 'boolean'
       ? protectSubjectResponse(okResponse(permission), subjectContext)
@@ -611,7 +641,7 @@ export async function markAllMessagesRead(subject: MessageSubject | null = null)
   if (subjectContext.valid != true) return messageSubjectFailure(subjectContext)
   const parentBackendFailure = parentBackendUnavailable(subjectContext)
   if (parentBackendFailure != null) return parentBackendFailure
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     return protectSubjectResponse(
       normalizeCommandResponse(
         okResponse(markAllMockMessagesRead(subjectContext.key)),
@@ -670,7 +700,7 @@ export async function getChatMessages(
       : '双方同意后才能开始聊天'
     return protectSubjectResponse(failResponse(reason, 'CHAT_NOT_ALLOWED', permission), subjectContext)
   }
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     const messages = getMockChatMessages(userId, subjectContext.key)
     return protectSubjectResponse(
       okResponse(photoScope == 'protected' ? protectMessageList(messages) : messages),
@@ -749,7 +779,7 @@ export async function sendMessage(
       subjectContext
     )
   }
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     if (type != 'text') {
       return failResponse('Mock 模式不上传本地媒体，请切换真实后端后重试', 'MOCK_MEDIA_UPLOAD_NOT_SUPPORTED')
     }
@@ -795,7 +825,7 @@ export async function getApplications(
   const parentBackendFailure = parentBackendUnavailable(subjectContext)
   if (parentBackendFailure != null) return parentBackendFailure
   const photoScope = effectivePrivacyScope(privacyScope, subjectContext)
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     const incoming = getMockApplicationPage('incoming', '', 50, subjectContext.key)
     const outgoing = getMockApplicationPage('outgoing', '', 50, subjectContext.key)
     const list = incoming.list.concat(outgoing.list)
@@ -833,7 +863,7 @@ export async function uploadChatMedia(
   if (parentBackendFailure != null) return parentBackendFailure
   if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
   if (filePath == null || filePath.trim() == '') return failResponse('请选择要发送的媒体', 'EMPTY_FILE')
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     return failResponse('Mock 模式不上传本地媒体，请切换真实后端后重试', 'MOCK_MEDIA_UPLOAD_NOT_SUPPORTED')
   }
   const permissionRes = await getChatPermission(userId, subject)
@@ -884,7 +914,7 @@ export async function revokeMessage(
   if (!isPositiveInteger(messageId)) return failResponse('无效的消息', 'INVALID_MESSAGE_ID')
   const commandId = validCommandId(clientCommandId, '撤回操作')
   if (typeof commandId != 'string') return commandId
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     const result = revokeMockMessage(messageId, commandId, subjectContext.key)
     return result.success == true ? okResponse(result) : failResponse(result.message, result.code, result)
   }
@@ -905,7 +935,7 @@ export async function getContactExchanges(
   const parentBackendFailure = parentBackendUnavailable(subjectContext)
   if (parentBackendFailure != null) return parentBackendFailure
   if (!isPositiveInteger(userId)) return failResponse('无效的会话用户', 'INVALID_USER')
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     const result = getMockContactExchanges(userId, subjectContext.key)
     return result.success == true ? okResponse(result.list) : failResponse(result.message, result.code, result)
   }
@@ -933,7 +963,7 @@ export async function createContactExchange(
   if (contactType != 'phone' && contactType != 'wechat') return failResponse('不支持的联系方式类型', 'INVALID_CONTACT_TYPE')
   const commandId = validCommandId(clientCommandId, '联系方式操作')
   if (typeof commandId != 'string') return commandId
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     const result = createMockContactExchange(userId, contactType, contactValue, commandId, subjectContext.key)
     return result.success == true ? okResponse(result.exchange) : failResponse(result.message, result.code, result)
   }
@@ -960,7 +990,7 @@ export async function respondContactExchange(
   if (action != 'accept' && action != 'reject') return failResponse('不支持的处理方式', 'INVALID_ACTION')
   const commandId = validCommandId(clientCommandId, '联系方式操作')
   if (typeof commandId != 'string') return commandId
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     const result = respondMockContactExchange(exchangeId, action, commandId, subjectContext.key)
     return result.success == true ? okResponse(result.exchange) : failResponse(result.message, result.code, result)
   }
@@ -1002,7 +1032,7 @@ export async function handleApplication(
     return failResponse('申请操作唯一标识过长', 'INVALID_CLIENT_COMMAND_ID')
   }
   const resolvedClientCommandId = clientCommandId.trim()
-  if (MESSAGE_USE_MOCK) {
+  if (useMessageMock(subjectContext)) {
     const result = handleMockApplication(
       applicationId,
       action,

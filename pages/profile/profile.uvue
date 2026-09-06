@@ -1,4 +1,4 @@
-﻿<template>
+<template>
 	<view class="page">
 		<!-- 导航栏 -->
 		<view class="nav-bar" :style="{ paddingTop: (statusBarHeight + 12) + 'px', paddingRight: (menuButtonSpacing + 8) + 'px' }">
@@ -146,12 +146,16 @@
 
 	<!-- 自定义底部导航栏 -->
 	<XsaTabBar />
+    <ParentAuthorizationSheet :visible="familyAuthorizationVisible" @close="familyAuthorizationVisible = false" />
 </template>
 
 <script setup lang="uts">
 import XsaTabBar from '@/components/XsaTabBar.uvue'
 import { getProfileOverview, getProfileCompletion, getMembershipStatus } from '@/api'
 import { resolveMediaUrl } from '@/api/config.uts'
+import ParentAuthorizationSheet from '@/components/ParentAuthorizationSheet.uvue'
+const familyAuthorizationVisible = ref(false)
+onHide(() => { familyAuthorizationVisible.value = false })
 
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
@@ -362,6 +366,7 @@ const onEmotionLab = () => {
 }
 
 const mainMenuItems = [
+    { iconClass: 'ic ic-sys ic-shiming', iconBg: 'var(--surface)', label: '家人协助授权', action: () => { familyAuthorizationVisible.value = true } },
 	{ iconClass: 'ic ic-vip ic-renwu', iconBg: '#EDE4F0', label: '我的任务', badge: 'NEW', action: onMyTasks },
 	{ iconClass: 'ic ic-me ic-dongtai', iconBg: '#E4EDE8', label: '我的动态', action: onMyMoments },
 	{ iconClass: 'ic ic-home ic-heart', iconBg: '#FDE8EC', label: '我的海报', action: onMyPoster },

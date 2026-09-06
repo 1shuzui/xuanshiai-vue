@@ -8,7 +8,7 @@ const questionBankPath = path.join(root, 'mock/mbtiQuestionBank.uts')
 const apiPath = path.join(root, 'api/emotionLab.uts')
 const apiIndexPath = path.join(root, 'api/index.uts')
 const pagePath = path.join(root, 'pages/emotion-lab/emotion-lab.uvue')
-const userEditPath = path.join(root, 'pages/user/edit.uvue')
+const userEditPath = path.join(root, 'pagesSub/userExtra/user/edit.uvue')
 const userMockPath = path.join(root, 'mock/user.uts')
 const authApiPath = path.join(root, 'api/auth.uts')
 const configApiPath = path.join(root, 'api/config.uts')
@@ -641,7 +641,7 @@ async function run() {
   assert.strictEqual(discarded.status, 'discarded')
 
   const api = fs.readFileSync(apiPath, 'utf8')
-  assert.ok(api.includes('export const EMOTION_LAB_USE_MOCK = true'), 'API should expose its module mock boundary')
+  assert.ok(api.includes('export const EMOTION_LAB_USE_MOCK = USE_MOCK'), 'lab and profile must share the same data source')
   assert.ok(api.includes('configureEmotionLabMockRuntime'), 'API should configure the cross-platform storage boundary')
   assert.ok(
     api.includes('uni.getStorageSync(CURRENT_USER_ID_KEY)'),

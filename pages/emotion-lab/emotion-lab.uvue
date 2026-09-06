@@ -198,9 +198,11 @@
 </template>
 
 <script setup lang="uts">
-	import { ref, computed, onMounted } from 'vue'
+	import { ref, computed } from 'vue'
+	import { onShow, onHide } from '@dcloudio/uni-app'
 	import {
 		getEmotionLabSummary,
+		getCurrentAccountKey,
 		startMbtiAssessment,
 		saveMbtiAnswer,
 		submitMbtiAssessment,
@@ -222,6 +224,10 @@
 	const selectedType = ref('')
 	const manualConfirmed = ref(false)
 	const assessmentConfirmed = ref(false)
+	let pageGeneration = 0
+	let pageOwner = ''
+	const currentOwner = (): string => getCurrentAccountKey()
+	const isCurrentPage = (version: number): boolean => version == pageGeneration && pageOwner == currentOwner()
 	const defaultScaleLabels: string[] = ['非常不符合', '比较不符合', '不确定', '比较符合', '非常符合']
 
 	const assessment = computed(() => {
@@ -430,25 +436,33 @@
 	}
 
 	const loadSummary = async () => {
+		const generation = pageGeneration
 		loading.value = true
 		errorMessage.value = ''
 		try {
 			const res = await getEmotionLabSummary()
+			if (!isCurrentPage(generation)) return
 			if (res.success == true && res.data != null) {
 				summary.value = res.data
+				const session = res.data.activeSession
+				if (viewState.value == 'questions' && (session == null || session.status != 'in_progress')) {
+					viewState.value = session != null && session.status == 'completed' ? 'result' : 'intro'
+				}
 				if (res.data.profileSource != null) selectedType.value = res.data.profileSource.mbtiType
 			} else {
 				errorMessage.value = responseMessage(res, '请稍后重试')
 			}
 		} catch (error) {
+			if (!isCurrentPage(generation)) return
 			errorMessage.value = '请稍后重试'
 		} finally {
-			loading.value = false
+			if (isCurrentPage(generation)) loading.value = false
 		}
 	}
 
 	const handleStartAssessment = async () => {
-		if (!canStartAssessment.value || assessment.value == null) return
+		const generation = pageGeneration
+		if (starting.value || loading.value || !canStartAssessment.value || assessment.value == null) return
 		if (hasActiveDraft.value) {
 			continueAssessment()
 			return
@@ -456,6 +470,7 @@
 		starting.value = true
 		try {
 			const res = await startMbtiAssessment(assessment.value.id)
+			if (!isCurrentPage(generation)) return
 			if (res.success != true) {
 				uni.showToast({ title: responseMessage(res, '暂时无法开始测试'), icon: 'none' })
 				return
@@ -463,9 +478,10 @@
 			applySessionSnapshot(res.data)
 			continueAssessment()
 		} catch (error) {
+			if (!isCurrentPage(generation)) return
 			uni.showToast({ title: '暂时无法开始测试', icon: 'none' })
 		} finally {
-			starting.value = false
+			if (isCurrentPage(generation)) starting.value = false
 		}
 	}
 
@@ -518,6 +534,7 @@
 	}
 
 	const selectAnswer = async (value: number) => {
+		const generation = pageGeneration
 		const session: any = activeSession.value
 		const question: any = currentQuestion.value
 		if (savingAnswer.value || submitting.value || session == null || question == null) return
@@ -525,6 +542,7 @@
 		progressMessage.value = '正在保存...'
 		try {
 			const res = await saveMbtiAnswer('' + session.id, '' + question.id, value)
+			if (!isCurrentPage(generation)) return
 			if (res.success == true && res.data != null) {
 				applySessionSnapshot(res.data)
 				progressMessage.value = '已保存'
@@ -533,10 +551,11 @@
 				uni.showToast({ title: responseMessage(res, '保存失败，请重试'), icon: 'none' })
 			}
 		} catch (error) {
+			if (!isCurrentPage(generation)) return
 			progressMessage.value = '保存失败，请重试'
 			uni.showToast({ title: '保存失败，请重试', icon: 'none' })
 		} finally {
-			savingAnswer.value = false
+			if (isCurrentPage(generation)) savingAnswer.value = false
 		}
 	}
 
@@ -560,6 +579,7 @@
 	}
 
 	const submitAssessment = async () => {
+		const generation = pageGeneration
 		const session: any = activeSession.value
 		if (submitting.value || savingAnswer.value || session == null || !allAnswersComplete.value) return
 		const answers: any[] = orderedAnswers(session)
@@ -570,6 +590,7 @@
 		submitting.value = true
 		try {
 			const res = await submitMbtiAssessment('' + session.id, answers)
+			if (!isCurrentPage(generation)) return
 			if (res.success == true && res.data != null) {
 				applySessionSnapshot(res.data)
 				assessmentConfirmed.value = false
@@ -580,17 +601,20 @@
 				uni.showToast({ title: responseMessage(res, '提交失败，请重试'), icon: 'none' })
 			}
 		} catch (error) {
+			if (!isCurrentPage(generation)) return
 			uni.showToast({ title: '提交失败，请重试', icon: 'none' })
 		} finally {
-			submitting.value = false
+			if (isCurrentPage(generation)) submitting.value = false
 		}
 	}
 
 	const discardCurrentDraft = async (sessionId: string) => {
+		const generation = pageGeneration
 		if (discarding.value) return
 		discarding.value = true
 		try {
 			const res = await discardMbtiDraft(sessionId)
+			if (!isCurrentPage(generation)) return
 			if (res.success == true && res.data != null) {
 				applySessionSnapshot(res.data)
 				currentQuestionIndex.value = 0
@@ -601,9 +625,10 @@
 				uni.showToast({ title: responseMessage(res, '暂时无法放弃测试'), icon: 'none' })
 			}
 		} catch (error) {
+			if (!isCurrentPage(generation)) return
 			uni.showToast({ title: '暂时无法放弃测试', icon: 'none' })
 		} finally {
-			discarding.value = false
+			if (isCurrentPage(generation)) discarding.value = false
 		}
 	}
 
@@ -623,6 +648,7 @@
 	}
 
 	const selectManualType = (type: string) => {
+		if (savingProfile.value) return
 		selectedType.value = type
 		manualConfirmed.value = false
 	}
@@ -638,7 +664,8 @@
 	}
 
 	const saveManualType = async () => {
-		if (selectedType.value == '' || !manualConfirmed.value) return
+		const generation = pageGeneration
+		if (savingProfile.value || selectedType.value == '' || !manualConfirmed.value) return
 		savingProfile.value = true
 		try {
 			const res = await setMyMbtiType({
@@ -646,6 +673,7 @@
 				source: 'self_reported',
 				confirmed: true
 			})
+			if (!isCurrentPage(generation)) return
 			if (res.success == true) {
 				uni.showToast({ title: '已保存', icon: 'success' })
 				manualConfirmed.value = false
@@ -654,14 +682,16 @@
 				uni.showToast({ title: responseMessage(res, '保存失败，请重试'), icon: 'none' })
 			}
 		} catch (error) {
+			if (!isCurrentPage(generation)) return
 			uni.showToast({ title: '保存失败，请重试', icon: 'none' })
 		} finally {
-			savingProfile.value = false
+			if (isCurrentPage(generation)) savingProfile.value = false
 		}
 	}
 
 	const saveAssessmentType = async () => {
-		if (!assessmentConfirmed.value || completedResult.value == null) return
+		const generation = pageGeneration
+		if (savingProfile.value || !assessmentConfirmed.value || completedResult.value == null) return
 		savingProfile.value = true
 		try {
 			const res = await setMyMbtiType({
@@ -670,6 +700,7 @@
 				confirmed: true,
 				resultId: completedResult.value.id
 			})
+			if (!isCurrentPage(generation)) return
 			if (res.success == true) {
 				uni.showToast({ title: '已同步', icon: 'success' })
 				assessmentConfirmed.value = false
@@ -678,14 +709,34 @@
 				uni.showToast({ title: responseMessage(res, '同步失败，请重试'), icon: 'none' })
 			}
 		} catch (error) {
+			if (!isCurrentPage(generation)) return
 			uni.showToast({ title: '同步失败，请重试', icon: 'none' })
 		} finally {
-			savingProfile.value = false
+			if (isCurrentPage(generation)) savingProfile.value = false
 		}
 	}
 
-	onMounted(() => {
+	onShow(() => {
+		pageGeneration += 1
+		if (pageOwner != currentOwner()) {
+			viewState.value = 'intro'
+			currentQuestionIndex.value = 0
+			selectedType.value = ''
+		}
+		pageOwner = currentOwner()
+		manualConfirmed.value = false
+		assessmentConfirmed.value = false
+		starting.value = false
+		savingAnswer.value = false
+		submitting.value = false
+		discarding.value = false
+		savingProfile.value = false
 		loadSummary()
+	})
+	onHide(() => {
+		pageGeneration += 1
+		summary.value = null
+		loading.value = true
 	})
 </script>
 

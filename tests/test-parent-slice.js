@@ -113,9 +113,9 @@ assert.ok(
 	contextApi.indexOf('const authBlocked = authenticationGated()') < contextApi.indexOf('if (PARENT_USE_MOCK)'),
 	'parent context authentication must run before the internal Mock branch',
 )
-expect(api, 'export const PARENT_USE_MOCK = true', 'parent-only mock boundary is explicit')
-expect(api, 'export const PARENT_RELATIONSHIP_BACKEND_READY = false', 'relationship backend release gate is explicit')
-expect(api, 'export const PARENT_SERVER_PRIVACY_FILTER_READY = false', 'server privacy release gate is explicit')
+expect(api, 'export const PARENT_USE_MOCK = USE_MOCK', 'parent-only mock boundary is explicit')
+expect(api, 'export const PARENT_RELATIONSHIP_BACKEND_READY = true', 'relationship backend release gate is explicit')
+expect(api, 'export const PARENT_SERVER_PRIVACY_FILTER_READY = true', 'server privacy release gate is explicit')
 expect(api, 'export function getParentSubjectApiGate', 'shared subject-safety gate is explicit')
 expect(api, "code: 'PARENT_MOCK_SUBJECT_REAL_API_BLOCKED'", 'hybrid subject mismatch has an explicit error code')
 expect(api, 'export async function updateParentChildProfile', 'child profile update API')
@@ -135,7 +135,7 @@ assert.ok(gatedStart >= 0 && parentRoleGatedStart > gatedStart, 'dual-subject ga
 assert.ok(parentRoleGatedStart >= 0 && validCandidateStart > parentRoleGatedStart, 'parent-role gate should be complete')
 expect(
 	api.slice(gatedStart, parentRoleGatedStart),
-	'authenticationGated()',
+	'parentRoleGated(context)',
 	'dual-subject actions reject stale contexts after logout',
 )
 expect(
@@ -150,12 +150,12 @@ assert.ok(applyApiStart >= 0 && reportApiStart > applyApiStart, 'parent applicat
 assert.ok(reportApiStart >= 0 && blockApiStart > reportApiStart, 'parent report API should be complete')
 const applyApi = api.slice(applyApiStart, reportApiStart)
 const reportApi = api.slice(reportApiStart, blockApiStart)
-const blockApi = api.slice(blockApiStart)
+const blockApi = api.slice(blockApiStart, api.indexOf('export async function getParentPreferences'))
 expect(applyApi, 'const blocked = gated(context)', 'parent applications retain the dual-subject access gate')
 expect(reportApi, 'const blocked = parentRoleGated(context)', 'parent reports require the parent role only')
-expect(blockApi, 'const blocked = parentRoleGated(context)', 'parent blocks require the parent role only')
+expect(blockApi, 'const blocked = gated(context)', 'delegated child blocks require live authorization')
 expectAbsent(reportApi, 'const blocked = gated(context)', 'parent reports do not require real-name or child authorization')
-expectAbsent(blockApi, 'const blocked = gated(context)', 'parent blocks do not require real-name or child authorization')
+expect(api, 'PARENT_SUBJECT_CHANGED', 'stale parent contexts cannot write child data')
 expect(reportApi, 'validCandidateId(candidateId)', 'parent reports validate the candidate id')
 expect(blockApi, 'validCandidateId(candidateId)', 'parent blocks validate the candidate id')
 assert.ok(
@@ -175,7 +175,7 @@ expectAbsent(api, "city + '男士'", 'candidate adapter does not invent gendered
 expectAbsent(api, "city + '女士'", 'candidate adapter does not invent gendered city names')
 expect(api, 'syncRemainingApplications', 'successful applications refresh the parent quota')
 expect(api, 'Math.min(total, Math.max(0, reported))', 'reported quota is capped to the daily total')
-expect(api, 'quotaRefreshFailed == true', 'failed quota refresh does not invent a decrement')
+expectAbsent(api, 'current - 1', 'quota changes are owned by the persistent transition')
 expect(api, 'syncMockParentRemainingApplicationsData(remaining)', 'refreshed quota persists in the parent Mock context')
 expect(mock, 'export function syncMockParentRemainingApplicationsData', 'parent Mock exposes a scoped quota writer')
 expect(api, "from './message.uts'", 'parent reuses message business API')
@@ -185,9 +185,9 @@ expect(api, "from './matchmaker.uts'", 'parent reuses matchmaker business API')
 expect(api, "getServiceMatchmakers(parentInternalMockScope(context) != '')", 'parent matchmakers use their explicit internal adapter')
 expect(api, "getCustomMatchmakers(parentInternalMockScope(context) != '')", 'parent private customization uses its explicit internal adapter')
 expect(api, "from './community.uts'", 'parent reuses the existing safety business API')
-expect(api, "reportContent(", 'parent reports delegate to safety API')
-expect(api, "'user',", 'parent report preserves the shared user-target contract')
-expect(api, 'blockUser(candidateId)', 'parent blocks delegate to safety API')
+expect(api, "'/reports/'", 'parent reports use the scoped server safety API')
+expect(api, 'reasonId: reasonId', 'parent reports preserve the selected reason')
+expect(api, "'/blocks/'", 'parent blocks use the scoped server safety API')
 
 const gateRuntime = {
   Date,
@@ -343,9 +343,9 @@ assert.strictEqual(
 	true,
 	'an explicit parent-only mock scope stays available while global USE_MOCK is disabled',
 )
-expect(userApi, 'const parentMockLikedUserIds: { [key: string]: number[] } = {}', 'parent mock state has a separate subject store')
+expect(userApi, 'getMockParentStateData(scope).likedUserIds', 'parent likes use the durable account and child store')
 expect(userApi, 'function getParentMockLikedIds(scope: string): number[]', 'parent mock state is keyed by its explicit subject')
-expect(userApi, 'parentMockLikedUserIds[scope] = [...(mockLikedUserIds as number[])]', 'parent likes start from a copy of ordinary fixture state')
+expect(mock, 'likedUserIds: []', 'new parent accounts have their own private likes')
 expect(userApi, 'if (isParentMockScope(internalMockScope))', 'user API has an explicit internal review branch')
 expect(userApi, 'getParentMockLikedIds(internalMockScope)', 'internal review operations resolve isolated state')
 expect(communityMock, 'export const mockLikedUserIds: number[] = [7]', 'review fixture includes a liked candidate outside recommendations')
