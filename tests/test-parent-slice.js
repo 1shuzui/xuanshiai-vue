@@ -101,7 +101,7 @@ expect(api, "code: 'PARENT_AUTH_REQUIRED'", 'missing parent account session has 
 expect(api, 'clearAuthTokens()', 'partial parent sessions clear stale account and role state')
 expect(api, 'export function canParentViewClearPhoto', 'shared detail photo privacy gate')
 expect(api, 'parentViewAllowed == true', 'photo visibility requires explicit child consent')
-expect(api, "code: 'PARENT_REALNAME_REQUIRED'", 'parent real-name rejection')
+expect(api, "'PARENT_REALNAME_REQUIRED'", 'parent real-name rejection')
 expect(api, "'CHILD_AUTHORIZATION_EXPIRED' : 'CHILD_AUTHORIZATION_REQUIRED'", 'child authorization rejection')
 expect(api, 'export async function getParentContext', 'parent context API')
 const contextApiStart = api.indexOf('export async function getParentContext')
@@ -114,8 +114,6 @@ assert.ok(
 	'parent context authentication must run before the internal Mock branch',
 )
 expect(api, 'export const PARENT_USE_MOCK = USE_MOCK', 'parent-only mock boundary is explicit')
-expect(api, 'export const PARENT_RELATIONSHIP_BACKEND_READY = true', 'relationship backend release gate is explicit')
-expect(api, 'export const PARENT_SERVER_PRIVACY_FILTER_READY = true', 'server privacy release gate is explicit')
 expect(api, 'export function getParentSubjectApiGate', 'shared subject-safety gate is explicit')
 expect(api, "code: 'PARENT_MOCK_SUBJECT_REAL_API_BLOCKED'", 'hybrid subject mismatch has an explicit error code')
 expect(api, 'export async function updateParentChildProfile', 'child profile update API')
@@ -158,10 +156,7 @@ expectAbsent(reportApi, 'const blocked = gated(context)', 'parent reports do not
 expect(api, 'PARENT_SUBJECT_CHANGED', 'stale parent contexts cannot write child data')
 expect(reportApi, 'validCandidateId(candidateId)', 'parent reports validate the candidate id')
 expect(blockApi, 'validCandidateId(candidateId)', 'parent blocks validate the candidate id')
-assert.ok(
-	(api.match(/subjectGated\(context\)/g) || []).length >= 4,
-	'candidate browsing, likes, and applications should retain subject isolation',
-)
+expect(api.slice(gatedStart, parentRoleGatedStart), 'getParentSubjectApiGate(context, parentInternalMockScope(context))', 'all delegated actions share the subject check')
 console.log('PASS parent candidate subject isolation remains enforced')
 expect(api, "from './user.uts'", 'parent reuses the existing user business API')
 expect(api, 'getRecommendUsers(parentInternalMockScope(context))', 'parent recommendations delegate with an isolated subject')
@@ -176,15 +171,12 @@ expectAbsent(api, "city + '女士'", 'candidate adapter does not invent gendered
 expect(api, 'syncRemainingApplications', 'successful applications refresh the parent quota')
 expect(api, 'Math.min(total, Math.max(0, reported))', 'reported quota is capped to the daily total')
 expectAbsent(api, 'current - 1', 'quota changes are owned by the persistent transition')
-expect(api, 'syncMockParentRemainingApplicationsData(remaining)', 'refreshed quota persists in the parent Mock context')
-expect(mock, 'export function syncMockParentRemainingApplicationsData', 'parent Mock exposes a scoped quota writer')
 expect(api, "from './message.uts'", 'parent reuses message business API')
 expect(api, "getApplications('protected', subject)", 'parent application list delegates with protected photo scope and child subject')
 expect(api, "getMessageList('protected', subject)", 'parent message list delegates with protected photo scope and child subject')
 expect(api, "from './matchmaker.uts'", 'parent reuses matchmaker business API')
 expect(api, "getServiceMatchmakers(parentInternalMockScope(context) != '')", 'parent matchmakers use their explicit internal adapter')
 expect(api, "getCustomMatchmakers(parentInternalMockScope(context) != '')", 'parent private customization uses its explicit internal adapter')
-expect(api, "from './community.uts'", 'parent reuses the existing safety business API')
 expect(api, "'/reports/'", 'parent reports use the scoped server safety API')
 expect(api, 'reasonId: reasonId', 'parent reports preserve the selected reason')
 expect(api, "'/blocks/'", 'parent blocks use the scoped server safety API')
@@ -193,8 +185,6 @@ const gateRuntime = {
   Date,
   String,
   isNaN,
-	PARENT_RELATIONSHIP_BACKEND_READY: false,
-	PARENT_SERVER_PRIVACY_FILTER_READY: false,
 }
 gateRuntime.globalThis = gateRuntime
 vm.runInNewContext(
@@ -246,9 +236,10 @@ assert.strictEqual(
 		dataMode: 'http',
 		releaseGate: { productionReady: true },
 	}).allowed,
-	false,
-	'a real-data context must remain blocked until both hard release gates are enabled',
+	true,
+	'a valid HTTP context uses the capability reported by the server',
 )
+assert.strictEqual(gateRuntime.getParentAccessGate({ ...validContext, dataMode: 'http' }).allowed, false, 'an unavailable server capability blocks HTTP access')
 assert.strictEqual(
   gateRuntime.getParentAccessGate(unverifiedParent).childAuthorized,
   true,

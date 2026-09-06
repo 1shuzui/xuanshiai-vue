@@ -50,6 +50,11 @@ async function main() {
   const blockedSession = messages.getChatSessionId(404)
   pending.shift().success({ statusCode: 200, data: { userId: 404, canChat: false, sessionId: null, reason: '双方同意后才能开始聊天' } })
   assert.equal((await blockedSession).code, 'CHAT_NOT_ALLOWED')
+  const parentPermission = messages.getChatPermission(303, { mode: 'parent', childId: 9201 })
+  const parentPermissionRequest = pending.shift()
+  assert.ok(parentPermissionRequest.url.includes('/parent/children/9201/message/chat/permission?userId=303'))
+  parentPermissionRequest.success({ statusCode: 403, data: { detail: '子女授权已撤销' } })
+  assert.equal((await parentPermission).success, false, 'revoked server authorization cannot fall back to ordinary-user messages')
   console.log('PASS account response isolation, stale 401 protection and shared message backend')
   console.log('PASS parent HTTP pagination and explicit private-like contract')
 }

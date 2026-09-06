@@ -155,12 +155,3 @@ export function updateMockParentChildProfileData(profile: any): any {
     saveMockParentStateData()
 	return cloneChild(child)
 }
-
-export function syncMockParentRemainingApplicationsData(remainingApplications: number): number {
-    const context = getMockParentStateData().context
-	const total = Math.max(0, Number(context.quota.dailyTotal))
-	const remaining = Math.min(total, Math.max(0, Number(remainingApplications)))
-	context.quota.remainingApplications = remaining
-    saveMockParentStateData()
-	return remaining
-}

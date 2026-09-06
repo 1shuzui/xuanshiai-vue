@@ -18,7 +18,7 @@ assert.match(chat, /sendMessageApi\([\s\S]*?message\.clientMessageId,[\s\S]*?sub
 assert.match(chat, /isParentMode && message\.protectedContent/, 'parent chat must protect non-text message content')
 assert.match(chat, /:parent-context="activeParentContext"/, 'parent reports must use the active parent context')
 assert.match(chat, /onShow\(\(\) => \{[\s\S]*?verifyChatPermission\(\)/, 'chat must revalidate the parent subject when shown')
-assert.match(messageApi, /function parentBackendUnavailable/, 'message API must fail closed when parent backend access is unavailable')
+assert.match(messageApi, /'\/parent\/children\/' \+ childId \+ options.url/, 'parent messages use the server-authorized child route')
 assert.match(messageApi, /actingChildId/, 'message API must serialize the authorized child claim')
 assert.match(parentApi, /export async function getParentMessages/, 'parent message entry point must remain available')
 assert.match(parentApi, /getMessageList\('protected', subject\)/, 'parent message list must use the protected subject scope')

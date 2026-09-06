@@ -59,11 +59,19 @@ async function main() {
   const candidate = candidates.find(item => !existing.some(application => application.userId === item.id))
   assert.ok(candidate)
   const before = context.quota.remainingApplications
+  let stateWrites = 0
+  const store = r.storage.set.bind(r.storage)
+  r.storage.set = (key, value) => {
+    if (key.startsWith('xsa_parent_state_v2:')) stateWrites++
+    return store(key, value)
+  }
   const applied = await api.applyParentIntroduction(context, candidate.id, '认真了解')
   assert.equal(applied.success, true)
   assert.equal(applied.data.success, true)
+  assert.equal(stateWrites, 1, 'an application and its quota are saved together once')
   const repeated = await api.applyParentIntroduction(context, candidate.id, '认真了解')
   assert.equal(repeated.data.applicationId, applied.data.applicationId)
+  assert.equal(stateWrites, 1, 'replaying a completed application must not rewrite its quota')
   assert.equal(context.quota.remainingApplications, before - 1)
   const messages = await api.getParentApplications(context)
   assert.ok(JSON.stringify(messages.data).includes(String(candidate.id)), 'outgoing application missing')
