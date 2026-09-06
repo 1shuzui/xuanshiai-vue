@@ -582,7 +582,7 @@ export async function toggleParentLike(context: ParentContext | null, candidateI
         if (desiredLiked == null) return failureResponse('请刷新资料后设置喜欢状态', 'LIKE_STATE_REQUIRED')
         return request({ url: '/parent/children/' + context.child.id + '/likes/' + candidateId, method: 'PUT', data: { liked: desiredLiked } })
     }
-	return likeUser(candidateId, parentInternalMockScope(context))
+	return likeUser(candidateId, parentInternalMockScope(context), desiredLiked)
 }
 
 export async function applyParentIntroduction(

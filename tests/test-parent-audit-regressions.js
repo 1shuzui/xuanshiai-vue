@@ -59,6 +59,11 @@ async function main() {
   const candidate = candidates.find(item => !existing.some(application => application.userId === item.id))
   assert.ok(candidate)
   const before = context.quota.remainingApplications
+  assert.equal((await api.toggleParentLike(context, candidate.id, true)).data.liked, true)
+  assert.equal((await api.toggleParentLike(context, candidate.id, true)).data.liked, true, 'repeating a desired like must keep it selected')
+  assert.equal((await api.getParentLikedCandidates(context)).data.filter(item => item.id === candidate.id).length, 1)
+  assert.equal((await api.toggleParentLike(context, candidate.id, false)).data.liked, false)
+  assert.equal((await api.toggleParentLike(context, candidate.id, false)).data.liked, false)
   let stateWrites = 0
   const store = r.storage.set.bind(r.storage)
   r.storage.set = (key, value) => {

@@ -755,11 +755,13 @@ export async function applyToMeet(userId: number, message: string, internalMockS
  * Mock：toggle mockLikedUserIds
  * 真路径：PUT 喜欢 / DELETE 取消；先查 relations/likes 判断当前状态
  */
-export async function likeUser(userId: number, internalMockScope: string = '') {
+export async function likeUser(userId: number, internalMockScope: string = '', desiredLiked: boolean | null = null) {
   if (isParentMockScope(internalMockScope)) {
     if (isMockParentCandidateBlocked(userId, internalMockScope)) return failRes('资料不可用', 'CANDIDATE_UNAVAILABLE')
     const ids = getParentMockLikedIds(internalMockScope)
-    const liked = !isMockLiked(userId, ids)
+    const currentLiked = isMockLiked(userId, ids)
+    const liked = desiredLiked == null ? !currentLiked : desiredLiked
+    if (liked == currentLiked) return okRes({ success: true, liked: liked, userId: userId, internalDemo: true })
     if (liked) {
       ids.push(userId)
     } else {
