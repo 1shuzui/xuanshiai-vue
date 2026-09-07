@@ -6,7 +6,8 @@ const root = path.resolve(__dirname, '..')
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
 
 const pages = JSON.parse(read('pages.json'))
-const paths = pages.pages.map((item) => item.path)
+const declaredPages = [...pages.pages, ...pages.subPackages.flatMap(sub => sub.pages.map(page => ({ ...page, path: `${sub.root}/${page.path}` })))]
+const paths = declaredPages.map((item) => item.path)
 const expectedNewRoutes = [
   'pages/parent/parent',
   'pages/parent/user-detail',
@@ -17,7 +18,7 @@ for (const route of expectedNewRoutes) {
   assert.ok(paths.includes(route), `pages.json should register ${route}`)
 }
 
-const parentDetailRoute = pages.pages.find((item) => item.path === 'pages/parent/user-detail')
+const parentDetailRoute = declaredPages.find((item) => item.path === 'pages/parent/user-detail')
 assert.strictEqual(
   parentDetailRoute.style.navigationStyle,
   'custom',

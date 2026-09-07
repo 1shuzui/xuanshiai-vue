@@ -280,7 +280,7 @@
 <script setup lang="uts">
 	import { getOwnProfile, updateOwnProfile, updateOwnNickname, getOwnPreferences, uploadUserProfileMedia, deleteUserProfilePhoto, getMeProfile, getProfileCompletion, getAgreementVersions, acceptAgreement } from '@/api'
 	import { resolveMediaUrl } from '@/api/config.uts'
-	import locationJson from '@/static/location.json'
+	import locationJson from '@/utils/data/location.json'
     import { getEmotionLabSummary } from '@/api'
     import { CURRENT_USER_ID_KEY } from '@/api/config.uts'
 

@@ -150,7 +150,7 @@ import XsaPaymentSheet from '@/components/XsaPaymentSheet.uvue'
 import XsaSpotlightSuccessSheet from '@/components/XsaSpotlightSuccessSheet.uvue'
 import { getUserDetail, likeUser, getOwnProfile, getMyPosts, getMembershipStatus, getUserVisitorCount, saveAiAvatarProfileSnapshot } from '@/api'
 import { resolveMediaUrl, getAccessToken } from '@/api/config.uts'
-import locationJson from '@/static/location.json'
+import locationJson from '@/utils/data/location.json'
 import { SPOTLIGHT_AMOUNT, paySpotlight } from '@/api/spotlight.uts'
 import { guardRealName } from '@/utils/realNameGate.uts'
 

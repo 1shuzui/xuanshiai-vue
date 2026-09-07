@@ -49,28 +49,29 @@
 			@tap="onButtonTap"
 		>
 			<view v-if="convState == 'idle'" class="vc-mic-zone">
-				<text class="vc-ic vc-ic-yuyin"></text>
+				<XsaIcon class="vc-ic vc-ic-yuyin" name="social-yuyin" size="inherit" />
 			</view>
 			<view v-if="convState == 'listening'" class="vc-mic-zone vc-mic-zone-active">
 				<view class="vc-pulse-ring"></view>
 				<view class="vc-pulse-ring vc-pulse-ring-2"></view>
 				<view class="vc-pulse-ring vc-pulse-ring-3"></view>
-				<text class="vc-ic vc-ic-yuyin vc-mic-icon-active"></text>
+				<XsaIcon class="vc-ic vc-ic-yuyin vc-mic-icon-active" name="social-yuyin" size="inherit" />
 			</view>
 			<view v-if="convState == 'processing'" class="vc-mic-zone">
 				<view class="vc-spinner"></view>
 			</view>
 			<view v-if="convState == 'speaking'" class="vc-mic-zone">
-				<text class="vc-ic vc-ic-pinglun"></text>
+				<XsaIcon class="vc-ic vc-ic-pinglun" name="social-pinglun" size="inherit" />
 			</view>
 			<view v-if="convState == 'reviewing'" class="vc-mic-zone">
-				<text class="vc-ic vc-ic-yuyin"></text>
+				<XsaIcon class="vc-ic vc-ic-yuyin" name="social-yuyin" size="inherit" />
 			</view>
 		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
+import XsaIcon from '@/components/XsaIcon.uvue'
 import VoiceWaveform from './VoiceWaveform.uvue'
 	import { VoiceWS } from '@/api/voice-ws.uts'
 	import { TTSPlayer } from '@/utils/tts-player.uts'
@@ -334,11 +335,6 @@ defineExpose({ reset, start, stop, listen, revise })
 
 <style scoped>
 /* 单色描边图标(复用项目 iconfont 字库:社区互动与信息) */
-@font-face {
-	font-family: "iconfont-social";
-	src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'),
-		url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff') format('woff');
-}
 .vc-ic {
 	font-family: "iconfont-social" !important;
 	font-style: normal;
@@ -347,9 +343,6 @@ defineExpose({ reset, start, stop, listen, revise })
 	font-size: 26px;
 	color: var(--ink);
 }
-.vc-ic-yuyin:before { content: "\e888"; }
-.vc-ic-pinglun:before { content: "\e679"; }
-
 .vc-area {
 	display: flex;
 	flex-direction: column;

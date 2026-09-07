@@ -2,7 +2,7 @@
 	<view class="matchmaker-page">
 		<view class="page-shell">
 			<view v-if="currentTabValue !== 'ai'" class="page-head">
-				<image class="page-head-art" src="/static/generated/matchmaker-hero-calligraphy.png" mode="aspectFill"></image>
+				<image :webp="true" class="page-head-art" src="/static/generated/matchmaker-hero-calligraphy.webp" mode="aspectFill"></image>
 				<text class="page-kicker">牵线</text>
 				<text class="page-desc">服务红娘负责匹配推进，私人定制负责长期陪跑，AI 红娘负责梳理线索与破冰建议。</text>
 			</view>
@@ -86,7 +86,7 @@
 
 					<view v-if="currentTabValue === 'custom'" class="tab-panel">
 						<view class="custom-home-hero">
-							<image class="custom-home-hero-art" src="/static/generated/matchmaker-custom-calligraphy.png" mode="aspectFill"></image>
+							<image :webp="true" class="custom-home-hero-art" src="/static/generated/matchmaker-custom-calligraphy.webp" mode="aspectFill"></image>
 							<view class="custom-home-copy">
 								<text class="custom-home-kicker">私人定制服务</text>
 								<text class="custom-home-title">专属红娘，认真陪你靠近</text>
@@ -147,7 +147,7 @@
 						</view>
 
 						<view class="ai-profile-card">
-							<image class="ai-profile-avatar" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
+							<image :webp="true" class="ai-profile-avatar" src="/static/portraits/profile-woman-main.jpg" mode="aspectFill"></image>
 							<view class="ai-profile-copy">
 								<text class="ai-profile-name">小缘助手</text>
 								<text class="ai-profile-subtitle">关系沟通助手</text>

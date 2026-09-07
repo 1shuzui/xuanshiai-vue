@@ -192,8 +192,8 @@ import MatchmakerAvatar from '@/components/MatchmakerAvatar.uvue'
 import { getServiceMatchmakers, getCustomMatchmakers, getMatchmakerDetail } from '@/api'
 import { mockMatchmakerContact } from '@/mock'
 
-const matchmakerCaseImageA = '/static/cases/wuhan-zhou-zheng.jpg'
-const matchmakerCaseImageB = '/static/cases/shenzhen-zhang-liu.jpg'
+const matchmakerCaseImageA = '/pagesSub/matchmaker/static/cases/wuhan-zhou-zheng.jpg'
+const matchmakerCaseImageB = '/pagesSub/matchmaker/static/cases/shenzhen-zhang-liu.jpg'
 
 const fallbackMatchmaker = {
 	id: 1,

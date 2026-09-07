@@ -1,0 +1,500 @@
+{
+  "sourceRevision": "6a3e659de0e2327ff041f913705944a326f8fe4e",
+  "encoder": "Pillow 12.3.0",
+  "assets": [
+    {
+      "source": "static/cases/beijing-zhao-wu.jpg",
+      "path": "pagesSub/matchmaker/static/cases/beijing-zhao-wu.jpg",
+      "sourceSha256": "d4545cd4e9473c6e1826004093241812fbea65ea919dc8bf4c4530c3d8e530e4",
+      "sha256": "d4545cd4e9473c6e1826004093241812fbea65ea919dc8bf4c4530c3d8e530e4",
+      "originalBytes": 99981,
+      "bytes": 99981,
+      "size": [
+        960,
+        641
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": true
+    },
+    {
+      "source": "static/cases/chengdu-yang-sun.jpg",
+      "path": "pagesSub/matchmaker/static/cases/chengdu-yang-sun.jpg",
+      "sourceSha256": "1456073fe49615809f87b232f316b5454d8eddc81ec1e3174084e9b2b6386b6b",
+      "sha256": "08fa7ffcffbea2cf91d2031fabb4427720feed7f309da829ad4ab466eb643bac",
+      "originalBytes": 77058,
+      "bytes": 70985,
+      "size": [
+        960,
+        640
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/cases/guangzhou-chen-huang.jpg",
+      "path": "pagesSub/matchmaker/static/cases/guangzhou-chen-huang.jpg",
+      "sourceSha256": "066d9d354630e66e1a736411baa18fed9628b4d9fdfb5ecdab3209a2b1e83f69",
+      "sha256": "066d9d354630e66e1a736411baa18fed9628b4d9fdfb5ecdab3209a2b1e83f69",
+      "originalBytes": 65240,
+      "bytes": 65240,
+      "size": [
+        960,
+        640
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": true
+    },
+    {
+      "source": "static/cases/hangzhou-lin-wang.jpg",
+      "path": "pagesSub/matchmaker/static/cases/hangzhou-lin-wang.jpg",
+      "sourceSha256": "06cf8d397f5b65bc8dac7639ee368f9d57b8115c37a33fa9c687d56b1ae0e53b",
+      "sha256": "c5034a7ff8133e3ad40a6fe6c94554352dd2e5b7ea04ac91b7a9fd0fbd3682f5",
+      "originalBytes": 58786,
+      "bytes": 50501,
+      "size": [
+        960,
+        640
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/cases/nanjing-zhou-zhao.jpg",
+      "path": "pagesSub/matchmaker/static/cases/nanjing-zhou-zhao.jpg",
+      "sourceSha256": "13f222cf6a8c4b38448980744f049e38a5ab7264a1816be611babcf1197eb45d",
+      "sha256": "909b98e43a11fec9bc0cc4114e41e8a26cd3da9f9c591591bf20fa7d25fbb17e",
+      "originalBytes": 75948,
+      "bytes": 64621,
+      "size": [
+        960,
+        641
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/cases/shanghai-chen-li.jpg",
+      "path": "pagesSub/matchmaker/static/cases/shanghai-chen-li.jpg",
+      "sourceSha256": "b9453f24a4eae24d4501d08800e16d6a38124eb23698423b2fbb5c224b5a466d",
+      "sha256": "b9453f24a4eae24d4501d08800e16d6a38124eb23698423b2fbb5c224b5a466d",
+      "originalBytes": 86858,
+      "bytes": 86858,
+      "size": [
+        960,
+        640
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": true
+    },
+    {
+      "source": "static/cases/shenzhen-zhang-liu.jpg",
+      "path": "pagesSub/matchmaker/static/cases/shenzhen-zhang-liu.jpg",
+      "sourceSha256": "66364592121dd1d98350b87e1f1bc49b108471f1e020c2b4a3e5868b56bad84f",
+      "sha256": "87158a034e3f8776c57cfcf3b4752ce3182328bc3968a60f1e0a908cb573eaff",
+      "originalBytes": 114075,
+      "bytes": 96121,
+      "size": [
+        960,
+        641
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/cases/wuhan-zhou-zheng.jpg",
+      "path": "pagesSub/matchmaker/static/cases/wuhan-zhou-zheng.jpg",
+      "sourceSha256": "de834b0893c42056ab35cd2e409a400f895115a779284f8b6e4db855cac8164a",
+      "sha256": "6296f2f09e81a328a0df3030fac472b08d0b6f8163631c2c3e2054ebadfbba5d",
+      "originalBytes": 246068,
+      "bytes": 129903,
+      "size": [
+        640,
+        960
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/generated/matchmaker-custom-calligraphy.png",
+      "path": "static/generated/matchmaker-custom-calligraphy.webp",
+      "sourceSha256": "4dd0c3da2bc304e6a40a31d829ed39f981d9278892687839f6db125ed8b4b6d6",
+      "sha256": "06fdcd2dc61bc30d440845c34218f42784eb473abe8e3f072e85277f5b67dd39",
+      "originalBytes": 939647,
+      "bytes": 63406,
+      "size": [
+        1284,
+        550
+      ],
+      "format": "WEBP",
+      "maxEdge": 1284,
+      "encoderOptions": {
+        "quality": 84,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/generated/matchmaker-hero-calligraphy.png",
+      "path": "static/generated/matchmaker-hero-calligraphy.webp",
+      "sourceSha256": "917a3bfa7d6b66d8254bf9abe6a9ff144897b6f9991cdb206e0edad0c0d5f850",
+      "sha256": "903ed11b6d401ef7e1e2646e456ea3a18765c6025a1964d8d96e8b4558763610",
+      "originalBytes": 1207697,
+      "bytes": 62254,
+      "size": [
+        1284,
+        642
+      ],
+      "format": "WEBP",
+      "maxEdge": 1284,
+      "encoderOptions": {
+        "quality": 84,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/moxiang-master-idle.png",
+      "path": "pagesSub/profileExtra/static/master/moxiang-master-idle.webp",
+      "sourceSha256": "b5ee23d01624a924d619414008093f00930e7ca97cf790024c543581f1d75eaf",
+      "sha256": "c84cab4c334f19bc5c55d405c681c9fc6c71fee2238c5c1e0d73cfa2f713ad95",
+      "originalBytes": 1212796,
+      "bytes": 22110,
+      "size": [
+        320,
+        320
+      ],
+      "format": "WEBP",
+      "maxEdge": 320,
+      "encoderOptions": {
+        "quality": 84,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/moxiang-master-listening.png",
+      "path": "pagesSub/profileExtra/static/master/moxiang-master-listening.webp",
+      "sourceSha256": "2f263295e25e841ced1f29a225d28e3dcb213a27b1e2748db457f44f9f63a31d",
+      "sha256": "dc124515e03ca47305146210477958ee6111699b3fa82b917f0f42c797a0f0f8",
+      "originalBytes": 1262802,
+      "bytes": 21018,
+      "size": [
+        320,
+        320
+      ],
+      "format": "WEBP",
+      "maxEdge": 320,
+      "encoderOptions": {
+        "quality": 84,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/moxiang-master-speaking.png",
+      "path": "pagesSub/profileExtra/static/master/moxiang-master-speaking.webp",
+      "sourceSha256": "850e998c2d37ee0ad335f26e602a6b74d6d04801a6f91b0d7e7f894bbdad8c95",
+      "sha256": "687d9b0a36db1b9ff0e279b8da0268f73f6accf19143a8eab475cb01b94388c1",
+      "originalBytes": 1226516,
+      "bytes": 20724,
+      "size": [
+        320,
+        320
+      ],
+      "format": "WEBP",
+      "maxEdge": 320,
+      "encoderOptions": {
+        "quality": 84,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/moxiang-master-thinking.png",
+      "path": "pagesSub/profileExtra/static/master/moxiang-master-thinking.webp",
+      "sourceSha256": "0c30b2717e0907904d8a4b12b4764a87a36f472165b50e96e88f98975d0e07fc",
+      "sha256": "bcc41f0a465e8f88d7ec2e67619056494993003984a0a398e0b36e630671c82e",
+      "originalBytes": 1238362,
+      "bytes": 22072,
+      "size": [
+        320,
+        320
+      ],
+      "format": "WEBP",
+      "maxEdge": 320,
+      "encoderOptions": {
+        "quality": 84,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/portraits/custom-matchmaker-hero.jpg",
+      "path": "pagesSub/matchmaker/static/custom-matchmaker-hero.jpg",
+      "sourceSha256": "9f0eae45be0bef1dde56643c3c960f8e663b0dd4354e90384892d3abf1618cd6",
+      "sha256": "7ed59b995099a37bf917bfb4f4d63b017e35a5802152c7a8349e6346dff627cc",
+      "originalBytes": 109738,
+      "bytes": 48296,
+      "size": [
+        640,
+        960
+      ],
+      "format": "JPEG",
+      "maxEdge": 960,
+      "encoderOptions": {
+        "quality": 84,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/portraits/profile-man-alt.jpg",
+      "path": "static/portraits/profile-man-alt.jpg",
+      "sourceSha256": "8bbf312791608475fedb6702b64d31cd144ed3ac892fbe2a7b5c08b4b44ec886",
+      "sha256": "6b1099d2a0f9fff77f33b794b79b5c6133df6d799906ca945110a7c828bcdf5d",
+      "originalBytes": 238364,
+      "bytes": 106183,
+      "size": [
+        768,
+        1152
+      ],
+      "format": "JPEG",
+      "maxEdge": 1152,
+      "encoderOptions": {
+        "quality": 80,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/portraits/profile-man-light.jpg",
+      "path": "static/portraits/profile-man-light.jpg",
+      "sourceSha256": "63c61e1b974117613155fef0032293ba040408c4feb8991fa0fcb5e08b7a3196",
+      "sha256": "2193aaacd44f46a3ad785dc2c69b27e3eb32fbbdda15b28a51d988925cddd9af",
+      "originalBytes": 220932,
+      "bytes": 102652,
+      "size": [
+        768,
+        1152
+      ],
+      "format": "JPEG",
+      "maxEdge": 1152,
+      "encoderOptions": {
+        "quality": 80,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/portraits/profile-man-sea.jpg",
+      "path": "static/portraits/profile-man-sea.jpg",
+      "sourceSha256": "639d5f6cbd82fe374b43e808d959429269ac1a261f3c1fd0433327113519819a",
+      "sha256": "5d5a2d472a172e73f22fc13492a8a36c66defdd8ffa3d3b01c29744bcb289640",
+      "originalBytes": 121252,
+      "bytes": 56888,
+      "size": [
+        768,
+        1152
+      ],
+      "format": "JPEG",
+      "maxEdge": 1152,
+      "encoderOptions": {
+        "quality": 80,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/portraits/profile-woman-alt.jpg",
+      "path": "static/portraits/profile-woman-alt.jpg",
+      "sourceSha256": "4f41f40bc7c32488894c29dee699141a5131c32fb741a959abf9252adc93807e",
+      "sha256": "bd688faa15d0f6277f18ba71583ae9851061f705d487b7446f9e337958949cbd",
+      "originalBytes": 293703,
+      "bytes": 117958,
+      "size": [
+        768,
+        1152
+      ],
+      "format": "JPEG",
+      "maxEdge": 1152,
+      "encoderOptions": {
+        "quality": 80,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/portraits/profile-woman-community.jpg",
+      "path": "static/portraits/profile-woman-community.jpg",
+      "sourceSha256": "dacc238fa0df8d3668966dc0a78633e7f2534825350eb410cd204dc2f6175ca0",
+      "sha256": "6b1dfdcfa97968ce0b82a564766c9bec9f20677cdd6967e75442173241b59906",
+      "originalBytes": 213875,
+      "bytes": 109895,
+      "size": [
+        768,
+        1152
+      ],
+      "format": "JPEG",
+      "maxEdge": 1152,
+      "encoderOptions": {
+        "quality": 80,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/portraits/profile-woman-main.jpg",
+      "path": "static/portraits/profile-woman-main.jpg",
+      "sourceSha256": "20da5eb89e040f768ccfdfabcee03b0dcbe0cb32e6df184633557321dd41eb61",
+      "sha256": "27d5d004b471b199dde813a4fb59ac8920e97ee6d51148926a9f8c4d7e644c57",
+      "originalBytes": 231073,
+      "bytes": 82908,
+      "size": [
+        768,
+        1152
+      ],
+      "format": "JPEG",
+      "maxEdge": 1152,
+      "encoderOptions": {
+        "quality": 80,
+        "optimize": true,
+        "progressive": true
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/poster-templates/X7hDIt.png",
+      "path": "pagesSub/profileExtra/static/poster-templates/X7hDIt.webp",
+      "sourceSha256": "3300e15a513722df6a88693761fbdfc0286e81a71cd6b3864bf31cc078ef6fa6",
+      "sha256": "bdb80ac03117f84e8f38944e01c77b8a697aa94ad9ff7203f47ded2abed92aaa",
+      "originalBytes": 78622,
+      "bytes": 36614,
+      "size": [
+        326,
+        588
+      ],
+      "format": "WEBP",
+      "maxEdge": null,
+      "encoderOptions": {
+        "lossless": true,
+        "exact": true,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/poster-templates/ehi3K.png",
+      "path": "pagesSub/profileExtra/static/poster-templates/ehi3K.webp",
+      "sourceSha256": "6e3820363b78839bb862aa5e4452b7c0fc9340ad5b12720cf06a98d30d8963ab",
+      "sha256": "57b988fe2a0da8c84296e4a2981a54137ee79cf184c02e2c906a71c7b9e77243",
+      "originalBytes": 230363,
+      "bytes": 125782,
+      "size": [
+        328,
+        588
+      ],
+      "format": "WEBP",
+      "maxEdge": null,
+      "encoderOptions": {
+        "lossless": true,
+        "exact": true,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/poster-templates/gabCv.png",
+      "path": "pagesSub/profileExtra/static/poster-templates/gabCv.webp",
+      "sourceSha256": "7882d70ca69fd2acc378c34d9f947bd8f2637d3eea9f989fd6f1161c9fbf01f2",
+      "sha256": "d3c6b6d1e554295dc0f786dc96a564e92a70ca14e62df4b1f540e1a9438d08fa",
+      "originalBytes": 49816,
+      "bytes": 23950,
+      "size": [
+        328,
+        588
+      ],
+      "format": "WEBP",
+      "maxEdge": null,
+      "encoderOptions": {
+        "lossless": true,
+        "exact": true,
+        "method": 6
+      },
+      "keptOriginal": false
+    },
+    {
+      "source": "static/poster-templates/v4EFK.png",
+      "path": "pagesSub/profileExtra/static/poster-templates/v4EFK.webp",
+      "sourceSha256": "e1a1db2e3b291a3eada1534df4deb5a75d41f8699e531208f855916166a87bcd",
+      "sha256": "3220e2ce96c85c0e3ebfdcc4b53b57f0386278b93fdf86d25ffcd69de2b4052b",
+      "originalBytes": 167235,
+      "bytes": 86460,
+      "size": [
+        326,
+        588
+      ],
+      "format": "WEBP",
+      "maxEdge": null,
+      "encoderOptions": {
+        "lossless": true,
+        "exact": true,
+        "method": 6
+      },
+      "keptOriginal": false
+    }
+  ]
+}

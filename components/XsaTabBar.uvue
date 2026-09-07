@@ -6,21 +6,22 @@
 			:key="i"
 			@click="switchTab(i)"
 		>
-			<text :class="[item.iconClass, currentIndex === i ? 'tab-icon-active' : 'tab-icon']"></text>
+			<XsaIcon :class="[item.iconClass, currentIndex === i ? 'tab-icon-active' : 'tab-icon']" :name="item.iconName" size="inherit" />
 			<text :class="['tab-text', currentIndex === i ? 'active' : '']">{{ item.text }}</text>
 		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
+import XsaIcon from '@/components/XsaIcon.uvue'
 	const currentIndex = ref(0)
 
 const tabs = [
-			{ text: '首页', iconClass: 'iconfont icon-shouye tab-ic', pagePath: '/pages/index/index' },
-			{ text: '牵线', iconClass: 'iconfont icon-qianxian tab-ic', pagePath: '/pages/matchmaker/matchmaker' },
-			{ text: '社区', iconClass: 'iconfont icon-shequ tab-ic', pagePath: '/pages/community/community' },
-			{ text: '消息', iconClass: 'iconfont icon-xiaoxi tab-ic', pagePath: '/pages/message/message' },
-			{ text: '我的', iconClass: 'iconfont icon-a-wodedefuben2 tab-ic', pagePath: '/pages/profile/profile' }
+			{ text: '首页', iconClass: 'iconfont icon-shouye tab-ic', iconName: 'tab-shouye', pagePath: '/pages/index/index' },
+			{ text: '牵线', iconClass: 'iconfont icon-qianxian tab-ic', iconName: 'tab-qianxian', pagePath: '/pages/matchmaker/matchmaker' },
+			{ text: '社区', iconClass: 'iconfont icon-shequ tab-ic', iconName: 'tab-shequ', pagePath: '/pages/community/community' },
+			{ text: '消息', iconClass: 'iconfont icon-xiaoxi tab-ic', iconName: 'tab-xiaoxi', pagePath: '/pages/message/message' },
+			{ text: '我的', iconClass: 'iconfont icon-a-wodedefuben2 tab-ic', iconName: 'tab-a-wodedefuben2', pagePath: '/pages/profile/profile' }
 		]
 
 		// 通过当前页面路径确定选中项
@@ -84,13 +85,6 @@ const tabs = [
 .tab-text.active { color: #3F8C5A; font-weight: 800; }
 
 /* iconfont — 底部导航栏 */
-@font-face { font-family: "iconfont"; src: url('/static/底部导航栏/iconfont.woff2') format('woff2'), url('/static/底部导航栏/iconfont.woff') format('woff'), url('/static/底部导航栏/iconfont.ttf') format('truetype'); }
-
 .iconfont { font-family: "iconfont" !important; font-style: normal; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-.icon-shouye:before { content: "\e602"; }
-.icon-shequ:before { content: "\e627"; }
-.icon-qianxian:before { content: "\e703"; }
-.icon-xiaoxi:before { content: "\e614"; }
-.icon-a-wodedefuben2:before { content: "\e620"; }
 </style>

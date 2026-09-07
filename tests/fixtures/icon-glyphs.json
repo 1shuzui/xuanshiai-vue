@@ -1,0 +1,267 @@
+{
+  "sourceRevision": "6a3e659de0e2327ff041f913705944a326f8fe4e",
+  "glyphs": {
+    "home-history": {
+      "font": "iconfont-home",
+      "codepoint": "e658"
+    },
+    "home-search": {
+      "font": "iconfont-home",
+      "codepoint": "e600"
+    },
+    "home-star": {
+      "font": "iconfont-home",
+      "codepoint": "e60e"
+    },
+    "vip-huiyuan": {
+      "font": "iconfont-vip",
+      "codepoint": "e65d"
+    },
+    "sys-shiming": {
+      "font": "iconfont-sys",
+      "codepoint": "e605"
+    },
+    "me-xueli": {
+      "font": "iconfont-me",
+      "codepoint": "e66d"
+    },
+    "home-heart": {
+      "font": "iconfont-home",
+      "codepoint": "e614"
+    },
+    "social-paishe": {
+      "font": "iconfont-social",
+      "codepoint": "e603"
+    },
+    "social-pinglun": {
+      "font": "iconfont-social",
+      "codepoint": "e679"
+    },
+    "sys-fenxiang": {
+      "font": "iconfont-sys",
+      "codepoint": "e636"
+    },
+    "home-dingwei": {
+      "font": "iconfont-home",
+      "codepoint": "e63a"
+    },
+    "sys-zhankai": {
+      "font": "iconfont-sys",
+      "codepoint": "e602"
+    },
+    "home-hello": {
+      "font": "iconfont-home",
+      "codepoint": "e601"
+    },
+    "sys-shuaxin": {
+      "font": "iconfont-sys",
+      "codepoint": "e782"
+    },
+    "social-tongzhi": {
+      "font": "iconfont-social",
+      "codepoint": "e68c"
+    },
+    "me-shezhi": {
+      "font": "iconfont-me",
+      "codepoint": "e69d"
+    },
+    "social-touxiang": {
+      "font": "iconfont-social",
+      "codepoint": "e632"
+    },
+    "social-huati": {
+      "font": "iconfont-social",
+      "codepoint": "e651"
+    },
+    "sys-jiantou-you": {
+      "font": "iconfont-sys",
+      "codepoint": "e928"
+    },
+    "vip-renwu": {
+      "font": "iconfont-vip",
+      "codepoint": "e69f"
+    },
+    "me-dongtai": {
+      "font": "iconfont-me",
+      "codepoint": "e609"
+    },
+    "social-huodong": {
+      "font": "iconfont-social",
+      "codepoint": "e704"
+    },
+    "me-kefu": {
+      "font": "iconfont-me",
+      "codepoint": "e6d0"
+    },
+    "me-bangzhu": {
+      "font": "iconfont-me",
+      "codepoint": "e623"
+    },
+    "sys-fanhui": {
+      "font": "iconfont-sys",
+      "codepoint": "e606"
+    },
+    "vip-jinbi": {
+      "font": "iconfont-vip",
+      "codepoint": "e64a"
+    },
+    "sys-tijiaoqueren": {
+      "font": "iconfont-sys",
+      "codepoint": "e627"
+    },
+    "sys-xiala": {
+      "font": "iconfont-sys",
+      "codepoint": "e609"
+    },
+    "sys-guanbi": {
+      "font": "iconfont-sys",
+      "codepoint": "e604"
+    },
+    "sys-tianjia": {
+      "font": "iconfont-sys",
+      "codepoint": "e62b"
+    },
+    "social-yuyin": {
+      "font": "iconfont-social",
+      "codepoint": "e888"
+    },
+    "sys-bangzhu": {
+      "font": "iconfont-sys",
+      "codepoint": "e623"
+    },
+    "sys-kefu": {
+      "font": "iconfont-sys",
+      "codepoint": "e6d0"
+    },
+    "sys-peidui": {
+      "font": "iconfont-sys",
+      "codepoint": "e634"
+    },
+    "sys-gengduo": {
+      "font": "iconfont-sys",
+      "codepoint": "e63f"
+    },
+    "vip-huiyuanquanyi": {
+      "font": "iconfont-vip",
+      "codepoint": "e739"
+    },
+    "vip-huiyuanfuwu": {
+      "font": "iconfont-vip",
+      "codepoint": "e674"
+    },
+    "home-hello-e62f": {
+      "font": "iconfont-home",
+      "codepoint": "e62f"
+    },
+    "tab-shouye": {
+      "font": "iconfont",
+      "codepoint": "e602"
+    },
+    "tab-qianxian": {
+      "font": "iconfont",
+      "codepoint": "e703"
+    },
+    "tab-shequ": {
+      "font": "iconfont",
+      "codepoint": "e627"
+    },
+    "tab-xiaoxi": {
+      "font": "iconfont",
+      "codepoint": "e614"
+    },
+    "tab-a-wodedefuben2": {
+      "font": "iconfont",
+      "codepoint": "e620"
+    },
+    "home": {
+      "font": "iconfont",
+      "codepoint": "e602"
+    },
+    "matchmaker": {
+      "font": "iconfont",
+      "codepoint": "e703"
+    },
+    "community": {
+      "font": "iconfont",
+      "codepoint": "e627"
+    },
+    "message": {
+      "font": "iconfont",
+      "codepoint": "e614"
+    },
+    "profile": {
+      "font": "iconfont",
+      "codepoint": "e620"
+    },
+    "social-love": {
+      "font": "iconfont-social",
+      "codepoint": "e623"
+    },
+    "social-biaoqing": {
+      "font": "iconfont-social",
+      "codepoint": "e606"
+    },
+    "social-canyuhuati": {
+      "font": "iconfont-social",
+      "codepoint": "e608"
+    },
+    "social-xianxiahuodong": {
+      "font": "iconfont-social",
+      "codepoint": "e704"
+    }
+  },
+  "fonts": [
+    {
+      "path": "components/assets/icons/tab/iconfont.ttf",
+      "sha256": "bf6744e3a7ab1a665ffb6381ebe11a6340366bb362a9018e6cae1a5bf0104077"
+    },
+    {
+      "path": "components/assets/icons/tab/iconfont.woff",
+      "sha256": "f0b8ce4f9919577b21497f7a6cca9347921b028735e89271a476952916e9ed11"
+    },
+    {
+      "path": "components/assets/icons/tab/iconfont.woff2",
+      "sha256": "56adf67c6e2c90c438563ea098abf6faadbe799867d96dbc0c1c333d2d39ba67"
+    },
+    {
+      "path": "components/assets/icons/me/iconfont.woff",
+      "sha256": "51c0020bda7fe1088103c1ad2a2a1729484b423d636dbd3a72130068877e326a"
+    },
+    {
+      "path": "components/assets/icons/me/iconfont.woff2",
+      "sha256": "704f3e0582782a3f3e65a56d63a698daafe3f3c1bbe38ff30bf9562e95c50889"
+    },
+    {
+      "path": "components/assets/icons/vip/iconfont.woff",
+      "sha256": "19e5330ead94878b06fee39060f79d3f9c41b247ba31b1f92133b9fdc096c0c2"
+    },
+    {
+      "path": "components/assets/icons/vip/iconfont.woff2",
+      "sha256": "076fa42ea9a931b947e3197811589d0ba50a5f62e4b33bc326b84b46830b4b54"
+    },
+    {
+      "path": "components/assets/icons/social/iconfont.woff",
+      "sha256": "30ed818ce27028e51f77b09fdf4c9178bcd962f25a54b7ea0b8fe6c294a4abe8"
+    },
+    {
+      "path": "components/assets/icons/social/iconfont.woff2",
+      "sha256": "1febd50510ee9a9b713f725872ae18d89a85789e086aae31560462b9a0261d26"
+    },
+    {
+      "path": "components/assets/icons/sys/iconfont.woff",
+      "sha256": "dbb2059098f38a4815c2aa4ac26c97395772b73c03f8f1a146edf5345496b201"
+    },
+    {
+      "path": "components/assets/icons/sys/iconfont.woff2",
+      "sha256": "da154b68c76e1f67330fcb48241be3147592ad7b34f351dd257bfe74407b7d55"
+    },
+    {
+      "path": "components/assets/icons/home/iconfont.woff",
+      "sha256": "50095e33cdeb59b1746d56fee1d8cf03e8f694077a04e8006957794948720ccc"
+    },
+    {
+      "path": "components/assets/icons/home/iconfont.woff2",
+      "sha256": "305f9d0df78a7e4c6d0e1a1125bf34bd64fe8483b99823d5e0de50bc9c99c376"
+    }
+  ]
+}

@@ -16,6 +16,7 @@
 			"minified": true
 		},
 		"usingComponents": true,
+		"optimization": { "subPackages": true },
 		"lazyCodeLoading": "requiredComponents",
 		"permission": {
 			"scope.userLocation": {

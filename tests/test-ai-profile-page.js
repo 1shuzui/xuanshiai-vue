@@ -8,7 +8,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 const api = read('api/ai-profile.uts')
 const apiIndex = read('api/index.uts')
 const page = read('pagesSub/profileExtra/my-portrait.uvue')
-const recorder = read('components/VoiceRecorder.uvue')
+const recorder = read('pagesSub/profileExtra/components/VoiceRecorder.uvue')
 const ingredient = read('components/PersonaIngredient.uvue')
 const bottle = read('components/PersonaBottle.uvue')
 const batchSheet = read('components/PersonaBatchSheet.uvue')
@@ -74,7 +74,7 @@ assert.match(apiIndex, /grantProfileTextConsent/, 'api barrel must re-export con
 
 // ===== my-portrait.uvue(墨相):组件导入、发布门槛、判空、双模式 =====
 assert.match(page, /import PersonaIngredient from '@\/components\/PersonaIngredient\.uvue'/, 'atelier page must import the ingredient card it renders')
-assert.match(page, /import VoiceRecorder from '@\/components\/VoiceRecorder\.uvue'/, 'atelier page must import the voice recorder')
+assert.match(page, /import VoiceRecorder from '@\/pagesSub\/profileExtra\/components\/VoiceRecorder\.uvue'/, 'atelier page must import its subpackage voice recorder')
 assert.match(page, /import PersonaBottle from '@\/components\/PersonaBottle\.uvue'/, 'atelier page must import the persona bottle')
 assert.match(
 	page,
@@ -82,7 +82,8 @@ assert.match(
 	'atelier shelf must expose a page-level tap target for 我的墨相 so custom-component events cannot swallow the enter path'
 )
 assert.match(page, /import PortraitBatchSheetComponent from '@\/components\/PersonaBatchSheet\.uvue'/, 'atelier page must import the batch sheet')
-assert.match(page, /至少确认[\s\S]{0,40}笔后才能写下成稿/, 'atelier page must block publishing without confirmed fields')
+assert.match(page, /confirmedCount\.value >= minPublishCount/, 'publishing requires enough confirmed fields')
+assert.match(page, /if \(!canPublish\.value\)\s*\{[\s\S]*?return/, 'the publish handler must stop before sending an unqualified draft')
 assert.match(page, /墨相/, 'page must name the module 墨相')
 assert.match(page, /我的墨相/, 'page must name the personal subject 我的墨相')
 assert.match(page, /愿遇之相/, 'page must name the ideal subject 愿遇之相')
@@ -91,9 +92,9 @@ assert.match(api, /skipProfileQuestion/, 'ai-profile api must expose skipProfile
 assert.match(api, /\/skip-question/, 'skip path must POST to /profile-sessions/{id}/skip-question')
 assert.match(page, /不想答/, 'atelier question bubble must offer 不想答')
 assert.match(page, /skipCurrentQuestion/, 'atelier page must skip the current interview question')
-assert.match(page, /at-ic-love|at-ic-biaoqing|at-ic-canyuhuati|at-ic-xianxiahuodong/, 'letter dimensions must use iconfont glyph classes, not raw emoji')
+assert.match(page, /social-love|social-biaoqing|social-canyuhuati|social-xianxiahuodong/, 'letter dimensions must use the shared glyph catalog')
 assert.doesNotMatch(page, /relationship:\s*'♡'/, 'letter dimension fallback must not keep emoji icons')
-assert.match(page, /iconClass/, 'letter dimensions must expose iconClass for iconfont binding')
+assert.match(page, /:name="dim\.iconName"/, 'letter dimensions must bind the shared icon name')
 assert.match(page, /删除画像/, 'danger path must use literal 删除画像')
 assert.match(page, /if \(session\.value != null\)/, 'revision restore must guard against a missing session')
 const restoreBlock = page.slice(page.indexOf('restoreProfileRevision(revisionId)'))

@@ -14,7 +14,7 @@
 
 			<view class="style-grid">
 				<view v-for="style in posterStyles" :key="style.id" class="style-card-shell" @tap="selectStyle(style.id)">
-					<image class="style-card-image" :src="style.image" mode="scaleToFill"></image>
+					<image :webp="true" class="style-card-image" :src="style.image" mode="scaleToFill"></image>
 					<view v-if="selectedStyleId === style.id" class="selected-outline"><text>✓</text></view>
 				</view>
 			</view>
@@ -33,10 +33,10 @@ const selectedStyleId = ref(1)
 const userId = ref(9001)
 
 const posterStyles = [
-	{ id: 1, image: '/static/poster-templates/ehi3K.png' },
-	{ id: 2, image: '/static/poster-templates/X7hDIt.png' },
-	{ id: 3, image: '/static/poster-templates/gabCv.png' },
-	{ id: 4, image: '/static/poster-templates/v4EFK.png' }
+	{ id: 1, image: '/pagesSub/profileExtra/static/poster-templates/ehi3K.webp' },
+	{ id: 2, image: '/pagesSub/profileExtra/static/poster-templates/X7hDIt.webp' },
+	{ id: 3, image: '/pagesSub/profileExtra/static/poster-templates/gabCv.webp' },
+	{ id: 4, image: '/pagesSub/profileExtra/static/poster-templates/v4EFK.webp' }
 ]
 
 onLoad((options: any) => {

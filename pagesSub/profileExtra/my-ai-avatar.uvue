@@ -3,7 +3,7 @@
 		<!-- 导航栏 -->
 		<view class="aia-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<view class="aia-nav-side" @tap="back">
-				<text class="ic ic-sys ic-fanhui aia-back-icon"></text>
+				<XsaIcon class="ic ic-sys ic-fanhui aia-back-icon" name="sys-fanhui" size="inherit" />
 			</view>
 			<text class="aia-nav-title">我的AI分身</text>
 			<view class="aia-nav-side"></view>
@@ -42,7 +42,7 @@
 				<view v-if="chatRecords.length > 0">
 					<view class="aia-chat-item" v-for="item in chatRecords" :key="item.id">
 						<view class="aia-chat-avatar">
-							<text class="ic ic-social ic-touxiang aia-chat-avatar-icon"></text>
+							<XsaIcon class="ic ic-social ic-touxiang aia-chat-avatar-icon" name="social-touxiang" size="inherit" />
 						</view>
 						<view class="aia-chat-main">
 							<text class="aia-chat-name">匿名访客</text>
@@ -53,7 +53,7 @@
 				</view>
 				<view v-else class="aia-empty">
 					<view class="aia-empty-icon">
-						<text class="ic ic-social ic-pinglun aia-empty-icon-text"></text>
+						<XsaIcon class="ic ic-social ic-pinglun aia-empty-icon-text" name="social-pinglun" size="inherit" />
 					</view>
 					<text class="aia-empty-title">还没有访客与你的分身对话</text>
 					<text class="aia-empty-sub">完善个人资料，分身会更好地替你回答访客的提问</text>
@@ -79,7 +79,7 @@
 				</view>
 				<view v-else class="aia-empty">
 					<view class="aia-empty-icon">
-						<text class="ic ic-sys ic-shiming aia-empty-icon-text"></text>
+						<XsaIcon class="ic ic-sys ic-shiming aia-empty-icon-text" name="sys-shiming" size="inherit" />
 					</view>
 					<text class="aia-empty-title">太棒了，没有待回答的问题</text>
 					<text class="aia-empty-sub">分身目前能独立应对访客的提问</text>
@@ -111,7 +111,7 @@
 				</view>
 				<view v-else class="aia-empty">
 					<view class="aia-empty-icon">
-						<text class="ic ic-sys ic-tianjia aia-empty-icon-text"></text>
+						<XsaIcon class="ic ic-sys ic-tianjia aia-empty-icon-text" name="sys-tianjia" size="inherit" />
 					</view>
 					<text class="aia-empty-title">还没有回答过问题</text>
 					<text class="aia-empty-sub">你的每一条回答都会让分身更懂你</text>
@@ -157,7 +157,7 @@
 				<view class="aia-sheet-foot">
 					<text class="aia-count">{{ answerText.length }}/500</text>
 					<view class="aia-submit" :class="{ 'aia-submit-ready': answerText.length > 0 }" @tap="submitAnswer">
-						<text class="ic ic-sys ic-jiantou-you aia-submit-icon"></text>
+						<XsaIcon class="ic ic-sys ic-jiantou-you aia-submit-icon" name="sys-jiantou-you" size="inherit" />
 					</view>
 				</view>
 			</view>
@@ -166,6 +166,7 @@
 </template>
 
 <script setup lang="uts">
+import XsaIcon from '@/components/XsaIcon.uvue'
 import {
 	getAiAvatarOwnerId,
 	getAiAvatarOwnerDashboard,
@@ -887,18 +888,8 @@ page {
 }
 
 /* ==================== 图标字体 ==================== */
-@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/系统通用/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-social"; src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff') format('woff'); }
-
 .ic { font-style: normal; -webkit-font-smoothing: antialiased; }
 .ic-sys { font-family: "iconfont-sys" !important; }
 .ic-social { font-family: "iconfont-social" !important; }
 
-.ic-fanhui:before { content: "\e606"; }
-.ic-guanbi:before { content: "\e604"; }
-.ic-jiantou-you:before { content: "\e928"; }
-.ic-touxiang:before { content: "\e632"; }
-.ic-pinglun:before { content: "\e679"; }
-.ic-shiming:before { content: "\e605"; }
-.ic-tianjia:before { content: "\e62b"; }
 </style>

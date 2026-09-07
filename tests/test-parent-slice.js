@@ -349,7 +349,7 @@ expect(apiIndex, 'getLikedUsers,', 'unified API exports the complete like list')
 expect(apiIndex, 'getParentLikedCandidates,', 'unified API exports the parent like list')
 console.log('PASS parent internal mock remains isolated with global HTTP mode')
 
-const bottomNav = read('components/ParentBottomNav.uvue')
+const bottomNav = read('pages/parent/components/ParentBottomNav.uvue')
 const parentIcon = read('components/XsaIcon.uvue')
 expect(bottomNav, "key: 'home'", 'parent home nav item')
 expect(bottomNav, "key: 'matchmaker'", 'parent matchmaker nav item')
@@ -359,13 +359,13 @@ expect(bottomNav, 'min-height: 56px', 'accessible nav targets')
 expect(bottomNav, 'box-shadow: var(--shadow-md)', 'parent navigation uses the shared elevation token')
 expect(bottomNav, 'background: var(--accent-bg)', 'parent navigation exposes a clear active surface')
 expect(bottomNav, '<XsaIcon :name="item.icon" size="medium" />', 'parent navigation uses the shared icon component')
-expect(parentIcon, "/static/底部导航栏/iconfont.woff2", 'parent icons reuse the ordinary navigation font asset')
+expect(parentIcon, "./assets/icons/tab/iconfont.woff2", 'parent icons reuse the ordinary navigation font asset')
 expect(parentIcon, 'xsa-icon-home:before', 'parent home icon glyph')
 expect(parentIcon, 'xsa-icon-matchmaker:before', 'parent matchmaker icon glyph')
 expect(parentIcon, 'xsa-icon-message:before', 'parent message icon glyph')
 expect(parentIcon, 'xsa-icon-profile:before', 'parent profile icon glyph')
 
-const candidateCard = read('components/ParentCandidateCard.uvue')
+const candidateCard = read('pages/parent/components/ParentCandidateCard.uvue')
 expect(candidateCard, '<XsaIcon name="profile" size="large" />', 'candidate photo uses the shared protected profile icon')
 expect(candidateCard, '照片已保护', 'candidate privacy state is explicit')
 expectAbsent(candidateCard, ':src="candidate.avatar"', 'candidate list never binds a clear ordinary-user avatar')
@@ -375,11 +375,11 @@ expect(candidateCard, 'font-size: 14px', 'candidate body type scale')
 expect(candidateCard, 'border-radius: 18px', 'candidate card uses the parent surface radius')
 expect(candidateCard, 'min-height: 48px', 'candidate action target')
 
-const gateNotice = read('components/ParentGateNotice.uvue')
+const gateNotice = read('pages/parent/components/ParentGateNotice.uvue')
 expect(gateNotice, '父母实名认证', 'parent gate copy')
 expect(gateNotice, '子女授权', 'child authorization copy')
 
-const applySheet = read('components/ParentApplySheet.uvue')
+const applySheet = read('pages/parent/components/ParentApplySheet.uvue')
 expect(applySheet, ':large-text="true"', 'parent application sheet uses the accessibility variant')
 expect(applySheet, '申请附言', 'parent application requires a written note')
 expect(applySheet, '对方本人同意后才能开始聊天', 'parent application explains mutual consent')
@@ -594,10 +594,10 @@ expectAbsent(
 )
 
 for (const [file, content] of [
-  ['components/ParentBottomNav.uvue', bottomNav],
-  ['components/ParentCandidateCard.uvue', candidateCard],
-  ['components/ParentGateNotice.uvue', gateNotice],
-	['components/ParentApplySheet.uvue', applySheet],
+  ['pages/parent/components/ParentBottomNav.uvue', bottomNav],
+  ['pages/parent/components/ParentCandidateCard.uvue', candidateCard],
+  ['pages/parent/components/ParentGateNotice.uvue', gateNotice],
+	['pages/parent/components/ParentApplySheet.uvue', applySheet],
   ['pages/parent/parent.uvue', parentPage],
   ['pages/parent/user-detail.uvue', detailPage]
 ]) {
@@ -607,7 +607,7 @@ for (const [file, content] of [
 for (const [file, content] of [
 	['pages/parent/parent.uvue', parentPage],
 	['pages/parent/user-detail.uvue', detailPage],
-	['components/ParentApplySheet.uvue', applySheet],
+	['pages/parent/components/ParentApplySheet.uvue', applySheet],
 	['components/XsaReportSheet.uvue', read('components/XsaReportSheet.uvue')]
 ]) {
 	for (const forbiddenCopy of ['Mock', 'mock', '测试', '内部演示', '流程审校', '仅供审校', '不会影响真实用户', '不代表已向真实用户', '测试数据']) {

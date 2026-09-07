@@ -42,15 +42,15 @@
 			@touchmove="onTouchMove"
 		>
 			<view v-if="recorderState == 'speaking'" class="vr-mic-zone">
-				<text class="vr-ic vr-ic-pinglun"></text>
+				<XsaIcon class="vr-ic vr-ic-pinglun" name="social-pinglun" size="inherit" />
 			</view>
 			<view v-if="recorderState == 'idle'" class="vr-mic-zone">
-				<text class="vr-ic vr-ic-yuyin"></text>
+				<XsaIcon class="vr-ic vr-ic-yuyin" name="social-yuyin" size="inherit" />
 			</view>
 			<view v-if="recorderState == 'listening'" class="vr-mic-zone vr-mic-zone-active">
 				<view class="vr-pulse-ring"></view>
 				<view class="vr-pulse-ring vr-pulse-ring-2"></view>
-				<text class="vr-ic vr-ic-yuyin vr-mic-icon-active"></text>
+				<XsaIcon class="vr-ic vr-ic-yuyin vr-mic-icon-active" name="social-yuyin" size="inherit" />
 			</view>
 			<view v-if="recorderState == 'transcribing'" class="vr-mic-zone">
 				<view class="vr-spinner"></view>
@@ -65,6 +65,7 @@
 </template>
 
 <script setup lang="uts">
+import XsaIcon from '@/components/XsaIcon.uvue'
 import VoiceWaveform from './VoiceWaveform.uvue'
 	import { transcribeAudio, synthesizeSpeech } from '@/api/ai-profile.uts'
 	import { USE_MOCK } from '@/api/config.uts'
@@ -284,11 +285,6 @@ defineExpose({ reset, startSpeaking, skipSpeaking })
 
 <style scoped>
 /* 单色描边图标(复用项目 iconfont 字库:社区互动与信息) */
-@font-face {
-	font-family: "iconfont-social";
-	src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'),
-		url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff') format('woff');
-}
 .vr-ic {
 	font-family: "iconfont-social" !important;
 	font-style: normal;
@@ -297,9 +293,6 @@ defineExpose({ reset, startSpeaking, skipSpeaking })
 	font-size: 26px;
 	color: var(--ink);
 }
-.vr-ic-yuyin:before { content: "\e888"; }
-.vr-ic-pinglun:before { content: "\e679"; }
-
 .vr-area {
 	display: flex;
 	flex-direction: column;

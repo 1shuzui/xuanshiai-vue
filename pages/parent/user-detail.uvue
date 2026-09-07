@@ -91,8 +91,8 @@
 </template>
 
 	<script setup lang="uts">
-		import ParentApplySheet from '@/components/ParentApplySheet.uvue'
-		import ParentGateNotice from '@/components/ParentGateNotice.uvue'
+		import ParentApplySheet from '@/pages/parent/components/ParentApplySheet.uvue'
+		import ParentGateNotice from '@/pages/parent/components/ParentGateNotice.uvue'
 		import XsaIcon from '@/components/XsaIcon.uvue'
 		import type { ParentContext } from '@/api'
 		import {

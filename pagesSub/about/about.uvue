@@ -1,6 +1,6 @@
 <template>
 	<view class="page">
-		<view class="about-nav"><text class="ic ic-sys ic-fanhui nav-back" @tap="goBack"></text><text>关于我们</text><view class="nav-placeholder"></view></view>
+		<view class="about-nav"><XsaIcon class="ic ic-sys ic-fanhui nav-back" @tap="goBack" name="sys-fanhui" size="inherit" /><text>关于我们</text><view class="nav-placeholder"></view></view>
 		<!-- Hero 区 -->
 		<view class="hero">
 			<view class="hero-icon-wrap">
@@ -21,7 +21,7 @@
 			>
 				<text class="list-label">{{ item.title }}</text>
 				<view class="list-right">
-					<text class="ic ic-sys ic-jiantou-you list-arrow" v-if="item.clickable"></text>
+					<XsaIcon class="ic ic-sys ic-jiantou-you list-arrow" v-if="item.clickable" name="sys-jiantou-you" size="inherit" />
 				</view>
 			</view>
 		</view>
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="uts">
+import XsaIcon from '@/components/XsaIcon.uvue'
 import { getArticles, ArticleListItem } from '@/api/about'
 
 let articles = ref([] as ArticleListItem[])
@@ -200,7 +201,5 @@ const handleWithdraw = () => {
 	font-size: 28rpx;
 	color: #1A1A1A;
 }
-@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'); }
-.ic { font-style: normal; }.ic-sys { font-family: "iconfont-sys" !important; }.ic-fanhui:before { content: "\e606"; }.ic-jiantou-you:before { content: "\e928"; }
-.nav-back { width: 40px; height: 40px; border-radius: 20px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #2C2C2C; }
+.ic { font-style: normal; }.ic-sys { font-family: "iconfont-sys" !important; }.nav-back { width: 40px; height: 40px; border-radius: 20px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #2C2C2C; }
 </style>

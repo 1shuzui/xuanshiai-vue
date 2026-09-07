@@ -263,6 +263,13 @@ components:
 
 ## Do's and Don'ts
 
+### 小程序图片与图标资源
+
+- `XsaIcon` 集中保留原有六套字体和 52 个语义名称，字体字节及字形不变。默认 small / medium / large 仍为 18 / 24 / 44px；`size="inherit"` 不指定字号，沿用调用处原有 class 和样式。组件允许页面 class 参与样式，直接承接原图标的点击事件，不在 `text` 内嵌套自定义组件。
+- 字体源文件在 `components/assets/icons/`，由组件 CSS 引入并内嵌一次，避免 static 再复制一份。图标名称与原字体/码点的对应表见 `tests/fixtures/icon-glyphs.json`。
+- 红娘首页书法图保留主包 WebP，公共人像保留原 JPEG 路径。墨相师四种状态与四套海报预览随“我的”分包；案例照片和私人定制头图随红娘分包。图片显示比例、文字、人物与透明背景保持原内容，海报采用保留透明像素的无损 WebP。
+- 图片压缩参数、原图 SHA-256、来源提交及新文件哈希记录在 `scripts/mp-media-manifest.json`；调整时从 Git 原图重新编码，不重复压缩已损失的图片。Android / iOS 的 WebP 显示及 320 / 375 / 390 / 428 宽度仍须端侧验收。
+
 ### Do
 
 - 先讲清一个人的生活，再展示认证与关系期待，最后给行动。

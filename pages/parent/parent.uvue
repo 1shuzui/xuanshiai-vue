@@ -304,10 +304,10 @@
 </template>
 
 <script setup lang="uts">
-	import ParentBottomNav from '@/components/ParentBottomNav.uvue'
-	import ParentApplySheet from '@/components/ParentApplySheet.uvue'
-	import ParentCandidateCard from '@/components/ParentCandidateCard.uvue'
-	import ParentGateNotice from '@/components/ParentGateNotice.uvue'
+	import ParentBottomNav from '@/pages/parent/components/ParentBottomNav.uvue'
+	import ParentApplySheet from '@/pages/parent/components/ParentApplySheet.uvue'
+	import ParentCandidateCard from '@/pages/parent/components/ParentCandidateCard.uvue'
+	import ParentGateNotice from '@/pages/parent/components/ParentGateNotice.uvue'
 	import MatchmakerCard from '@/components/MatchmakerCard.uvue'
 	import XsaMessageCenter from '@/components/XsaMessageCenter.uvue'
 	import XsaSheet from '@/components/XsaSheet.uvue'
