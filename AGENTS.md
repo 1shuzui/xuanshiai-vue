@@ -54,15 +54,17 @@
 1. 修改前检查 Git 工作区并保留用户已有改动。
 2. graphify-out/graph.json 存在时，先用 graphify query 缩小范围，再回到源文件核对。
 3. 运行 node tests/test-mock-system.js 与 git diff --check。
-4. 对 mp-weixin 产物运行质量检查：`npm run verify:mp`（CI 门禁）或 `npm run verify:mp:dev`（开发阶段容忍上限）。
+4. 对 mp-weixin 产物运行质量检查：`npm run verify:mp`（本地发行门禁）或 `npm run verify:mp:dev`（开发阶段容忍上限）。GitHub 执行 `npm run test:source`，仅验证源码、行为和合成产物门禁。
 5. 通过 HBuilderX 编译 mp-weixin，并在微信开发者工具回归关键路径；H5 结果不能替代小程序验收。
 6. 修改代码或重要项目文档后，从工作区根目录运行 graphify update .。
 7. 产品范围、流程、安全与商业化更新 PRODUCT.md；Token、组件与视觉语言更新 DESIGN.md 和必要的 uni.scss；运行和架构说明更新 CLAUDE.md 或 docs/。
 
 ### 6.1. verify:mp 门禁说明
 
-- 调用 `scripts/verify-mp-weixin.ps1`，包装技能层诊断脚本 `inspect-wechat-artifact.ps1`。
-- 检查项：包体积（主包 + 各分包 ≤ 2 MiB）、lazyCodeLoading 启用、媒体文件阈值、可疑静态文件残留。
-- **关键**：交叉验证 `app.json` 声明的 pages 与产物磁盘文件，防止条件编译或 tree-shaking 静默吞掉声明过的页面。
+- 使用仓库内 `scripts/verify-mp-weixin.cjs`；PowerShell 5 兼容入口 `scripts/verify-mp-weixin.ps1` 转发相同参数和退出码，无外部技能脚本依赖。
+- 检查项：主包和各分包分别 ≤ 2 MiB、单媒体 ≤ 200 KiB、lazyCodeLoading、资源与组件归包、字体只内嵌一次；可疑设计源文件和压缩包另行提示。
+- **关键**：源 `pages.json`、生成的 `app.json`、磁盘 `.js` / `.json` / `.wxml` 三方一致，完整保留 61 个 URL。三个页面文件必须全部存在。
+- `build:mp-weixin` 调用本机 HBuilderX 发行编译，显式 `--upload false`。成功须有编译日志和清理旧输出后新生成的完整产物；提交 SHA、编译器版本、时间、源码及产物指纹写到 `unpackage/build-reports/`。正式和开发门禁都要求对应构建凭据有效。
 - 退出码：0（通过）、2（质量失败）、1（参数或运行时错误）。
-- 预期产物路径：`unpackage/dist/dev/mp-weixin/`，执行 `npm run build:mp-weixin` 后可用。
+- 发行产物：`unpackage/dist/build/mp-weixin/`。开发产物：`unpackage/dist/dev/mp-weixin/`，执行 `npm run build:mp-weixin:dev` 后检查。开发预算不能作为发行验收结论。
+- 操作方法、资源归属与待完成的微信端验收见 [MP_QUALITY.md](MP_QUALITY.md)。

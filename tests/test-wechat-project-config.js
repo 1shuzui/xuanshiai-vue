@@ -5,7 +5,7 @@ const path = require('path')
 const root = path.resolve(__dirname, '..')
 const configPath = path.join(root, 'project.config.json')
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-const artifactRoot = path.join(root, 'unpackage', 'dist', 'dev', 'mp-weixin')
+const artifactRoot = path.resolve(process.argv[2] || path.join(root, 'unpackage', 'dist', 'build', 'mp-weixin'))
 const artifactConfigPath = path.join(artifactRoot, 'project.config.json')
 
 assert.strictEqual(

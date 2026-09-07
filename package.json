@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "description": "宣誓爱婚恋小程序",
   "scripts": {
+    "test:source": "node scripts/test-frontend.cjs",
     "dev:h5": "uni -p h5",
     "build:h5": "uni build -p h5",
-    "dev:mp-weixin": "uni -p mp-weixin",
-    "build:mp-weixin": "uni build -p mp-weixin",
-    "verify:mp": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-mp-weixin.ps1 -MainPackageLimitBytes 2097152 -SubpackageLimitBytes 2097152 -MediaLimitBytes 204800",
-    "verify:mp:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-mp-weixin.ps1 -MainPackageLimitBytes 3145728 -SubpackageLimitBytes 3145728 -MediaLimitBytes 307200"
+    "dev:mp-weixin": "node scripts/build-mp-weixin.cjs --mode development",
+    "build:mp-weixin": "node scripts/build-mp-weixin.cjs",
+    "verify:mp": "node scripts/verify-mp-weixin.cjs --require-build --report unpackage/build-reports/mp-weixin-quality.json",
+    "verify:mp:dev": "node scripts/verify-mp-weixin.cjs --mode development --require-build --main-limit 3145728 --sub-limit 3145728 --media-limit 307200 --report unpackage/build-reports/mp-weixin-quality-dev.json",
+    "build:mp-weixin:dev": "node scripts/build-mp-weixin.cjs --mode development"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-4020920240930001",
