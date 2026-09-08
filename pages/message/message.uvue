@@ -86,19 +86,24 @@
 		<!-- 申请列表 Sheet -->
 		<XsaSheet :visible="appVisible" title="认识申请" @close="appVisible = false">
 			<view class="app-list">
+				<text v-if="applicationLoading" class="text-muted">正在加载申请...</text>
+				<view v-if="applicationError.length > 0" class="empty-apps">
+					<text class="text-muted">{{ applicationError }}</text>
+					<XsaButton variant="secondary" :disabled="applicationLoading" @click="loadApplications">重新加载</XsaButton>
+				</view>
 				<view class="app-item" v-for="item in applications" :key="item.id">
 					<image class="app-avatar" :src="item.avatar" mode="aspectFill"></image>
 					<view class="app-meta">
 						<text class="app-name">{{ item.name }}</text>
 						<text class="app-msg text-muted">{{ item.message }}</text>
 					</view>
-					<view class="app-actions" v-if="item.direction === 'in'">
-						<XsaButton variant="secondary" size="small" @click="rejectApp(item)">拒绝</XsaButton>
-						<XsaButton variant="primary" size="small" @click="acceptApp(item)">同意</XsaButton>
+					<view class="app-actions" v-if="item.direction === 'in' && item.status === 'pending'">
+						<XsaButton variant="secondary" size="small" :disabled="applicationActionId != 0" @click="rejectApp(item)">拒绝</XsaButton>
+						<XsaButton variant="primary" size="small" :disabled="applicationActionId != 0" @click="acceptApp(item)">同意</XsaButton>
 					</view>
 					<text v-else class="app-status text-muted">{{ item.statusText }}</text>
 				</view>
-				<view v-if="applications.length === 0" class="empty-apps">
+				<view v-if="!applicationLoading && applicationError.length == 0 && applications.length === 0" class="empty-apps">
 					<text class="text-muted">暂无申请</text>
 				</view>
 			</view>
@@ -134,8 +139,8 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	import XsaButton from '@/components/XsaButton.uvue'
 	import XsaToast from '@/components/XsaToast.uvue'
 	import { getMessageList, getApplications, handleApplication } from '@/api'
+	import { CURRENT_USER_ID_KEY } from '@/api/config.uts'
 	import {
-		createMatchedConversation,
 		getMatchedConversations,
 		getConversationPreviews
 	} from '@/utils/conversation.uts'
@@ -149,6 +154,9 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	const hasMore = ref(true)
 	const messageList = ref([])
 	const applications = ref([])
+	const applicationLoading = ref(false)
+	const applicationError = ref('')
+	const applicationActionId = ref(0)
 	const appVisible = ref(false)
 	const pinVisible = ref(false)
 	const selectedMessage = ref<any>(null)
@@ -173,7 +181,7 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	})
 
 	const applicationHint = computed(() => {
-		const n = applications.value.length
+		const n = applications.value.filter((item: any) => item.direction == 'in' && item.status == 'pending').length
 		if (n > 0) return `${n} 条待处理`
 		return '暂无新申请'
 	})
@@ -297,6 +305,8 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 	}
 
 	const loadApplications = async () => {
+		applicationLoading.value = true
+		applicationError.value = ''
 		try {
 			const res = await getApplications()
 			if (res.success) {
@@ -304,7 +314,6 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 				const data = res.data
 				if (Array.isArray(data)) {
 					applications.value = data.map((x: any) => normalizeApp(x))
-					createAcceptedApplicationConversations()
 				} else if (data != null) {
 					const list: any[] = []
 					if (data.incoming != null) {
@@ -317,22 +326,14 @@ import XsaTabBar from '@/components/XsaTabBar.uvue'
 						(data.list as any[]).forEach((x: any) => list.push(normalizeApp(x)))
 					}
 					applications.value = list
-					createAcceptedApplicationConversations()
 				}
+			} else {
+				applicationError.value = res.message || '申请加载失败，请重试'
 			}
 		} catch (e) {
-			// mock 可能未实现时给演示数据
-			applications.value = [
-				{
-					id: 1,
-					userId: 1,
-					name: '苏晚晴',
-					avatar: '/static/portraits/profile-woman-main.jpg',
-					message: '资料匹配度 92% · 想认真认识你',
-					direction: 'out',
-					statusText: '待回应'
-				}
-			]
+			applicationError.value = '申请加载失败，请重试'
+		} finally {
+			applicationLoading.value = false
 		}
 	}
 
@@ -492,62 +493,36 @@ const openPaperPlane = () => {
 		})
 	}
 
-	const acceptApp = async (item: any) => {
+	const handleApplicationAction = async (item: any, action: string) => {
+		if (applicationActionId.value != 0) return
+		const actor = String(uni.getStorageSync(CURRENT_USER_ID_KEY))
+		const commandId = 'application:self:' + actor + ':' + item.id + ':' + action
+		applicationActionId.value = item.id
 		try {
-			const res = await handleApplication(item.id, 'accept')
-			if (res.success) {
-				completeMatchedApplication(item)
+			const res = await handleApplication(item.id, action, commandId, { mode: 'self' })
+			if (actor != String(uni.getStorageSync(CURRENT_USER_ID_KEY))) return
+			if (!res.success) {
+				showToast(res.message || '操作未完成，请重试')
+				return
+			}
+			applications.value = applications.value.filter((application: any) => application.id != item.id)
+			if (action == 'accept') {
+				appVisible.value = false
+				showToast('已同意，聊天已开放')
+				uni.navigateTo({ url: `/pagesSub/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}` })
+				loadMessages()
+			} else {
+				showToast('已拒绝，不扣除对方次数')
 			}
 		} catch (e) {
-			completeMatchedApplication(item)
+			if (actor == String(uni.getStorageSync(CURRENT_USER_ID_KEY))) showToast('操作未完成，请重试')
+		} finally {
+			applicationActionId.value = 0
 		}
 	}
 
-	const completeMatchedApplication = (item: any) => {
-		const result = createConversationForApplication(item)
-		const created = result.created === true || result.conversation != null
-		applications.value = (applications.value as any[]).filter((application: any) => application.id != item.id)
-		showToast(created ? '匹配成功，已创建聊天' : '已同意，聊天已开放')
-		appVisible.value = false
-		uni.navigateTo({
-			url: `/pagesSub/chat/detail?userId=${item.userId}&userName=${encodeURIComponent(item.name)}&newConversation=${created ? '1' : '0'}`
-		})
-	}
-
-	const createConversationForApplication = (item: any): any => {
-		const greetingIsMine = item.direction === 'in'
-		const result = createMatchedConversation(
-			item.userId,
-			item.name,
-			item.avatar,
-			'application',
-			greetingIsMine,
-			greetingIsMine ? '/static/portraits/profile-man-light.jpg' : item.avatar
-		)
-		if (result.conversation != null) {
-			const currentList = messageList.value as any[]
-			const withoutSameUser = currentList.filter((conversation: any) => conversation.userId != item.userId)
-			messageList.value = [result.conversation].concat(withoutSameUser)
-		}
-		return result
-	}
-
-	const createAcceptedApplicationConversations = () => {
-		const list = applications.value as any[]
-		const accepted = list.filter((item: any) => item.accepted === true || item.status === 'accepted')
-		accepted.forEach((item: any) => createConversationForApplication(item))
-		if (accepted.length > 0) {
-			applications.value = list.filter((item: any) => accepted.indexOf(item) < 0)
-		}
-	}
-
-	const rejectApp = async (item: any) => {
-		try {
-			await handleApplication(item.id, 'reject')
-		} catch (e) {}
-		applications.value = applications.value.filter((x: any) => x.id != item.id)
-		showToast('已拒绝，不扣除对方次数')
-	}
+	const acceptApp = (item: any) => handleApplicationAction(item, 'accept')
+	const rejectApp = (item: any) => handleApplicationAction(item, 'reject')
 
 	const handleLoadMore = async () => {
 		if (loading.value || !hasMore.value) return

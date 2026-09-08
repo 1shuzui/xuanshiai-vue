@@ -8,7 +8,7 @@ const tests = [
   'parent-slice', 'parent-audit-regressions', 'parent-chat-subject',
   'emotion-lab-flow', 'debug-login-emotion-lab', 'role-routing',
   'ai-profile-page', 'voice-conversation', 'home-session-flow',
-  'six-page-reconstruction-contract', 'vip-card-rendering-flow', 'chat-detail-ui',
+  'six-page-reconstruction-contract', 'vip-card-rendering-flow', 'chat-detail-ui', 'message-application-flow',
   'mp-subpackage-contract', 'mp-media-source', 'icon-catalog',
   'mp-quality-gate', 'mp-build'
 ]
