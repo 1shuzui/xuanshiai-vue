@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 const { parseArgs } = require('node:util')
-const { sourceFingerprint, artifactFingerprint, buildPaths } = require('./mp-build-state.cjs')
+const { sourceFingerprint, artifactFingerprint, buildPaths, readManifest } = require('./mp-build-state.cjs')
 const { inspectArtifact } = require('./verify-mp-weixin.cjs')
 
 function findCli() {
@@ -21,6 +21,9 @@ function build(options = {}) {
   const help = invoke(['--help'])
   const version = (help.stdout || '').match(/HBuilderX\(v([^)]+)\)/)?.[1]
   if (!version) throw Error(`Unable to read HBuilderX version. ${help.stdout || help.stderr || ''}`)
+  const manifest = readManifest(root)
+  const wechatAppId = manifest['mp-weixin'].appid
+  if (mode === 'production' && !wechatAppId) throw Error('Set manifest.json mp-weixin.appid to the WeChat mini-program AppID before publishing.')
   fs.mkdirSync(path.dirname(paths.receiptPath), { recursive: true })
   const sourceHash = sourceFingerprint(root)
   // This is a fixed, owned build directory. Resolve existing links before any recursive removal.
@@ -34,7 +37,7 @@ function build(options = {}) {
   fs.rmSync(paths.artifactPath, { recursive: true, force: true })
   const startedAt = new Date().toISOString()
   const args = mode === 'production'
-    ? ['publish', 'mp-weixin', '--project', root, '--upload', 'false', '--sourceMap', 'false']
+    ? ['publish', 'mp-weixin', '--project', root, '--appid', wechatAppId, '--upload', 'false', '--sourceMap', 'false']
     : ['launch', 'mp-weixin', '--project', path.basename(root), '--compile', 'true']
   const result = invoke(args)
   const output = (result.stdout || '') + (result.stderr || '')

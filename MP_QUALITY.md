@@ -6,6 +6,8 @@
 
 在当前前端仓库目录执行，HBuilderX 必须已启动并导入此目录。发行命令需要登录 HBuilderX。
 
+本项目 DCloud AppID 为 `__UNI__A840047`，微信小程序 AppID 为 `wx744472d3e3e7f825`，分别对应 `manifest.json` 的顶层 `appid` 和 `mp-weixin.appid`。DCloud 账号入口在 HBuilderX 左下角“未登录”；编辑器中的 `pages/auth/login.uvue` 是业务页面源码。填写项目 AppID 不会登录账号。
+
 ```powershell
 $env:HBUILDERX_CLI = 'D:\HBuilderX\cli.exe'
 npm run test:source
@@ -13,7 +15,7 @@ npm run build:mp-weixin
 npm run verify:mp
 ```
 
-`build:mp-weixin` 使用项目绝对路径调用 `publish mp-weixin --upload false --sourceMap false`，不会上传微信。开发编译按 HBuilderX 中当前目录的项目名调用 `launch mp-weixin --compile true`。
+`build:mp-weixin` 使用项目绝对路径调用 `publish mp-weixin --appid <manifest.json 中的微信 AppID> --upload false --sourceMap false`，不会上传微信。HBuilderX 5.24 会把命令参数的 AppID 写回配置，省略参数会写入空值；脚本读取现有微信 AppID，缺少时停止发行。开发编译按 HBuilderX 中当前目录的项目名调用 `launch mp-weixin --compile true`。再次构建前，先关闭微信工具中该产物对应的项目，等待文件监听释放输出目录。
 
 | 用途 | 构建命令 | 产物目录 | 质量检查与预算 |
 | --- | --- | --- | --- |
@@ -23,6 +25,8 @@ npm run verify:mp
 `dev:mp-weixin` 是一次开发编译的别名，持续监听请使用 HBuilderX 运行会话。正式主包的优化目标为 1.9 MiB，硬门禁仍是 2 MiB，不放宽发行阈值。
 
 构建前验证并清理当前项目对应的输出目录，清除上次构建凭据。退出码 0 还必须同时具备编译成功日志及新生成的完整页面。凭据记录提交 SHA、工作区是否有未提交变更、HBuilderX 版本、开始/结束时间及源码/产物 SHA-256 指纹。源码或产物改变后门禁拒绝旧凭据；编译期间源码改变则本次构建失败。
+
+HBuilderX 每次发行都会重排 `manifest.json` 的缩进和换行，因此源码指纹对该文件解析后核对全部配置值，其他源码和产物仍按字节核对。未跳过 AppID 或其他配置字段；测试同时覆盖格式变化通过、实际配置变化失败。
 
 日志、构建凭据、质量报告都放在被 Git 忽略的 `unpackage/build-reports/`，不进入小程序包。微信工具自行写入的 `project.private.config.json` 不参与内容指纹。
 
@@ -75,13 +79,29 @@ GitHub 使用 Ubuntu / Node 20，`npm ci` 后运行 `npm run test:source`：22 �
 
 2026-09-08 的本地开发编译（HBuilderX 5.24.2026081301）已生成全部 61 页；主包从 12,067.9 KiB 降到 2,491.2 KiB，8 个分包分别为 273.8、921.2、956.5、81.8、13.1、259.7、121.9、45.5 KiB（按 `pages.json` 顺序）。超过 200 KiB 的媒体从 13 个降到 0；全产物内嵌字体数据从约 449.6 降到 80.6 KiB。开发门禁及图片归包检查通过。
 
-**发行验收未完成**：本机 `publish` 仍提示“此功能需要先登录”，构建脚本已退出 1 且没有生成发行凭据。开发主包仍高于正式 2 MiB 阈值，不能据开发门禁通过宣称正式通过。微信工具服务端口仍关闭，模拟器与真机交互未验收。
+2026-09-08 已完成 HBuilderX 账号登录，微信开发者工具 2.02.2607171 已登录并开启服务端口。修正构建入口后，发行构建和正式 `verify:mp` 均已通过，包括真实构建凭据校验。61 页完整生成，主包 1,712.9 KiB，最大分包 858.8 KiB，无媒体超过 200 KiB。主包低于 1.9 MiB 优化目标，正式 2 MiB / 200 KiB 阈值保持不变。
+
+| 发行包 | 实测 KiB |
+| --- | ---: |
+| 主包 | 1,712.9 |
+| `pagesSub/community` | 177.7 |
+| `pagesSub/matchmaker` | 858.8 |
+| `pagesSub/profileExtra` | 764.0 |
+| `pagesSub/chat` | 43.3 |
+| `pagesSub/about` | 9.1 |
+| `pagesSub/userExtra` | 170.3 |
+| `pages/parent` | 74.2 |
+| `pages/emotion-lab` | 27.6 |
+
+微信模拟器基础库 3.17.0、390 宽度已检查欢迎页的协议打开与取消。使用同一批 25 张优化图片的独立原生小程序探针，全部触发 `image` 加载成功事件，尺寸与清单一致，错误事件为 0；其中 WebP 的 `getImageInfo` 在该模拟器返回失败，但 `image` 组件实际成功加载，不能据此 API 的失败结果认定图片损坏。该探针只验证格式解码，不替代业务页面路径、视觉清晰度或真机验收。
+
+父母端游客跳转登录曾成功观察到，但连续自动回归仍出现页面生命周期等待超时，尚未确认原因，因此完整分包、父母授权及 MBTI 流程没有计为通过。用户本次明确暂时无法参与真机回归；Android / iOS、四种宽度和弱网回归保留为待验收项。
 
 2026-09-08 已处理此前记录的 3 项失败测试，并纳入源码 CI。`test-six-page-reconstruction-contract.js` 核对当前资料编辑入口并执行错误操作；`test-vip-card-rendering-flow.js` 使用真实页面函数验证服务端目标 ID、会员状态、预览操作限制及测试支付响应；`test-chat-detail-ui.js` 执行模板 class 表达式验证父母聊天样式独立于其他模式。测试不再要求旧 Mock 固定 ID、已迁移的编辑函数或过时 class 字符串；测试支付仍不代表真实支付验收。
 
 其中首页会话问题是实际回归：已有登录令牌仍会进入欢迎页，且 `onShow` 消费一次跳过标记后，`onMounted` 又会重新显示欢迎页。现在由 `onLoad` 初始化路由与欢迎状态，`onShow` 读取当前会话并统一消费一次跳过标记，移除不再需要的全局冷启动标记。顺序依据 [DCloud 页面生命周期](https://doc.dcloud.net.cn/uni-app-x/page.html)。新增 `test-home-session-flow.js` 先复现失败，再验证已有会话、游客协议确认、登录返回、一次跳过、指定 Tab 与父母角色路由；未改变认证、父母授权或 MBTI 规则。
 
-登录与服务端口就绪后，执行发行构建和正式门禁，再在微信工具及 Android / iOS 回归以下路径，并将同一提交的报告附到前端 PR：
+执行发行构建和正式门禁后，在微信工具及 Android / iOS 回归以下路径，并将同一提交的报告附到前端 PR：
 
 - 首次进入两个新分包、登录后角色跳转、父母授权生成/本人确认/撤销、申请认识和授权失效状态。
 - MBTI 开始、续答、保存、提交及回到个人资料后的来源同步。

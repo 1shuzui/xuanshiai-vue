@@ -14,6 +14,7 @@ function fixture() {
   const source = { pages: [{ path: 'pages/home' }], subPackages: [{ root: 'feature', pages: [{ path: 'detail' }] }], tabBar: { list: [{ pagePath: 'pages/home' }] } }
   const app = { pages: ['pages/home'], subPackages: [{ root: 'feature', pages: ['detail'] }], lazyCodeLoading: 'requiredComponents' }
   write(path.join(root, 'pages.json'), source)
+  write(path.join(root, 'manifest.json'), { appid: '__UNI__BUILD_TEST', 'mp-weixin': { appid: 'wx1234567890abcdef' } })
   write(path.join(root, 'pages/home.uvue'), '<template><text>Home</text></template>')
   write(path.join(root, 'scripts/mp-media-manifest.json'), { assets: [] })
   function emit() {

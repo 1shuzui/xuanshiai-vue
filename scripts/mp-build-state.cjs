@@ -10,11 +10,17 @@ function listFiles(directory) {
   })
 }
 
-function fingerprint(root, files) {
+function readManifest(root) {
+  return JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8').replace(/^\uFEFF/, '').replace(/\/\*[\s\S]*?\*\//g, ''))
+}
+
+function fingerprint(root, files, normalizeManifest = false) {
   const hash = crypto.createHash('sha256')
   for (const file of [...files].sort()) {
     hash.update(path.relative(root, file).split(path.sep).join('/') + '\0')
-    hash.update(fs.readFileSync(file))
+    // HBuilderX rewrites manifest indentation and line endings on every publish.
+    // Compare every configuration value while retaining byte checks for all other files.
+    hash.update(normalizeManifest && file === path.join(root, 'manifest.json') ? JSON.stringify(readManifest(root)) : fs.readFileSync(file))
     hash.update('\0')
   }
   return hash.digest('hex')
@@ -26,7 +32,7 @@ function sourceFingerprint(root) {
   return fingerprint(root, [
     ...directories.flatMap(directory => listFiles(path.join(root, directory))),
     ...files.map(file => path.join(root, file)).filter(file => fs.existsSync(file))
-  ])
+  ], true)
 }
 
 function artifactFingerprint(root) {
@@ -43,4 +49,4 @@ function buildPaths(root, mode) {
   }
 }
 
-module.exports = { listFiles, sourceFingerprint, artifactFingerprint, buildPaths }
+module.exports = { listFiles, sourceFingerprint, artifactFingerprint, buildPaths, readManifest }
