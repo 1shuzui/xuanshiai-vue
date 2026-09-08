@@ -727,7 +727,7 @@ import XsaIcon from '@/components/XsaIcon.uvue'
 	import { likeUser, blockUser, unblockUser } from '@/api'
 	import { getDiscoveryRecommendations, getDiscoveryPlaza, getDynamicList, getUserDetail, getOwnProfile, getProfileCompletion } from '@/api'
 	import { getMembershipPackages } from '@/api/discovery.uts'
-	import { resolveMediaUrl } from '@/api/config.uts'
+	import { getAccessToken, resolveMediaUrl } from '@/api/config.uts'
 	import locationJson from '@/utils/data/location.json'
 	import {
 		recordProfileView,
@@ -737,7 +737,7 @@ import XsaIcon from '@/components/XsaIcon.uvue'
 	} from '@/utils/quota.uts'
 
 	// ========== 欢迎页 ==========
-	const welcomeVisible = ref(true)
+	const welcomeVisible = ref(getAccessToken() == '')
 	const welcomeAgreementVisible = ref(false)
 	const WELCOME_AGREEMENT_KEY = 'xsa_welcome_agreed_v2'
 
@@ -1136,20 +1136,18 @@ import XsaIcon from '@/components/XsaIcon.uvue'
 	}
 
 	// ========== 生命周期 ==========
-	onMounted(() => {
-		if (routeParentMode()) return
-		const pages = getCurrentPages()
-		const currentPage = pages[pages.length - 1]
-		const options = currentPage.options
-		const skipWelcomeOnce = uni.getStorageSync('xsa_skip_welcome_once') == true
-		if (skipWelcomeOnce) uni.removeStorageSync('xsa_skip_welcome_once')
-		welcomeVisible.value = !skipWelcomeOnce && (options.tab == null || options.tab == '')
+	onLoad((options) => {
+		welcomeVisible.value = getAccessToken() == '' && (options.tab == null || options.tab == '')
 		if (options.tab != null && options.tab != '') {
 			const parsedTab = Number(options.tab)
 			if (!isNaN(parsedTab) && parsedTab >= 0 && parsedTab < navTabs.length) {
 				currentTab.value = parsedTab
 			}
 		}
+	})
+
+	onMounted(() => {
+		if (routeParentMode()) return
 		resetDailyIfNeeded()
 		loadHomeDiscovery()
 		loadMembershipPlans()
@@ -1157,14 +1155,9 @@ import XsaIcon from '@/components/XsaIcon.uvue'
 	})
 
 	onShow(() => {
-		const freshLaunch = uni.getStorageSync('xsa_new_app_launch') == true
 		const skipWelcomeOnce = uni.getStorageSync('xsa_skip_welcome_once') == true
-		if (freshLaunch) {
-			uni.removeStorageSync('xsa_new_app_launch')
-			if (skipWelcomeOnce) uni.removeStorageSync('xsa_skip_welcome_once')
-			welcomeVisible.value = !skipWelcomeOnce
-		} else if (skipWelcomeOnce) {
-			uni.removeStorageSync('xsa_skip_welcome_once')
+		if (skipWelcomeOnce) uni.removeStorageSync('xsa_skip_welcome_once')
+		if (getAccessToken() != '' || skipWelcomeOnce) {
 			welcomeVisible.value = false
 		}
 		if (!welcomeVisible.value) loadHomeDiscovery()

@@ -1,101 +1,129 @@
-const fs = require('fs')
-const root = __dirname + '/..'
+const assert = require('node:assert/strict')
+const vm = require('node:vm')
+const { ref } = require('vue')
+const { readPage, evaluateBindings, templateElements } = require('./vue-page-helper.cjs')
 
-function read(file) {
-  return fs.readFileSync(root + '/' + file, 'utf8')
-}
+const indexPage = readPage('pages/index/index.uvue')
+const detailPage = readPage('pagesSub/userExtra/user/detail.uvue')
+const vipPage = readPage('pagesSub/profileExtra/vip.uvue')
 
-function expect(content, fragment, label) {
-  if (!content.includes(fragment)) {
-    throw new Error(`${label}: missing ${fragment}`)
+async function main() {
+  const targets = [{ id: 701, isVip: true }, { id: 815, isVip: false }, { id: 932, is_vip: true }]
+  const recommendUsers = ref(targets)
+  const currentRecommendIndex = ref(0)
+  const opened = []
+  const discovery = evaluateBindings(indexPage,
+    ['filteredRecommendUsers', 'currentRecommendUser', 'squareAt', 'vipSquareUsers', 'vipSquareAt', 'toVipCard', 'goUserDetail'],
+    { recommendUsers, currentRecommendIndex, squareUsers: ref(targets), uni: { navigateTo: options => opened.push(options.url) } })
+  assert.deepEqual(Array.from(discovery.filteredRecommendUsers.value, user => user.id), [701, 815, 932], 'server recommendations must retain both VIP and ordinary targets')
+  for (let index = 0; index < targets.length; index++) {
+    currentRecommendIndex.value = index
+    assert.equal(discovery.currentRecommendUser.value.id, targets[index].id)
+    discovery.goUserDetail(discovery.squareAt(index).id)
   }
-  console.log(`PASS ${label}`)
-}
+  assert.deepEqual(opened, targets.map(target => '/pagesSub/userExtra/user/detail?userId=' + target.id))
+  assert.deepEqual(Array.from(discovery.vipSquareUsers.value, user => user.id), [701, 932], 'both API VIP field spellings must render')
+  assert.equal(discovery.toVipCard(discovery.vipSquareAt(1)).id, 932, 'VIP card conversion must retain the server ID')
+  recommendUsers.value = []
+  assert.equal(discovery.currentRecommendUser.value.id, 0, 'empty results must not reuse a previous target')
 
-function reject(content, fragment, label) {
-  if (content.includes(fragment)) {
-    throw new Error(`${label}: unexpected ${fragment}`)
+  const cards = templateElements(indexPage).filter(node => node.props.some(prop => prop.type === 6 && prop.name === 'class' &&
+    ['square-user-card', 'sq-vip-mini', 'vip-card-content'].includes(prop.value?.content)))
+  assert.ok(cards.length > 0, 'discovery card entry points must remain present')
+  for (const card of cards) {
+    const tap = card.props.find(prop => prop.type === 7 && prop.name === 'on' && prop.arg?.content === 'tap')
+    assert.match(tap?.exp.content || '', /^goUserDetail\(.+\.id\)$/, 'every card must open its bound target, never a fixed demo ID')
+    for (const prop of card.props.filter(prop => prop.type === 7 && ['if', 'show'].includes(prop.name))) {
+      assert.doesNotMatch(prop.exp.content, /viewerIsVip/, 'external cards must not be hidden by viewer membership')
+    }
   }
-  console.log(`PASS ${label}`)
+  for (const removed of ['sq-vip-blurred', 'sq-vip-lock-mask', 'vip-card-blurred', 'vip-card-lock-mask', 'isVipTargetLocked', 'isVipCardLocked', 'openVipUnlock']) {
+    assert.ok(!indexPage.source.includes(removed), `external discovery cards must not restore ${removed}`)
+  }
+  assert.match(indexPage.template, /v-if="currentRecommendUser\.isVip === true" class="recommend-vip-badge"/)
+
+  const user = ref({ id: 932, isVIP: true })
+  const viewerIsVip = ref(false)
+  const isPreview = ref(false)
+  const isOwnProfile = ref(false)
+  const isLockedView = ref(false)
+  let membership = false
+  let membershipReads = 0
+  const detail = evaluateBindings(detailPage, ['refreshLockedView', 'loadViewerMembership', 'openVipUnlock'], {
+    user, viewerIsVip, isPreview, isOwnProfile, isLockedView,
+    getMembershipStatus: async () => { membershipReads++; return { success: true, data: { is_vip: membership } } },
+    uni: { navigateTo: options => opened.push(options.url) }
+  })
+  for (const targetVip of [false, true]) for (const viewerVip of [false, true]) for (const preview of [false, true]) for (const own of [false, true]) {
+    user.value.isVIP = targetVip; viewerIsVip.value = viewerVip; isPreview.value = preview; isOwnProfile.value = own
+    detail.refreshLockedView()
+    assert.equal(isLockedView.value, targetVip && !viewerVip && !preview && !own, 'detail membership, own-profile and preview rules must remain intact')
+  }
+  isOwnProfile.value = false; isPreview.value = false; viewerIsVip.value = false; user.value.isVIP = true
+  membership = true
+  await detail.loadViewerMembership()
+  detail.refreshLockedView()
+  assert.equal(isLockedView.value, false, 'returning after membership changes must use the API status')
+  membership = false
+  await detail.loadViewerMembership()
+  detail.refreshLockedView()
+  assert.equal(isLockedView.value, true, 'an expired membership must not retain an old local entitlement')
+  assert.equal(membershipReads, 2)
+  assert.match(detailPage.script, /onShow\(async \(\) => \{\s*await loadViewerMembership\(\)\s*refreshLockedView\(\)/)
+  assert.doesNotMatch(detailPage.source, /options\.viewerVIP|filter:\s*blur/)
+  detail.openVipUnlock()
+  const route = new URL(opened.at(-1), 'https://fixture.invalid')
+  assert.equal(route.pathname, '/pagesSub/profileExtra/vip')
+  assert.equal(route.searchParams.get('redirect'), '/pagesSub/userExtra/user/detail?userId=932')
+  for (const content of ['user.basicInfo', 'user.lifePhotos', 'user.expect', 'dynamics']) assert.ok(detailPage.template.includes(content), `profile still renders ${content}`)
+
+  const actionBars = templateElements(detailPage).filter(node => node.props.some(prop => prop.type === 6 && prop.name === 'class' &&
+    ['bottom-bar', 'bottom-bar bottom-bar-own'].includes(prop.value?.content)))
+  assert.equal(actionBars.length, 2, 'retain own-profile editing and other-user action bars')
+  for (const bar of actionBars) {
+    const condition = bar.props.find(prop => prop.type === 7 && prop.name === 'if').exp.content
+    for (const own of [false, true]) for (const locked of [false, true]) {
+      const visible = vm.runInNewContext(condition, { isOwnProfile: own, isLockedView: locked, isPreview: true, detailLoading: false, detailError: '' })
+      assert.equal(visible, false, 'preview must hide editing and interaction actions for both identities')
+    }
+  }
+
+  // Test-mode payment responses exercise navigation and failure states without contacting a payment service.
+  for (const outcome of ['order-failed', 'payment-failed', 'success']) {
+    const actions = []
+    let payCalls = 0
+    const paymentLoading = ref(false)
+    const isVip = ref(false)
+    const payment = evaluateBindings(vipPage, ['confirmPayment', 'returnAfterPayment'], {
+      paymentSelected: ref(true), selectedPlanData: ref({ code: 'monthly' }), paymentLoading,
+      paymentVisible: ref(true), isVip, redirectUrl: ref('/pagesSub/userExtra/user/detail?userId=932'),
+      createMembershipOrder: async () => outcome === 'order-failed' ? { success: false } : { success: true, data: { order_no: 'fixture-order' } },
+      testPayOrder: async order => { payCalls++; assert.equal(order, 'fixture-order'); return { success: outcome === 'success' } },
+      getCurrentPages: () => [{}, {}], setTimeout: fn => fn(),
+      uni: { showToast: options => actions.push(options.title), navigateBack: () => actions.push('back') }
+    })
+    await payment.confirmPayment()
+    assert.equal(payCalls, outcome === 'order-failed' ? 0 : 1)
+    assert.equal(actions.includes('back'), outcome === 'success', 'only acknowledged test payment success may navigate back')
+    assert.equal(actions.includes('开通成功'), outcome === 'success', 'failed payment must not claim success')
+    assert.equal(isVip.value, outcome === 'success', 'a failed response must not grant a local entitlement')
+    assert.equal(paymentLoading.value, false, 'every settled outcome must release the loading state')
+  }
+  let destination
+  const direct = evaluateBindings(vipPage, ['returnAfterPayment'], {
+    getCurrentPages: () => [{}], redirectUrl: ref('/pagesSub/userExtra/user/detail?userId=932'),
+    uni: { reLaunch: options => { destination = options.url } }
+  })
+  direct.returnAfterPayment()
+  assert.equal(destination, '/pagesSub/userExtra/user/detail?userId=932')
+  const redirectUrl = ref('/pages/index/index')
+  evaluateBindings(vipPage, [], {
+    redirectUrl, loadMembership: () => {}, onMounted: callback => callback(),
+    getCurrentPages: () => [{ options: { redirect: encodeURIComponent('/pagesSub/userExtra/user/detail?userId=932') } }]
+  }, ['onMounted'])
+  assert.equal(redirectUrl.value, '/pagesSub/userExtra/user/detail?userId=932', 'the actual entry hook must recover the encoded source route')
+  assert.doesNotMatch(vipPage.script, /clearAuthTokens|removeStorageSync|\/pages\/auth\/login/, 'membership navigation must preserve the authenticated session')
+  console.log('PASS VIP discovery IDs, membership states, route recovery and acknowledged test-payment outcomes')
 }
 
-const indexPage = read('pages/index/index.uvue')
-const detailPage = read('pagesSub/userExtra/user/detail.uvue')
-const editPage = read('pagesSub/userExtra/user/edit.uvue')
-const vipPage = read('pagesSub/profileExtra/vip.uvue')
-
-expect(indexPage, 'const filteredRecommendUsers = computed(() => mockRecommendUsers)', 'recommendations include every target')
-expect(indexPage, 'v-if="currentRecommendUser.isVip === true" class="recommend-vip-badge"', 'VIP recommendation badge renders')
-expect(indexPage, 'class="square-user-card" @tap="goUserDetail(2)"', 'VIP square card remains visible and opens its detail')
-expect(indexPage, 'class="sq-vip-mini" @tap="goUserDetail(2)"', 'square VIP window opens its target detail')
-expect(indexPage, 'class="sq-vip-content"', 'square VIP window uses an ordinary visible content wrapper')
-expect(indexPage, 'class="vip-card-content" @tap="goUserDetail(card.id)"', 'independent VIP card opens its stable target ID')
-expect(indexPage, "{ id: 2, isVip: true, name: '林悦'", 'independent VIP cards retain stable IDs and status')
-reject(indexPage, 'v-if="viewerIsVip" class="square-user-card"', 'square cards are not hidden by viewer status')
-reject(indexPage, '.filter((u: any) => u.isVip !== true)', 'recommendations do not filter VIP targets')
-reject(indexPage, 'sq-vip-blurred', 'square VIP windows are not blurred')
-reject(indexPage, 'sq-vip-lock-mask', 'square VIP windows have no lock mask')
-reject(indexPage, 'vip-card-blurred', 'independent VIP cards are not blurred')
-reject(indexPage, 'vip-card-lock-mask', 'independent VIP cards have no lock mask')
-reject(indexPage, 'isVipTargetLocked', 'index has no target lock helper')
-reject(indexPage, 'isVipCardLocked', 'index has no card lock helper')
-reject(indexPage, 'openVipUnlock', 'external cards never open purchase directly')
-reject(indexPage, 'lockable', 'external card wrappers have no lock semantics')
-
-expect(indexPage, "import { getAccessToken } from '@/api/config.uts'", 'index reuses the persisted authentication token helper')
-expect(indexPage, "const hasAuthenticatedSession = getAccessToken() != ''", 'index detects an authenticated session')
-expect(indexPage, '!hasAuthenticatedSession &&', 'authenticated users bypass the welcome flow')
-
-expect(editPage, 'getOwnProfile', 'edit page loads server profile when available')
-expect(editPage, 'const applyLocalDraft = () => {', 'edit page has a local profile fallback')
-expect(editPage, "uni.showToast({ title: '网络不可用，已打开本地资料', icon: 'none' })", 'edit page explains offline fallback')
-expect(editPage, 'uploadUserProfileMedia', 'edit page preserves media upload workflow')
-expect(editPage, 'updateOwnProfile', 'edit page preserves profile save workflow')
-
-expect(detailPage, 'class="ordinary-detail-page"', 'ordinary Pencil detail template exists')
-expect(detailPage, 'class="locked-detail-page"', 'locked Pencil detail template exists')
-expect(detailPage, "import { getCurrentUserVipStatus } from '@/utils/quota.uts'", 'detail reads persisted viewer VIP status')
-expect(detailPage, 'const refreshLockedView = () => {', 'detail centralizes the dual-identity access decision')
-expect(detailPage, 'onShow(() => {', 'detail refreshes access after returning from payment')
-expect(detailPage, 'refreshLockedView()', 'detail reevaluates the persisted VIP entitlement')
-expect(detailPage, 'const targetIsVip = user.value.isVIP === true', 'detail reads target VIP status')
-expect(detailPage, 'viewerIsVip !== true &&', 'locked decision requires a non-VIP viewer')
-expect(detailPage, 'targetIsVip', 'locked decision requires a VIP target')
-expect(detailPage, '!isPreview.value &&', 'preview bypasses locked detail')
-expect(detailPage, '!isOwnProfile.value &&', 'own profile bypasses locked detail')
-reject(detailPage, 'options.viewerVIP', 'detail ignores viewer VIP route state')
-reject(detailPage, 'filter: blur', 'detail does not simulate access control with blur')
-
-expect(detailPage, '关于我', 'ordinary detail includes About Me')
-expect(detailPage, 'AI 匹配度分析', 'ordinary detail includes AI match analysis')
-expect(detailPage, 'class="basic-info-grid"', 'ordinary detail includes the basic info grid')
-expect(detailPage, 'Ta的瞬间', 'ordinary detail includes moments')
-expect(detailPage, 'dynamics-section', 'ordinary detail includes dynamics')
-expect(detailPage, 'spotlight-section', 'ordinary detail includes spotlight guests after VIP unlock')
-expect(detailPage, '即时短信通知', 'ordinary spotlight includes fast reach benefit')
-expect(detailPage, '头像展示在爆灯栏', 'ordinary spotlight includes exposure benefit')
-expect(detailPage, '更容易被留意', 'ordinary spotlight includes favorability benefit')
-expect(detailPage, 'class="spotlight-button" @tap="onSpotlight"', 'ordinary spotlight remains actionable')
-expect(detailPage, 'class="activity-row"', 'ordinary detail includes recent activity')
-expect(detailPage, 'class="locked-section-card"', 'locked detail has an independent card structure')
-expect(detailPage, 'VIP会员专属内容', 'locked detail presents VIP-exclusive sections')
-expect(detailPage, '开通VIP会员即可查看TA的择偶标准与期待', 'locked Q&A follows the Pencil copy')
-expect(detailPage, 'spotlight-section', 'locked detail includes the full spotlight section')
-expect(detailPage, '即时短信通知', 'spotlight includes fast reach benefit')
-expect(detailPage, '头像展示在爆灯栏', 'spotlight includes exposure benefit')
-expect(detailPage, '更容易被留意', 'spotlight includes favorability benefit')
-expect(detailPage, "const redirect = '/pagesSub/userExtra/user/detail?userId=' + user.value.id", 'unlock preserves the target detail route')
-expect(detailPage, "url: '/pagesSub/profileExtra/vip?source=user-detail&userId='", 'locked detail opens VIP purchase')
-expect(detailPage, 'v-if="!isOwnProfile && !isPreview && !detailLoading && detailError == \'\'"', 'preview hides other-user actions')
-expect(detailPage, 'v-if="!isLockedView && isOwnProfile && !isPreview && !detailLoading && detailError == \'\'"', 'preview hides own-profile edit action')
-
-expect(vipPage, 'setCurrentUserVipStatus(true)', 'payment persists VIP status')
-expect(vipPage, 'if (pages.length > 1)', 'payment preserves an existing navigation stack')
-expect(vipPage, 'uni.navigateBack({ delta: 1 })', 'normal payment completion returns to the source page')
-expect(vipPage, 'uni.reLaunch({ url: redirectUrl.value })', 'direct-open payment retains a safe fallback route')
-reject(vipPage, 'clearAuthTokens', 'VIP payment never clears authentication tokens')
-reject(vipPage, 'removeStorageSync', 'VIP payment never removes authentication storage')
-reject(vipPage, '/pages/auth/login', 'VIP payment never redirects to login')
-expect(vipPage, "decodeURIComponent('' + options.redirect)", 'payment parses the encoded source route')
-
-console.log('VIP card rendering flow contract passed')
+main().catch(error => { console.error(error); process.exitCode = 1 })

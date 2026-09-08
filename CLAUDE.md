@@ -34,7 +34,7 @@ xuanshiai-vue/
 - 上述 npm 微信命令已不再调用项目内旧版 UniApp CLI。H5 命令仍沿用原入口，H5 结果不能代替微信验收。
 - H5 冒烟常见端口：`http://localhost:8080`（不要用 `:5173` 当本工程 UI）。
 - `.uts` 返回对象时避免属性简写（`{ tab }`）；UTS 可能丢掉局部变量，页面 catch 会误显示“网络异常”。社区列表已按显式键名修复，详见 docs/TROUBLESHOOTING.md §5.1。
-- GitHub 与本地源码检查：`npm run test:source`，包含 Mock、父母端、MBTI 及构建/门禁失败场景。真实发行产物和微信回归在本机执行，提交前运行 `git diff --check`。
+- GitHub 与本地源码检查：`npm run test:source`，包含 22 组 Mock、父母端、MBTI、首页会话与 UI 行为、构建/门禁失败场景。真实发行产物和微信回归在本机执行，提交前运行 `git diff --check`。
 
 ## 4. 常用定位
 
