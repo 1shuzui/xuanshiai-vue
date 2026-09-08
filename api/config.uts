@@ -3,10 +3,13 @@
 // 常规业务仍按真实接口运行；父母端演示由 api/parent.uts 的隔离 Mock 控制，
 // 不能因此把普通用户、社区等路径一起降级为 Mock。
 export const USE_MOCK = false
-export const API_BASE_URL = 'https://xhztest.xyz'
+// HBuilderX replaces NODE_ENV at compile time; release builds retain the deployed origin.
+export const API_BASE_URL = process.env.NODE_ENV === 'development'
+  ? 'http://127.0.0.1:8000'
+  : 'https://xhztest.xyz'
 export const ROLE_APPLICATION_USE_MOCK = true
 export const PAPER_PLANE_CHANCE_USE_MOCK = true
-export const LAN_API_BASE_URL = 'https://xhztest.xyz'
+export const LAN_API_BASE_URL = API_BASE_URL
 
 // FastAPI mounts its router directly at /api/v1.
 export const API_PREFIX = '/api/v1'

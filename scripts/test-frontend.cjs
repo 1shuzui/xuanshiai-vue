@@ -4,7 +4,7 @@ const { spawnSync } = require('node:child_process')
 // Source and simulated artifact checks run on GitHub without HBuilderX.
 const tests = [
   'mock-system', 'api-index-compile-guard', 'fastapi-request-contract',
-  'http-request-transport', 'account-request-isolation',
+  'http-request-transport', 'api-environments', 'account-request-isolation',
   'parent-slice', 'parent-audit-regressions', 'parent-chat-subject',
   'emotion-lab-flow', 'debug-login-emotion-lab', 'role-routing',
   'ai-profile-page', 'voice-conversation', 'home-session-flow',

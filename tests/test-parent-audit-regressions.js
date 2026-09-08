@@ -27,7 +27,7 @@ function runtime(storage = new Map(), http = null) {
       plugins: [[require('@babel/plugin-transform-typescript'), { allExtensions: true }], require('@babel/plugin-transform-modules-commonjs')]
     }).code
     const requireModule = id => load(id.startsWith('@/') ? path.join(root, id.slice(2)) : path.resolve(path.dirname(file), id))
-    vm.runInNewContext('(function(require,module,exports){' + code + '\n})', { uni, console, Date, Math, JSON, setTimeout, clearTimeout })(requireModule, module, module.exports)
+    vm.runInNewContext('(function(require,module,exports){' + code + '\n})', { uni, console, Date, Math, JSON, setTimeout, clearTimeout, process: { env: { NODE_ENV: 'production' } } })(requireModule, module, module.exports)
     return module.exports
   }
   const config = load('api/config.uts')
