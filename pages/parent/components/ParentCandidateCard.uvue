@@ -1,17 +1,19 @@
 <template>
 	<view class="candidate-card" @click="openDetail">
-		<view class="candidate-copy">
-			<text class="candidate-name">{{ candidate.displayName }}</text>
-			<text class="candidate-summary">{{ candidate.genderText }} · {{ candidate.birthYear }}年 · {{ candidate.city }}</text>
-			<text class="candidate-facts">{{ candidate.height }} · {{ candidate.education }} · {{ candidate.job }}</text>
-			<text class="candidate-cert">{{ candidate.certificationText }}</text>
-		</view>
-
-		<view class="candidate-photo-wrap">
-			<view class="candidate-photo-icon">
-				<XsaIcon name="profile" size="large" />
+		<view class="candidate-profile">
+			<view class="candidate-copy">
+				<text class="candidate-name">{{ candidate.displayName }}</text>
+				<text class="candidate-summary">{{ candidate.genderText }} · {{ candidate.birthYear }}年 · {{ candidate.city }}</text>
+				<text class="candidate-facts">{{ candidate.height }} · {{ candidate.education }} · {{ candidate.job }}</text>
+				<text class="candidate-cert">{{ candidate.certificationText }}</text>
 			</view>
-			<view class="photo-shield"><text>照片已保护</text></view>
+
+			<view class="candidate-photo-wrap">
+				<view class="candidate-photo-icon">
+					<XsaIcon name="profile" size="large" />
+				</view>
+				<view class="photo-shield"><text>照片已保护</text></view>
+			</view>
 		</view>
 
 		<view class="candidate-actions">
@@ -58,8 +60,8 @@
 
 <style scoped>
 	.candidate-card {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 128px;
+		display: flex;
+		flex-direction: column;
 		gap: 16px;
 		padding: 18px;
 		background: var(--surface);
@@ -68,8 +70,15 @@
 		box-shadow: var(--shadow-sm);
 	}
 
+	.candidate-profile {
+		display: flex;
+		flex-direction: row;
+		gap: 16px;
+	}
+
 	.candidate-copy {
 		min-width: 0;
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -100,6 +109,8 @@
 
 	.candidate-photo-wrap {
 		position: relative;
+		width: 112px;
+		flex-shrink: 0;
 		min-height: 156px;
 		border-radius: 14px;
 		overflow: hidden;
@@ -136,13 +147,14 @@
 	}
 
 	.candidate-actions {
-		grid-column: 1 / -1;
-		display: grid;
-		grid-template-columns: 1fr 1.4fr;
+		display: flex;
+		flex-direction: row;
 		gap: 10px;
 	}
 
 	.card-action {
+		flex: 1;
+		min-width: 0;
 		min-height: 48px;
 		margin: 0;
 		border-radius: 12px;
@@ -158,6 +170,7 @@
 	}
 
 	.card-action.primary {
+		flex: 1.4;
 		background: var(--accent);
 		color: var(--text-invert);
 	}

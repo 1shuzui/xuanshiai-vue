@@ -742,7 +742,8 @@
 
 <style scoped>
 	.lab-page {
-		min-height: 100vh;
+		height: 100vh;
+		overflow: hidden;
 		background: var(--canvas);
 		color: var(--ink);
 		display: flex;
@@ -771,6 +772,7 @@
 	}
 
 	.lab-scroll {
+		min-height: 0;
 		flex: 1;
 		height: 0;
 	}
@@ -862,6 +864,7 @@
 		margin: 0;
 		border-radius: 8px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		letter-spacing: 0;

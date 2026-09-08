@@ -80,12 +80,14 @@
 
 	.gate-row {
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		gap: 12px;
 		min-height: 48px;
 	}
 
 	.gate-state {
+		flex-shrink: 0;
 		width: 34px;
 		height: 34px;
 		border-radius: 999px;

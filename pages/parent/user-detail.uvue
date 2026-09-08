@@ -425,7 +425,8 @@
 
 <style scoped>
 	.detail-page {
-		min-height: 100vh;
+		height: 100vh;
+		overflow: hidden;
 		background: var(--canvas);
 		color: var(--ink);
 		display: flex;
@@ -434,11 +435,11 @@
 
 	.detail-nav {
 		min-height: 88px;
-		padding: calc(20px + env(safe-area-inset-top)) 16px 12px;
+		padding: calc(52px + var(--status-bar-height)) 16px 12px;
 		background: var(--surface);
 		border-bottom: 1px solid var(--line);
-		display: grid;
-		grid-template-columns: 48px 1fr 48px;
+		display: flex;
+		flex-direction: row;
 		align-items: center;
 		flex-shrink: 0;
 	}
@@ -460,6 +461,7 @@
 	}
 
 	.nav-title {
+		flex: 1;
 		align-self: center;
 		font-size: 20px;
 		font-family: var(--sans);
@@ -577,13 +579,15 @@
 	}
 
 	.fact-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
 		gap: 10px;
 		margin-top: 12px;
 	}
 
 	.fact-item {
+		width: calc(50% - 5px);
 		min-height: 72px;
 		padding: 10px;
 		border-radius: 12px;
@@ -606,6 +610,7 @@
 
 	.expectation-list {
 		display: flex;
+		flex-direction: row;
 		flex-wrap: wrap;
 		gap: 8px;
 		margin-top: 12px;
@@ -651,8 +656,8 @@
 		right: 0;
 		bottom: 0;
 		z-index: 20;
-		display: grid;
-		grid-template-columns: 1fr 1.4fr;
+		display: flex;
+		flex-direction: row;
 		gap: 10px;
 		padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
 		background: var(--surface);
@@ -682,6 +687,8 @@
 	}
 
 	.detail-action {
+		flex: 1;
+		min-width: 0;
 		min-height: 48px;
 		margin: 0;
 		border-radius: 12px;
@@ -697,13 +704,14 @@
 	}
 
 	.detail-action.primary {
+		flex: 1.4;
 		background: var(--accent);
 		color: var(--text-invert);
 	}
 
 	@media (max-width: 360px) {
-		.fact-grid {
-			grid-template-columns: 1fr;
+		.fact-item {
+			width: 100%;
 		}
 
 		.safety-actions {

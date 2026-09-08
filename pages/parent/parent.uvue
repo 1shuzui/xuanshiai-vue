@@ -1008,7 +1008,8 @@
 
 <style scoped>
 	.parent-page {
-		min-height: 100vh;
+		height: 100vh;
+		overflow: hidden;
 		background: var(--canvas);
 		color: var(--ink);
 		display: flex;
@@ -1017,10 +1018,11 @@
 
 	.page-header {
 		min-height: 112px;
-		padding: calc(20px + env(safe-area-inset-top)) 20px 18px;
+		padding: calc(52px + var(--status-bar-height)) 20px 18px;
 		background: var(--surface);
 		border-bottom: 1px solid var(--line);
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
@@ -1029,6 +1031,7 @@
 
 	.header-copy {
 		min-width: 0;
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
@@ -1076,6 +1079,8 @@
 		background: var(--accent-bg);
 		color: var(--accent2);
 		display: flex;
+		flex-direction: row;
+		flex-shrink: 0;
 		align-items: center;
 		gap: 8px;
 		font-size: 14px;
@@ -1127,8 +1132,8 @@
 	}
 
 	.summary-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-direction: row;
 		gap: 10px;
 		padding: 4px 0;
 	}
@@ -1146,6 +1151,7 @@
 	}
 
 	.summary-item {
+		flex: 1;
 		min-height: 76px;
 		padding: 12px 14px;
 		border-top: 1px solid var(--line);
@@ -1172,6 +1178,7 @@
 	.section-head {
 		min-height: 52px;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
@@ -1288,6 +1295,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		flex-direction: row;
 		gap: 12px;
 	}
 
@@ -1358,6 +1366,7 @@
 
 	.profile-child-row {
 		display: flex;
+		flex-direction: row;
 		align-items: baseline;
 		gap: 8px;
 		margin-top: 10px;
@@ -1452,6 +1461,7 @@
 		background: var(--surface);
 		color: var(--ink);
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
@@ -1523,9 +1533,13 @@
 	}
 
 	.editor-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-direction: row;
 		gap: 12px;
+	}
+
+	.editor-row .editor-field {
+		flex: 1;
 	}
 
 	.editor-field {
@@ -1563,13 +1577,14 @@
 	}
 
 	.editor-actions {
-		display: grid;
-		grid-template-columns: 1fr 1.4fr;
+		display: flex;
+		flex-direction: row;
 		gap: 10px;
 		padding-top: 4px;
 	}
 
 	.editor-button {
+		flex: 1;
 		min-height: 48px;
 		margin: 0;
 		border-radius: 12px;
@@ -1585,6 +1600,7 @@
 	}
 
 	.editor-button.primary {
+		flex: 1.4;
 		background: var(--accent);
 		color: var(--text-invert);
 	}
@@ -1602,6 +1618,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		flex-direction: row;
 		gap: 16px;
 	}
 
@@ -1664,7 +1681,7 @@
 		}
 
 		.editor-row {
-			grid-template-columns: 1fr;
+			flex-direction: column;
 		}
 	}
 </style>

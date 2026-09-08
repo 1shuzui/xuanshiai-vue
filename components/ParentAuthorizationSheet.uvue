@@ -18,12 +18,12 @@
                         <text class="authorization-copy">授权给：{{ preview.parentName }}</text>
                         <text v-for="scope in preview.scopes" :key="scope" class="authorization-copy">{{ scope }}</text>
                         <checkbox-group @change="onConfirmation">
-                            <label class="authorization-confirm"><checkbox value="confirmed" :checked="confirmed" /><text>我已阅读以上范围，自愿授权 30 天，知道可以随时撤销。</text></label>
+                            <label class="authorization-confirm"><checkbox value="confirmed" :checked="confirmed" /><text class="authorization-confirm-copy">我已阅读以上范围，自愿授权 30 天，知道可以随时撤销。</text></label>
                         </checkbox-group>
                         <button :disabled="busy || !confirmed" @tap="acceptInvite">确认授权 30 天</button>
                     </view>
                     <view class="authorization-confirm">
-                        <text>允许有有效授权的父母查看我的清晰头像</text>
+                        <text class="authorization-confirm-copy">允许有有效授权的父母查看我的清晰头像</text>
                         <switch :checked="allowPhoto" :disabled="busy" color="var(--accent)" @change="changePhotoConsent" />
                     </view>
                     <text class="authorization-copy">默认关闭。开启后仅在父母详情页显示头像；列表和聊天仍保护照片。</text>
@@ -141,7 +141,8 @@ onUnmounted(() => { generation += 1 })
 .authorization-title { font-size: 32rpx; font-weight: 600; }
 .authorization-input { padding: 20rpx; min-height: 48rpx; background: var(--surface); border: 1px solid var(--line); border-radius: 12rpx; }
 .authorization-code { word-break: break-all; font-size: 26rpx; }
-.authorization-confirm { display: flex; align-items: center; gap: 16rpx; font-size: 28rpx; line-height: 1.6; }
+.authorization-confirm { display: flex; flex-direction: row; align-items: center; gap: 16rpx; font-size: 28rpx; line-height: 1.6; }
+.authorization-confirm-copy { flex: 1; min-width: 0; }
 .authorization-error { color: var(--accent); font-size: 28rpx; }
 .authorization-record { border-top: 1px solid var(--line); padding-top: 20rpx; }
 </style>
