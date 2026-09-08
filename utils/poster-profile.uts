@@ -68,7 +68,9 @@ function normalizePhotos(source: any, avatar: string): string[] {
 	if (source != null && Array.isArray(source.photos)) {
 		const rawPhotos = source.photos as any[]
 		for (let i = 0; i < rawPhotos.length; i++) {
-			if (rawPhotos[i] != null && ('' + rawPhotos[i]).trim() != '') result.push('' + rawPhotos[i])
+			const photo = rawPhotos[i]
+			const imageUrl = typeof photo == 'string' ? photo.trim() : firstText(photo, ['file_url', 'url'], '')
+			if (imageUrl != '') result.push(imageUrl)
 		}
 	}
 	if (result.length == 0 && avatar != '') result.push(avatar)
