@@ -75,7 +75,7 @@ function loadProtectedMessageSanitizer() {
 console.log('消息闭环行为与契约测试')
 
 // Public API and compatibility exports.
-includes(apiSource, 'export const MESSAGE_USE_MOCK = true', 'message mock switch')
+includes(apiSource, 'export const MESSAGE_USE_MOCK = USE_MOCK', 'shared message backend switch')
 for (const name of [
   'getConversationPage',
   'getApplicationPage',
@@ -365,7 +365,7 @@ includes(chatPage, "isParentMode.value ? 'protected' : 'standard'", 'parent chat
 includes(chatPage, "content: protectedContent ? '' : message.content", 'parent detail never stores protected attachment content')
 includes(chatPage, "avatar: isParentMode.value ? ''", 'parent detail never stores clear avatars')
 includes(chatPage, 'message.protectedContent', 'parent detail renders a protected-content placeholder')
-includes(chatPage, "{ 'parent-mode': isParentMode }", 'parent chat enables its accessibility variant')
+includes(chatPage, "'parent-mode': isParentMode", 'parent chat enables its accessibility variant alongside other chat modes')
 includes(chatPage, '.chat-page.parent-mode .tool-btn', 'parent chat enlarges icon controls')
 includes(chatPage, 'min-height: 48px', 'parent chat controls expose 48px targets')
 includes(chatPage, "url: '/pages/parent/user-detail?id=' + userId.value", 'parent chat profile uses the gated parent detail')

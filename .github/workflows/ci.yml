@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  source-and-gate-tests:
+    name: Frontend source and synthetic artifact checks
     runs-on: ubuntu-latest
 
     steps:
@@ -21,5 +22,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate frontend source
-        run: node tests/test-mock-system.js
+      - name: Validate source, parent and MBTI behavior, build and gate failure scenarios
+        run: npm run test:source
+
+      - name: Explain validation boundary
+        run: echo 'Real HBuilderX production artifact and WeChat device checks run locally; see MP_QUALITY.md.' >> "$GITHUB_STEP_SUMMARY"

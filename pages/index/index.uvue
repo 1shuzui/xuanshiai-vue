@@ -42,24 +42,24 @@
 					</view>
 				</view>
 				<view class="history-btn" @tap="onHistory">
-					<text class="ic ic-home ic-history history-icon"></text>
+					<XsaIcon class="ic ic-home ic-history history-icon" name="home-history" size="inherit" />
 				</view>
 			</view>
 
 			<!-- 筛选搜索栏 -->
 			<view v-if="currentTab === 0" class="filter-bar">
 				<view class="search-box" @click="onSearch">
-					<text class="ic ic-home ic-search search-icon"></text>
+					<XsaIcon class="ic ic-home ic-search search-icon" name="home-search" size="inherit" />
 					<text class="search-placeholder">按城市、年龄、学历、MBTI筛选…</text>
 				</view>
 			</view>
 			<view v-if="currentTab === 1" class="filter-bar filter-bar-square">
 				<view class="search-box square-search-box" @click="onSearch">
-					<text class="ic ic-home ic-search search-icon"></text>
+					<XsaIcon class="ic ic-home ic-search search-icon" name="home-search" size="inherit" />
 					<text class="search-placeholder">按城市、年龄、学历、MBTI…</text>
 				</view>
 				<view class="ai-match-btn" @click="showAiScore">
-					<text class="ic ic-home ic-star ai-match-icon"></text>
+					<XsaIcon class="ic ic-home ic-star ai-match-icon" name="home-star" size="inherit" />
 					<text class="ai-match-text">AI匹配</text>
 				</view>
 			</view>
@@ -97,7 +97,7 @@
 							<view class="user-name-line">
 								<text class="name-age">{{ currentRecommendUser.name }}，{{ currentRecommendUser.age }}岁</text>
 								<view v-if="currentRecommendUser.isVip === true" class="recommend-vip-badge">
-									<text class="ic ic-vip ic-huiyuan recommend-vip-icon"></text>
+									<XsaIcon class="ic ic-vip ic-huiyuan recommend-vip-icon" name="vip-huiyuan" size="inherit" />
 									<text class="recommend-vip-text">VIP</text>
 								</view>
 							</view>
@@ -133,19 +133,19 @@
 						<view class="cert-section">
 							<text class="cert-label">已认证:</text>
 							<view class="cert-tag">
-								<text class="ic ic-sys ic-shiming cert-icon"></text>
+								<XsaIcon class="ic ic-sys ic-shiming cert-icon" name="sys-shiming" size="inherit" />
 								<text class="cert-text">实名</text>
 							</view>
 							<view class="cert-tag">
-								<text class="ic ic-me ic-xueli cert-icon"></text>
+								<XsaIcon class="ic ic-me ic-xueli cert-icon" name="me-xueli" size="inherit" />
 								<text class="cert-text">学历</text>
 							</view>
 							<view class="cert-tag">
-								<text class="ic ic-home ic-heart cert-icon gold-icon"></text>
+								<XsaIcon class="ic ic-home ic-heart cert-icon gold-icon" name="home-heart" size="inherit" />
 								<text class="cert-text">单身</text>
 							</view>
 							<view class="cert-tag">
-								<text class="ic ic-social ic-paishe cert-icon"></text>
+								<XsaIcon class="ic ic-social ic-paishe cert-icon" name="social-paishe" size="inherit" />
 								<text class="cert-text">头像</text>
 							</view>
 						</view>
@@ -242,11 +242,11 @@
 
 <view class="feed-actions">
 
-<view class="feed-action"><text class="ic ic-home ic-heart feed-action-icon"></text><text class="feed-action-count">{{ feed.likeCount }}</text></view>
+<view class="feed-action"><XsaIcon class="ic ic-home ic-heart feed-action-icon" name="home-heart" size="inherit" /><text class="feed-action-count">{{ feed.likeCount }}</text></view>
 
-<view class="feed-action"><text class="ic ic-social ic-pinglun feed-action-icon"></text><text class="feed-action-count">{{ feed.commentCount }}</text></view>
+<view class="feed-action"><XsaIcon class="ic ic-social ic-pinglun feed-action-icon" name="social-pinglun" size="inherit" /><text class="feed-action-count">{{ feed.commentCount }}</text></view>
 
-<view class="feed-action"><text class="ic ic-sys ic-fenxiang feed-action-icon"></text></view>
+<view class="feed-action"><XsaIcon class="ic ic-sys ic-fenxiang feed-action-icon" name="sys-fenxiang" size="inherit" /></view>
 
 </view>
 
@@ -260,7 +260,7 @@
 
 <!-- 动态区块结束 -->
 						<view class="activity-row">
-							<text class="ic ic-home ic-dingwei activity-dot"></text><text class="activity-text"> 近期活跃 · 距你 {{ currentRecommendUser.distance }}km</text>
+							<XsaIcon class="ic ic-home ic-dingwei activity-dot" name="home-dingwei" size="inherit" /><text class="activity-text"> 近期活跃 · 距你 {{ currentRecommendUser.distance }}km</text>
 							<text class="viewed-text">{{ currentRecommendUser.viewCount > 0 ? currentRecommendUser.viewCount + '人看过' : '' }}</text>
 						</view>
 					</view>
@@ -277,12 +277,12 @@
 			<scroll-view v-if="currentTab === 1" scroll-y class="content-scroll" enhanced show-scrollbar="false">
 				<view class="pinned-bar">
 					<view class="pinned-left">
-						<text class="ic ic-home ic-star pinned-flame"></text>
+						<XsaIcon class="ic ic-home ic-star pinned-flame" name="home-star" size="inherit" />
 						<text class="pinned-title">置顶推荐</text>
 						<view class="quality-badge"><text class="quality-text">优质</text></view>
 					</view>
 					<view class="want-top-btn" @tap="openTopPlacement">
-						<text class="ic ic-sys ic-zhankai want-top-icon"></text>
+						<XsaIcon class="ic ic-sys ic-zhankai want-top-icon" name="sys-zhankai" size="inherit" />
 						<text class="want-top-text">我要置顶</text>
 					</view>
 				</view>
@@ -291,7 +291,7 @@
 					<view v-if="squareUsers.length > 0" class="square-user-card" @tap="goUserDetail(squareAt(0).id)">
 						<view class="sq-photo-wrap">
 							<image class="sq-photo" :src="squareAt(0).avatar" mode="aspectFill"></image>
-							<view v-if="squareAt(0).is_vip === true || squareAt(0).isVip === true" class="vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+							<view v-if="squareAt(0).is_vip === true || squareAt(0).isVip === true" class="vip-tag"><XsaIcon class="ic ic-vip ic-huiyuan vip-tag-icon" name="vip-huiyuan" size="inherit" /><text class="vip-tag-text"> VIP</text></view>
 						</view>
 						<view class="sq-card-info">
 							<view class="sq-left-info">
@@ -300,13 +300,13 @@
 									<text class="sq-age">{{ squareAt(0).age }}岁</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 {{ squareAt(0).distance }}km</text>
+									<view class="sq-meta-location"><XsaIcon class="ic ic-home ic-dingwei sq-loc-icon" name="home-dingwei" size="inherit" /><text class="sq-meta-text"> 距你 {{ squareAt(0).distance }}km</text></view>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">{{ squareAt(0).job }} · {{ squareAt(0).city }}</text>
 								</view>
 							</view>
 							<view class="sq-like-btn" @click.stop="onLike(squareAt(0).id)">
-								<text class="ic ic-home ic-heart sq-heart"></text>
+								<XsaIcon class="ic ic-home ic-heart sq-heart" name="home-heart" size="inherit" />
 							</view>
 						</view>
 					</view>
@@ -322,13 +322,13 @@
 									<text class="sq-age">{{ squareAt(1).age }}岁</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 {{ squareAt(1).distance }}km</text>
+									<view class="sq-meta-location"><XsaIcon class="ic ic-home ic-dingwei sq-loc-icon" name="home-dingwei" size="inherit" /><text class="sq-meta-text"> 距你 {{ squareAt(1).distance }}km</text></view>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">{{ squareAt(1).job }} · {{ squareAt(1).city }}</text>
 								</view>
 							</view>
 							<view class="sq-like-btn" @click.stop="onLike(squareAt(1).id)">
-								<text class="ic ic-home ic-heart sq-heart"></text>
+								<XsaIcon class="ic ic-home ic-heart sq-heart" name="home-heart" size="inherit" />
 							</view>
 						</view>
 					</view>
@@ -336,7 +336,7 @@
 					<view v-if="vipSquareUsers.length > 0" class="sq-section">
 						<view class="sq-section-header">
 							<view class="sq-section-title-group">
-								<text class="ic ic-vip ic-huiyuan sq-section-icon"></text>
+								<XsaIcon class="ic ic-vip ic-huiyuan sq-section-icon" name="vip-huiyuan" size="inherit" />
 								<text class="sq-section-title">会员专区</text>
 						<text class="sq-section-count">{{ vipSquareUsers.length + '位' }}</text>
 							</view>
@@ -346,25 +346,25 @@
 							<view v-if="vipSquareUsers.length > 0" class="sq-vip-mini" @tap="goUserDetail(vipSquareAt(0).id)">
 								<view class="sq-vip-content">
 									<image class="sq-vip-photo" :src="vipSquareAt(0).avatar" mode="aspectFill"></image>
-									<view v-if="vipSquareAt(0).is_vip === true || vipSquareAt(0).isVip === true" class="vip-tag sq-vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+									<view v-if="vipSquareAt(0).is_vip === true || vipSquareAt(0).isVip === true" class="vip-tag sq-vip-tag"><XsaIcon class="ic ic-vip ic-huiyuan vip-tag-icon" name="vip-huiyuan" size="inherit" /><text class="vip-tag-text"> VIP</text></view>
 									<view class="sq-vip-info">
 										<view class="sq-vip-left">
 										<text class="sq-vip-name">{{ vipSquareAt(0).name }}</text>
 										<text class="sq-vip-detail">{{ vipSquareAt(0).age }}岁 · {{ vipSquareAt(0).height }}cm</text>
 										</view>
-										<view class="sq-vip-like" @tap.stop="onLike(vipSquareAt(0).id)"><text class="ic ic-home ic-heart sq-heart-sm"></text></view>
+										<view class="sq-vip-like" @tap.stop="onLike(vipSquareAt(0).id)"><XsaIcon class="ic ic-home ic-heart sq-heart-sm" name="home-heart" size="inherit" /></view>
 									</view></view>
 							</view>
 							<view v-if="vipSquareUsers.length > 1" class="sq-vip-mini" @tap="goUserDetail(vipSquareAt(1).id)">
 								<view class="sq-vip-content">
 									<image class="sq-vip-photo" :src="vipSquareAt(1).avatar" mode="aspectFill"></image>
-									<view v-if="vipSquareAt(1).is_vip === true || vipSquareAt(1).isVip === true" class="vip-tag sq-vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+									<view v-if="vipSquareAt(1).is_vip === true || vipSquareAt(1).isVip === true" class="vip-tag sq-vip-tag"><XsaIcon class="ic ic-vip ic-huiyuan vip-tag-icon" name="vip-huiyuan" size="inherit" /><text class="vip-tag-text"> VIP</text></view>
 									<view class="sq-vip-info">
 										<view class="sq-vip-left">
 										<text class="sq-vip-name">{{ vipSquareAt(1).name }}</text>
 										<text class="sq-vip-detail">{{ vipSquareAt(1).age }}岁 · {{ vipSquareAt(1).height }}cm</text>
 										</view>
-										<view class="sq-vip-like" @tap.stop="onLike(vipSquareAt(1).id)"><text class="ic ic-home ic-heart sq-heart-sm"></text></view>
+										<view class="sq-vip-like" @tap.stop="onLike(vipSquareAt(1).id)"><XsaIcon class="ic ic-home ic-heart sq-heart-sm" name="home-heart" size="inherit" /></view>
 									</view></view>
 							</view>
 						</view>
@@ -382,13 +382,13 @@
 									<text class="sq-age">{{ squareAt(4).age }}岁</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 {{ squareAt(4).distance }}km</text>
+									<view class="sq-meta-location"><XsaIcon class="ic ic-home ic-dingwei sq-loc-icon" name="home-dingwei" size="inherit" /><text class="sq-meta-text"> 距你 {{ squareAt(4).distance }}km</text></view>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">{{ squareAt(4).job }} · {{ squareAt(4).city }}</text>
 								</view>
 							</view>
 							<view class="sq-like-btn" @click.stop="onLike(squareAt(4).id)">
-								<text class="ic ic-home ic-heart sq-heart"></text>
+								<XsaIcon class="ic ic-home ic-heart sq-heart" name="home-heart" size="inherit" />
 							</view>
 						</view>
 					</view>
@@ -404,13 +404,13 @@
 									<text class="sq-age">{{ squareAt(5).age }}岁</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 {{ squareAt(5).distance }}km</text>
+									<view class="sq-meta-location"><XsaIcon class="ic ic-home ic-dingwei sq-loc-icon" name="home-dingwei" size="inherit" /><text class="sq-meta-text"> 距你 {{ squareAt(5).distance }}km</text></view>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">{{ squareAt(5).job }} · {{ squareAt(5).city }}</text>
 								</view>
 							</view>
 							<view class="sq-like-btn" @click.stop="onLike(squareAt(5).id)">
-								<text class="ic ic-home ic-heart sq-heart"></text>
+								<XsaIcon class="ic ic-home ic-heart sq-heart" name="home-heart" size="inherit" />
 							</view>
 						</view>
 					</view>
@@ -418,7 +418,7 @@
 					<view class="sq-section">
 						<view class="sq-section-header">
 							<view class="sq-section-title-group">
-								<text class="ic ic-vip ic-huiyuan sq-section-icon"></text>
+								<XsaIcon class="ic ic-vip ic-huiyuan sq-section-icon" name="vip-huiyuan" size="inherit" />
 								<text class="sq-section-title">高收入专区</text>
 						<text class="sq-section-count"></text>
 							</view>
@@ -428,25 +428,25 @@
 							<view v-if="squareUsers.length > 6" class="sq-vip-mini" @tap="goUserDetail(squareAt(6).id)">
 								<view class="sq-vip-content">
 									<image class="sq-vip-photo" :src="squareAt(6).avatar" mode="aspectFill"></image>
-									<view v-if="squareAt(6).is_vip === true || squareAt(6).isVip === true" class="vip-tag sq-vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+									<view v-if="squareAt(6).is_vip === true || squareAt(6).isVip === true" class="vip-tag sq-vip-tag"><XsaIcon class="ic ic-vip ic-huiyuan vip-tag-icon" name="vip-huiyuan" size="inherit" /><text class="vip-tag-text"> VIP</text></view>
 									<view class="sq-vip-info">
 										<view class="sq-vip-left">
 											<text class="sq-vip-name">{{ squareAt(6).name }}</text>
 											<text class="sq-vip-detail">{{ squareAt(6).age }}岁 · {{ squareAt(6).height }}cm</text>
 										</view>
-										<view class="sq-vip-like" @tap.stop="onLike(squareAt(6).id)"><text class="ic ic-home ic-heart sq-heart-sm"></text></view>
+										<view class="sq-vip-like" @tap.stop="onLike(squareAt(6).id)"><XsaIcon class="ic ic-home ic-heart sq-heart-sm" name="home-heart" size="inherit" /></view>
 									</view></view>
 							</view>
 							<view v-if="squareUsers.length > 7" class="sq-vip-mini" @tap="goUserDetail(squareAt(7).id)">
 								<view class="sq-vip-content">
 									<image class="sq-vip-photo" :src="squareAt(7).avatar" mode="aspectFill"></image>
-									<view v-if="squareAt(7).is_vip === true || squareAt(7).isVip === true" class="vip-tag sq-vip-tag"><text class="ic ic-vip ic-huiyuan vip-tag-icon"></text><text class="vip-tag-text"> VIP</text></view>
+									<view v-if="squareAt(7).is_vip === true || squareAt(7).isVip === true" class="vip-tag sq-vip-tag"><XsaIcon class="ic ic-vip ic-huiyuan vip-tag-icon" name="vip-huiyuan" size="inherit" /><text class="vip-tag-text"> VIP</text></view>
 									<view class="sq-vip-info">
 										<view class="sq-vip-left">
 											<text class="sq-vip-name">{{ squareAt(7).name }}</text>
 											<text class="sq-vip-detail">{{ squareAt(7).age }}岁 · {{ squareAt(7).height }}cm</text>
 										</view>
-										<view class="sq-vip-like" @tap.stop="onLike(squareAt(7).id)"><text class="ic ic-home ic-heart sq-heart-sm"></text></view>
+										<view class="sq-vip-like" @tap.stop="onLike(squareAt(7).id)"><XsaIcon class="ic ic-home ic-heart sq-heart-sm" name="home-heart" size="inherit" /></view>
 									</view></view>
 							</view>
 						</view>
@@ -456,7 +456,7 @@
 					<view class="sq-section">
 						<view class="sq-section-header">
 							<view class="sq-section-title-group">
-								<text class="ic ic-vip ic-huiyuan sq-section-icon"></text>
+								<XsaIcon class="ic ic-vip ic-huiyuan sq-section-icon" name="vip-huiyuan" size="inherit" />
 								<text class="sq-section-title">高学历专区</text>
 								<text class="sq-section-count"></text>
 							</view>
@@ -476,13 +476,13 @@
 									<text class="sq-age">{{ squareAt(8).age }}岁</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 {{ squareAt(8).distance }}km</text>
+									<view class="sq-meta-location"><XsaIcon class="ic ic-home ic-dingwei sq-loc-icon" name="home-dingwei" size="inherit" /><text class="sq-meta-text"> 距你 {{ squareAt(8).distance }}km</text></view>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">{{ squareAt(8).job }} · {{ squareAt(8).city }}</text>
 								</view>
 							</view>
 							<view class="sq-like-btn" @click.stop="onLike(squareAt(8).id)">
-								<text class="ic ic-home ic-heart sq-heart"></text>
+								<XsaIcon class="ic ic-home ic-heart sq-heart" name="home-heart" size="inherit" />
 							</view>
 						</view>
 					</view>
@@ -498,13 +498,13 @@
 									<text class="sq-age">{{ squareAt(9).age }}岁</text>
 								</view>
 								<view class="sq-meta-row">
-									<text class="sq-meta-text"><text class="ic ic-home ic-dingwei sq-loc-icon"></text> 距你 {{ squareAt(9).distance }}km</text>
+									<view class="sq-meta-location"><XsaIcon class="ic ic-home ic-dingwei sq-loc-icon" name="home-dingwei" size="inherit" /><text class="sq-meta-text"> 距你 {{ squareAt(9).distance }}km</text></view>
 									<view class="sq-dot"></view>
 									<text class="sq-meta-text">{{ squareAt(9).job }} · {{ squareAt(9).city }}</text>
 								</view>
 							</view>
 							<view class="sq-like-btn" @click.stop="onLike(squareAt(9).id)">
-								<text class="ic ic-home ic-heart sq-heart"></text>
+								<XsaIcon class="ic ic-home ic-heart sq-heart" name="home-heart" size="inherit" />
 							</view>
 						</view>
 					</view>
@@ -523,15 +523,15 @@
 					</view>
 					<view class="vip-hero-badges">
 						<view class="vip-hero-badge">
-							<text class="ic ic-home ic-star vip-hero-badge-icon"></text>
+							<XsaIcon class="ic ic-home ic-star vip-hero-badge-icon" name="home-star" size="inherit" />
 							<text class="vip-hero-badge-text">VIP标识</text>
 						</view>
 						<view class="vip-hero-badge">
-							<text class="ic ic-home ic-star vip-hero-badge-icon"></text>
+							<XsaIcon class="ic ic-home ic-star vip-hero-badge-icon" name="home-star" size="inherit" />
 							<text class="vip-hero-badge-text">多重认证</text>
 						</view>
 						<view class="vip-hero-badge">
-							<text class="ic ic-home ic-star vip-hero-badge-icon"></text>
+							<XsaIcon class="ic ic-home ic-star vip-hero-badge-icon" name="home-star" size="inherit" />
 							<text class="vip-hero-badge-text">优先匹配</text>
 						</view>
 					</view>
@@ -554,7 +554,7 @@
 							<view class="vip-card-content" @tap="goUserDetail(card.id)">
 								<view class="vip-card-photo">
 									<image class="vip-card-photo-img" :src="card.photo" mode="aspectFill"></image>
-									<view class="vip-card-crown"><text class="ic ic-vip ic-huiyuan vip-card-crown-icon"></text></view>
+									<view class="vip-card-crown"><XsaIcon class="ic ic-vip ic-huiyuan vip-card-crown-icon" name="vip-huiyuan" size="inherit" /></view>
 									<view :class="['vip-card-gender', card.gender === '女' ? 'female' : 'male']">
 										<text :class="['vip-gender-icon', card.gender === '女' ? 'female' : 'male']">{{ card.gender === '女' ? '♀' : '♂' }}</text>
 									</view>
@@ -577,25 +577,25 @@
 					<view class="vip-priv-header">
 						<text class="vip-priv-title">VIP会员专属特权</text>
 						<view class="vip-upgrade-btn" @tap="openVipPage">
-							<text class="ic ic-vip ic-huiyuan vip-upgrade-icon"></text>
+							<XsaIcon class="ic ic-vip ic-huiyuan vip-upgrade-icon" name="vip-huiyuan" size="inherit" />
 							<text class="vip-upgrade-text">立即开通</text>
 						</view>
 					</view>
 					<view class="vip-priv-row">
 						<view class="vip-priv-card">
 							<view class="vip-priv-icon-circle">
-								<text class="ic ic-social ic-paishe vip-priv-icon-text"></text>
+								<XsaIcon class="ic ic-social ic-paishe vip-priv-icon-text" name="social-paishe" size="inherit" />
 							</view>
 							<text class="vip-priv-card-title">资料解锁</text>
 							<text class="vip-priv-card-desc">查看完整资料</text>
 						</view>
 						<view class="vip-priv-card">
-							<view class="vip-priv-icon-circle"><text class="ic ic-social ic-pinglun vip-priv-icon-text"></text></view>
+							<view class="vip-priv-icon-circle"><XsaIcon class="ic ic-social ic-pinglun vip-priv-icon-text" name="social-pinglun" size="inherit" /></view>
 							<text class="vip-priv-card-title">深度了解</text>
 							<text class="vip-priv-card-desc">查看问答与期待</text>
 						</view>
 						<view class="vip-priv-card">
-							<view class="vip-priv-icon-circle"><text class="ic ic-home ic-star vip-priv-icon-text"></text></view>
+							<view class="vip-priv-icon-circle"><XsaIcon class="ic ic-home ic-star vip-priv-icon-text" name="home-star" size="inherit" /></view>
 							<text class="vip-priv-card-title">优先匹配</text>
 							<text class="vip-priv-card-desc">获得更多推荐机会</text>
 						</view>
@@ -603,7 +603,7 @@
 				</view>
 
 				<view class="vip-bottom-cta">
-					<text class="ic ic-home ic-star vip-cta-icon"></text><text class="vip-cta-title"> 升级VIP会员</text>
+					<XsaIcon class="ic ic-home ic-star vip-cta-icon" name="home-star" size="inherit" /><text class="vip-cta-title"> 升级VIP会员</text>
 					<text class="vip-cta-desc">解锁全部会员资料 · 无限牵线次数 · 优先展示曝光</text>
 						<view class="vip-price-row">
 							<view class="vip-price-opt">
@@ -632,20 +632,20 @@
 			<!-- 底部操作栏（仅推荐页显示） -->
 			<view v-if="currentTab === 0 && canShowRecommendUsers" class="bottom-bar">
 				<view class="share-btn" @click="shareProfile">
-					<text class="ic ic-sys ic-fenxiang share-icon"></text>
+					<XsaIcon class="ic ic-sys ic-fenxiang share-icon" name="sys-fenxiang" size="inherit" />
 				</view>
 				<view class="chat-btn" @click="openApplyModal">
-					<text class="ic ic-home ic-hello chat-icon"></text>
+					<XsaIcon class="ic ic-home ic-hello chat-icon" name="home-hello" size="inherit" />
 						<text class="chat-text">申请认识</text>
 				</view>
 				<view class="like-btn" @click="onLike(recommendUserId)">
-					<text class="ic ic-home ic-heart heart-icon"></text>
+					<XsaIcon class="ic ic-home ic-heart heart-icon" name="home-heart" size="inherit" />
 				</view>
 			</view>
 
 			<!-- AI悬浮按钮（仅推荐页显示） -->
 			<view v-if="currentTab === 0 && canShowRecommendUsers" class="ai-float-btn" @click="showAiScore">
-				<text class="ic ic-home ic-star ai-icon"></text>
+				<XsaIcon class="ic ic-home ic-star ai-icon" name="home-star" size="inherit" />
 			</view>
 		</view>
 
@@ -654,11 +654,6 @@
 			<view class="ai-sheet">
 				<view class="ai-profile-note">
 					<text>完成情感实验室测试后，平台会结合双方已确认的资料生成更贴合的解读。</text>
-				</view>
-				<view class="ai-mbti-row">
-					<view class="ai-mbti-card"><text class="ai-mbti-label">你的 MBTI</text><text class="ai-mbti-type">INFP</text></view>
-					<text class="ai-mbti-x">×</text>
-					<view class="ai-mbti-card you"><text class="ai-mbti-label">TA 的 MBTI</text><text class="ai-mbti-type">{{ currentRecommendUser.mbti }}</text></view>
 				</view>
 				<view class="ai-score-big"><text>{{ currentRecommendUser.matchScore }}%</text></view>
 				<view class="ai-bars"><view v-for="b in aiBars" :key="b.label" class="ai-bar"><view class="ai-bar-head"><text>{{ b.label }}</text><text>{{ b.value }}%</text></view><view class="ai-bar-trk"><view class="ai-bar-fill" :style="{ width: b.value + '%' }"></view></view></view></view>
@@ -719,6 +714,7 @@
 </template>
 
 <script setup lang="uts">
+import XsaIcon from '@/components/XsaIcon.uvue'
 	const systemInfo = uni.getSystemInfoSync()
 	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
 
@@ -731,8 +727,8 @@
 	import { likeUser, blockUser, unblockUser } from '@/api'
 	import { getDiscoveryRecommendations, getDiscoveryPlaza, getDynamicList, getUserDetail, getOwnProfile, getProfileCompletion } from '@/api'
 	import { getMembershipPackages } from '@/api/discovery.uts'
-	import { resolveMediaUrl } from '@/api/config.uts'
-	import locationJson from '@/static/location.json'
+	import { getAccessToken, resolveMediaUrl } from '@/api/config.uts'
+	import locationJson from '@/utils/data/location.json'
 	import {
 		recordProfileView,
 		resetDailyIfNeeded,
@@ -741,7 +737,7 @@
 	} from '@/utils/quota.uts'
 
 	// ========== 欢迎页 ==========
-	const welcomeVisible = ref(true)
+	const welcomeVisible = ref(getAccessToken() == '')
 	const welcomeAgreementVisible = ref(false)
 	const WELCOME_AGREEMENT_KEY = 'xsa_welcome_agreed_v2'
 
@@ -1140,20 +1136,18 @@
 	}
 
 	// ========== 生命周期 ==========
-	onMounted(() => {
-		if (routeParentMode()) return
-		const pages = getCurrentPages()
-		const currentPage = pages[pages.length - 1]
-		const options = currentPage.options
-		const skipWelcomeOnce = uni.getStorageSync('xsa_skip_welcome_once') == true
-		if (skipWelcomeOnce) uni.removeStorageSync('xsa_skip_welcome_once')
-		welcomeVisible.value = !skipWelcomeOnce && (options.tab == null || options.tab == '')
+	onLoad((options) => {
+		welcomeVisible.value = getAccessToken() == '' && (options.tab == null || options.tab == '')
 		if (options.tab != null && options.tab != '') {
 			const parsedTab = Number(options.tab)
 			if (!isNaN(parsedTab) && parsedTab >= 0 && parsedTab < navTabs.length) {
 				currentTab.value = parsedTab
 			}
 		}
+	})
+
+	onMounted(() => {
+		if (routeParentMode()) return
 		resetDailyIfNeeded()
 		loadHomeDiscovery()
 		loadMembershipPlans()
@@ -1161,14 +1155,9 @@
 	})
 
 	onShow(() => {
-		const freshLaunch = uni.getStorageSync('xsa_new_app_launch') == true
 		const skipWelcomeOnce = uni.getStorageSync('xsa_skip_welcome_once') == true
-		if (freshLaunch) {
-			uni.removeStorageSync('xsa_new_app_launch')
-			if (skipWelcomeOnce) uni.removeStorageSync('xsa_skip_welcome_once')
-			welcomeVisible.value = !skipWelcomeOnce
-		} else if (skipWelcomeOnce) {
-			uni.removeStorageSync('xsa_skip_welcome_once')
+		if (skipWelcomeOnce) uni.removeStorageSync('xsa_skip_welcome_once')
+		if (getAccessToken() != '' || skipWelcomeOnce) {
 			welcomeVisible.value = false
 		}
 		if (!welcomeVisible.value) loadHomeDiscovery()
@@ -1375,6 +1364,7 @@
 .sq-name { font-size: 32rpx; font-weight: 700; color: var(--text-primary); }
 .sq-age { font-size: 26rpx; color: var(--text-secondary); }
 .sq-meta-row { display: flex; flex-direction: row; align-items: center; gap: 12rpx; }
+.sq-meta-location { display: flex; flex-direction: row; align-items: center; }
 .sq-meta-text { font-size: 24rpx; color: var(--text-muted); }
 .sq-dot { width: 6rpx; height: 6rpx; border-radius: 50%; background-color: var(--text-muted); }
 .sq-like-btn { width: 80rpx; height: 80rpx; border-radius: 50%; background-color: #FFF0F0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -1574,11 +1564,6 @@
 .vip-cta-icon { font-size: 36rpx; color: var(--gold); margin-right: 8rpx; }
 
 /* 婚恋图标字体 */
-@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/系统通用/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-social"; src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-vip"; src: url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-me"; src: url('/static/婚恋小程序图标/个人中心/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/个人中心/iconfont.woff') format('woff'); }
 .ic { font-style: normal; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 .ic-home { font-family: "iconfont-home" !important; }
 .ic-sys { font-family: "iconfont-sys" !important; }
@@ -1586,29 +1571,4 @@
 .ic-vip { font-family: "iconfont-vip" !important; }
 .ic-me { font-family: "iconfont-me" !important; }
 /* unicode 映射 */
-.ic-search:before { content: "\e600"; }
-.ic-hello:before { content: "\e601"; }
-.ic-star:before { content: "\e60e"; }
-.ic-heart:before { content: "\e614"; }
-.ic-history:before { content: "\e658"; }
-.ic-dingwei:before { content: "\e63a"; }
-.ic-fenxiang:before { content: "\e636"; }
-.ic-shiming:before { content: "\e605"; }
-.ic-jiantou-you:before { content: "\e928"; }
-.ic-zhankai:before { content: "\e602"; }
-.ic-xiala:before { content: "\e609"; }
-.ic-pinglun:before { content: "\e679"; }
-.ic-paishe:before { content: "\e603"; }
-.ic-tongzhi:before { content: "\e68c"; }
-.ic-huati:before { content: "\e651"; }
-.ic-touxiang:before { content: "\e632"; }
-.ic-huodong:before { content: "\e704"; }
-.ic-huiyuan:before { content: "\e65d"; }
-.ic-jinbi:before { content: "\e64a"; }
-.ic-renwu:before { content: "\e69f"; }
-.ic-xueli:before { content: "\e66d"; }
-.ic-dongtai:before { content: "\e609"; }
-.ic-shezhi:before { content: "\e69d"; }
-.ic-kefu:before { content: "\e6d0"; }
-.ic-bangzhu:before { content: "\e623"; }
 </style>

@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="uts">
-	import locationJson from '@/static/location.json'
+	import locationJson from '@/utils/data/location.json'
 	import { updateOwnProfile } from '@/api/user.uts'
 	import { getProfileCompletion } from '@/api/auth.uts'
 

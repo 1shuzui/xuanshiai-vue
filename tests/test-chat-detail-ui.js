@@ -1,6 +1,8 @@
 const assert = require('assert')
 const fs = require('fs')
 const path = require('path')
+const vm = require('node:vm')
+const { readPage, templateElements } = require('./vue-page-helper.cjs')
 
 const root = path.resolve(__dirname, '..')
 const chatPage = fs.readFileSync(path.join(root, 'pagesSub/chat/detail.uvue'), 'utf8')
@@ -35,7 +37,12 @@ includes(chatPage, 'contactLoading', 'contact exchange should expose a loading s
 includes(chatPage, '请重新选择媒体', 'failed uploads should not expose an invalid retry action')
 includes(chatPage, 'onUnmounted(() =>', 'recording should be cleaned up when the page unmounts')
 includes(chatPage, 'discardVoiceRecording', 'unmounting should discard a partial voice recording')
-includes(chatPage, "{ 'parent-mode': isParentMode }", 'parent chat accessibility root variant')
+const chatRoot = templateElements(readPage('pagesSub/chat/detail.uvue'))[0]
+const rootClass = chatRoot.props.find(prop => prop.type === 7 && prop.name === 'bind' && prop.arg?.content === 'class').exp.content
+for (const isParentMode of [false, true]) for (const isAiAvatarMode of [false, true]) {
+  const classes = vm.runInNewContext(`(${rootClass})`, { isParentMode, isAiAvatarMode })
+  assert.strictEqual(classes['parent-mode'], isParentMode, 'parent accessibility class must remain independent of other chat modes')
+}
 includes(chatPage, 'isProtectedMediaMessage', 'parent chat media defense in depth')
 includes(chatPage, "content: protectedContent ? '' : message.content", 'parent chat does not retain protected media URLs')
 includes(chatPage, "avatar: isParentMode.value ? ''", 'parent chat does not retain clear avatar URLs')

@@ -7,8 +7,9 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 
 const config = read('api/config.uts')
 const wsApi = read('api/voice-ws.uts')
-const component = read('components/VoiceConversation.uvue')
+const component = read('pagesSub/profileExtra/components/VoiceConversation.uvue')
 const page = read('pagesSub/profileExtra/my-portrait.uvue')
+const player = read('utils/tts-player.uts')
 
 // ===== api/config.uts: WebSocket URL 构建 =====
 assert.match(config, /buildWsUrl/, 'config must export buildWsUrl for WebSocket connections')
@@ -43,7 +44,7 @@ assert.match(wsApi, /sendListen/, 'VoiceWS must have sendListen method')
 assert.match(wsApi, /type: 'listen'/, 'sendListen must send listen')
 assert.match(wsApi, /sendReviseText/, 'VoiceWS must have sendReviseText method')
 
-// ===== components/VoiceConversation.uvue: 实时对话组件 =====
+// ===== pagesSub/profileExtra/components/VoiceConversation.uvue: 实时对话组件 =====
 assert.match(component, /VoiceWaveform/, 'VoiceConversation must use VoiceWaveform component')
 assert.match(component, /VoiceWS/, 'VoiceConversation must import VoiceWS')
 assert.match(component, /convState/, 'VoiceConversation must have convState ref')
@@ -56,7 +57,10 @@ assert.match(component, /recorderManager/, 'VoiceConversation must use recorderM
 assert.match(component, /onFrameRecorded/, 'VoiceConversation must handle onFrameRecorded for streaming audio')
 assert.match(component, /sendAudioChunk/, 'VoiceConversation must send audio chunks via WS')
 assert.match(component, /arrayBufferToBase64/, 'VoiceConversation must encode audio to base64')
-assert.match(component, /InnerAudioContext/, 'VoiceConversation must use InnerAudioContext for TTS playback')
+assert.match(component, /new TTSPlayer/, 'VoiceConversation must use the shared queued TTS player')
+assert.match(component, /ttsPlayer\.enqueue\(audioUrl, durationMs\)/, 'TTS chunks must reach the shared player')
+assert.match(player, /uni\.createInnerAudioContext/, 'TTS must play through the platform audio context')
+assert.match(component, /ttsPlayer\.stop\(\)/, 'VoiceConversation must stop queued playback on cleanup')
 assert.match(component, /defineExpose/, 'VoiceConversation must expose methods to parent')
 assert.match(component, /emit\(/, 'VoiceConversation must emit events')
 assert.match(component, /transcribed/, 'VoiceConversation must emit transcribed event')

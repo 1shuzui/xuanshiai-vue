@@ -1,0 +1,106 @@
+<template>
+	<!-- 墨相师·AI 引路人 角色立绘组件。
+	     state: idle 空闲 / thinking 思考中 / speaking 说话中 / listening 倾听中
+	     每个状态对应一张动作立绘,在对话页的回复头像和语音对话区使用。 -->
+	<view class="mm-avatar" :class="'mm-' + state">
+		<view class="mm-halo"></view>
+		<image :webp="true" class="mm-figure" :src="avatarSrc" mode="aspectFit"></image>
+		<view class="mm-status-dot"></view>
+	</view>
+</template>
+
+<script setup lang="uts">
+interface Props {
+	state?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	state: 'idle'
+})
+
+const avatarSrc = computed(() : string => {
+	if (props.state == 'listening') return '/pagesSub/profileExtra/static/master/moxiang-master-listening.webp'
+	if (props.state == 'thinking') return '/pagesSub/profileExtra/static/master/moxiang-master-thinking.webp'
+	if (props.state == 'speaking') return '/pagesSub/profileExtra/static/master/moxiang-master-speaking.webp'
+	return '/pagesSub/profileExtra/static/master/moxiang-master-idle.webp'
+})
+</script>
+
+<style scoped>
+.mm-avatar {
+	position: relative;
+	width: 88px;
+	height: 88px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+/* 光晕:状态色环 */
+.mm-halo {
+	position: absolute;
+	width: 80px;
+	height: 80px;
+	border-radius: 999px;
+	background: radial-gradient(circle at 50% 50%, rgba(180, 118, 43, 0.12), rgba(180, 118, 43, 0) 70%);
+	animation: mm-halo-breathe 3.6s ease-in-out infinite;
+}
+.mm-thinking .mm-halo {
+	background: radial-gradient(circle at 50% 50%, rgba(92, 79, 61, 0.15), rgba(92, 79, 61, 0) 70%);
+	animation-duration: 2s;
+}
+.mm-speaking .mm-halo {
+	background: radial-gradient(circle at 50% 50%, rgba(201, 123, 87, 0.2), rgba(201, 123, 87, 0) 70%);
+	animation-duration: 1.4s;
+}
+.mm-listening .mm-halo {
+	background: radial-gradient(circle at 50% 50%, rgba(78, 125, 91, 0.18), rgba(78, 125, 91, 0) 70%);
+	animation-duration: 1.8s;
+}
+@keyframes mm-halo-breathe {
+	0%, 100% { transform: scale(1); opacity: 0.8; }
+	50% { transform: scale(1.12); opacity: 1; }
+}
+
+/* 立绘主体:AI 动漫角色形象 PNG */
+.mm-figure {
+	position: relative;
+	width: 80px;
+	height: 80px;
+	border-radius: 999px;
+	z-index: 1;
+}
+
+/* 状态指示点 */
+.mm-status-dot {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	width: 8px;
+	height: 8px;
+	border-radius: 999px;
+	background: #9A8C77;
+	z-index: 2;
+}
+.mm-thinking .mm-status-dot {
+	background: #5C4F3D;
+	animation: mm-dot-blink 1.2s ease-in-out infinite;
+}
+.mm-speaking .mm-status-dot {
+	background: #C97B57;
+	animation: mm-dot-blink 0.8s ease-in-out infinite;
+}
+.mm-listening .mm-status-dot {
+	background: #4E7D5B;
+	animation: mm-dot-pulse 1s ease-in-out infinite;
+}
+@keyframes mm-dot-blink {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.3; }
+}
+@keyframes mm-dot-pulse {
+	0%, 100% { transform: scale(1); opacity: 1; }
+	50% { transform: scale(1.4); opacity: 0.6; }
+}
+</style>

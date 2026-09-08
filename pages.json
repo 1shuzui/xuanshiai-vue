@@ -45,26 +45,6 @@
         "navigationBarTitleText": "注册",
         "navigationStyle": "custom"
       }
-    },
-    {
-      "path": "pages/parent/parent",
-      "style": {
-        "navigationBarTitleText": "父母端",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/parent/user-detail",
-      "style": {
-        "navigationBarTitleText": "资料详情",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/emotion-lab/emotion-lab",
-      "style": {
-        "navigationBarTitleText": "情感实验室"
-      }
     }
   ],
   "globalStyle": {
@@ -79,28 +59,28 @@
     "selectedColor": "#5A9D8E",
     "backgroundColor": "#FCFCFC",
     "borderStyle": "black",
-"list": [
-	      {
-	        "pagePath": "pages/index/index",
-	        "text": "首页"
-	      },
-	      {
-	        "pagePath": "pages/matchmaker/matchmaker",
-	        "text": "红娘服务"
-	      },
-	      {
-	        "pagePath": "pages/community/community",
-	        "text": "社区"
-	      },
-	      {
-	        "pagePath": "pages/message/message",
-	        "text": "消息"
-	      },
-	      {
-	        "pagePath": "pages/profile/profile",
-	        "text": "我的"
-	      }
-	    ]
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/matchmaker/matchmaker",
+        "text": "红娘服务"
+      },
+      {
+        "pagePath": "pages/community/community",
+        "text": "社区"
+      },
+      {
+        "pagePath": "pages/message/message",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
   },
   "uniIdRouter": {},
   "subPackages": [
@@ -353,27 +333,45 @@
         },
         {
           "path": "favorites",
-          "style": { "navigationBarTitleText": "我的收藏", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "我的收藏",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "spotlights",
-          "style": { "navigationBarTitleText": "我的爆灯", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "我的爆灯",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "support",
-          "style": { "navigationBarTitleText": "帮助与客服", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "帮助与客服",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "my-ai-avatar",
-          "style": { "navigationBarTitleText": "我的AI分身", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "我的AI分身",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "my-portrait",
-          "style": { "navigationBarTitleText": "AI 画像", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "AI 画像",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "my-portrait-master",
-          "style": { "navigationBarTitleText": "墨相师", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "墨相师",
+            "navigationStyle": "custom"
+          }
         }
       ]
     },
@@ -448,6 +446,36 @@
           "style": {
             "navigationBarTitleText": "我要置顶",
             "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/parent",
+      "pages": [
+        {
+          "path": "parent",
+          "style": {
+            "navigationBarTitleText": "父母端",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "user-detail",
+          "style": {
+            "navigationBarTitleText": "资料详情",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/emotion-lab",
+      "pages": [
+        {
+          "path": "emotion-lab",
+          "style": {
+            "navigationBarTitleText": "情感实验室"
           }
         }
       ]

@@ -3,7 +3,7 @@
 		<scroll-view class="vip-scroll vip-scroll-full" scroll-y>
 			<view class="status-banner">
 				<view class="status-copy"><text class="status-title">{{ isVip ? 'VIP会员已开通' : 'VIP会员未开通' }}</text><text class="status-desc">{{ isVip ? '当前会员权益正在生效' : '选择套餐后创建真实会员订单' }}</text></view>
-				<view class="crown-circle"><text class="ic ic-vip ic-huiyuan crown-icon"></text></view>
+				<view class="crown-circle"><XsaIcon class="ic ic-vip ic-huiyuan crown-icon" name="vip-huiyuan" size="inherit" /></view>
 			</view>
 
 			<view class="plans-section">
@@ -23,7 +23,7 @@
 			<view class="benefits-section">
 				<view class="benefit-heading"><text class="heading-dot"></text><text>会员权益</text><text class="heading-dot"></text></view>
 				<view class="benefit-icons">
-						<view class="benefit-icon-item" v-for="(item, index) in benefits" :key="index"><view class="benefit-icon-circle"><text :class="item.iconClass + ' benefit-icon-text'"></text></view><text>{{ item.title }}</text></view>
+						<view class="benefit-icon-item" v-for="(item, index) in benefits" :key="index"><view class="benefit-icon-circle"><XsaIcon :class="item.iconClass + ' benefit-icon-text'" :name="item.iconName" size="inherit" /></view><text>{{ item.title }}</text></view>
 				</view>
 			</view>
 
@@ -54,7 +54,7 @@
 						<view class="wechat-icon"><text class="ic ic-home ic-hello payment-icon"></text></view>
 						<view class="payment-copy"><text class="payment-name">微信支付</text><text class="payment-desc">推荐使用，安全快捷</text></view>
 					</view>
-					<view class="payment-check" :class="{ checked: paymentSelected }"><text v-if="paymentSelected" class="ic ic-sys ic-tijiaoqueren payment-check-icon"></text></view>
+					<view class="payment-check" :class="{ checked: paymentSelected }"><XsaIcon v-if="paymentSelected" class="ic ic-sys ic-tijiaoqueren payment-check-icon" name="sys-tijiaoqueren" size="inherit" /></view>
 				</view>
 				<view class="payment-total"><text>合计</text><text class="payment-total-price">¥{{ selectedPlanPrice }}</text></view>
 				<button class="payment-confirm" :disabled="paymentLoading" @tap="confirmPayment">{{ paymentLoading ? '处理中...' : '确认支付' }}</button>
@@ -64,6 +64,7 @@
 </template>
 
 <script setup lang="uts">
+import XsaIcon from '@/components/XsaIcon.uvue'
 import { getMembershipStatus, getMembershipPackages, createMembershipOrder, testPayOrder } from '@/api'
 
 const isVip = ref(false)
@@ -76,11 +77,11 @@ const loadError = ref('')
 const paymentLoading = ref(false)
 const plans = ref<any[]>([])
 const benefits = [
-	{ iconClass: 'ic ic-vip ic-renwu', title: '申请次数' },
-	{ iconClass: 'ic ic-vip ic-huiyuan', title: '尊贵标识' },
-	{ iconClass: 'ic ic-home ic-star', title: '靠前展示' },
-	{ iconClass: 'ic ic-vip ic-huiyuanquanyi', title: '解锁功能' },
-	{ iconClass: 'ic ic-vip ic-huiyuanfuwu', title: '专属服务' }
+	{ iconClass: 'ic ic-vip ic-renwu', iconName: 'vip-renwu', title: '申请次数' },
+	{ iconClass: 'ic ic-vip ic-huiyuan', iconName: 'vip-huiyuan', title: '尊贵标识' },
+	{ iconClass: 'ic ic-home ic-star', iconName: 'home-star', title: '靠前展示' },
+	{ iconClass: 'ic ic-vip ic-huiyuanquanyi', iconName: 'vip-huiyuanquanyi', title: '解锁功能' },
+	{ iconClass: 'ic ic-vip ic-huiyuanfuwu', iconName: 'vip-huiyuanfuwu', title: '专属服务' }
 ]
 const selectedPlanData = computed(() => plans.value.length > selectedPlan.value ? plans.value[selectedPlan.value] : null)
 const selectedPlanPrice = computed(() => selectedPlanData.value != null ? selectedPlanData.value.price : 0)
@@ -227,19 +228,8 @@ const confirmPayment = async () => {
 .payment-check { display: flex; flex-direction: row; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid #B8C9B4; background-color: #FFFFFF; }.payment-check.checked { border-color: var(--green-deep); background-color: var(--green-deep); }.payment-check-icon { font-size: 14px; color: #FFFFFF; }
 .payment-total { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; font-size: 15px; color: #1A1A1A; }.payment-total-price { font-size: 28px; font-weight: 700; color: #000000; }
 .payment-confirm { width: 100%; height: 50px; border: 0; border-radius: 0; background-color: #C7DDC1; color: #1A1A1A; font-size: 17px; font-weight: 700; }
-@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/系统通用/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-vip"; src: url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff') format('woff'); }
 .ic { font-style: normal; -webkit-font-smoothing: antialiased; }
 .ic-home { font-family: "iconfont-home" !important; }
 .ic-sys { font-family: "iconfont-sys" !important; }
 .ic-vip { font-family: "iconfont-vip" !important; }
-.ic-star:before { content: "\e60e"; }
-.ic-fanhui:before { content: "\e606"; }
-.ic-gengduo:before { content: "\e63f"; }
-.ic-tijiaoqueren:before { content: "\e627"; }
-.ic-huiyuan:before { content: "\e65d"; }
-.ic-renwu:before { content: "\e69f"; }
-.ic-huiyuanquanyi:before { content: "\e739"; }
-.ic-huiyuanfuwu:before { content: "\e674"; }
 </style>

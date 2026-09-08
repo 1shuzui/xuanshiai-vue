@@ -91,8 +91,8 @@
 </template>
 
 	<script setup lang="uts">
-		import ParentApplySheet from '@/components/ParentApplySheet.uvue'
-		import ParentGateNotice from '@/components/ParentGateNotice.uvue'
+		import ParentApplySheet from '@/pages/parent/components/ParentApplySheet.uvue'
+		import ParentGateNotice from '@/pages/parent/components/ParentGateNotice.uvue'
 		import XsaIcon from '@/components/XsaIcon.uvue'
 		import type { ParentContext } from '@/api'
 		import {
@@ -102,10 +102,12 @@
 		getParentCandidateDetail,
 		getParentContext,
 		reportParentCandidate,
-		toggleParentLike
+		toggleParentLike,
+		getCurrentAccountKey
 	} from '@/api'
 
 		const loading = ref(false)
+		let pageAccountKey = ''
 		const loadError = ref('')
 		const candidateId = ref(0)
 		const parentContext = ref(null as ParentContext | null)
@@ -132,6 +134,7 @@
 
 			onShow(() => {
 				detailPageActive = true
+				pageAccountKey = getCurrentAccountKey()
 				startParentRoleMonitor()
 				if (ensureParentRole()) loadDetail()
 			})
@@ -168,7 +171,7 @@
 
 			const hasStoredParentRole = (): boolean => {
 				const storedMode = uni.getStorageSync('xsa_onboarding_mode')
-				return storedMode != null && String(storedMode) == 'parent'
+				return storedMode != null && String(storedMode) == 'parent' && pageAccountKey == getCurrentAccountKey()
 			}
 
 			const invalidateDetailRequest = () => {
@@ -325,7 +328,7 @@
 
 		const handleGateAction = (gate: any) => {
 			if (gate != null && gate.code == 'PARENT_REALNAME_REQUIRED') {
-				uni.navigateTo({ url: '/pages/profile/certification' })
+				uni.navigateTo({ url: '/pagesSub/profileExtra/certification' })
 				return
 			}
 			if (
@@ -350,7 +353,7 @@
 			const requestContext = parentContext.value
 			const targetId = candidate.value.id
 			if (requestContext == null || !isDetailRequestCurrent(requestId)) return
-			const res = await toggleParentLike(requestContext, targetId)
+			const res = await toggleParentLike(requestContext, targetId, candidate.value.liked != true)
 			if (!isDetailRequestCurrent(requestId) || candidate.value == null || candidate.value.id != targetId) return
 				if (res.success && res.data != null && res.data.success == true) {
 					candidate.value.liked = res.data.liked == true
@@ -422,7 +425,8 @@
 
 <style scoped>
 	.detail-page {
-		min-height: 100vh;
+		height: 100vh;
+		overflow: hidden;
 		background: var(--canvas);
 		color: var(--ink);
 		display: flex;
@@ -431,11 +435,11 @@
 
 	.detail-nav {
 		min-height: 88px;
-		padding: calc(20px + env(safe-area-inset-top)) 16px 12px;
+		padding: calc(52px + var(--status-bar-height)) 16px 12px;
 		background: var(--surface);
 		border-bottom: 1px solid var(--line);
-		display: grid;
-		grid-template-columns: 48px 1fr 48px;
+		display: flex;
+		flex-direction: row;
 		align-items: center;
 		flex-shrink: 0;
 	}
@@ -457,6 +461,7 @@
 	}
 
 	.nav-title {
+		flex: 1;
 		align-self: center;
 		font-size: 20px;
 		font-family: var(--sans);
@@ -574,13 +579,15 @@
 	}
 
 	.fact-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
 		gap: 10px;
 		margin-top: 12px;
 	}
 
 	.fact-item {
+		width: calc(50% - 5px);
 		min-height: 72px;
 		padding: 10px;
 		border-radius: 12px;
@@ -603,6 +610,7 @@
 
 	.expectation-list {
 		display: flex;
+		flex-direction: row;
 		flex-wrap: wrap;
 		gap: 8px;
 		margin-top: 12px;
@@ -648,8 +656,8 @@
 		right: 0;
 		bottom: 0;
 		z-index: 20;
-		display: grid;
-		grid-template-columns: 1fr 1.4fr;
+		display: flex;
+		flex-direction: row;
 		gap: 10px;
 		padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
 		background: var(--surface);
@@ -679,6 +687,8 @@
 	}
 
 	.detail-action {
+		flex: 1;
+		min-width: 0;
 		min-height: 48px;
 		margin: 0;
 		border-radius: 12px;
@@ -694,13 +704,14 @@
 	}
 
 	.detail-action.primary {
+		flex: 1.4;
 		background: var(--accent);
 		color: var(--text-invert);
 	}
 
 	@media (max-width: 360px) {
-		.fact-grid {
-			grid-template-columns: 1fr;
+		.fact-item {
+			width: 100%;
 		}
 
 		.safety-actions {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * API 统一导出
  * import { getRecommendUser, getMessageList } from '@/api'
  */
@@ -105,6 +105,10 @@ export type {
 // 父母端相关
 export {
   getParentContext,
+  getParentPreferences,
+  updateParentPreferences,
+  getParentAlerts,
+  parentAuthorizationRequest,
   getParentAuthenticationGate,
   updateParentChildProfile,
   getParentAccessGate,
@@ -319,3 +323,4 @@ export {
   type FieldConfirmationStatus,
   type FieldPatchAction
 } from './ai-profile.uts'
+export { getCurrentAccountKey } from './request.uts'

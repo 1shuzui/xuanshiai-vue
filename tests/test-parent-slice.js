@@ -101,7 +101,7 @@ expect(api, "code: 'PARENT_AUTH_REQUIRED'", 'missing parent account session has 
 expect(api, 'clearAuthTokens()', 'partial parent sessions clear stale account and role state')
 expect(api, 'export function canParentViewClearPhoto', 'shared detail photo privacy gate')
 expect(api, 'parentViewAllowed == true', 'photo visibility requires explicit child consent')
-expect(api, "code: 'PARENT_REALNAME_REQUIRED'", 'parent real-name rejection')
+expect(api, "'PARENT_REALNAME_REQUIRED'", 'parent real-name rejection')
 expect(api, "'CHILD_AUTHORIZATION_EXPIRED' : 'CHILD_AUTHORIZATION_REQUIRED'", 'child authorization rejection')
 expect(api, 'export async function getParentContext', 'parent context API')
 const contextApiStart = api.indexOf('export async function getParentContext')
@@ -113,9 +113,7 @@ assert.ok(
 	contextApi.indexOf('const authBlocked = authenticationGated()') < contextApi.indexOf('if (PARENT_USE_MOCK)'),
 	'parent context authentication must run before the internal Mock branch',
 )
-expect(api, 'export const PARENT_USE_MOCK = true', 'parent-only mock boundary is explicit')
-expect(api, 'export const PARENT_RELATIONSHIP_BACKEND_READY = false', 'relationship backend release gate is explicit')
-expect(api, 'export const PARENT_SERVER_PRIVACY_FILTER_READY = false', 'server privacy release gate is explicit')
+expect(api, 'export const PARENT_USE_MOCK = USE_MOCK', 'parent-only mock boundary is explicit')
 expect(api, 'export function getParentSubjectApiGate', 'shared subject-safety gate is explicit')
 expect(api, "code: 'PARENT_MOCK_SUBJECT_REAL_API_BLOCKED'", 'hybrid subject mismatch has an explicit error code')
 expect(api, 'export async function updateParentChildProfile', 'child profile update API')
@@ -135,7 +133,7 @@ assert.ok(gatedStart >= 0 && parentRoleGatedStart > gatedStart, 'dual-subject ga
 assert.ok(parentRoleGatedStart >= 0 && validCandidateStart > parentRoleGatedStart, 'parent-role gate should be complete')
 expect(
 	api.slice(gatedStart, parentRoleGatedStart),
-	'authenticationGated()',
+	'parentRoleGated(context)',
 	'dual-subject actions reject stale contexts after logout',
 )
 expect(
@@ -150,24 +148,21 @@ assert.ok(applyApiStart >= 0 && reportApiStart > applyApiStart, 'parent applicat
 assert.ok(reportApiStart >= 0 && blockApiStart > reportApiStart, 'parent report API should be complete')
 const applyApi = api.slice(applyApiStart, reportApiStart)
 const reportApi = api.slice(reportApiStart, blockApiStart)
-const blockApi = api.slice(blockApiStart)
+const blockApi = api.slice(blockApiStart, api.indexOf('export async function getParentPreferences'))
 expect(applyApi, 'const blocked = gated(context)', 'parent applications retain the dual-subject access gate')
 expect(reportApi, 'const blocked = parentRoleGated(context)', 'parent reports require the parent role only')
-expect(blockApi, 'const blocked = parentRoleGated(context)', 'parent blocks require the parent role only')
+expect(blockApi, 'const blocked = gated(context)', 'delegated child blocks require live authorization')
 expectAbsent(reportApi, 'const blocked = gated(context)', 'parent reports do not require real-name or child authorization')
-expectAbsent(blockApi, 'const blocked = gated(context)', 'parent blocks do not require real-name or child authorization')
+expect(api, 'PARENT_SUBJECT_CHANGED', 'stale parent contexts cannot write child data')
 expect(reportApi, 'validCandidateId(candidateId)', 'parent reports validate the candidate id')
 expect(blockApi, 'validCandidateId(candidateId)', 'parent blocks validate the candidate id')
-assert.ok(
-	(api.match(/subjectGated\(context\)/g) || []).length >= 4,
-	'candidate browsing, likes, and applications should retain subject isolation',
-)
+expect(api.slice(gatedStart, parentRoleGatedStart), 'getParentSubjectApiGate(context, parentInternalMockScope(context))', 'all delegated actions share the subject check')
 console.log('PASS parent candidate subject isolation remains enforced')
 expect(api, "from './user.uts'", 'parent reuses the existing user business API')
 expect(api, 'getRecommendUsers(parentInternalMockScope(context))', 'parent recommendations delegate with an isolated subject')
 expect(api, 'getLikedUsers(parentInternalMockScope(context))', 'parent private-like list delegates with an isolated subject')
 expect(api, 'getUserDetail(candidateId, parentInternalMockScope(context))', 'parent detail delegates with an isolated subject')
-expect(api, 'likeUser(candidateId, parentInternalMockScope(context))', 'parent likes delegate with an isolated subject')
+expect(api, 'likeUser(candidateId, parentInternalMockScope(context), desiredLiked)', 'parent likes delegate their desired state with an isolated subject')
 expect(api, 'applyToMeet(candidateId, String(note).trim(), parentInternalMockScope(context))', 'parent applications delegate with an isolated subject')
 expect(api, "? String(raw.protectedAvatar)", 'candidate adapter prefers server-provided protected photos')
 expectAbsent(api, "protectedAvatar = raw.avatar", 'candidate adapter never falls back to the clear avatar')
@@ -175,26 +170,21 @@ expectAbsent(api, "city + '男士'", 'candidate adapter does not invent gendered
 expectAbsent(api, "city + '女士'", 'candidate adapter does not invent gendered city names')
 expect(api, 'syncRemainingApplications', 'successful applications refresh the parent quota')
 expect(api, 'Math.min(total, Math.max(0, reported))', 'reported quota is capped to the daily total')
-expect(api, 'quotaRefreshFailed == true', 'failed quota refresh does not invent a decrement')
-expect(api, 'syncMockParentRemainingApplicationsData(remaining)', 'refreshed quota persists in the parent Mock context')
-expect(mock, 'export function syncMockParentRemainingApplicationsData', 'parent Mock exposes a scoped quota writer')
+expectAbsent(api, 'current - 1', 'quota changes are owned by the persistent transition')
 expect(api, "from './message.uts'", 'parent reuses message business API')
 expect(api, "getApplications('protected', subject)", 'parent application list delegates with protected photo scope and child subject')
 expect(api, "getMessageList('protected', subject)", 'parent message list delegates with protected photo scope and child subject')
 expect(api, "from './matchmaker.uts'", 'parent reuses matchmaker business API')
 expect(api, "getServiceMatchmakers(parentInternalMockScope(context) != '')", 'parent matchmakers use their explicit internal adapter')
 expect(api, "getCustomMatchmakers(parentInternalMockScope(context) != '')", 'parent private customization uses its explicit internal adapter')
-expect(api, "from './community.uts'", 'parent reuses the existing safety business API')
-expect(api, "reportContent(", 'parent reports delegate to safety API')
-expect(api, "'user',", 'parent report preserves the shared user-target contract')
-expect(api, 'blockUser(candidateId)', 'parent blocks delegate to safety API')
+expect(api, "'/reports/'", 'parent reports use the scoped server safety API')
+expect(api, 'reasonId: reasonId', 'parent reports preserve the selected reason')
+expect(api, "'/blocks/'", 'parent blocks use the scoped server safety API')
 
 const gateRuntime = {
   Date,
   String,
   isNaN,
-	PARENT_RELATIONSHIP_BACKEND_READY: false,
-	PARENT_SERVER_PRIVACY_FILTER_READY: false,
 }
 gateRuntime.globalThis = gateRuntime
 vm.runInNewContext(
@@ -246,9 +236,10 @@ assert.strictEqual(
 		dataMode: 'http',
 		releaseGate: { productionReady: true },
 	}).allowed,
-	false,
-	'a real-data context must remain blocked until both hard release gates are enabled',
+	true,
+	'a valid HTTP context uses the capability reported by the server',
 )
+assert.strictEqual(gateRuntime.getParentAccessGate({ ...validContext, dataMode: 'http' }).allowed, false, 'an unavailable server capability blocks HTTP access')
 assert.strictEqual(
   gateRuntime.getParentAccessGate(unverifiedParent).childAuthorized,
   true,
@@ -343,9 +334,9 @@ assert.strictEqual(
 	true,
 	'an explicit parent-only mock scope stays available while global USE_MOCK is disabled',
 )
-expect(userApi, 'const parentMockLikedUserIds: { [key: string]: number[] } = {}', 'parent mock state has a separate subject store')
+expect(userApi, 'getMockParentStateData(scope).likedUserIds', 'parent likes use the durable account and child store')
 expect(userApi, 'function getParentMockLikedIds(scope: string): number[]', 'parent mock state is keyed by its explicit subject')
-expect(userApi, 'parentMockLikedUserIds[scope] = [...(mockLikedUserIds as number[])]', 'parent likes start from a copy of ordinary fixture state')
+expect(mock, 'likedUserIds: []', 'new parent accounts have their own private likes')
 expect(userApi, 'if (isParentMockScope(internalMockScope))', 'user API has an explicit internal review branch')
 expect(userApi, 'getParentMockLikedIds(internalMockScope)', 'internal review operations resolve isolated state')
 expect(communityMock, 'export const mockLikedUserIds: number[] = [7]', 'review fixture includes a liked candidate outside recommendations')
@@ -358,7 +349,7 @@ expect(apiIndex, 'getLikedUsers,', 'unified API exports the complete like list')
 expect(apiIndex, 'getParentLikedCandidates,', 'unified API exports the parent like list')
 console.log('PASS parent internal mock remains isolated with global HTTP mode')
 
-const bottomNav = read('components/ParentBottomNav.uvue')
+const bottomNav = read('pages/parent/components/ParentBottomNav.uvue')
 const parentIcon = read('components/XsaIcon.uvue')
 expect(bottomNav, "key: 'home'", 'parent home nav item')
 expect(bottomNav, "key: 'matchmaker'", 'parent matchmaker nav item')
@@ -368,13 +359,13 @@ expect(bottomNav, 'min-height: 56px', 'accessible nav targets')
 expect(bottomNav, 'box-shadow: var(--shadow-md)', 'parent navigation uses the shared elevation token')
 expect(bottomNav, 'background: var(--accent-bg)', 'parent navigation exposes a clear active surface')
 expect(bottomNav, '<XsaIcon :name="item.icon" size="medium" />', 'parent navigation uses the shared icon component')
-expect(parentIcon, "/static/底部导航栏/iconfont.woff2", 'parent icons reuse the ordinary navigation font asset')
+expect(parentIcon, "./assets/icons/tab/iconfont.woff2", 'parent icons reuse the ordinary navigation font asset')
 expect(parentIcon, 'xsa-icon-home:before', 'parent home icon glyph')
 expect(parentIcon, 'xsa-icon-matchmaker:before', 'parent matchmaker icon glyph')
 expect(parentIcon, 'xsa-icon-message:before', 'parent message icon glyph')
 expect(parentIcon, 'xsa-icon-profile:before', 'parent profile icon glyph')
 
-const candidateCard = read('components/ParentCandidateCard.uvue')
+const candidateCard = read('pages/parent/components/ParentCandidateCard.uvue')
 expect(candidateCard, '<XsaIcon name="profile" size="large" />', 'candidate photo uses the shared protected profile icon')
 expect(candidateCard, '照片已保护', 'candidate privacy state is explicit')
 expectAbsent(candidateCard, ':src="candidate.avatar"', 'candidate list never binds a clear ordinary-user avatar')
@@ -384,11 +375,11 @@ expect(candidateCard, 'font-size: 14px', 'candidate body type scale')
 expect(candidateCard, 'border-radius: 18px', 'candidate card uses the parent surface radius')
 expect(candidateCard, 'min-height: 48px', 'candidate action target')
 
-const gateNotice = read('components/ParentGateNotice.uvue')
+const gateNotice = read('pages/parent/components/ParentGateNotice.uvue')
 expect(gateNotice, '父母实名认证', 'parent gate copy')
 expect(gateNotice, '子女授权', 'child authorization copy')
 
-const applySheet = read('components/ParentApplySheet.uvue')
+const applySheet = read('pages/parent/components/ParentApplySheet.uvue')
 expect(applySheet, ':large-text="true"', 'parent application sheet uses the accessibility variant')
 expect(applySheet, '申请附言', 'parent application requires a written note')
 expect(applySheet, '对方本人同意后才能开始聊天', 'parent application explains mutual consent')
@@ -603,10 +594,10 @@ expectAbsent(
 )
 
 for (const [file, content] of [
-  ['components/ParentBottomNav.uvue', bottomNav],
-  ['components/ParentCandidateCard.uvue', candidateCard],
-  ['components/ParentGateNotice.uvue', gateNotice],
-	['components/ParentApplySheet.uvue', applySheet],
+  ['pages/parent/components/ParentBottomNav.uvue', bottomNav],
+  ['pages/parent/components/ParentCandidateCard.uvue', candidateCard],
+  ['pages/parent/components/ParentGateNotice.uvue', gateNotice],
+	['pages/parent/components/ParentApplySheet.uvue', applySheet],
   ['pages/parent/parent.uvue', parentPage],
   ['pages/parent/user-detail.uvue', detailPage]
 ]) {
@@ -616,7 +607,7 @@ for (const [file, content] of [
 for (const [file, content] of [
 	['pages/parent/parent.uvue', parentPage],
 	['pages/parent/user-detail.uvue', detailPage],
-	['components/ParentApplySheet.uvue', applySheet],
+	['pages/parent/components/ParentApplySheet.uvue', applySheet],
 	['components/XsaReportSheet.uvue', read('components/XsaReportSheet.uvue')]
 ]) {
 	for (const forbiddenCopy of ['Mock', 'mock', '测试', '内部演示', '流程审校', '仅供审校', '不会影响真实用户', '不代表已向真实用户', '测试数据']) {

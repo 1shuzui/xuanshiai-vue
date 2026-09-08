@@ -73,7 +73,7 @@ function loadSubjectHelpers() {
         return `function ${name}(${args}) {`
       },
     )
-  const context = { Math, Number }
+  const context = { Math, Number, USE_MOCK: false, getParentMockSubjectKey: childId => 'parent:101:' + childId }
   context.globalThis = context
   vm.runInNewContext(
     `${executable}\n` +
@@ -156,7 +156,7 @@ assert.strictEqual(
   'parent childId must be a positive integer',
 )
 const parentSubject = subjectHelpers.resolveMessageSubject({ mode: 'parent', childId: 42 })
-assert.strictEqual(parentSubject.key, 'parent:42', 'parent childId must partition message state')
+assert.strictEqual(parentSubject.key, 'parent:101:42', 'parent childId must partition message state')
 assert.strictEqual(
   subjectHelpers.effectivePrivacyScope('standard', parentSubject),
   'protected',

@@ -142,7 +142,7 @@
 </template>
 
 <script setup lang="uts">
-import MoxiangMasterAvatar from '@/components/MoxiangMasterAvatar.uvue'
+import MoxiangMasterAvatar from '@/pagesSub/profileExtra/components/MoxiangMasterAvatar.uvue'
 import { MasterWS } from '@/api/voice-master-ws.uts'
 import { resolveMediaUrl } from '@/api/config.uts'
 

@@ -3,39 +3,78 @@
 </template>
 
 <script setup lang="uts">
-	type XsaIconName = 'home' | 'matchmaker' | 'message' | 'profile'
-	type XsaIconSize = 'small' | 'medium' | 'large'
-
-	interface Props {
-		name: XsaIconName
-		size?: XsaIconSize
-	}
-
-	withDefaults(defineProps<Props>(), {
-		size: 'medium'
-	})
+	defineOptions({ styleIsolation: 'app-and-page' })
+	type XsaIconName = 'community' | 'home' | 'home-dingwei' | 'home-heart' | 'home-hello' | 'home-hello-e62f' | 'home-history' | 'home-search' | 'home-star' | 'matchmaker' | 'me-bangzhu' | 'me-dongtai' | 'me-kefu' | 'me-shezhi' | 'me-xueli' | 'message' | 'profile' | 'social-biaoqing' | 'social-canyuhuati' | 'social-huati' | 'social-huodong' | 'social-love' | 'social-paishe' | 'social-pinglun' | 'social-tongzhi' | 'social-touxiang' | 'social-xianxiahuodong' | 'social-yuyin' | 'sys-bangzhu' | 'sys-fanhui' | 'sys-fenxiang' | 'sys-gengduo' | 'sys-guanbi' | 'sys-jiantou-you' | 'sys-kefu' | 'sys-peidui' | 'sys-shiming' | 'sys-shuaxin' | 'sys-tianjia' | 'sys-tijiaoqueren' | 'sys-xiala' | 'sys-zhankai' | 'tab-a-wodedefuben2' | 'tab-qianxian' | 'tab-shequ' | 'tab-shouye' | 'tab-xiaoxi' | 'vip-huiyuan' | 'vip-huiyuanfuwu' | 'vip-huiyuanquanyi' | 'vip-jinbi' | 'vip-renwu'
+	type XsaIconSize = 'small' | 'medium' | 'large' | 'inherit'
+	interface Props { name: XsaIconName; size?: XsaIconSize }
+	withDefaults(defineProps<Props>(), { size: 'medium' })
 </script>
 
 <style scoped>
-	@font-face {
-		font-family: "xsa-tab-icon";
-		src: url('/static/底部导航栏/iconfont.woff2') format('woff2'), url('/static/底部导航栏/iconfont.woff') format('woff'), url('/static/底部导航栏/iconfont.ttf') format('truetype');
-	}
-
+	@font-face { font-family: "iconfont"; src: url('./assets/icons/tab/iconfont.woff2') format('woff2'), url('./assets/icons/tab/iconfont.woff') format('woff'), url('./assets/icons/tab/iconfont.ttf') format('truetype'); }
+	@font-face { font-family: "iconfont-home"; src: url('./assets/icons/home/iconfont.woff2') format('woff2'), url('./assets/icons/home/iconfont.woff') format('woff'); }
+	@font-face { font-family: "iconfont-me"; src: url('./assets/icons/me/iconfont.woff2') format('woff2'), url('./assets/icons/me/iconfont.woff') format('woff'); }
+	@font-face { font-family: "iconfont-social"; src: url('./assets/icons/social/iconfont.woff2') format('woff2'), url('./assets/icons/social/iconfont.woff') format('woff'); }
+	@font-face { font-family: "iconfont-sys"; src: url('./assets/icons/sys/iconfont.woff2') format('woff2'), url('./assets/icons/sys/iconfont.woff') format('woff'); }
+	@font-face { font-family: "iconfont-vip"; src: url('./assets/icons/vip/iconfont.woff2') format('woff2'), url('./assets/icons/vip/iconfont.woff') format('woff'); }
 	.xsa-icon {
-		font-family: "xsa-tab-icon" !important;
 		font-style: normal;
-		line-height: 1;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
 	}
-
-	.xsa-icon-home:before { content: "\e602"; }
-	.xsa-icon-matchmaker:before { content: "\e703"; }
-	.xsa-icon-message:before { content: "\e614"; }
-	.xsa-icon-profile:before { content: "\e620"; }
-
-	.xsa-icon-small { font-size: 18px; }
-	.xsa-icon-medium { font-size: 24px; }
-	.xsa-icon-large { font-size: 44px; }
+	.xsa-icon-community:before { font-family: "iconfont"; content: "\e627"; }
+	.xsa-icon-home:before { font-family: "iconfont"; content: "\e602"; }
+	.xsa-icon-home-dingwei:before { font-family: "iconfont-home"; content: "\e63a"; }
+	.xsa-icon-home-heart:before { font-family: "iconfont-home"; content: "\e614"; }
+	.xsa-icon-home-hello:before { font-family: "iconfont-home"; content: "\e601"; }
+	.xsa-icon-home-hello-e62f:before { font-family: "iconfont-home"; content: "\e62f"; }
+	.xsa-icon-home-history:before { font-family: "iconfont-home"; content: "\e658"; }
+	.xsa-icon-home-search:before { font-family: "iconfont-home"; content: "\e600"; }
+	.xsa-icon-home-star:before { font-family: "iconfont-home"; content: "\e60e"; }
+	.xsa-icon-matchmaker:before { font-family: "iconfont"; content: "\e703"; }
+	.xsa-icon-me-bangzhu:before { font-family: "iconfont-me"; content: "\e623"; }
+	.xsa-icon-me-dongtai:before { font-family: "iconfont-me"; content: "\e609"; }
+	.xsa-icon-me-kefu:before { font-family: "iconfont-me"; content: "\e6d0"; }
+	.xsa-icon-me-shezhi:before { font-family: "iconfont-me"; content: "\e69d"; }
+	.xsa-icon-me-xueli:before { font-family: "iconfont-me"; content: "\e66d"; }
+	.xsa-icon-message:before { font-family: "iconfont"; content: "\e614"; }
+	.xsa-icon-profile:before { font-family: "iconfont"; content: "\e620"; }
+	.xsa-icon-social-huati:before { font-family: "iconfont-social"; content: "\e651"; }
+	.xsa-icon-social-huodong:before { font-family: "iconfont-social"; content: "\e704"; }
+	.xsa-icon-social-paishe:before { font-family: "iconfont-social"; content: "\e603"; }
+	.xsa-icon-social-pinglun:before { font-family: "iconfont-social"; content: "\e679"; }
+	.xsa-icon-social-tongzhi:before { font-family: "iconfont-social"; content: "\e68c"; }
+	.xsa-icon-social-touxiang:before { font-family: "iconfont-social"; content: "\e632"; }
+	.xsa-icon-social-yuyin:before { font-family: "iconfont-social"; content: "\e888"; }
+	.xsa-icon-sys-bangzhu:before { font-family: "iconfont-sys"; content: "\e623"; }
+	.xsa-icon-sys-fanhui:before { font-family: "iconfont-sys"; content: "\e606"; }
+	.xsa-icon-sys-fenxiang:before { font-family: "iconfont-sys"; content: "\e636"; }
+	.xsa-icon-sys-gengduo:before { font-family: "iconfont-sys"; content: "\e63f"; }
+	.xsa-icon-sys-guanbi:before { font-family: "iconfont-sys"; content: "\e604"; }
+	.xsa-icon-sys-jiantou-you:before { font-family: "iconfont-sys"; content: "\e928"; }
+	.xsa-icon-sys-kefu:before { font-family: "iconfont-sys"; content: "\e6d0"; }
+	.xsa-icon-sys-peidui:before { font-family: "iconfont-sys"; content: "\e634"; }
+	.xsa-icon-sys-shiming:before { font-family: "iconfont-sys"; content: "\e605"; }
+	.xsa-icon-sys-shuaxin:before { font-family: "iconfont-sys"; content: "\e782"; }
+	.xsa-icon-sys-tianjia:before { font-family: "iconfont-sys"; content: "\e62b"; }
+	.xsa-icon-sys-tijiaoqueren:before { font-family: "iconfont-sys"; content: "\e627"; }
+	.xsa-icon-sys-xiala:before { font-family: "iconfont-sys"; content: "\e609"; }
+	.xsa-icon-sys-zhankai:before { font-family: "iconfont-sys"; content: "\e602"; }
+	.xsa-icon-tab-a-wodedefuben2:before { font-family: "iconfont"; content: "\e620"; }
+	.xsa-icon-tab-qianxian:before { font-family: "iconfont"; content: "\e703"; }
+	.xsa-icon-tab-shequ:before { font-family: "iconfont"; content: "\e627"; }
+	.xsa-icon-tab-shouye:before { font-family: "iconfont"; content: "\e602"; }
+	.xsa-icon-tab-xiaoxi:before { font-family: "iconfont"; content: "\e614"; }
+	.xsa-icon-vip-huiyuan:before { font-family: "iconfont-vip"; content: "\e65d"; }
+	.xsa-icon-vip-huiyuanfuwu:before { font-family: "iconfont-vip"; content: "\e674"; }
+	.xsa-icon-vip-huiyuanquanyi:before { font-family: "iconfont-vip"; content: "\e739"; }
+	.xsa-icon-vip-jinbi:before { font-family: "iconfont-vip"; content: "\e64a"; }
+	.xsa-icon-vip-renwu:before { font-family: "iconfont-vip"; content: "\e69f"; }
+	.xsa-icon-social-love:before { font-family: "iconfont-social"; content: "\e623"; }
+	.xsa-icon-social-biaoqing:before { font-family: "iconfont-social"; content: "\e606"; }
+	.xsa-icon-social-canyuhuati:before { font-family: "iconfont-social"; content: "\e608"; }
+	.xsa-icon-social-xianxiahuodong:before { font-family: "iconfont-social"; content: "\e704"; }
+	.xsa-icon-small { font-size: 18px; line-height: 1; }
+	.xsa-icon-medium { font-size: 24px; line-height: 1; }
+	.xsa-icon-large { font-size: 44px; line-height: 1; }
 </style>

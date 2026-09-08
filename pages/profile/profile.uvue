@@ -1,16 +1,16 @@
-﻿<template>
+<template>
 	<view class="page">
 		<!-- 导航栏 -->
 		<view class="nav-bar" :style="{ paddingTop: (statusBarHeight + 12) + 'px', paddingRight: (menuButtonSpacing + 8) + 'px' }">
 			<view class="nav-right">
 				<view class="nav-icon-btn role-switch-btn" @tap="onSwitchToParent" aria-label="切换到父母端" title="切换到父母端">
-					<text class="ic ic-sys ic-shuaxin nav-icon role-switch-icon"></text>
+					<XsaIcon class="ic ic-sys ic-shuaxin nav-icon role-switch-icon" name="sys-shuaxin" size="inherit" />
 				</view>
 				<view class="nav-icon-btn" @tap="onMessages">
-					<text class="ic ic-social ic-tongzhi nav-icon"></text>
+					<XsaIcon class="ic ic-social ic-tongzhi nav-icon" name="social-tongzhi" size="inherit" />
 				</view>
 				<view class="nav-icon-btn" @tap="onSettings">
-					<text class="ic ic-me ic-shezhi nav-icon"></text>
+					<XsaIcon class="ic ic-me ic-shezhi nav-icon" name="me-shezhi" size="inherit" />
 				</view>
 			</view>
 		</view>
@@ -22,7 +22,7 @@
 			<view class="profile-header">
 				<view class="avatar-wrap" @tap="onViewMyProfile">
 					<image v-if="user.avatar != ''" class="avatar-image" :src="user.avatar" mode="aspectFill"></image>
-					<text v-else class="ic ic-social ic-touxiang avatar-icon"></text>
+					<XsaIcon v-else class="ic ic-social ic-touxiang avatar-icon" name="social-touxiang" size="inherit" />
 				</view>
 				<view class="profile-info">
 					<text class="nickname">{{ user.nickname }}</text>
@@ -53,21 +53,21 @@
 			<view class="ai-zone">
 				<view class="ai-zone-head">
 					<view class="ai-zone-spark">
-						<text class="ic ic-home ic-star ai-zone-spark-icon"></text>
+						<XsaIcon class="ic ic-home ic-star ai-zone-spark-icon" name="home-star" size="inherit" />
 					</view>
 					<text class="ai-zone-title">宣誓爱 AI</text>
 				</view>
 				<text class="ai-zone-sub">用对话建构理想型画像，让 AI 分身替你回应世界的善意。</text>
 				<view class="ai-zone-actions">
 					<view class="zone-btn" @tap="onPortrait">
-						<text class="ic ic-social ic-touxiang zone-btn-icon zone-btn-icon-green"></text>
+						<XsaIcon class="ic ic-social ic-touxiang zone-btn-icon zone-btn-icon-green" name="social-touxiang" size="inherit" />
 						<view class="zone-btn-text">
 							<text class="zone-btn-name">画像</text>
 							<text class="zone-btn-desc">AI 对话建构理想型</text>
 						</view>
 					</view>
 					<view class="zone-btn" @tap="onAiAvatar">
-						<text class="ic ic-social ic-huati zone-btn-icon zone-btn-icon-rose"></text>
+						<XsaIcon class="ic ic-social ic-huati zone-btn-icon zone-btn-icon-rose" name="social-huati" size="inherit" />
 						<view class="zone-btn-text">
 							<text class="zone-btn-name">我的AI分身</text>
 							<text class="zone-btn-desc">管理你的数字分身</text>
@@ -79,27 +79,27 @@
 			<!-- VIP 会员卡 -->
 			<view v-if="!user.isVip" class="vip-card" @tap="onOpenVIP">
 				<view class="vip-crown-wrap">
-					<text class="ic ic-vip ic-huiyuan vip-crown"></text>
+					<XsaIcon class="ic ic-vip ic-huiyuan vip-crown" name="vip-huiyuan" size="inherit" />
 				</view>
 				<view class="vip-text-col">
 					<text class="vip-card-title">开通会员</text>
 					<text class="vip-card-sub">解锁全部功能，遇见更多可能</text>
 				</view>
-				<text class="ic ic-sys ic-jiantou-you vip-arrow"></text>
+				<XsaIcon class="ic ic-sys ic-jiantou-you vip-arrow" name="sys-jiantou-you" size="inherit" />
 			</view>
 
 			<!-- 主菜单 -->
 			<view class="menu-card">
 				<view class="menu-row" v-for="item in mainMenuItems" :key="item.label" @tap="handleMenuItem(item)">
 					<view class="menu-icon-wrap" :style="{ backgroundColor: item.iconBg }">
-						<text :class="item.iconClass + ' menu-icon'"></text>
+						<XsaIcon :class="item.iconClass + ' menu-icon'" :name="item.iconName" size="inherit" />
 					</view>
 					<text class="menu-label">{{ item.label }}</text>
 					<view v-if="item.badge" class="menu-badge">
 						<text class="menu-badge-text">{{ item.badge }}</text>
 					</view>
 					<view class="menu-spacer"></view>
-					<text class="ic ic-sys ic-jiantou-you menu-arrow"></text>
+					<XsaIcon class="ic ic-sys ic-jiantou-you menu-arrow" name="sys-jiantou-you" size="inherit" />
 				</view>
 			</view>
 
@@ -107,14 +107,14 @@
 			<view class="menu-card">
 				<view class="menu-row" v-for="item in bottomMenuItems" :key="item.label" @tap="item.label == '安全中心' ? onSecurity() : handleMenuItem(item)">
 					<view class="menu-icon-wrap" :style="{ backgroundColor: item.iconBg }">
-						<text :class="item.iconClass + ' menu-icon'"></text>
+						<XsaIcon :class="item.iconClass + ' menu-icon'" :name="item.iconName" size="inherit" />
 					</view>
 					<view class="menu-text-col">
 						<text class="menu-label">{{ item.label }}</text>
 						<text v-if="item.subtitle" class="menu-subtitle">{{ item.subtitle }}</text>
 					</view>
 					<view class="menu-spacer"></view>
-					<text class="ic ic-sys ic-jiantou-you menu-arrow"></text>
+					<XsaIcon class="ic ic-sys ic-jiantou-you menu-arrow" name="sys-jiantou-you" size="inherit" />
 				</view>
 			</view>
 
@@ -146,12 +146,17 @@
 
 	<!-- 自定义底部导航栏 -->
 	<XsaTabBar />
+    <ParentAuthorizationSheet :visible="familyAuthorizationVisible" @close="familyAuthorizationVisible = false" />
 </template>
 
 <script setup lang="uts">
+import XsaIcon from '@/components/XsaIcon.uvue'
 import XsaTabBar from '@/components/XsaTabBar.uvue'
 import { getProfileOverview, getProfileCompletion, getMembershipStatus } from '@/api'
 import { resolveMediaUrl } from '@/api/config.uts'
+import ParentAuthorizationSheet from '@/components/ParentAuthorizationSheet.uvue'
+const familyAuthorizationVisible = ref(false)
+onHide(() => { familyAuthorizationVisible.value = false })
 
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
@@ -362,20 +367,21 @@ const onEmotionLab = () => {
 }
 
 const mainMenuItems = [
-	{ iconClass: 'ic ic-vip ic-renwu', iconBg: '#EDE4F0', label: '我的任务', badge: 'NEW', action: onMyTasks },
-	{ iconClass: 'ic ic-me ic-dongtai', iconBg: '#E4EDE8', label: '我的动态', action: onMyMoments },
-	{ iconClass: 'ic ic-home ic-heart', iconBg: '#FDE8EC', label: '我的海报', action: onMyPoster },
-	{ iconClass: 'ic ic-social ic-huodong', iconBg: '#FEF3E4', label: '我的报名', action: onMyRegistration },
-	{ iconClass: 'ic ic-sys ic-shiming', iconBg: '#FEF3E4', label: '诚信认证', action: onCertification },
-	{ iconClass: 'ic ic-sys ic-fenxiang', iconBg: '#FEF3E4', label: '推荐给好友', action: onInviteFriend },
-	{ iconClass: 'ic ic-me ic-shezhi', iconBg: '#FEF3E4', label: '设置', action: onMenuSettings },
-	{ iconClass: 'ic ic-home ic-star', iconBg: '#E4EDE8', label: '情感实验室', action: onEmotionLab },
+    { iconClass: 'ic ic-sys ic-shiming', iconName: 'sys-shiming', iconBg: 'var(--surface)', label: '家人协助授权', action: () => { familyAuthorizationVisible.value = true } },
+	{ iconClass: 'ic ic-vip ic-renwu', iconName: 'vip-renwu', iconBg: '#EDE4F0', label: '我的任务', badge: 'NEW', action: onMyTasks },
+	{ iconClass: 'ic ic-me ic-dongtai', iconName: 'me-dongtai', iconBg: '#E4EDE8', label: '我的动态', action: onMyMoments },
+	{ iconClass: 'ic ic-home ic-heart', iconName: 'home-heart', iconBg: '#FDE8EC', label: '我的海报', action: onMyPoster },
+	{ iconClass: 'ic ic-social ic-huodong', iconName: 'social-huodong', iconBg: '#FEF3E4', label: '我的报名', action: onMyRegistration },
+	{ iconClass: 'ic ic-sys ic-shiming', iconName: 'sys-shiming', iconBg: '#FEF3E4', label: '诚信认证', action: onCertification },
+	{ iconClass: 'ic ic-sys ic-fenxiang', iconName: 'sys-fenxiang', iconBg: '#FEF3E4', label: '推荐给好友', action: onInviteFriend },
+	{ iconClass: 'ic ic-me ic-shezhi', iconName: 'me-shezhi', iconBg: '#FEF3E4', label: '设置', action: onMenuSettings },
+	{ iconClass: 'ic ic-home ic-star', iconName: 'home-star', iconBg: '#E4EDE8', label: '情感实验室', action: onEmotionLab },
 ]
 
 const bottomMenuItems = [
-	{ iconClass: 'ic ic-me ic-kefu', iconBg: '#F7F4F0', label: '客服与帮助', subtitle: 'AI客服 . 意见反馈', action: onHelp },
-	{ iconClass: 'ic ic-me ic-bangzhu', iconBg: '#F7F4F0', label: '关于我们', subtitle: '版本 1.0.0', action: onAbout },
-	{ iconClass: 'ic ic-sys ic-shiming', iconBg: '#FEF3E4', label: '安全中心', url: '/pagesSub/profileExtra/security', action: onSecurity },
+	{ iconClass: 'ic ic-me ic-kefu', iconName: 'me-kefu', iconBg: '#F7F4F0', label: '客服与帮助', subtitle: 'AI客服 . 意见反馈', action: onHelp },
+	{ iconClass: 'ic ic-me ic-bangzhu', iconName: 'me-bangzhu', iconBg: '#F7F4F0', label: '关于我们', subtitle: '版本 1.0.0', action: onAbout },
+	{ iconClass: 'ic ic-sys ic-shiming', iconName: 'sys-shiming', iconBg: '#FEF3E4', label: '安全中心', url: '/pagesSub/profileExtra/security', action: onSecurity },
 ]
 
 onShow(() => { loadOverview() })
@@ -829,12 +835,6 @@ page {
 /* ============================================================
    婚恋图标字体
    ============================================================ */
-@font-face { font-family: "iconfont-home"; src: url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/首页推荐与匹配/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-sys"; src: url('/static/婚恋小程序图标/系统通用/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/系统通用/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-social"; src: url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/社区互动与信息/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-vip"; src: url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/会员支付与任务/iconfont.woff') format('woff'); }
-@font-face { font-family: "iconfont-me"; src: url('/static/婚恋小程序图标/个人中心/iconfont.woff2') format('woff2'), url('/static/婚恋小程序图标/个人中心/iconfont.woff') format('woff'); }
-
 .ic { font-style: normal; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 .ic-home { font-family: "iconfont-home" !important; }
 .ic-sys { font-family: "iconfont-sys" !important; }
@@ -843,43 +843,6 @@ page {
 .ic-me { font-family: "iconfont-me" !important; }
 
 /* 图标 unicode 映射 */
-.ic-search:before { content: "\e600"; }
-.ic-heart:before { content: "\e614"; }
-.ic-star:before { content: "\e60e"; }
-.ic-history:before { content: "\e658"; }
-.ic-hello:before { content: "\e601"; }
-.ic-dingwei:before { content: "\e63a"; }
-.ic-fenxiang:before { content: "\e636"; }
-.ic-shiming:before { content: "\e605"; }
-.ic-guanbi:before { content: "\e604"; }
-.ic-fanhui:before { content: "\e606"; }
-.ic-gengduo:before { content: "\e63f"; }
-.ic-jiantou-you:before { content: "\e928"; }
-.ic-zhankai:before { content: "\e602"; }
-.ic-xiala:before { content: "\e609"; }
-.ic-shuaxin:before { content: "\e782"; }
-.ic-tianjia:before { content: "\e62b"; }
-.ic-pinglun:before { content: "\e679"; }
-.ic-dianzan:before { content: "\ec8c"; }
-.ic-paishe:before { content: "\e603"; }
-.ic-tongzhi:before { content: "\e68c"; }
-.ic-huati:before { content: "\e651"; }
-.ic-tupian-s:before { content: "\e61d"; }
-.ic-touxiang:before { content: "\e632"; }
-.ic-yuyin:before { content: "\e888"; }
-.ic-peidui:before { content: "\e634"; }
-.ic-zhifeiji:before { content: "\e69c"; }
-.ic-huodong:before { content: "\e704"; }
-.ic-huiyuan:before { content: "\e65d"; }
-.ic-jinbi:before { content: "\e64a"; }
-.ic-qianbao:before { content: "\e625"; }
-.ic-renwu:before { content: "\e69f"; }
-.ic-xueli:before { content: "\e66d"; }
-.ic-dongtai:before { content: "\e609"; }
-.ic-shezhi:before { content: "\e69d"; }
-.ic-kefu:before { content: "\e6d0"; }
-.ic-bangzhu:before { content: "\e623"; }
-
 /* 个人中心图标尺寸 */
 .avatar-icon { font-size: 28px; color: var(--profile-text-inverse); }
 

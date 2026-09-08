@@ -257,11 +257,19 @@ components:
 
 - 小程序优先，覆盖 320px—428px；内容左右内边距通常 16px，页面底部为固定操作栏预留空间。
 - 父母端在 320px、375px、390px、428px 下必须保持 48px 触控目标、四栏底部导航和 16px 正文；空间不足时让信息与动作换行，不压缩字号或遮挡底部安全区。
+- uni-app x 的 Flex 默认纵向排列。父母端信息行、门禁行和操作组显式指定横向；双栏内容与底部导航用 Flex 分配空间。包含内层滚动区的父母端、资料详情与情感实验室使用固定视口高度，内容在 `scroll-view` 中滚动。父母端自定义顶部区域在状态栏变量之外预留微信胶囊空间，不能仅依赖 `env(safe-area-inset-top)`。[DCloud 布局说明](https://doc.dcloud.net.cn/uni-app-x/css/)
 - 使用 `view` / `text` / `scroll-view` / `image` 和 UniApp API；不得依赖 `window`、`document` 或 DOM 操作。
 - 间距以 8px 为主网格，但允许 4px、6px、10px、12px、13px 等用于控件细调；先复用既有 Token，再局部调整。
 - 动效以 `0.18s—0.22s` 为主，采用 ease-out；按压可 `scale(0.98)`，悬浮仅用于 H5，不依赖 hover 完成功能。尊重减少动效偏好，不能让内容只在动画完成后才出现。
 
 ## Do's and Don'ts
+
+### 小程序图片与图标资源
+
+- `XsaIcon` 集中保留原有六套字体和 52 个语义名称，字体字节及字形不变。默认 small / medium / large 仍为 18 / 24 / 44px；`size="inherit"` 不指定字号，沿用调用处原有 class 和样式。组件允许页面 class 参与样式，直接承接原图标的点击事件，不在 `text` 内嵌套自定义组件。
+- 字体源文件在 `components/assets/icons/`，由组件 CSS 引入并内嵌一次，避免 static 再复制一份。图标名称与原字体/码点的对应表见 `tests/fixtures/icon-glyphs.json`。
+- 红娘首页书法图保留主包 WebP，公共人像保留原 JPEG 路径。墨相师四种状态与四套海报预览随“我的”分包；案例照片和私人定制头图随红娘分包。图片显示比例、文字、人物与透明背景保持原内容，海报采用保留透明像素的无损 WebP。
+- 图片压缩参数、原图 SHA-256、来源提交及新文件哈希记录在 `scripts/mp-media-manifest.json`；调整时从 Git 原图重新编码，不重复压缩已损失的图片。Android / iOS 的 WebP 显示及 320 / 375 / 390 / 428 宽度仍须端侧验收。
 
 ### Do
 

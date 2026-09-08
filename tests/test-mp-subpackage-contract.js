@@ -31,13 +31,12 @@ assert.deepEqual(mainPages, [
   'pages/message/message',
   'pages/profile/profile',
   'pages/auth/login',
-  'pages/auth/register',
-  'pages/parent/parent',
-  'pages/parent/user-detail',
-  'pages/emotion-lab/emotion-lab'
+  'pages/auth/register'
 ])
 
 const expectedSubpackages = {
+  'pages/parent': ['parent', 'user-detail'],
+  'pages/emotion-lab': ['emotion-lab'],
   'pagesSub/community': [
     'publish',
     'topic-list',
@@ -99,6 +98,8 @@ const expectedSubpackages = {
 }
 
 assert.equal(subpackagePages.size, Object.keys(expectedSubpackages).length)
+assert.equal(manifest['mp-weixin'].optimization.subPackages, true, 'subpackage-only dependencies must follow their owner')
+assert.equal(mainPages.length + [...subpackagePages.values()].reduce((sum, pages) => sum + pages.size, 0), 61)
 for (const [rootPath, expectedPages] of Object.entries(expectedSubpackages)) {
   assert.deepEqual([...subpackagePages.get(rootPath)], expectedPages, `${rootPath} route set changed`)
 }
