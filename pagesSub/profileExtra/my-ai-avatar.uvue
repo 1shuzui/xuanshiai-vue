@@ -38,7 +38,7 @@
 			<view v-else>
 			<!-- Tab 1：对话记录 -->
 			<view v-if="activeTab == 0">
-				<text class="aia-tip">为保护双方隐私，访客身份与具体聊天内容对你不可见，仅展示匿名话题摘要。当前数据保存在本设备，仅用于前端演示。</text>
+				<text class="aia-tip">{{ conversationTip }}</text>
 				<view v-if="chatRecords.length > 0">
 					<view class="aia-chat-item" v-for="item in chatRecords" :key="item.id">
 						<view class="aia-chat-avatar">
@@ -81,8 +81,8 @@
 					<view class="aia-empty-icon">
 						<text class="ic ic-sys ic-shiming aia-empty-icon-text"></text>
 					</view>
-					<text class="aia-empty-title">太棒了，没有待回答的问题</text>
-					<text class="aia-empty-sub">分身目前能独立应对访客的提问</text>
+					<text class="aia-empty-title">暂时没有待回答问题</text>
+					<text class="aia-empty-sub">这不代表分身已经能回答所有问题。访客问到资料里没有的内容时，仍可能出现在这里。</text>
 				</view>
 			</view>
 
@@ -174,11 +174,15 @@ import {
 	deleteAiAvatarOwnerQuestion,
 	deleteAiAvatarOwnerAnswer
 } from '@/api'
+import { USE_MOCK } from '@/api/config.uts'
 
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
 
 const activeTab = ref(0)
+const conversationTip = USE_MOCK
+	? '为保护双方隐私，访客身份与具体聊天内容对你不可见，仅展示匿名话题摘要。当前为演示数据，只保存在本设备。'
+	: '为保护双方隐私，访客身份与具体聊天内容对你不可见，仅展示匿名话题摘要。这些摘要来自服务端，不代表你能看到完整私人聊天。'
 const ownerId = ref(0)
 const loading = ref(true)
 const errorMessage = ref('')
@@ -311,7 +315,7 @@ const deletePending = (id: any) => {
 const deleteAnswer = (id: any) => {
 	uni.showModal({
 		title: '删除本人回答',
-		content: '删除后 AI 分身将不再使用这条演示答案，确定继续吗？',
+		content: '删除后 AI 分身将不再使用这条回答，确定继续吗？',
 		confirmText: '删除',
 		success: async (result: any) => {
 			if (result.confirm !== true) return

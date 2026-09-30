@@ -92,6 +92,33 @@ export class PcmPlayer {
 	// #endif
 
 	/**
+	 * 绑定当前回复世代。必须在该世代第一片 enqueue 前调用；
+	 * 重复绑定同一世代是幂等的，切换世代会先打断旧播放。
+	 */
+	begin(generationId: string) : boolean {
+		if (generationId == '') return false
+		// #ifdef MP-WEIXIN
+		if (this.generation == generationId) return true
+		if (this.generation != '') this.stopAll()
+		this.generation = generationId
+		this.finished = false
+		this.lastSeq = 0
+		this.queue = [] as any[]
+		this.remainderByte = -1
+		this.scheduledUntil = 0
+		this.scheduledSeconds = 0
+		this.startAt = 0
+		this.startNotified = false
+		this.finishNotified = false
+		return true
+		// #endif
+		// #ifndef MP-WEIXIN
+		this.emitFinished(generationId, 'failed', 0)
+		return false
+		// #endif
+	}
+
+	/**
 	 * 接收一个下行音频分片。世代不符（迟到分片）直接丢弃。
 	 * seq 必须从 1 连续递增；缺口/回退终止该世代。
 	 */

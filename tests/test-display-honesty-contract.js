@@ -31,9 +31,10 @@ const history = read('pagesSub/profileExtra/history.uvue')
 const visitors = read('pagesSub/profileExtra/visitors.uvue')
 const discoveryApi = read('api/discovery.uts')
 
-check('首页环形分对 null 显示 --（区分真实 0 分与无评分）', () => {
-  assert.ok(index.includes('if (user.matchScore == null) return \'--\''), 'aiScoreText must handle null')
+check('首页环形分不使用 legacy matchScore，未读取正式合拍结果显示 --', () => {
+  assert.ok(index.includes("const aiScoreText = computed((): string => '--')"), 'legacy score must stay hidden')
   assert.ok(!index.includes('{{ currentRecommendUser.matchScore }}%'), 'raw matchScore interpolation must not return')
+  assert.ok(index.includes('资料合拍参考'), 'home card must identify compatibility reference')
 })
 
 check('首页不再硬编码 MBTI 契合文案，改用后端 match_reason', () => {
@@ -48,14 +49,23 @@ check('首页认证标签由 certification_tags 驱动且可隐藏', () => {
   assert.ok(!index.includes('>头像</text>'), 'hardcoded 头像认证 must not return')
 })
 
-check('AI 匹配度弹窗不使用本地 mock 解析、不伪造 MBTI 类型', () => {
+check('资料合拍只读取正式 compatibility，不使用 legacy 分数或本地 mock', () => {
+  assert.ok(sheet.includes("getCompatibility(targetId)"), 'sheet must read compatibility by target user')
+  assert.ok(sheet.includes('waitForCompatibilityTask'), '202 compatibility task must be polled')
+  assert.ok(sheet.includes("result.status == 'ready'"), 'only ready results may render')
+  assert.ok(sheet.includes('result.display_eligible == true'), 'display eligibility must gate restricted values')
+  assert.ok(!sheet.includes('props.score'), 'sheet must not read legacy score prop')
   assert.ok(!sheet.includes('getMbtiPairAnalysis'), 'mock analysis import must stay removed')
   assert.ok(!sheet.includes("'ENTP'"), 'fake ENTP default must stay removed')
-  assert.ok(sheet.includes('state-unavailable'), 'unavailable state block must exist')
-  assert.ok(sheet.includes('props.score == null'), 'scoreText must distinguish missing from real zero')
+  assert.ok(sheet.includes('演示模式没有正式合拍结果'), 'mock mode must not claim a formal result')
 })
 
-check('分数免责文案不声称"已确认"（legacy-rule-v1 基于表单字段）', () => {
+check('首页不把 legacy matchScore 当作资料合拍结果', () => {
+  assert.ok(index.includes("const aiScoreText = computed((): string => '--')"), 'home card must hide legacy score')
+  assert.ok(!index.includes(':score="aiScore"'), 'sheet must not receive legacy score')
+  assert.ok(index.includes('资料合拍参考'), 'home card must use honest compatibility wording')
+})
+check('分数免责文案不声称"已确认"', () => {
   assert.ok(!sheet.includes('已确认资料'), 'sheet tip must not overclaim confirmed data')
   assert.ok(!detail.includes('已确认资料'), 'detail tip must not overclaim confirmed data')
 })

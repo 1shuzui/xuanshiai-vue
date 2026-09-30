@@ -57,6 +57,11 @@ export {
   acceptDiscoveryApplication,
   rejectDiscoveryApplication
 } from './discovery.uts'
+// AI 三类推荐（M07）
+export {
+  getAiRecommendations,
+  type RecommendationView
+} from './ai-recommend.uts'
 
 export {
   getMembershipStatus,
@@ -99,7 +104,28 @@ export {
   advisorErrorMessage
 } from './ai-advisor.uts'
 
-export { generateIdealPartner } from './ai-search.uts'
+export {
+  getCompatibility,
+  recomputeCompatibility,
+  waitForCompatibilityTask
+} from './ai-compatibility.uts'
+
+export {
+  createSearchDraft,
+  getSearchDraft,
+  patchSearchDraft,
+  confirmSearchDraft,
+  waitForSearchTask,
+  getSearchSnapshotResults,
+  getSearchSuggestions,
+  searchResultItems,
+  searchNextCursor,
+  searchHasMore,
+  searchDraftConditions,
+  searchDraftUnknown,
+  searchDraftConflicts,
+  searchDraftRevision
+} from './ai-search.uts'
 
 export {
   LIVE_STATUSES, liveStatusLabel, liveErrorMessage, getLiveSessions, getLiveSession, getMyLiveReservation,

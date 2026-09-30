@@ -54,17 +54,35 @@
 				</view>
 			</view>
 
+			<view v-if="currentTab === 0" class="recommend-view-tabs">
+				<view v-for="option in recommendViewOptions" :key="option.key" class="recommend-view-tab" :class="{ active: recommendView === option.key }" @tap="switchRecommendView(option.key)">
+					<text class="recommend-view-tab-text">{{ option.title }}</text>
+				</view>
 			</view>
-			<!-- 推荐 Tab -->
-			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll" enhanced show-scrollbar="false" @touchstart="onTouchStart" @touchend="onTouchEnd">
-				<view v-if="discoveryError != ''" class="completion-reminder completion-reminder-error">
+			</view>
+			<scroll-view v-if="currentTab === 0" scroll-y class="content-scroll content-scroll-recommend" enhanced show-scrollbar="false" @touchstart="onTouchStart" @touchend="onTouchEnd">
+				<view v-if="recommendationLoading" class="completion-gate">
+					<text class="completion-gate-title">正在读取{{ currentRecommendViewTitle }}</text>
+					<text class="completion-gate-copy">只展示当前账号有权限看到的推荐名片。</text>
+				</view>
+				<view v-else-if="discoveryError != ''" class="completion-reminder completion-reminder-error">
 					<text class="completion-reminder-title">推荐暂时无法加载</text>
 					<text class="completion-reminder-copy">{{ discoveryError }}</text>
-					<view class="completion-gate-button" @tap="loadHomeDiscovery"><text>重新加载</text></view>
+					<view class="completion-gate-button" @tap="loadAiRecommendations"><text>重新加载</text></view>
 				</view>
-				<view v-if="recommendUsers.length === 0 && discoveryError == ''" class="completion-gate">
-					<text class="completion-gate-title">暂时没有新的推荐</text>
-					<text class="completion-gate-copy">我们正在更新公开推荐资料，请稍后再来看看。</text>
+				<view v-else-if="recommendationRegenerating && recommendUsers.length === 0" class="completion-gate">
+					<text class="completion-gate-title">{{ currentRecommendViewTitle }}正在更新</text>
+					<text class="completion-gate-copy">后台重建进行中，当前没有可展示的新名片。请稍后手动刷新。</text>
+					<view class="completion-gate-button" @tap="loadAiRecommendations"><text>稍后刷新</text></view>
+				</view>
+				<view v-else-if="recommendationMock" class="completion-gate">
+					<text class="completion-gate-title">演示模式没有正式推荐结果</text>
+					<text class="completion-gate-copy">当前未连接推荐服务，不把演示资料当作正式推荐。</text>
+				</view>
+				<view v-else-if="recommendUsers.length === 0" class="completion-gate">
+					<text class="completion-gate-title">暂时没有{{ currentRecommendViewTitle }}</text>
+					<text class="completion-gate-copy">当前没有可展示的推荐名片，可以稍后重新加载。</text>
+					<view class="completion-gate-button" @tap="loadAiRecommendations"><text>重新加载</text></view>
 				</view>
 				<view v-else-if="recommendUsers.length > 0" class="profile-card">
 					<view class="cover-wrap">
@@ -104,6 +122,10 @@
 							<view class="tag" v-for="tag in currentRecommendUser.interestTags" :key="tag"><text class="tag-text">{{ tag }}</text></view>
 						</view>
 
+						<view v-if="currentRecommendUser.recommendationReason != null && currentRecommendUser.recommendationReason != ''" class="recommendation-note">
+							<text class="recommendation-note-title">{{ currentRecommendViewTitle }}的推荐理由</text>
+							<text class="recommendation-note-copy">{{ currentRecommendUser.recommendationReason }}</text>
+						</view>
 						<view class="divider"></view>
 
 						<view class="about-section">
@@ -132,7 +154,7 @@
 								<text class="ring-percent">{{ aiScoreText }}</text>
 							</view>
 							<view class="match-info">
-								<text class="match-title">AI 匹配度分析</text>
+								<text class="match-title">资料合拍参考</text>
 								<text v-if="currentRecommendUser.matchReason != null && currentRecommendUser.matchReason != ''" class="match-desc">{{ currentRecommendUser.matchReason }}</text>
 							</view>
 						</view>
@@ -633,16 +655,16 @@
 		</view>
 
 		<!-- ====== Sheets & Modals ====== -->
-		<!-- AI 匹配度解读：MBTI 配对解析小窗（顶部横线可拖拽调整高度，内容区可滚动） -->
+		<!-- 资料合拍参考：仅在 Sheet 内读取 compatibility 正式结果 -->
 		<XsaAiMatchSheet
 			:visible="aiVisible"
+			:target-user-id="recommendUserId"
 			my-name="你"
 			:my-avatar="myAvatar"
 			:my-mbti="myMbti"
 			:other-name="aiOtherName"
 			:other-avatar="aiOtherAvatar"
 			:other-mbti="aiOtherMbti"
-			:score="aiScore"
 			@close="aiVisible = false"
 		/>
 		<XsaZhiyuHub
@@ -736,7 +758,8 @@
 	import { getEmotionLabSummary } from '@/api/emotionLab.uts'
 	import { guardRealName } from '@/utils/realNameGate.uts'
 	import { likeUser, blockUser, unblockUser, saveAiAvatarProfileSnapshot } from '@/api'
-	import { getDiscoveryRecommendations, getDiscoveryPlaza, getDynamicList, getDynamicDetail, getUserDetail, getOwnProfile } from '@/api'
+	import { getAiRecommendations, getDiscoveryPlaza, getDynamicList, getDynamicDetail, getUserDetail, getOwnProfile } from '@/api'
+	import { type RecommendationView } from '@/api/ai-recommend.uts'
 	import { getMembershipPackages } from '@/api/discovery.uts'
 	import { resolveMediaUrl, getAccessToken } from '@/api/config.uts'
 	import {
@@ -915,9 +938,25 @@
 	])
 	const currentVipZone = computed(() => vipZones.value[vipCatIndex.value] != null ? vipZones.value[vipCatIndex.value] : vipZones.value[0])
 
-	// ========== 推荐页过滤 + 配额 ==========
+	// ========== 三类 AI 推荐与公开名片装配 ==========
+	const recommendView = ref<RecommendationView>('i_like')
+	const recommendViewOptions = [
+		{ key: 'i_like', title: '我会喜欢' },
+		{ key: 'likes_me', title: '会喜欢我' },
+		{ key: 'similar', title: '相似的人' }
+	]
+	const recommendationLoading = ref(false)
+	const recommendationRegenerating = ref(false)
+	const recommendationMock = ref(false)
+	const recommendationRunId = ref(0)
 	const recommendUsers = ref<any[]>([])
 	const discoveryError = ref('')
+	const currentRecommendViewTitle = computed((): string => {
+		for (let i = 0; i < recommendViewOptions.length; i++) {
+			if (recommendViewOptions[i].key == recommendView.value) return recommendViewOptions[i].title
+		}
+		return '推荐'
+	})
 	const squareUsers = ref<any[]>([])
 	const squareTotal = ref(0)
 	const membershipPlans = ref<any[]>([])
@@ -962,60 +1001,111 @@
 		return list[currentRecommendIndex.value % list.length]
 	})
 	const loadRecommendBackground = async () => {
-		const userId = Number(currentRecommendUser.value.id || 0)
-		recommendBackground.value = ''
-		if (userId <= 0) return
-		const res = await getUserDetail(userId)
-		if (!res.success || res.data == null) {
-			if (Number(res.code) == 429) showQuotaExhausted(res.message != null ? '' + res.message : '')
-			return
-		}
-		if (Number(currentRecommendUser.value.id || 0) != userId) return
-		const detail = res.data as any
-		const profile = detail.profile != null ? detail.profile : detail
-		const current = currentRecommendUser.value as any
-		const rawPhotos = profile.photos != null && Array.isArray(profile.photos) ? profile.photos as any[] : []
+		const user = currentRecommendUser.value as any
+		recommendBackground.value = user.backgroundWall != null ? '' + user.backgroundWall : ''
+	}
+	const mapRecommendationProfile = (item: any, detail: any): any => {
+		const body = detail != null ? detail : {}
+		const card = body.card != null ? body.card : body
+		const profile = body.profile != null ? body.profile : {}
+		const rawPhotos = profile.photos != null && Array.isArray(profile.photos)
+			? profile.photos as any[]
+			: (card.photos != null && Array.isArray(card.photos) ? card.photos as any[] : [])
 		const photos = rawPhotos.map((photo: any) => {
 			if (photo != null && typeof photo === 'object') return resolveMediaUrl(photo.file_url != null ? photo.file_url : photo.url)
 			return resolveMediaUrl(photo)
 		}).filter((photo: string) => photo != '')
-		const enriched = {
-			...current,
-			avatar: profile.avatar != null && profile.avatar != '' ? resolveMediaUrl(profile.avatar) : current.avatar,
+		const avatarRaw = card.avatar != null && card.avatar != '' ? card.avatar : profile.avatar
+		const reasonTexts = item.reasonTexts != null && item.reasonTexts.length > 0 ? item.reasonTexts as string[] : []
+		return {
+			id: item.targetUserId,
+			name: card.nickname != null ? '' + card.nickname : (profile.nickname != null ? '' + profile.nickname : '用户'),
+			avatar: resolveMediaUrl(avatarRaw),
 			photos,
-			height: profile.height != null ? Number(profile.height) : current.height,
-			weight: profile.weight != null ? Number(profile.weight) : current.weight,
-			education: educationText(profile.education_level != null ? profile.education_level : current.education),
-			job: profile.occupation != null && profile.occupation != '' ? '' + profile.occupation : current.job,
-			city: profile.residence_display != null && profile.residence_display != '' ? '' + profile.residence_display : locationTextByCityCode(current.city),
-			hometown: profile.hometown_display != null && profile.hometown_display != '' ? '' + profile.hometown_display : (current.hometown != null && current.hometown != '' ? current.hometown : '未填写'),
-			income: formatIncomeDisplay(profile.income_display != null && profile.income_display != '' ? profile.income_display : (profile.income != null ? profile.income : current.income)),
-			zodiac: zodiacFromBirthday(profile.birthday) != '' ? zodiacFromBirthday(profile.birthday) : current.zodiac,
-			bio: profile.self_intro != null && profile.self_intro != '' ? '' + profile.self_intro : current.bio
+			backgroundWall: resolveMediaUrl(profile.background_wall != null ? profile.background_wall : card.background_wall),
+			age: card.age != null ? Number(card.age) : (profile.age != null ? Number(profile.age) : 0),
+			height: card.height != null ? Number(card.height) : (profile.height != null ? Number(profile.height) : 0),
+			weight: card.weight != null ? Number(card.weight) : (profile.weight != null ? Number(profile.weight) : 0),
+			education: educationText(card.education_level != null ? card.education_level : profile.education_level),
+			job: card.occupation != null && card.occupation != '' ? '' + card.occupation : (profile.occupation != null ? '' + profile.occupation : '未填写'),
+			city: card.city_code != null ? '' + card.city_code : (profile.residence_display != null ? '' + profile.residence_display : '未填写'),
+			hometown: profile.hometown_display != null ? '' + profile.hometown_display : '未填写',
+			income: formatIncomeDisplay(profile.income_display != null ? profile.income_display : profile.income),
+			zodiac: zodiacFromBirthday(profile.birthday),
+			bio: profile.self_intro != null ? '' + profile.self_intro : (card.bio != null ? '' + card.bio : ''),
+			online: card.online_status != null ? Number(card.online_status) == 1 : false,
+			isVip: card.is_vip === true,
+			mbti: profile.mbti != null ? '' + profile.mbti : '',
+			interestTags: card.interest_tags != null && Array.isArray(card.interest_tags) ? card.interest_tags : (card.personal_tags != null && Array.isArray(card.personal_tags) ? card.personal_tags : []),
+			certificationTags: card.certification_tags != null && Array.isArray(card.certification_tags) ? card.certification_tags : [],
+			distance: card.distance_km != null ? Number(card.distance_km) : 0,
+			viewCount: 0,
+			matchReason: '',
+			recommendationReason: reasonTexts.join(' · '),
+			recommendationScore: item.score,
+			recommendationCoverage: item.coverage,
+			recommendationEngine: item.engine,
+			recommendationView: recommendView.value
 		}
-		const currentIndex = currentRecommendIndex.value % recommendUsers.value.length
-		if (currentIndex >= 0) recommendUsers.value.splice(currentIndex, 1, enriched)
-		recommendBackground.value = resolveMediaUrl(profile.background_wall)
 	}
-	const loadHomeDiscovery = async () => {
+	const loadAiRecommendations = async () => {
+		const runId = recommendationRunId.value + 1
+		recommendationRunId.value = runId
+		recommendationLoading.value = true
+		recommendationRegenerating.value = false
+		recommendationMock.value = false
 		discoveryError.value = ''
-		const recommendRes = await getDiscoveryRecommendations({ page: 1, page_size: 20 })
-		if (recommendRes != null && recommendRes.success && recommendRes.data != null) {
-			recommendUsers.value = recommendRes.data.items as any[]
-			currentRecommendIndex.value = 0
-			loadRecommendBackground()
-			loadFeedDynamics(Number(currentRecommendUser.value.id || 0))
-		} else {
-			recommendUsers.value = []
-			recommendBackground.value = ''
+		recommendUsers.value = []
+		currentRecommendIndex.value = 0
+		recommendBackground.value = ''
+		feedDynamics.value = []
+		const recommendRes = await getAiRecommendations(recommendView.value, 20)
+		if (runId != recommendationRunId.value) return
+		recommendationLoading.value = false
+		if (recommendRes == null || !recommendRes.success || recommendRes.data == null) {
 			const message = recommendRes != null && recommendRes.message != null ? String(recommendRes.message).trim() : ''
 			discoveryError.value = message != '' ? message : '请检查登录状态和网络后重试'
+			return
 		}
+		const recommendationData = recommendRes.data as any
+		recommendationRegenerating.value = recommendationData.regenerating == true
+		recommendationMock.value = recommendationData.isMock == true
+		const items = recommendationData.items != null && Array.isArray(recommendationData.items) ? recommendationData.items as any[] : []
+		if (items.length == 0) return
+		const detailResults = await Promise.all(items.map(async (item: any) => {
+			if (item == null || Number(item.targetUserId || 0) <= 0) return { item, res: null }
+			try {
+				return { item, res: await getUserDetail(item.targetUserId) }
+			} catch (error) {
+				return { item, res: null }
+			}
+		}))
+		if (runId != recommendationRunId.value) return
+		const assembled: any[] = []
+		for (let i = 0; i < detailResults.length; i++) {
+			const result = detailResults[i]
+			if (result == null || result.res == null || !result.res.success || result.res.data == null) continue
+			const card = mapRecommendationProfile(result.item, result.res.data)
+			if (card.id > 0) assembled.push(card)
+		}
+		recommendUsers.value = assembled
+		if (assembled.length > 0) {
+			await loadRecommendBackground()
+			loadFeedDynamics(Number(currentRecommendUser.value.id || 0))
+		}
+	}
+	const loadHomeDiscovery = async () => {
+		await loadAiRecommendations()
 		const plazaRes = await getDiscoveryPlaza({ page: 1, page_size: 20 })
 		if (plazaRes.success && plazaRes.data != null) {
 			squareUsers.value = plazaRes.data.items as any[]
 			squareTotal.value = plazaRes.data.total != null ? Number(plazaRes.data.total) : squareUsers.value.length
 		}
+	}
+	const switchRecommendView = (view: string) => {
+		if (view != 'i_like' && view != 'likes_me' && view != 'similar') return
+		recommendView.value = view as RecommendationView
+		loadAiRecommendations()
 	}
 	const loadMembershipPlans = async () => {
 		const res = await getMembershipPackages()
@@ -1152,7 +1242,7 @@
 		else if (key == 'search') onSearch()
 	}
 
-	// ========== AI 匹配度（MBTI 配对解析小窗） ==========
+	// ========== 资料合拍参考 ==========
 	const aiVisible = ref(false)
 	const myMbti = ref('')
 	const myAvatar = ref('')
@@ -1205,20 +1295,8 @@
 		// 对方 MBTI 缺失时如实返回空串（由展示层隐藏），不伪造类型
 		return mbti.length == 4 ? mbti.toUpperCase() : ''
 	})
-	// 环形分数：真实 0 分显示 0%，无数据/解析失败显示 --（不与零分混淆）
-	const aiScoreText = computed((): string => {
-		const user = currentRecommendUser.value as any
-		if (user.matchScore == null) return '--'
-		const score = Number(user.matchScore)
-		if (isNaN(score)) return '--'
-		return '' + Math.round(score) + '%'
-	})
-	const aiScore = computed((): number => {
-		const user = currentRecommendUser.value as any
-		if (user.matchScore == null) return 0
-		const score = Number(user.matchScore)
-		return isNaN(score) ? 0 : score
-	})
+	// 首页推荐卡不外显 legacy matchScore，避免把旧排序分数当作新合拍结果。
+	const aiScoreText = computed((): string => '--')
 
 	const openAiAvatarForCurrentUser = () => {
 		const user = currentRecommendUser.value as any
@@ -1472,6 +1550,14 @@
 
 /* ==================== 筛选栏 ==================== */
 .filter-bar { padding: 0 40rpx; }
+.recommend-view-tabs { display: flex; flex-direction: row; align-items: center; gap: 12rpx; padding: 16rpx 40rpx 0; }
+.recommend-view-tab { flex: 1; min-width: 0; padding: 16rpx 8rpx; border-radius: var(--radius-full); background-color: var(--bg-card); text-align: center; }
+.recommend-view-tab.active { background-color: var(--accent-soft); }
+.recommend-view-tab-text { color: var(--text-secondary); font-size: 24rpx; }
+.recommend-view-tab.active .recommend-view-tab-text { color: var(--accent-dark); font-weight: 700; }
+.recommendation-note { display: flex; flex-direction: column; gap: 8rpx; padding: 20rpx 24rpx; border-radius: var(--radius-md); background-color: var(--accent-soft); }
+.recommendation-note-title { color: var(--accent-dark); font-size: 24rpx; font-weight: 700; }
+.recommendation-note-copy { color: var(--text-secondary); font-size: 24rpx; line-height: 1.5; }
 .search-box { display: flex; flex-direction: row; align-items: center; gap: 16rpx; height: 80rpx; border-radius: var(--radius-xl); background-color: var(--bg-card); padding: 0 24rpx; }
 .search-icon { font-size: 28rpx; opacity: 0.5; }
 .search-placeholder { font-size: 26rpx; color: var(--text-muted); }
@@ -1732,6 +1818,7 @@
 /* 固定头部 */
 .sticky-header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; max-width: 750rpx; margin: 0 auto; background-color: var(--bg-primary); }
 .content-scroll { flex: 1; padding: 254rpx 32rpx 0 32rpx; }
+.content-scroll-recommend { padding-top: 330rpx; }
 .completion-reminder { margin-top: 28rpx; padding: 28rpx; display: flex; flex-direction: column; border: 1rpx solid var(--line); border-radius: 24rpx; background-color: var(--bg-card-soft); }
 .completion-reminder-error { background-color: var(--warm); }
 .completion-reminder-title { color: var(--text-primary); font-size: 28rpx; font-weight: 700; }

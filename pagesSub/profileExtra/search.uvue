@@ -15,19 +15,24 @@
 			<view v-if="activeTab === 0" class="search-panel ai-panel">
 				<view class="ai-input-wrap">
 					<textarea class="ai-input" :value="aiQuery" maxlength="300" :placeholder="aiPlaceholder" @input="onAiInput"></textarea>
-					<view class="ai-input-foot"><view class="ai-template-trigger ai-template-trigger--disabled" @tap="onAiSuggestTap"><text class="ai-trigger-text">猜你喜欢（暂未开放）</text></view></view>
-				<text class="panel-unavailable-note">AI 觅遇能力接入中：当前可改用「精准甄选」按条件筛选</text>
+					<view class="ai-input-foot"><view class="ai-template-trigger" @tap="onAiSuggestTap"><text class="ai-trigger-text">{{ aiSuggestions.length > 0 ? '选择一条期待' : '读取可编辑建议' }}</text></view><button class="ai-submit-button" :disabled="aiGenerating || aiQuery.trim().length == 0" @tap="submitAiSearch">{{ aiGenerating ? '正在解析…' : '解析期待' }}</button></view>
+					<view v-if="aiSuggestions.length > 0" class="ai-suggestion-row"><text v-for="item in aiSuggestions" :key="item" class="ai-suggestion-chip" @tap="typeAiText(item)">{{ item }}</text></view>
+					<text class="panel-note">先把期待解析成条件，再由你确认后执行搜索；不会自动改写长期偏好。</text>
+					<text v-if="aiGenerating" class="ai-task-inline">{{ aiDraftTaskStage }}</text>
 				</view>
 
-				<view class="ai-drift-field">
-					<text class="drift-word dw-1">认真对待感情</text>
-					<text class="drift-word dw-2">情绪稳定</text>
-					<text class="drift-word dw-3">聊得来</text>
-					<text class="drift-word dw-4">会好好商量</text>
-					<text class="drift-word dw-5">热爱生活</text>
-					<text class="drift-word dw-6">温柔且坚定</text>
-					<text class="drift-word dw-7">靠得住</text>
-					<text class="drift-caption">有些期待，说不出来也能被听见</text>
+				<view v-if="aiDraft != null" class="ai-draft-panel">
+					<view class="ai-draft-heading"><text class="condition-label">请确认搜索条件</text><text class="ai-draft-status">{{ aiDraftStatusLabel }}</text></view>
+					<text class="condition-help">条件来源于后端解析。可修改或移除，只有确认后才会执行搜索。</text>
+					<view v-for="(condition, index) in aiConditions" :key="index" class="ai-condition-row">
+						<view class="ai-condition-copy"><text class="ai-condition-name">{{ conditionLabel(condition) }}</text><text class="ai-condition-kind">{{ condition.kind == 'hard' ? '硬条件' : '软偏好' }} · {{ condition.confidence != null ? '置信度 ' + Math.round(Number(condition.confidence) * 100) + '%' : '后端返回' }}</text></view>
+						<input class="ai-condition-input" :value="condition.localValueText" @input="onAiConditionValueInput(index, $event)" />
+						<view class="ai-condition-actions"><button :class="{ selected: condition.localAction == 'confirmed' }" @tap="setAiConditionAction(index, 'confirmed')">确认</button><button :class="{ selected: condition.localAction == 'removed' }" @tap="setAiConditionAction(index, 'removed')">移除</button></view>
+					</view>
+					<view v-if="aiUnknown.length > 0" class="ai-result-notice"><text class="ai-result-notice-title">暂未识别</text><text v-for="item in aiUnknown" :key="item">{{ item }}</text></view>
+					<view v-if="aiConflicts.length > 0" class="ai-result-notice ai-result-notice-warn"><text class="ai-result-notice-title">需要处理冲突</text><text v-for="item in aiConflicts" :key="item">{{ item }}</text></view>
+					<text v-if="aiDraftError != ''" class="panel-error">{{ aiDraftError }}</text>
+					<button class="ai-confirm-button" :disabled="aiConfirming || aiConditions.length == 0" @tap="confirmAiSearch">{{ aiConfirming ? '正在确认并搜索…' : '确认条件并查看候选' }}</button>
 				</view>
 			</view>
 
@@ -109,18 +114,14 @@
 
 			<scroll-view class="result-scroll" scroll-y enhanced show-scrollbar="false">
 				<view v-if="resultState === 'loading'" class="result-loading-state">
-					<view class="result-orbit">
-						<view class="result-orbit-ring result-orbit-ring-outer"></view>
-						<view class="result-orbit-ring result-orbit-ring-inner"></view>
-						<view class="result-orbit-spark spark-one"></view>
-						<view class="result-orbit-spark spark-two"></view>
-						<view class="result-orbit-spark spark-three"></view>
-						<view class="result-orbit-core"><text>{{ searchProgress }}%</text><text class="result-orbit-caption">匹配中</text></view>
+					<view v-if="activeTab == 0" class="ai-task-loading"><view class="ai-task-spinner"></view><text class="result-loading-title">{{ aiTaskStage }}</text><text class="result-loading-copy">后端任务完成前不会展示为最终结果</text></view>
+					<view v-else class="result-orbit">
+						<view class="result-orbit-ring result-orbit-ring-outer"></view><view class="result-orbit-ring result-orbit-ring-inner"></view><view class="result-orbit-spark spark-one"></view><view class="result-orbit-spark spark-two"></view><view class="result-orbit-spark spark-three"></view><view class="result-orbit-core"><text>{{ searchProgress }}%</text><text class="result-orbit-caption">匹配中</text></view>
 					</view>
-					<view class="result-progress-rail"><view class="result-progress-fill" :style="{ width: searchProgress + '%' }"></view></view>
-					<text class="result-loading-title">正在为你寻找合适的人</text>
-					<text class="result-loading-copy">{{ searchProgressCopy }}</text>
-					<view v-if="resultCandidates.length > 0 && searchProgress >= 64" class="result-preview-avatars"><image v-for="(item, index) in resultCandidates.slice(0, 6)" :key="item.id" class="result-preview-avatar" :style="{ animationDelay: index * 90 + 'ms' }" :src="resultAvatar(item)" mode="aspectFill"></image></view>
+					<view v-if="activeTab != 0" class="result-progress-rail"><view class="result-progress-fill" :style="{ width: searchProgress + '%' }"></view></view>
+					<text v-if="activeTab != 0" class="result-loading-title">正在为你寻找合适的人</text>
+					<text v-if="activeTab != 0" class="result-loading-copy">{{ searchProgressCopy }}</text>
+					<view v-if="activeTab != 0 && resultCandidates.length > 0 && searchProgress >= 64" class="result-preview-avatars"><image v-for="(item, index) in resultCandidates.slice(0, 6)" :key="item.id" class="result-preview-avatar" :style="{ animationDelay: index * 90 + 'ms' }" :src="resultAvatar(item)" mode="aspectFill"></image></view>
 				</view>
 
 				<view v-else-if="resultState === 'error'" class="result-message-state">
@@ -147,7 +148,8 @@
 						<view class="result-card-body">
 							<view class="result-card-topline"><text class="result-card-arrow">›</text></view>
 							<text class="result-name">{{ resultName(item) }}</text>
-							<text class="result-meta">{{ resultMeta(item) }}</text>
+							<text v-if="item.matchedConditions != null && item.matchedConditions.length > 0" class="result-card-hint">已命中：{{ item.matchedConditions.join('、') }}</text>
+							<text v-if="item.isFuzzy === true" class="result-card-hint">当前为中间候选，最终结果仍以完整筛选为准</text>
 							<text v-if="index === 0" class="result-card-hint">点击查看完整资料</text>
 						</view>
 					</view>
@@ -173,8 +175,7 @@
 <script setup lang="uts">
 	import XsaSheet from '@/components/XsaSheet.uvue'
 	import XsaTag from '@/components/XsaTag.uvue'
-	import { getOwnProfile, getEmotionLabSummary, setMyMbtiType, getDiscoveryRecommendations } from '@/api'
-	import { buildStructuredSearchParams } from '@/utils/searchFilterMapping.uts'
+	import { getOwnProfile, getEmotionLabSummary, setMyMbtiType, getDiscoveryRecommendations, createSearchDraft, getSearchDraft, patchSearchDraft, confirmSearchDraft, waitForSearchTask, getSearchSnapshotResults, getSearchSuggestions, searchResultItems, searchNextCursor, searchDraftConditions, searchDraftUnknown, searchDraftConflicts, searchDraftRevision } from '@/api'
 
 	const systemInfo = uni.getSystemInfoSync()
 	const statusBarHeight = systemInfo.statusBarHeight != null ? systemInfo.statusBarHeight : 20
@@ -225,6 +226,82 @@
 	const aiQuery = ref('')
 	const aiGenerating = ref(false)
 	let aiTypingTimer: any = null
+	const aiDraft = ref<any>(null)
+	const aiDraftId = ref('')
+	const aiDraftTaskId = ref('')
+	const aiDraftStatus = ref('')
+	const aiDraftTaskStage = ref('等待解析')
+	const aiDraftError = ref('')
+	const aiDraftIdempotencyKey = ref('')
+	const aiPatchIdempotencyKey = ref('')
+	const aiConfirmIdempotencyKey = ref('')
+	const aiConfirming = ref(false)
+	const aiSnapshotId = ref('')
+	const aiConditions = ref<any[]>([])
+	const aiUnknown = ref<string[]>([])
+	const aiConflicts = ref<string[]>([])
+	const aiSuggestions = ref<string[]>([])
+	const aiTaskStage = ref('正在等待后端任务完成')
+	const aiDraftStatusLabel = computed(() => aiDraftStatus.value == 'awaiting_confirmation' ? '待确认' : (aiDraftStatus.value == 'confirmed' ? '已确认' : (aiDraftStatus.value == 'failed' ? '解析失败' : '解析中')))
+	const resetAiDraftState = () => {
+		aiDraft.value = null
+		aiDraftId.value = ''
+		aiDraftTaskId.value = ''
+		aiDraftStatus.value = ''
+		aiDraftTaskStage.value = '等待解析'
+		aiDraftError.value = ''
+		aiDraftIdempotencyKey.value = ''
+		aiPatchIdempotencyKey.value = ''
+		aiConfirmIdempotencyKey.value = ''
+		aiConfirming.value = false
+		aiSnapshotId.value = ''
+		aiConditions.value = []
+		aiUnknown.value = []
+		aiConflicts.value = []
+	}
+	const setAiDraftResponse = (response: any) => {
+		const payload = response != null && response.data != null ? response.data : response
+		aiDraft.value = payload
+		aiDraftStatus.value = payload != null && payload.status != null ? String(payload.status) : 'awaiting_confirmation'
+		aiDraftId.value = payload != null && payload.draft_id != null ? String(payload.draft_id) : aiDraftId.value
+		aiConditions.value = searchDraftConditions(payload).map((condition: any) => ({ ...condition, localValueText: condition.value == null ? '' : String(condition.value), localAction: condition.user_action == 'removed' ? 'removed' : (condition.user_action == 'confirmed' ? 'confirmed' : 'pending') }))
+		aiUnknown.value = searchDraftUnknown(payload)
+		aiConflicts.value = searchDraftConflicts(payload)
+	}
+	const conditionLabel = (condition: any): string => {
+		if (condition == null) return '未命名条件'
+		const field = condition.field_key != null ? String(condition.field_key) : '条件'
+		const operator = condition.operator != null ? String(condition.operator) : ''
+		return operator.length > 0 ? field + ' · ' + operator : field
+	}
+	const aiConditionValue = (condition: any): any => {
+		if (condition == null) return null
+		const value = condition.localValueText != null ? String(condition.localValueText) : ''
+		if (condition.value != null && typeof condition.value == 'number' && value != '' && !isNaN(Number(value))) return Number(value)
+		return value
+	}
+	const onAiConditionValueInput = (index: number, event: any) => {
+		if (index < 0 || index >= aiConditions.value.length) return
+		aiConditions.value[index].localValueText = toText(event.detail.value)
+		if (aiConditions.value[index].localAction != 'removed') aiConditions.value[index].localAction = 'confirmed'
+		aiPatchIdempotencyKey.value = ''
+	}
+	const setAiConditionAction = (index: number, action: string) => {
+		if (index < 0 || index >= aiConditions.value.length) return
+		aiConditions.value[index].localAction = action
+		aiPatchIdempotencyKey.value = ''
+	}
+	const loadAiSuggestions = async () => {
+		const response = await getSearchSuggestions()
+		if (response != null && response.success && response.data != null && Array.isArray(response.data.items)) aiSuggestions.value = response.data.items as string[]
+	}
+	const onAiSuggestTap = async () => {
+		if (aiSuggestions.value.length > 0) return
+		try {
+			await loadAiSuggestions()
+			if (aiSuggestions.value.length == 0) uni.showToast({ title: '暂时没有可编辑建议，请直接描述期待', icon: 'none' })
+		} catch (error) { uni.showToast({ title: '建议暂时无法读取', icon: 'none' }) }
+	}
 
 	const hometownOptions = ['不限', '江苏', '浙江', '上海', '安徽']
 	const residenceOptions = ['不限', '南京', '杭州', '上海', '深圳']
@@ -316,7 +393,12 @@
 
 	const goBack = () => uni.navigateBack({ delta: 1 })
 	const handleBack = () => { if (resultState.value != 'idle') openSearchEditor(); else goBack() }
-	const onAiInput = (event: any) => { aiQuery.value = toText(event.detail.value) }
+	const onAiInput = (event: any) => {
+		const next = toText(event.detail.value)
+		if (next != aiQuery.value && aiDraft.value != null) resetAiDraftState()
+		aiQuery.value = next
+		aiDraftIdempotencyKey.value = ''
+	}
 	const stopAiTyping = () => {
 		if (aiTypingTimer != null) {
 			clearInterval(aiTypingTimer)
@@ -326,17 +408,104 @@
 	const typeAiText = (value: string) => {
 		stopAiTyping()
 		aiQuery.value = ''
+		resetAiDraftState()
 		let index = 0
 		aiTypingTimer = setInterval(() => {
-			if (index >= value.length) {
-				stopAiTyping()
-				return
-			}
+			if (index >= value.length) { stopAiTyping(); return }
 			aiQuery.value += value.charAt(index)
 			index += 1
 		}, 45)
 	}
-	const onAiSuggestTap = () => { uni.showToast({ title: 'AI 猜你喜欢暂未开放', icon: 'none' }) }
+	const submitAiSearch = async () => {
+		const query = aiQuery.value.trim()
+		if (query.length == 0 || aiGenerating.value) return
+		const runId = searchRunId + 1
+		searchRunId = runId
+		resultCandidates.value = []
+		nextCursor.value = ''
+		hasMore.value = false
+		resultError.value = 'AI 搜索任务暂时无法完成，请稍后重试'
+		resetAiDraftState()
+		aiGenerating.value = true
+		aiDraftTaskStage.value = '正在解析你的搜索期待'
+		if (aiDraftIdempotencyKey.value.length == 0) aiDraftIdempotencyKey.value = 'search-draft-' + String(Date.now()) + '-' + String(Math.floor(Math.random() * 1000000))
+		try {
+			const created = await createSearchDraft(query, 'search_page', 'zh-CN', aiDraftIdempotencyKey.value)
+			if (runId != searchRunId) return
+			if (created == null || !created.success || created.data == null) { aiDraftError.value = created != null && created.message != null ? String(created.message) : '搜索期待解析失败'; return }
+			const data = created.data
+			aiDraftId.value = data.draft_id != null ? String(data.draft_id) : ''
+			aiDraftTaskId.value = data.task_id != null ? String(data.task_id) : ''
+			if (aiDraftId.value == '' || aiDraftTaskId.value == '') { aiDraftError.value = '搜索服务未返回有效解析任务'; return }
+			const task = await waitForSearchTask(aiDraftTaskId.value, () => runId == searchRunId)
+			if (runId != searchRunId) return
+			if (!task.done || task.status != 'succeeded') { aiDraftError.value = task.error != null ? String(task.error) : '搜索期待解析未完成'; return }
+			aiDraftTaskStage.value = '解析完成，等待你确认条件'
+			const draft = await getSearchDraft(aiDraftId.value)
+			if (!draft.success || draft.data == null) { aiDraftError.value = draft.message != null ? String(draft.message) : '解析条件读取失败'; return }
+			setAiDraftResponse(draft)
+			resultState.value = 'idle'
+		} catch (error) {
+			if (runId == searchRunId) aiDraftError.value = '网络异常，搜索期待未完成'
+		} finally {
+			if (runId == searchRunId) aiGenerating.value = false
+		}
+	}
+	const buildAiConditionActions = (): any[] => {
+		const actions: any[] = []
+		for (let index = 0; index < aiConditions.value.length; index++) {
+			const condition = aiConditions.value[index]
+			if (condition.localAction == 'removed') actions.push({ condition_no: index, action: 'remove' })
+			else if (condition.localValueText != null && String(condition.localValueText) != (condition.value == null ? '' : String(condition.value))) actions.push({ condition_no: index, action: 'edit', value: aiConditionValue(condition) })
+			else actions.push({ condition_no: index, action: 'confirm' })
+		}
+		return actions
+	}
+	const patchAiConditions = async (): Promise<boolean> => {
+		if (aiDraftId.value == '') return false
+		if (aiPatchIdempotencyKey.value.length == 0) aiPatchIdempotencyKey.value = 'search-patch-' + String(Date.now()) + '-' + String(Math.floor(Math.random() * 1000000))
+		const revision = searchDraftRevision(aiDraft.value)
+		const response = await patchSearchDraft(aiDraftId.value, buildAiConditionActions(), revision, aiPatchIdempotencyKey.value)
+		if (response.success && response.data != null) { setAiDraftResponse(response); return true }
+		if (response.code == 409) {
+			const latest = await getSearchDraft(aiDraftId.value)
+			if (latest.success && latest.data != null) setAiDraftResponse(latest)
+		}
+		aiDraftError.value = response.message != null ? String(response.message) : '条件版本已变化，请检查后重试'
+		return false
+	}
+	const confirmAiSearch = async () => {
+		if (aiConfirming.value || aiDraftId.value == '') return
+		aiConfirming.value = true
+		aiDraftError.value = ''
+		const runId = searchRunId
+		try {
+			if (!await patchAiConditions()) return
+			if (aiConfirmIdempotencyKey.value.length == 0) aiConfirmIdempotencyKey.value = 'search-confirm-' + String(Date.now()) + '-' + String(Math.floor(Math.random() * 1000000))
+			const accepted = await confirmSearchDraft(aiDraftId.value, searchDraftRevision(aiDraft.value), aiConfirmIdempotencyKey.value)
+			if (!accepted.success || accepted.data == null) { aiDraftError.value = accepted.message != null ? String(accepted.message) : '条件确认失败，请检查条件后重试'; return }
+			const acceptedData = accepted.data
+			aiSnapshotId.value = acceptedData.snapshot_id != null ? String(acceptedData.snapshot_id) : ''
+			const taskId = acceptedData.task_id != null ? String(acceptedData.task_id) : ''
+			if (aiSnapshotId.value == '' || taskId == '') { aiDraftError.value = '搜索服务未返回有效执行任务'; return }
+			resultState.value = 'loading'
+			aiTaskStage.value = '正在执行已确认的搜索条件'
+			const task = await waitForSearchTask(taskId, () => runId == searchRunId)
+			if (runId != searchRunId) return
+			if (!task.done || task.status != 'succeeded') { resultState.value = 'error'; resultError.value = task.error != null ? String(task.error) : '搜索任务未完成'; return }
+			aiTaskStage.value = '正在读取最终候选'
+			const results = await getSearchSnapshotResults(aiSnapshotId.value, '', 20)
+			if (!results.success || results.data == null) { resultState.value = 'error'; resultError.value = results.message != null ? String(results.message) : '候选结果读取失败'; return }
+			resultCandidates.value = searchResultItems(results)
+			nextCursor.value = searchNextCursor(results)
+			hasMore.value = nextCursor.value.length > 0
+			resultState.value = resultCandidates.value.length > 0 ? 'success' : 'empty'
+		} catch (error) {
+			if (runId == searchRunId) { resultState.value = 'error'; resultError.value = '网络异常，搜索未完成' }
+		} finally {
+			aiConfirming.value = false
+		}
+	}
 	const onHometownChange = (event: any) => { hometownIndex.value = Number(event.detail.value) }
 	const onResidenceChange = (event: any) => { residenceIndex.value = Number(event.detail.value) }
 	const clampInt = (value: any, min: number, max: number, fallback: number): number => {
@@ -672,15 +841,21 @@
 		const runId = searchRunId
 		loadingMore.value = true
 		try {
+			if (activeTab.value == 0 && aiSnapshotId.value != '') {
+				const response = await getSearchSnapshotResults(aiSnapshotId.value, nextCursor.value, 20)
+				if (runId != searchRunId) return
+				if (response == null || !response.success || response.data == null) { uni.showToast({ title: '加载更多失败，请稍后再试', icon: 'none' }); return }
+				resultCandidates.value = resultCandidates.value.concat(searchResultItems(response))
+				nextCursor.value = searchNextCursor(response)
+				hasMore.value = nextCursor.value.length > 0
+				return
+			}
 			const params = buildCurrentQuery()
 			params.cursor = nextCursor.value
 			params.page_size = 20
 			const response = await getDiscoveryRecommendations(params)
 			if (runId != searchRunId) return
-			if (response == null || !response.success || response.data == null) {
-				uni.showToast({ title: '加载更多失败，请稍后再试', icon: 'none' })
-				return
-			}
+			if (response == null || !response.success || response.data == null) { uni.showToast({ title: '加载更多失败，请稍后再试', icon: 'none' }); return }
 			const items = response.data.items != null && Array.isArray(response.data.items) ? response.data.items as any[] : []
 			resultCandidates.value = resultCandidates.value.concat(items)
 			nextCursor.value = response.data.nextCursor != null ? '' + response.data.nextCursor : ''
@@ -694,16 +869,23 @@
 		}
 	}
 	const submitSearch = () => {
-		if (activeTab.value == 0) { uni.showToast({ title: 'AI 觅遇暂未开放，可先用「精准甄选」筛选', icon: 'none' }); return }
+		if (activeTab.value == 0) { saveHistory(buildHistoryRecord()); submitAiSearch(); return }
 		if (activeTab.value == 1) { uni.showToast({ title: 'MBTI 筛选暂未开放', icon: 'none' }); return }
 		saveHistory(buildHistoryRecord())
 		beginSearch()
 	}
-	const retrySearch = () => beginSearch()
-	const openSearchEditor = () => { searchRunId += 1; resultState.value = 'idle'; searchProgress.value = 0 }
+	const retrySearch = () => {
+		if (activeTab.value == 0) {
+			if (aiDraftId.value != '' && aiSnapshotId.value == '') confirmAiSearch()
+			else submitAiSearch()
+			return
+		}
+		beginSearch()
+	}
+	const openSearchEditor = () => { searchRunId += 1; resultState.value = 'idle'; searchProgress.value = 0; resetAiDraftState() }
 	const goToResultProfile = (item: any) => {
 		const profile = resultProfile(item)
-		const userId = Number(profile.id || 0)
+		const userId = Number(profile.id != null ? profile.id : (item != null && item.user_id != null ? item.user_id : (item != null ? item.id : 0)))
 		if (userId <= 0) return
 		uni.navigateTo({ url: '/pagesSub/userExtra/user/detail?userId=' + userId })
 	}
@@ -726,6 +908,8 @@
 			certificationOnly.value = item.certificationOnly == true
 		} else {
 			aiQuery.value = toText(item.aiQuery)
+			resetAiDraftState()
+			aiDraftIdempotencyKey.value = ''
 		}
 		activeTab.value = tab >= 0 && tab <= 2 ? tab : 0
 		resultState.value = 'idle'
@@ -941,4 +1125,32 @@
 .ai-template-trigger--disabled { opacity: 0.5; }
 .wide-picker-disabled { width: 100%; padding: 20rpx 24rpx; border-radius: 16rpx; background: #F1EDE6; color: var(--muted); font-size: 26rpx; }
 .load-more-button { margin: 24rpx auto 8rpx; padding: 18rpx 48rpx; border-radius: 40rpx; background: #FFFFFF; border: 1rpx solid #E5E1DA; color: var(--ink); font-size: 26rpx; }
+.panel-note { display: block; margin-top: 14rpx; color: var(--muted); font-size: 23rpx; line-height: 1.6; }
+.ai-task-inline { display: block; margin-top: 10rpx; color: var(--accent2); font-size: 23rpx; line-height: 1.5; }
+.ai-input-foot { gap: 12rpx; }
+.ai-submit-button { min-width: 178rpx; height: 68rpx; padding: 0 24rpx; border-radius: 34rpx; background: var(--accent); color: var(--text-invert); font-size: 24rpx; font-weight: 700; }
+.ai-submit-button[disabled] { opacity: .45; }
+.ai-suggestion-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
+.ai-suggestion-chip { padding: 10rpx 16rpx; border: 1rpx solid var(--line); border-radius: 999rpx; background: var(--surface); color: var(--ink2); font-size: 22rpx; line-height: 1.35; }
+.ai-draft-panel { margin-top: 20rpx; padding: 24rpx; border: 1rpx solid var(--line); border-radius: 20rpx; background: var(--surface); }
+.ai-draft-heading { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.ai-draft-status { padding: 6rpx 14rpx; border-radius: 999rpx; background: var(--accent-bg); color: var(--accent2); font-size: 21rpx; }
+.ai-condition-row { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10rpx; padding: 18rpx 0; border-bottom: 1rpx solid var(--line); }
+.ai-condition-copy { flex: 1; min-width: 180rpx; display: flex; flex-direction: column; gap: 4rpx; }
+.ai-condition-name { color: var(--ink); font-size: 25rpx; font-weight: 700; }
+.ai-condition-kind { color: var(--muted); font-size: 20rpx; line-height: 1.4; }
+.ai-condition-input { width: 180rpx; height: 62rpx; padding: 0 12rpx; border: 1rpx solid var(--line); border-radius: 10rpx; background: var(--paper); color: var(--ink); font-size: 22rpx; }
+.ai-condition-actions { display: flex; flex-direction: row; gap: 8rpx; }
+.ai-condition-actions button { min-width: 70rpx; height: 56rpx; padding: 0 10rpx; border: 1rpx solid var(--line); border-radius: 10rpx; background: var(--surface); color: var(--ink2); font-size: 20rpx; }
+.ai-condition-actions button.selected { border-color: var(--accent); background: var(--accent-bg); color: var(--accent2); }
+.ai-result-notice { display: flex; flex-direction: column; gap: 5rpx; margin-top: 14rpx; padding: 14rpx; border-radius: 10rpx; background: var(--warm); color: var(--ink2); font-size: 21rpx; line-height: 1.5; }
+.ai-result-notice-warn { background: var(--accent-bg); }
+.ai-result-notice-title { color: var(--ink); font-weight: 700; }
+.panel-error { display: block; margin-top: 14rpx; color: var(--accent2); font-size: 22rpx; line-height: 1.5; }
+.ai-confirm-button { width: 100%; height: 76rpx; margin-top: 20rpx; border-radius: 38rpx; background: var(--accent); color: var(--text-invert); font-size: 25rpx; font-weight: 700; }
+.ai-confirm-button[disabled] { opacity: .45; }
+.ai-task-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 100rpx; }
+.ai-task-spinner { width: 120rpx; height: 120rpx; border: 6rpx solid var(--accent-bg); border-top-color: var(--accent); border-radius: 999rpx; animation: ai-task-spin 1s linear infinite; }
+@keyframes ai-task-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.result-card-hint + .result-card-hint { margin-top: 6rpx; }
 </style>

@@ -1,37 +1,103 @@
 /**
- * 理想对象条件草稿。
- *
- * 小程序只调用本项目后端：资料、择偶偏好、供应商地址和服务密钥均不在端侧
- * 拼接、存储或传输。保留可选参数仅为兼容已有页面调用；它们不会发送到网络。
+ * M03 AI 搜索草稿客户端。
+ * 页面只提交用户输入和条件动作；解析、编译、候选可见性与任务状态由后端负责。
  */
 
 import { request } from './request.uts'
+import { pollTaskUntilTerminal } from './ai-profile.uts'
 
-const LOCAL_DRAFT = '希望彼此真诚沟通，也愿意一起分享喜欢的生活方式。'
-
-function idealPartnerIdempotencyKey(): string {
-  return 'ideal-partner-' + String(Date.now()) + '-' + String(Math.floor(Math.random() * 1000000))
+function createSearchIdempotencyKey(prefix: string = 'search'): string {
+  return prefix + '-' + String(Date.now()) + '-' + String(Math.floor(Math.random() * 1000000))
 }
 
-export async function generateIdealPartner(_profile: any = null, _preferences: any = null): Promise<any> {
-  const result = await request({
-    url: '/ai/ideal-partner',
+export async function createSearchDraft(queryText: string, source: string = 'search_page', locale: string = 'zh-CN', idempotencyKey: string = ''): Promise<any> {
+  const key = idempotencyKey.trim().length >= 8 ? idempotencyKey.trim() : createSearchIdempotencyKey('search-draft')
+  return request({
+    url: '/ai/search-drafts',
     method: 'POST',
-    data: {},
-    headers: {
-      'Idempotency-Key': idealPartnerIdempotencyKey()
-    },
-    mockData: { content: LOCAL_DRAFT }
+    data: { query_text: queryText, source: source, locale: locale },
+    headers: { 'Idempotency-Key': key }
   })
+}
 
-  if (result != null && result.success == true && result.data != null) {
-    const content = result.data.content != null ? String(result.data.content).trim() : ''
-    if (content != '') result.data = content
-    else {
-      result.success = false
-      result.code = 'INVALID_AI_RESPONSE'
-      result.message = 'AI 返回内容无效，请稍后重试'
-    }
-  }
-  return result
+export async function getSearchDraft(draftId: string): Promise<any> {
+  return request({ url: '/ai/search-drafts/' + encodeURIComponent(draftId), method: 'GET' })
+}
+
+export async function patchSearchDraft(draftId: string, actions: any[], expectedRevision: number, idempotencyKey: string = ''): Promise<any> {
+  const key = idempotencyKey.trim().length >= 8 ? idempotencyKey.trim() : createSearchIdempotencyKey('search-patch')
+  return request({
+    url: '/ai/search-drafts/' + encodeURIComponent(draftId) + '?expected_condition_revision=' + String(expectedRevision),
+    method: 'PATCH',
+    data: actions,
+    headers: { 'Idempotency-Key': key }
+  })
+}
+
+export async function confirmSearchDraft(draftId: string, expectedRevision: number, idempotencyKey: string = ''): Promise<any> {
+  const key = idempotencyKey.trim().length >= 8 ? idempotencyKey.trim() : createSearchIdempotencyKey('search-confirm')
+  return request({
+    url: '/ai/search-drafts/' + encodeURIComponent(draftId) + '/confirm?expected_condition_revision=' + String(expectedRevision),
+    method: 'POST',
+    headers: { 'Idempotency-Key': key }
+  })
+}
+
+export async function waitForSearchTask(taskId: string, shouldContinue: (() => boolean) | null = null): Promise<any> {
+  return pollTaskUntilTerminal(taskId, 60, shouldContinue)
+}
+
+export async function getSearchSnapshotResults(snapshotId: string, cursor: string = '', pageSize: number = 20): Promise<any> {
+  const data: any = { page_size: pageSize }
+  if (cursor.trim().length > 0) data.cursor = cursor
+  return request({ url: '/ai/search-snapshots/' + encodeURIComponent(snapshotId) + '/results', method: 'GET', data: data })
+}
+
+export async function getSearchSuggestions(): Promise<any> {
+  return request({ url: '/ai/search-suggestions', method: 'GET' })
+}
+
+export function searchResultItems(response: any): any[] {
+  const payload = response != null && response.data != null ? response.data : response
+  const rows = payload != null && Array.isArray(payload.items) ? payload.items as any[] : []
+  return rows.map((item: any) => ({
+    id: item.user_id,
+    user_id: item.user_id,
+    profile: item.card != null ? item.card : {},
+    card: item.card != null ? item.card : {},
+    matchedConditions: Array.isArray(item.matched_conditions) ? item.matched_conditions : [],
+    unknownConditions: Array.isArray(item.unknown_conditions) ? item.unknown_conditions : [],
+    reasonCodes: Array.isArray(item.reason_codes) ? item.reason_codes : [],
+    isFuzzy: item.is_fuzzy === true,
+    degraded: payload != null && payload.degraded === true
+  }))
+}
+
+export function searchNextCursor(response: any): string {
+  const payload = response != null && response.data != null ? response.data : response
+  return payload != null && payload.next_cursor != null ? String(payload.next_cursor) : ''
+}
+
+export function searchHasMore(response: any): boolean {
+  return searchNextCursor(response).length > 0
+}
+
+export function searchDraftConditions(response: any): any[] {
+  const payload = response != null && response.data != null ? response.data : response
+  return payload != null && Array.isArray(payload.conditions) ? payload.conditions as any[] : []
+}
+
+export function searchDraftUnknown(response: any): string[] {
+  const payload = response != null && response.data != null ? response.data : response
+  return payload != null && Array.isArray(payload.unknown) ? payload.unknown.map((item: any) => String(item)) : []
+}
+
+export function searchDraftConflicts(response: any): string[] {
+  const payload = response != null && response.data != null ? response.data : response
+  return payload != null && Array.isArray(payload.conflicts) ? payload.conflicts.map((item: any) => String(item)) : []
+}
+
+export function searchDraftRevision(response: any): number {
+  const payload = response != null && response.data != null ? response.data : response
+  return payload != null && payload.condition_revision != null ? Number(payload.condition_revision) : 0
 }

@@ -18,21 +18,22 @@ function expectAbsent(content, fragment, label) {
   console.log(`PASS ${label}`)
 }
 
-console.log('AI draft proxy contract checks')
+console.log('M03 AI draft proxy contract checks')
 
 const proxy = read('api/ai-search.uts')
 const searchPage = read('pagesSub/profileExtra/search.uvue')
 
-expect(proxy, "url: '/ai/ideal-partner'", 'AI draft uses the project backend route')
-expect(proxy, "'Idempotency-Key': idealPartnerIdempotencyKey()", 'AI draft supplies an idempotency key')
-expect(proxy, 'data: {}', 'AI draft never submits profile data from the client')
-expectAbsent(proxy, 'uni.request(', 'AI draft proxy does not call a provider directly')
-expectAbsent(proxy, 'api.deepseek.com', 'AI draft proxy has no provider endpoint')
-expectAbsent(proxy, 'AI_API_KEY', 'AI draft proxy has no client-side provider key')
-expectAbsent(proxy, 'sk-', 'AI draft proxy has no secret-shaped literal')
-expectAbsent(searchPage, 'await generateIdealPartner()', 'AI ideal-partner entry stays closed until the backend route exists (never faked by plain search)')
+expect(proxy, "url: '/ai/search-drafts'", 'AI draft uses the M03 backend route')
+expect(proxy, "url: '/ai/search-snapshots/' + encodeURIComponent(snapshotId) + '/results'", 'AI results use immutable search snapshots')
+expect(proxy, "'Idempotency-Key': key", 'M03 writes supply an idempotency key')
+expect(proxy, 'expected_condition_revision', 'M03 edits and confirmation carry the condition revision')
+expectAbsent(proxy, "url: '/ai/ideal-partner'", 'obsolete ideal-partner route proxy is removed')
+expectAbsent(proxy, 'uni.request(', 'AI search proxy does not call a provider directly')
+expectAbsent(proxy, 'AI_API_KEY', 'AI search proxy has no client-side provider key')
 expect(searchPage, 'const aiGenerating = ref(false)', 'search page prevents duplicate draft submissions')
+expect(searchPage, 'searchDraftConditions', 'search page renders server conditions')
+expect(searchPage, 'aiConfirmIdempotencyKey', 'confirmation retries reuse their idempotency key')
 expectAbsent(searchPage, '会员专享', 'advanced conditions are not hidden behind membership copy')
 expectAbsent(searchPage, '<text class="vip-badge">VIP</text>', 'advanced conditions have no VIP badge')
 
-console.log('AI draft proxy contract checks passed')
+console.log('M03 AI draft proxy contract checks passed')

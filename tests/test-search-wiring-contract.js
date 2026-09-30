@@ -54,11 +54,14 @@ check('并发竞态防护：响应到达时校验 runId', () => {
   assert.ok(loadMore.includes('if (runId != searchRunId) return'), 'load-more discards stale responses')
 })
 
-check('AI 入口保持关闭，不用普通搜索冒充', () => {
-  assert.ok(!page.includes('await generateIdealPartner()'), 'ideal-partner call stays removed')
-  assert.ok(page.includes('AI 觅遇暂未开放'), 'tab0 must state unavailable')
-  assert.ok(page.includes('MBTI 筛选暂未开放'), 'tab1 must state unavailable')
-  assert.ok(page.includes('AI 猜你喜欢暂未开放'), 'suggest trigger must state unavailable')
+check('M03 AI 搜索按解析-确认-执行接线', () => {
+  assert.ok(page.includes('createSearchDraft('), 'AI tab must create a server search draft')
+  assert.ok(page.includes('waitForSearchTask('), 'draft and snapshot tasks must be polled')
+  assert.ok(page.includes('patchSearchDraft(') && page.includes('searchDraftRevision('), 'condition edits must use the latest revision')
+  assert.ok(page.includes('confirmSearchDraft(') && page.includes('getSearchSnapshotResults('), 'results must be read only after confirmation')
+  assert.ok(!page.includes('AI 觅遇暂未开放'), 'AI tab must no longer be permanently disabled')
+  assert.ok(!page.includes('AI 猜你喜欢暂未开放'), 'suggestions must no longer be permanently disabled')
+  assert.ok(page.includes('MBTI 筛选暂未开放'), 'unsupported MBTI filter may remain explicitly unavailable')
 })
 
 check('后端不支持的筛选保持禁用/隐藏', () => {

@@ -472,7 +472,7 @@ let currentGenerationId = ''
 let lastProgressReportMs = 0
 const pcmPlayer = new PcmPlayer({
 	onStarted: (generationId: string) => {
-		if (masterState.value == 'listening') masterState.value = 'idle'
+		masterState.value = 'speaking'
 		currentGenerationId = generationId
 	},
 	onProgress: (generationId: string, playedMs: number) => {
@@ -484,12 +484,12 @@ const pcmPlayer = new PcmPlayer({
 	},
 	onFinished: (generationId: string, status: string, playedMs: number) => {
 		if (generationId != currentGenerationId && status != 'interrupted') return
+		if (status == 'completed' || status == 'interrupted' || status == 'failed') masterState.value = 'idle'
 		currentGenerationId = ''
 		ws?.sendPlaybackFinished(generationId, status, playedMs)
 		// completed 后不本地抢跑:等服务端 voice_ready 自动开麦
-	}
+	},
 })
-
 // ===== 计算属性 =====
 const statusLabel = computed(() : string => {
 	if (connecting.value) return '正在连接'
@@ -829,6 +829,8 @@ function connectWS() {
 		},
 		onAudioOutputStart: (generationId: string, responseId: string, sampleRate: number, format: string) => {
 			if (!realtimeV2Active) return
+			if (!pcmPlayer.begin(generationId)) return
+			masterState.value = 'speaking'
 			currentGenerationId = generationId
 		},
 		onAudioChunk: (generationId: string, seq: number, base64Data: string) => {
@@ -850,11 +852,22 @@ function connectWS() {
 				pcmPlayer.finish(generationId)
 			}
 		},
+		onResponseStatus: (generationId: string, generationStatus: string, playbackStatus: string) => {
+			if (!realtimeV2Active) return
+			if (generationId != '' && currentGenerationId != '' && generationId != currentGenerationId) return
+			if (playbackStatus == 'playing') {
+				masterState.value = 'speaking'
+			} else if (playbackStatus == 'completed' || playbackStatus == 'interrupted' || playbackStatus == 'unknown') {
+				masterState.value = 'idle'
+			}
+		},
 		onCancelled: (generationId: string) => {
 			if (!realtimeV2Active) return
 			if (currentGenerationId == generationId || generationId != '') {
 				pcmPlayer.stopAll()
 			}
+			masterState.value = 'idle'
+			currentGenerationId = ''
 		},
 		onClose: () => {
 			inviteBusy.value = false

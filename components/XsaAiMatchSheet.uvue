@@ -11,7 +11,7 @@
 			>
 				<view class="drag-bar"></view>
 				<view class="sheet-head">
-					<text class="sheet-title">AI 匹配度解读</text>
+					<text class="sheet-title">资料合拍参考</text>
 					<view class="close-btn" @click="handleClose">
 						<text>✕</text>
 					</view>
@@ -21,7 +21,7 @@
 			<!-- 内容区：scroll-view 保证小程序内可滚动 -->
 			<scroll-view class="sheet-scroll" scroll-y enhanced :show-scrollbar="false">
 				<view class="sheet-content">
-					<!-- 头部：双方头像 + MBTI + 匹配度 -->
+					<!-- 仅在正式 compatibility 结果取得展示资格后显示受限数值 -->
 					<view class="pair-header">
 						<view class="pair-side">
 							<view class="pair-avatar">
@@ -31,7 +31,7 @@
 							<view v-if="myMbti != ''" class="pair-type-chip"><text class="pair-type-text">{{ myMbti }}</text></view>
 						</view>
 						<view class="pair-center">
-							<text class="pair-score-label">匹配度</text>
+							<text class="pair-score-label">整体参考</text>
 							<text class="pair-score">{{ scoreText }}</text>
 						</view>
 						<view class="pair-side">
@@ -43,15 +43,19 @@
 						</view>
 					</view>
 
-					<!-- 解读内容尚未接入正式数据：明确不可用态，不展示本地模拟结论 -->
-					<view class="state-unavailable">
-						<text class="state-unavailable-title">解读内容暂未开放</text>
-						<text class="state-unavailable-desc">AI 匹配解读正在接入双方真实资料，开放后将在此展示。当前仅展示由系统估算的匹配度分数。</text>
+					<view v-if="loading" class="state-unavailable"><text class="state-unavailable-title">正在读取资料合拍参考</text><text class="state-unavailable-desc">只根据当前可见且已确认的资料整理。</text></view>
+					<view v-else-if="errorMessage != ''" class="state-unavailable"><text class="state-unavailable-title">合拍参考暂时无法读取</text><text class="state-unavailable-desc">{{ errorMessage }}</text><view class="compatibility-retry" @click="loadCompatibility"><text>重试</text></view></view>
+					<view v-else-if="isDisplayReady" class="compatibility-result">
+						<view class="compatibility-overall"><text class="compatibility-overall-label">整体参考</text><text class="compatibility-overall-value">{{ scoreText }}</text><text class="compatibility-overall-copy">资料覆盖度 {{ coverageText }}</text></view>
+						<view class="compatibility-directions"><view class="compatibility-direction"><text>对方资料符合我期待的程度</text><text>{{ directionViewerText }}</text></view><view class="compatibility-direction"><text>我的资料符合对方期待的程度</text><text>{{ directionTargetText }}</text></view></view>
+						<view v-if="reasonLines.length > 0" class="compatibility-section"><text class="compatibility-section-title">依据与待了解信息</text><text v-for="(line, index) in reasonLines" :key="index" class="compatibility-line">{{ line }}</text></view>
+						<view v-if="evidenceItems.length > 0" class="compatibility-section"><text class="compatibility-section-title">可展示依据</text><text v-for="(item, index) in evidenceItems" :key="index" class="compatibility-line">{{ item.limitation }}</text></view>
+						<text class="compatibility-engine">{{ engineLabel }}</text>
+						<text class="sheet-tip">{{ compatibility.disclaimer }}</text>
 					</view>
+					<view v-else class="state-unavailable"><text class="state-unavailable-title">{{ statusTitle }}</text><text class="state-unavailable-desc">{{ statusDescription }}</text></view>
 
-				<view class="sheet-tip">
-					<text>匹配度由系统按双方当前可见资料估算（legacy-rule-v1），供了解和破冰参考，不代表平台承诺任何关系结果。</text>
-				</view>
+					<view v-if="compatibility != null && !isDisplayReady" class="sheet-tip"><text>仅供了解和破冰参考，不代表平台承诺任何关系结果。</text></view>
 				</view>
 			</scroll-view>
 		</view>
@@ -59,38 +63,29 @@
 </template>
 
 <script setup lang="uts">
-/**
- * XsaAiMatchSheet - AI 匹配度解读小窗（MBTI 配对解析）
- *
- * - 非全屏小窗，默认 72% 高度；
- * - 按住顶部横线（含标题区）上下拖拽，可调整小窗显示区域：
- *   松手吸附 48% / 72% / 94% 三档，下拉幅度过大直接关闭；
- * - 内容区使用 scroll-view scroll-y，修复微信小程序内普通 view
- *   overflow 滚动失效的问题；
- * - 视觉遵循 DESIGN.md 瓷白青瓷体系（衬线标题 + 细线分区）。
- */
+import { getCompatibility, waitForCompatibilityTask } from '@/api/ai-compatibility.uts'
+import { USE_MOCK } from '@/api/config.uts'
+/** 资料合拍参考；沿用现有可拖拽、可滚动的小窗。 */
 interface Props {
 	visible: boolean;
+	targetUserId: number;
 	myName: string;
 	myAvatar: string;
 	myMbti: string;
 	otherName: string;
 	otherAvatar: string;
 	otherMbti: string;
-	score: number;
 }
-
 const props = withDefaults(defineProps<Props>(), {
 	visible: false,
+	targetUserId: 0,
 	myName: '你',
 	myAvatar: '',
 	myMbti: '',
 	otherName: 'Ta',
 	otherAvatar: '',
-	otherMbti: '',
-	score: 0
+	otherMbti: ''
 });
-
 const emit = defineEmits<{
 	close: []
 }>();
@@ -105,13 +100,106 @@ const isDragging = ref(false)
 let dragStartY = 0
 let dragStartHeight = 72
 
-const scoreText = computed(() : string => {
-	// 真实 0 分显示 0%，未传入/解析失败显示 --（不与零分混淆）
-	if (props.score == null) return '--'
-	const score = Number(props.score)
-	if (isNaN(score)) return '--'
-	return '' + Math.round(score) + '%'
+const compatibility = ref<any>(null)
+const loading = ref(false)
+const errorMessage = ref('')
+let requestSequence = 0
+
+const isDisplayReady = computed((): boolean => {
+	const result = compatibility.value
+	return !loading.value && errorMessage.value == '' && result != null && result.status == 'ready' && result.display_eligible == true
 })
+const percentText = (value: any, multiplier: number = 1): string => {
+	if (value == null) return '--'
+	const score = Number(value) * multiplier
+	if (isNaN(score) || score < 0 || score > 100) return '--'
+	return '' + Math.round(score) + '%'
+}
+const scoreText = computed((): string => isDisplayReady.value ? percentText(compatibility.value.compatibility_index) : '--')
+const coverageText = computed((): string => isDisplayReady.value ? percentText(compatibility.value.coverage, 100) : '--')
+const directionViewerText = computed((): string => isDisplayReady.value && compatibility.value.directions != null ? percentText(compatibility.value.directions.viewer_to_target) : '--')
+const directionTargetText = computed((): string => isDisplayReady.value && compatibility.value.directions != null ? percentText(compatibility.value.directions.target_to_viewer) : '--')
+const reasonLines = computed((): string[] => {
+	if (!isDisplayReady.value || compatibility.value.reason_texts == null) return []
+	const result: string[] = []
+	const reasons = compatibility.value.reason_texts
+	const keys = Object.keys(reasons)
+	for (let i = 0; i < keys.length; i++) {
+		const lines = reasons[keys[i]]
+		if (!Array.isArray(lines)) continue
+		const prefix = keys[i] == 'viewer_to_target' ? '我的期待：' : (keys[i] == 'target_to_viewer' ? '对方的期待：' : '')
+		for (let j = 0; j < lines.length; j++) {
+			if (typeof lines[j] == 'string' && lines[j].trim() != '') result.push(prefix + lines[j])
+		}
+	}
+	return result
+})
+const evidenceItems = computed((): any[] => {
+	if (!isDisplayReady.value || !Array.isArray(compatibility.value.evidence)) return []
+	return compatibility.value.evidence.filter((item: any): boolean => item != null && item.displayable == true && typeof item.limitation == 'string' && item.limitation.trim() != '')
+})
+const engineLabel = computed((): string => {
+	if (!isDisplayReady.value) return ''
+	return compatibility.value.engine == 'llm-v1' ? 'AI 资料合拍参考' : '规则资料参考，非 AI 精算'
+})
+const statusTitle = computed((): string => {
+	const result = compatibility.value
+	if (result == null) return '暂无合拍参考'
+	if (result.status == 'stale') return '资料已更新，请重新获取'
+	if (result.status == 'blocked') return '当前无法提供合拍参考'
+	if (result.status == 'coverage_insufficient') return '可用资料还不足'
+	if (result.status == 'ready' && result.display_eligible != true) return '合拍参考暂未开放展示'
+	return '暂无可展示的合拍参考'
+})
+const statusDescription = computed((): string => {
+	const result = compatibility.value
+	if (result != null && result.status == 'stale') return '双方资料或授权已有变化，旧结果不作为最新参考。'
+	if (result != null && result.status == 'blocked') return '当前资料或授权不满足读取条件，不展示相关分数与解释。'
+	if (result != null && result.status == 'coverage_insufficient') return '已确认且允许使用的资料不足，不生成完整分数。'
+	return '你仍可以查看公开资料，并按真实互动继续了解。'
+})
+
+const compatibilityError = (response: any): string => {
+	const detail = response != null && response.data != null ? response.data.detail : null
+	const code = detail != null ? String(detail.code != null ? detail.code : '') : ''
+	if (code == 'AI_FEATURE_DISABLED') return '资料合拍参考当前未开放'
+	if (code == 'AI_CONSENT_REQUIRED') return '需要有效授权才能读取资料合拍参考'
+	if (code == 'CANDIDATE_NOT_VISIBLE') return '当前无法查看该用户的合拍参考'
+	if (detail != null && typeof detail.message == 'string') return detail.message
+	return response != null && response.message != null ? String(response.message) : '读取失败，请稍后重试'
+}
+const loadCompatibility = async () => {
+	if (!props.visible) return
+	const sequence = ++requestSequence
+	const targetId = props.targetUserId
+	const isCurrent = (): boolean => sequence == requestSequence && props.visible && props.targetUserId == targetId
+	compatibility.value = null
+	errorMessage.value = ''
+	loading.value = true
+	try {
+		if (USE_MOCK) { errorMessage.value = '演示模式没有正式合拍结果'; return }
+		if (isNaN(targetId) || targetId <= 0) { errorMessage.value = '暂无可读取的目标用户'; return }
+		let response = await getCompatibility(targetId)
+		if (!isCurrent()) return
+		if (!response.success || response.data == null) { errorMessage.value = compatibilityError(response); return }
+		// 202 的预测状态不是结果；任务成功后必须重新经过 GET 的资格与可见性校验。
+		if (response.data.task_id != null && String(response.data.task_id) != '') {
+			const outcome = await waitForCompatibilityTask(String(response.data.task_id), isCurrent)
+			if (!isCurrent()) return
+			if (outcome.status != 'succeeded') { errorMessage.value = outcome.error != null ? String(outcome.error) : '处理未完成，请稍后重试'; return }
+			response = await getCompatibility(targetId)
+			if (!isCurrent()) return
+			if (!response.success || response.data == null) { errorMessage.value = compatibilityError(response); return }
+			if (response.data.task_id != null) { errorMessage.value = '合拍参考仍在处理中，请稍后重试'; return }
+		}
+		if (response.data.status == null) { errorMessage.value = '暂无正式合拍结果'; return }
+		compatibility.value = response.data
+	} catch (error) {
+		if (isCurrent()) errorMessage.value = '网络连接失败，请稍后重试'
+	} finally {
+		if (isCurrent()) loading.value = false
+	}
+}
 
 // 对方 MBTI 缺失时返回空串（展示层隐藏 chip），不伪造类型
 const otherType = computed(() : string => {
@@ -120,6 +208,9 @@ const otherType = computed(() : string => {
 })
 
 const handleClose = () => {
+	requestSequence++
+	compatibility.value = null
+	loading.value = false
 	emit('close')
 }
 
@@ -147,7 +238,7 @@ const onDragEnd = () => {
 	const current = sheetHeight.value
 	if (current < 40) {
 		sheetHeight.value = HEIGHT_STOPS[0]
-		emit('close')
+		handleClose()
 		return
 	}
 	let nearest = HEIGHT_STOPS[0]
@@ -158,11 +249,18 @@ const onDragEnd = () => {
 }
 
 watch(() => props.visible, (newValue: boolean) => {
-	if (newValue == true) {
+	if (newValue) {
 		sheetHeight.value = 72
 		isDragging.value = false
+		loadCompatibility()
+	} else {
+		requestSequence++
+		compatibility.value = null
+		loading.value = false
 	}
-})
+}, { immediate: true })
+watch(() => props.targetUserId, () => { if (props.visible) loadCompatibility() })
+onUnmounted(() => { requestSequence++ })
 </script>
 
 <style scoped>
@@ -502,7 +600,7 @@ watch(() => props.visible, (newValue: boolean) => {
 	color: var(--ink2);
 }
 
-/* 解读内容不可用态（未接入正式数据） */
+/* 尚无可展示结果 */
 .state-unavailable {
 	margin-top: 22px;
 	padding: 26px 16px;
@@ -526,6 +624,19 @@ watch(() => props.visible, (newValue: boolean) => {
 	color: var(--muted);
 	text-align: center;
 }
+
+.compatibility-result { margin-top: 22px; }
+.compatibility-overall { display: flex; flex-direction: column; gap: 6px; }
+.compatibility-overall-label, .compatibility-section-title { font-size: 16px; font-weight: 600; color: var(--ink); }
+.compatibility-overall-value { font-size: 26px; color: var(--accent2); }
+.compatibility-overall-copy, .compatibility-engine { font-size: 13px; color: var(--muted); }
+.compatibility-directions { margin-top: 16px; border-top: 1px solid var(--line); }
+.compatibility-direction { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink2); }
+.compatibility-direction text:first-child { flex: 1; }
+.compatibility-section { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.compatibility-line { font-size: 14px; line-height: 1.7; color: var(--ink2); }
+.compatibility-engine { display: block; margin-top: 18px; }
+.compatibility-retry { margin-top: 16px; padding: 8px 16px; color: var(--accent2); font-size: 14px; }
 
 /* 底部提示 */
 .sheet-tip {

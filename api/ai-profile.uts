@@ -247,14 +247,14 @@ export async function revokeProfileTextConsent(expectedPrivacyRevision: number):
 /**
  * 纸飞机草稿 AI 润色预览。只提交当前输入，不保存、不发送，也不自动替换草稿。
  */
-export async function polishPaperPlaneText(content: string, field: string, style: string = 'natural'): Promise<any> {
+export async function polishPaperPlaneText(content: string, field: string, style: string = 'natural', maxLength: number = 300): Promise<any> {
   const original = content != null ? ('' + content).trim() : ''
   if (original == '') return { success: false, data: null, code: 422, message: '请输入需要润色的内容' }
-  const normalizedField = field == 'idealPartner' ? 'ideal_partner' : 'self_introduction'
+  const normalizedMaxLength = Math.max(50, Math.min(500, maxLength))
   const res = await request({
     url: '/ai/profile/polish',
     method: 'POST',
-    data: { content: original, field: normalizedField, style: style != '' ? style : 'natural', max_length: 300 },
+    data: { content: original, style: style != '' ? style : 'natural', max_length: normalizedMaxLength },
     mockData: { original: original, polished: original, style: style != '' ? style : 'natural', changed_points: [] }
   })
   if (!res.success) {

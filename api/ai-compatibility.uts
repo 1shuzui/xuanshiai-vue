@@ -1,0 +1,25 @@
+/** M06 双向资料合拍参考客户端。 */
+import { request } from './request.uts'
+import { pollTaskUntilTerminal } from './ai-profile.uts'
+
+function createCompatibilityKey(prefix: string): string {
+  return prefix + '-' + String(Date.now()) + '-' + String(Math.floor(Math.random() * 1000000))
+}
+
+export async function getCompatibility(targetUserId: number): Promise<any> {
+  return request({ url: '/ai/compatibility/' + String(targetUserId), method: 'GET' })
+}
+
+export async function recomputeCompatibility(targetUserId: number, viewerRevision: number, targetRevision: number, idempotencyKey: string = ''): Promise<any> {
+  const key = idempotencyKey.trim().length >= 8 ? idempotencyKey.trim() : createCompatibilityKey('compatibility')
+  return request({
+    url: '/ai/compatibility/' + String(targetUserId) + '/recompute',
+    method: 'POST',
+    data: { expected_viewer_profile_revision: viewerRevision, expected_target_profile_revision: targetRevision },
+    headers: { 'Idempotency-Key': key }
+  })
+}
+
+export async function waitForCompatibilityTask(taskId: string, shouldContinue: (() => boolean) | null = null): Promise<any> {
+  return pollTaskUntilTerminal(taskId, 40, shouldContinue)
+}

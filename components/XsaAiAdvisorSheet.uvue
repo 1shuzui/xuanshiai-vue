@@ -38,7 +38,7 @@
           <view class="suggestion-top"><text class="suggestion-index">建议 {{ index + 1 }}</text><text class="suggestion-style">{{ toneLabel(item.style) }}</text></view>
           <text class="suggestion-content">{{ item.content }}</text>
           <text class="suggestion-reason">{{ item.reason }}</text>
-          <view class="suggestion-actions"><button class="copy-button" @click="copySuggestion(item.content)">复制</button><button class="feedback-button" @click="recordFeedback('used')">采纳</button><button class="feedback-button" @click="recordFeedback('not_useful')">不合适</button></view>
+          <view class="suggestion-actions"><button class="copy-button" @click="copySuggestion(item.content)">复制</button><button class="feedback-button" @click="adoptSuggestion(item.content)">填入输入框</button><button class="feedback-button" @click="recordFeedback('not_useful')">不合适</button></view>
         </view>
         <view class="risk-notice" v-if="advice.risk_notice != null && advice.risk_notice.length > 0"><text>{{ advice.risk_notice }}</text></view>
         <text class="next-step" v-if="advice.next_step != null && advice.next_step.length > 0">下一步：{{ advice.next_step }}</text>
@@ -55,14 +55,14 @@ import { getChatSessionId } from '@/api/message.uts'
 
 interface Props { visible: boolean; targetUserId: number; initialMessage?: string }
 const props = withDefaults(defineProps<Props>(), { initialMessage: '' })
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; adopt: [content: string] }>()
 const scenarios = ADVISOR_SCENARIOS
 const tones = ADVISOR_TONES
 let scenario = ref('reply')
 let tone = ref('natural')
 let goal = ref('')
 let incomingMessage = ref('')
-let includeHistory = ref(true)
+let includeHistory = ref(false)
 let generating = ref(false)
 let errorMessage = ref('')
 let advice = ref<any>(null)
@@ -71,15 +71,26 @@ let advisorSessionId = ref(0)
 let adviceIdempotencyKey = ref('')
 
 watch(() => props.visible, async (opened: boolean) => { if (opened) await prepareAdvisor() })
+watch(() => props.targetUserId, () => { resetAdvisorContext() })
+
+const resetAdvisorContext = () => {
+  advice.value = null
+  advisorSessionId.value = 0
+  adviceIdempotencyKey.value = ''
+  errorMessage.value = ''
+  chatSessionId.value = 0
+}
 
 const prepareAdvisor = async () => {
-  errorMessage.value = ''
-  advice.value = null
-  if (incomingMessage.value.trim().length == 0 && props.initialMessage.length > 0) incomingMessage.value = props.initialMessage
-  const chatRes = await getChatSessionId(props.targetUserId)
+  const openedFor = props.targetUserId
+  resetAdvisorContext()
+  incomingMessage.value = props.initialMessage
+  const chatRes = await getChatSessionId(openedFor)
+  if (openedFor != props.targetUserId || !props.visible) return
   if (!chatRes.success || chatRes.data == null) { errorMessage.value = '当前聊天会话暂时不可用，无法读取聊天上下文。'; return }
   chatSessionId.value = Number(chatRes.data.id)
   const sessionsRes = await getAdvisorSessions(1, 50)
+  if (openedFor != props.targetUserId || !props.visible) return
   if (!sessionsRes.success) { errorMessage.value = advisorErrorMessage(Number(sessionsRes.code), String(sessionsRes.message)); return }
   const items = sessionsRes.data != null && Array.isArray(sessionsRes.data.items) ? sessionsRes.data.items as any[] : []
   for (let index = 0; index < items.length; index++) if (Number(items[index].chat_session_id) == chatSessionId.value) { advisorSessionId.value = Number(items[index].id); return }
@@ -110,6 +121,7 @@ const generateAdvice = async () => {
       max_suggestions: 3
     }, adviceIdempotencyKey.value)
     if (!response.success || response.data == null) { errorMessage.value = advisorErrorMessage(Number(response.code), String(response.message)); return }
+    advice.value = response.data
     adviceIdempotencyKey.value = ''
   } catch (error) {
     errorMessage.value = '网络连接不可用，请检查网络后重试。'
@@ -118,6 +130,15 @@ const generateAdvice = async () => {
 
 const copySuggestion = (content: string) => {
   uni.setClipboardData({ data: content, success: () => { uni.showToast({ title: '建议已复制，请确认后再发送', icon: 'none' }); recordFeedback('copied') }, fail: () => { uni.showToast({ title: '复制失败，请长按文本复制', icon: 'none' }) } })
+}
+const adoptSuggestion = (content: string) => {
+  const text = content != null ? String(content).trim() : ''
+  if (text.length == 0 || advice.value == null) return
+  emit('adopt', text)
+  emit('close')
+  if (advice.value != null && advice.value.id != null) {
+    submitAdvisorFeedback(Number(advice.value.id), 'used').then((_result: any) => {})
+  }
 }
 const recordFeedback = async (feedbackType: string) => {
   if (advice.value == null || advice.value.id == null) return

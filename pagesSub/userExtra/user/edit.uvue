@@ -112,7 +112,7 @@
 			</view>
 
 			<view id="sec-self_intro" class="section-card intro-card ai-anchor-self-intro">
-				<view class="section-heading"><text class="section-title">自我介绍{{ completionSuffix('intro', 10) }}</text><view class="pill-action" @tap="saveIntroduction"><text class="pill-action-text">保存</text></view></view>
+				<view class="section-heading"><text class="section-title">自我介绍{{ completionSuffix('intro', 10) }}</text><view class="heading-actions"><view v-if="!isMemberEdit" class="intro-polish-action" :class="{ disabled: introPolishing || !introHasContent }" @tap="reviewIntroPolish"><text>{{ introPolishing ? '润色中…' : 'AI 润色' }}</text></view><view class="pill-action" @tap="saveIntroduction"><text class="pill-action-text">保存</text></view></view></view>
 				<textarea class="intro-main-input" :class="{ 'has-content': introHasContent }" :value="formData.introduction" maxlength="500" placeholder="分享一下你的性格、爱好、生活态度...让TA更快了解你" @input="onInput('introduction', $event)"></textarea>
 				<text class="section-caption">超有趣的自我介绍会被更多人看见哦！完成后建议搭配照片验证</text>
 				<text v-if="!completionPassed('intro')" class="completion-warning">自我介绍：少于后台要求的 20 字</text>
@@ -260,6 +260,25 @@
 			</view>
 		</view>
 
+		<view class="sheet-overlay" v-if="introPolishVisible" @tap="closeIntroPolish">
+			<view class="sheet-panel intro-polish-panel" @tap.stop>
+				<view class="sheet-handle"></view>
+				<view class="sheet-nav"><text class="sheet-title">AI 润色预览</text><text class="sheet-close" @tap="closeIntroPolish">✕</text></view>
+				<scroll-view class="intro-polish-body" scroll-y enhanced show-scrollbar="false">
+					<text class="intro-polish-note">只会替换自我介绍编辑框，不会自动保存或发布。</text>
+					<text class="intro-polish-label">原文</text>
+					<text class="intro-polish-copy">{{ introPolishOriginal }}</text>
+					<text class="intro-polish-label">润色后</text>
+					<text class="intro-polish-copy intro-polish-proposed">{{ introPolishProposed }}</text>
+					<view v-if="introPolishChangedPoints.length > 0" class="intro-polish-changes">
+						<view class="intro-polish-change-heading" @tap="introPolishChangesExpanded = !introPolishChangesExpanded"><text>本次调整</text><text>{{ introPolishChangesExpanded ? '收起' : '展开' }}</text></view>
+						<view v-if="introPolishChangesExpanded" class="intro-polish-change-list"><text v-for="(point, index) in introPolishChangedPoints" :key="index" class="intro-polish-change">• {{ point }}</text></view>
+					</view>
+				</scroll-view>
+				<view class="sheet-footer"><view class="cancel-button" @tap="closeIntroPolish"><text>继续编辑</text></view><view class="save-button" @tap="adoptIntroPolish"><text>采用到自我介绍</text></view></view>
+			</view>
+		</view>
+
 		<view v-if="cropVisible" class="crop-overlay">
 			<view class="crop-panel" @tap.stop>
 				<text class="crop-title">{{ cropKind == 'avatar' ? '预览并裁剪头像' : '预览并裁剪背景' }}</text>
@@ -280,7 +299,7 @@
 
 <script setup lang="uts">
 	import { getOwnProfile, updateOwnProfile, updateOwnNickname, getOwnPreferences, uploadUserProfileMedia, deleteUserProfilePhoto, getMeProfile, getUserCertifications, getProfileCompletion, getAgreementVersions, acceptAgreement, getMatchmakerMemberProfile, updateMatchmakerMemberProfile, getMatchmakerMemberPreferences, getMatchmakerMemberCompletion, updateMatchmakerMemberNickname, uploadMatchmakerMemberMedia, deleteMatchmakerMemberPhoto } from '@/api'
-	import { getLatestThoughtfulness, analyzeProfileThoughtfulness, normalizeThoughtfulness, ThoughtfulnessResult } from '@/api/ai-profile.uts'
+	import { getLatestThoughtfulness, analyzeProfileThoughtfulness, normalizeThoughtfulness, polishPaperPlaneText, ThoughtfulnessResult } from '@/api/ai-profile.uts'
 	import XsaProfileAiCard from '@/components/XsaProfileAiCard.uvue'
 	import XsaProfileAiFirstAnalysis from '@/components/XsaProfileAiFirstAnalysis.uvue'
 	import { resolveMediaUrl } from '@/api/config.uts'
@@ -368,6 +387,12 @@
 	const completionScore = ref(0)
 	const completionItems = ref({} as any)
 	const usingLocalDraft = ref(false)
+	const introPolishing = ref(false)
+	const introPolishVisible = ref(false)
+	const introPolishOriginal = ref('')
+	const introPolishProposed = ref('')
+	const introPolishChangedPoints = ref([] as string[])
+	const introPolishChangesExpanded = ref(false)
 
 	const textValue = (value: any): string => value == null ? '' : '' + value
 	const optionalNumber = (value: any): any => {
@@ -587,6 +612,13 @@
 		} catch (e) { return '' }
 	}
 
+	const hasUnsavedProfileChanges = (): boolean => lastSavedPayloadJson.value != '' && JSON.stringify(buildProfilePayload()) != lastSavedPayloadJson.value
+	const savedProfileHash = (): string => {
+		try {
+			if (lastSavedPayloadJson.value != '') return payloadHash(JSON.parse(lastSavedPayloadJson.value))
+		} catch (e) {}
+		return payloadHash(buildProfilePayload())
+	}
 	const persistThoughtfulness = () => {
 		const result = aiResult.value
 		if (result == null) return
@@ -596,8 +628,12 @@
 				summary: result.summary,
 				todos: result.todos,
 				generated_at: result.generatedAt,
-				profile_hash: payloadHash(buildProfilePayload())
+				profile_hash: savedProfileHash()
 			} as any)
+		} catch (e) {
+			console.error('[EditProfile] thoughtfulness persist failed', e)
+		}
+	}
 		} catch (e) {
 			console.error('[EditProfile] thoughtfulness persist failed', e)
 		}
@@ -608,7 +644,7 @@
 			const cached = uni.getStorageSync(AI_THOUGHTFULNESS_KEY) as any
 			if (cached != null && typeof cached == 'object') {
 				aiResult.value = normalizeThoughtfulness(cached)
-				aiStale.value = cached.profile_hash != null && '' + cached.profile_hash != '' && '' + cached.profile_hash != payloadHash(buildProfilePayload())
+				aiStale.value = cached.profile_hash != null && '' + cached.profile_hash != '' && '' + cached.profile_hash != savedProfileHash()
 			}
 		} catch (e) {
 			console.error('[EditProfile] thoughtfulness cache read failed', e)
@@ -618,7 +654,7 @@
 			if (res.success && res.data != null) {
 				aiResult.value = res.data as ThoughtfulnessResult
 				aiError.value = ''
-				aiStale.value = false
+				aiStale.value = hasUnsavedProfileChanges()
 				persistThoughtfulness()
 			} else if (!res.success && aiResult.value == null) {
 				aiError.value = res.message != null ? '' + res.message : 'AI 用心度评审暂时不可用'
@@ -642,7 +678,7 @@
 				return false
 			}
 			aiResult.value = res.data as ThoughtfulnessResult
-			aiStale.value = false
+			aiStale.value = hasUnsavedProfileChanges()
 			persistThoughtfulness()
 			if (trigger == 'manual') uni.showToast({ title: 'AI 分析已更新', icon: 'success' })
 			return true
@@ -657,8 +693,13 @@
 			aiAnalyzing.value = false
 		}
 	}
-
-	const onAiRetry = () => { triggerThoughtfulness('manual', []) }
+	const onAiRetry = () => {
+		if (hasUnsavedProfileChanges()) {
+			uni.showToast({ title: '请先保存资料，再分析最新内容', icon: 'none' })
+			return
+		}
+		triggerThoughtfulness('manual', [])
+	}
 	const openAiFirstAnalysis = () => {
 		aiError.value = ''
 		aiFirstAnalysisVisible.value = true
@@ -1163,17 +1204,55 @@
 		}
 		uni.navigateTo({ url: '/pagesSub/profileExtra/certification?type=' + key })
 	}
+	const reviewIntroPolish = async () => {
+		const original = textValue(formData.value.introduction).trim()
+		if (original == '' || introPolishing.value) return
+		introPolishing.value = true
+		try {
+			const res = await polishPaperPlaneText(original, 'selfIntroduction', 'natural', 500)
+			if (res == null || !res.success || res.data == null) {
+				uni.showToast({ title: res != null && res.message != null ? '' + res.message : 'AI 润色失败，请稍后再试', icon: 'none' })
+				return
+			}
+			introPolishOriginal.value = res.data.original != null ? '' + res.data.original : original
+			introPolishProposed.value = res.data.polished != null ? '' + res.data.polished : original
+			const points = res.data.changedPoints != null && Array.isArray(res.data.changedPoints) ? res.data.changedPoints as any[] : []
+			introPolishChangedPoints.value = points.map((point: any) => '' + point)
+			introPolishChangesExpanded.value = false
+			introPolishVisible.value = true
+		} catch (e) {
+			uni.showToast({ title: '网络异常，AI 润色失败，请稍后再试', icon: 'none' })
+		} finally {
+			introPolishing.value = false
+		}
+	}
+	const closeIntroPolish = () => { introPolishVisible.value = false }
+	const adoptIntroPolish = () => {
+		const proposed = introPolishProposed.value.trim()
+		if (proposed == '') return
+		formData.value.introduction = proposed
+		if (aiHasData.value) aiStale.value = true
+		introPolishVisible.value = false
+		uni.showToast({ title: '已填入自我介绍，请确认后保存', icon: 'none' })
+	}
 	const saveIntroduction = async () => {
 		if (saving.value || uploadingMedia.value) return
 		saving.value = true
 		try {
-			const res = await apiUpdateProfile({ self_intro: textValue(formData.value.introduction) || null })
+			const introduction = textValue(formData.value.introduction)
+			const res = await apiUpdateProfile({ self_intro: introduction || null })
 			if (!res.success) {
 				uni.showToast({ title: res.message != null ? '' + res.message : '自我介绍保存失败', icon: 'none' })
 				return
 			}
+			try {
+				const saved = lastSavedPayloadJson.value != '' ? JSON.parse(lastSavedPayloadJson.value) : buildProfilePayload()
+				saved.self_intro = introduction || null
+				lastSavedPayloadJson.value = JSON.stringify(saved)
+			} catch (e) {}
 			await refreshCompletion()
 			uni.showToast({ title: '自我介绍已保存', icon: 'success' })
+			if (!isMemberEdit.value) triggerThoughtfulness('save', ['self_intro'])
 		} finally {
 			saving.value = false
 		}
@@ -1301,6 +1380,10 @@
 		}
 		return payload
 	}
+	watch(() => JSON.stringify(buildProfilePayload()), (current: string) => {
+		if (isMemberEdit.value || !profileLoaded.value || !aiHasData.value || lastSavedPayloadJson.value == '') return
+		aiStale.value = current != lastSavedPayloadJson.value
+	})
 
 	const saveNickname = async () => {
 		if (saving.value || uploadingMedia.value) return
@@ -1541,4 +1624,16 @@
 @media (max-width: 350px) { .scroll-content { padding-left: 12px; padding-right: 12px; } .section-card { padding: 13px 14px; } }
 .nav-back { width: 40px; height: 40px; border-radius: 20px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; }
 .nav-back-icon { font-size: 16px; line-height: 1; color: var(--ink); }
+.intro-polish-action { min-height: 28px; padding: 4px 12px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--sage-soft); color: var(--sage); font-size: 12px; font-weight: 700; }
+.intro-polish-action.disabled { opacity: 0.45; }
+.intro-polish-panel { height: auto; max-height: 82vh; }
+.intro-polish-body { max-height: 58vh; padding: 0 18px 18px; box-sizing: border-box; }
+.intro-polish-note { display: block; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.intro-polish-label { display: block; margin-top: 16px; color: var(--accent2); font-size: 12px; font-weight: 700; }
+.intro-polish-copy { display: block; margin-top: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink2); font-size: 13px; line-height: 1.6; }
+.intro-polish-proposed { background: var(--accent-bg); color: var(--ink); }
+.intro-polish-changes { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: var(--warm); }
+.intro-polish-change-heading { display: flex; flex-direction: row; align-items: center; justify-content: space-between; color: var(--ink2); font-size: 12px; font-weight: 700; }
+.intro-polish-change-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.intro-polish-change { color: var(--muted); font-size: 11px; line-height: 1.5; }
 </style>

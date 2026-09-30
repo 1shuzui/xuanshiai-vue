@@ -11,6 +11,7 @@
 
 		<view v-else class="ai-result">
 			<view v-if="errorMessage != ''" class="ai-inline-error"><text class="ai-inline-error-mark">!</text><view class="ai-inline-error-copy"><text class="ai-inline-error-title">本次分析没有完成</text><text class="ai-inline-error-message">{{ errorMessage }}</text></view></view>
+			<view v-if="stale" class="ai-stale"><text class="ai-stale-title">资料有尚未保存的更新</text><text class="ai-stale-copy">当前结果基于上次保存的资料。保存后再分析，才能覆盖这次修改。</text></view>
 			<view class="ai-result-intro"><view class="ai-result-copy"><text class="ai-result-kicker">资料评阅完成</text><text class="ai-result-title">{{ scoreTag }}</text><text class="ai-summary">{{ summary }}</text></view><view class="ai-result-score"><text class="ai-result-score-number">{{ score }}</text><text class="ai-result-score-label">用心度参考</text></view></view>
 			<view class="ai-todo-heading" v-if="visibleTodos.length > 0"><text class="ai-todo-heading-title">TODO LIST</text><view class="ai-todo-heading-toggle" v-if="todos.length > 3" @tap="expanded = !expanded"><text>{{ expanded ? '收起' : '展开' }}</text><text class="ai-todo-heading-chevron">{{ expanded ? '⌃' : '⌄' }}</text></view></view>
 			<view class="ai-todos" v-if="visibleTodos.length > 0"><view class="ai-todo-block" v-for="todo in visibleTodos" :key="todo.key" @tap="onTodoTap(todo.key)"><view class="ai-todo-main"><text class="ai-todo-bullet">•</text><text class="ai-todo-label">{{ todo.label }}</text><view class="ai-todo-action"><text>去优化</text><text class="ai-todo-arrow">›</text></view></view><text class="ai-todo-advice">{{ todo.advice }}</text></view></view>
@@ -58,6 +59,9 @@
 	.ai-inline-error-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 	.ai-inline-error-title { color: var(--ink); font-size: 11px; font-weight: 700; }
 	.ai-inline-error-message { display: -webkit-box; margin-top: 3px; color: var(--ink2); font-size: 10px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; word-break: break-all; }
+	.ai-stale { margin-bottom: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+	.ai-stale-title { display: block; color: var(--ink); font-size: 11px; font-weight: 700; }
+	.ai-stale-copy { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.55; }
 	.ai-empty { padding-top: 18px; }
 	.ai-empty-main { display: flex; flex-direction: row; align-items: center; gap: 14px; }
 	.ai-empty-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; }
