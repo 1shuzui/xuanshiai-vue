@@ -60,6 +60,10 @@ git diff --check
 
 ## 交接与提交
 
+上游草稿 PR：[前端 #28](https://github.com/kx-learn/xuanshiai-vue/pull/28)、[后端 #46](https://github.com/kx-learn/xuanshiai/pull/46)。两者是配套交付，不把新版前端单独指向未包含这些接口的旧后端。
+
+前端首次远端 CI（提交 `cd5889c`，运行 `36996982760`）为 14 passed / 1 skipped / 1 failed：工作流固定 checkout 后端上游默认分支，缺少尚在后端 #46 的 `app/api/routes/message.py`，故真实消息契约检查失败。本地 16/16 是使用配套后端分支的结果，不能替代此远端结果。维护者应先审查、合入配套后端再重跑，或另行批准 CI 使用明确的配套后端提交；本次未绕过检查、改工作流或自动合并主线。另有上游原存的 `xuanshiai` gitlink 缺少 `.gitmodules` 的清理警告，不是本次新增，也不是当前测试退出原因。
+
 本次截图与机器结果分别保存在 [Demo 证据](demo/devtools-result.json) 和 [真实业务证据](business/devtools-result.json)。旧 `live-demo/`、`live-business/` 目录继续作为历史记录，不覆盖本次结论。
 
 详细业务、运行和提示词入口：[真实业务演练](../../直播真实业务演练说明.md)、[Demo 手册](../../直播Demo开发与演示说明.md)、[AI 协作提示词](../../ai-collaboration/直播模块协作提示词.md)。后端见 `docs/upstream-integration-20261002.md`。
